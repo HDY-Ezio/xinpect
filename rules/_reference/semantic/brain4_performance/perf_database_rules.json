@@ -1,0 +1,404 @@
+{
+    "metadata": {
+        "name": "性能-数据库优化规则",
+        "total_rules": 25
+    },
+    "rules": [
+        {
+            "id": "PERF-DB-001",
+            "name": "N+1查询问题：ORM关联未预加载",
+            "severity": "S1",
+            "category": "database",
+            "description": "ORM查询中访问关联对象时未使用eager loading（如include/join），每条记录触发一条额外的SELECT查询，N条记录产生N+1次查询",
+            "suggestion": "使用ORM的eager loading（.include()/.join()/.preload()）一次性加载关联数据；或使用JOIN查询替代多次独立查询",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.rb"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-002",
+            "name": "慢查询：缺少LIMIT导致全表扫描返回",
+            "severity": "S1",
+            "category": "database",
+            "description": "SELECT查询未设置LIMIT限制返回行数，大表查询可能返回数百万行数据，消耗大量内存和CPU，阻塞数据库连接",
+            "suggestion": "所有列表查询必须添加LIMIT限制（默认100-1000行）；大数据导出使用流式查询（cursor/stream）分批处理",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.sql"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-003",
+            "name": "索引缺失：WHERE条件字段未建索引",
+            "severity": "S1",
+            "category": "database",
+            "description": "SQL查询的WHERE条件字段未建立索引，数据库执行全表扫描（type=ALL），数据量大时查询耗时从毫秒级退化到秒级",
+            "suggestion": "使用EXPLAIN分析查询计划，对WHERE条件字段、JOIN关联字段、ORDER BY排序字段创建合适的索引；遵循最左前缀原则设计复合索引",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-004",
+            "name": "连接池配置不当：max_connections过小或过大",
+            "severity": "S2",
+            "category": "database",
+            "description": "数据库连接池max_connections设置过小导致请求排队等待连接；设置过大导致数据库服务器连接数超限、内存耗尽",
+            "suggestion": "连接池大小设为CPU核心数*2+磁盘数（PostgreSQL建议）；配置连接超时（如30s）和空闲回收时间（如600s）；监控连接池使用率",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.yml",
+                "*.properties"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-005",
+            "name": "事务范围过大包含非DB操作",
+            "severity": "S2",
+            "category": "database",
+            "description": "数据库事务中包含了HTTP调用、文件IO、外部API请求等非数据库操作，事务持有期间长时间占用数据库连接和行锁",
+            "suggestion": "缩小事务范围，仅包含数据库操作；在事务外执行HTTP调用和文件处理；使用编程式事务精确控制事务边界",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-006",
+            "name": "批量INSERT使用逐条执行",
+            "severity": "S2",
+            "category": "database",
+            "description": "批量插入数据使用循环逐条执行INSERT语句，每条INSERT都产生一次网络往返和事务开销，1000条数据需要1000次RTT",
+            "suggestion": "使用批量INSERT（INSERT INTO t VALUES (...),(...),...）一次插入多行；或使用LOAD DATA/BATCH操作；单次批量建议500-2000行",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.sql"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-007",
+            "name": "SELECT *返回不需要的大字段",
+            "severity": "S2",
+            "category": "database",
+            "description": "使用SELECT *查询包含TEXT/BLOB大字段（如文章内容、base64图片），但业务仅需id和标题，大量无用数据占用网络和内存",
+            "suggestion": "明确指定需要的字段（SELECT id, title, created_at）；大字段使用延迟加载策略，仅在详情页按需查询",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.sql"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-008",
+            "name": "隐式类型转换导致索引失效",
+            "severity": "S2",
+            "category": "database",
+            "description": "查询条件字段类型与列类型不匹配（如WHERE varchar_col=123，WHERE int_col='123'），数据库执行隐式类型转换导致索引失效退化为全表扫描",
+            "suggestion": "确保查询参数类型与数据库列类型严格匹配；字符串列用字符串参数，数字列用数字参数；使用ORM的类型校验功能",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-009",
+            "name": "未使用EXPLAIN分析查询性能",
+            "severity": "S2",
+            "category": "database",
+            "description": "生产环境出现慢查询但未使用EXPLAIN/EXPLAIN ANALYZE分析查询计划，无法定位性能瓶颈（全表扫描、文件排序、临时表等）",
+            "suggestion": "对所有复杂查询使用EXPLAIN分析执行计划；关注type（避免ALL）、key（确认索引命中）、rows（扫描行数）、Extra（Using filesort等）",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-010",
+            "name": "LIKE '%keyword%'前缀模糊导致索引失效",
+            "severity": "S2",
+            "category": "database",
+            "description": "使用LIKE '%keyword%'通配符在关键词前做模糊匹配，数据库无法使用B-Tree索引加速查找，退化为全表扫描",
+            "suggestion": "改用LIKE 'keyword%'利用索引前缀匹配；全文搜索使用FULLTEXT索引或Elasticsearch等专用搜索引擎",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-011",
+            "name": "数据库死锁：事务获取锁顺序不一致",
+            "severity": "S1",
+            "category": "database",
+            "description": "多个事务以不同顺序获取行锁/表锁（事务A锁行1再锁行2，事务B锁行2再锁行1），产生死锁导致事务回滚和重试",
+            "suggestion": "统一事务中获取锁的顺序（如按主键ID排序后依次获取）；设置锁等待超时（innodb_lock_wait_timeout）；捕获死锁异常实现自动重试",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.sql"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-012",
+            "name": "缺少复合索引导致多条件查询低效",
+            "severity": "S2",
+            "category": "database",
+            "description": "查询涉及多个WHERE条件（如status=? AND created_at>? AND user_id=?）但只有单列索引，数据库只能命中一个索引后回表过滤",
+            "suggestion": "为高频组合查询条件创建复合索引，遵循最左前缀原则将区分度高的字段放在前面；定期使用慢查询日志发现缺失索引",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-013",
+            "name": "COUNT(*)大表全表计数性能差",
+            "severity": "S2",
+            "category": "database",
+            "description": "对大表执行COUNT(*)统计总行数，InnoDB需要遍历索引计数，百万级表耗时可达数秒，分页场景频繁调用严重影响性能",
+            "suggestion": "大表总数使用估算值（EXPLAIN的rows）或缓存计数（Redis维护）；分页使用游标分页（WHERE id>last_id LIMIT n）替代OFFSET",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-014",
+            "name": "OFFSET深分页性能随页数线性退化",
+            "severity": "S2",
+            "category": "database",
+            "description": "使用LIMIT offset, size做分页查询，OFFSET越大数据库需要跳过的行数越多（OFFSET 100000需扫描100000+size行），性能线性退化",
+            "suggestion": "使用游标分页（WHERE id > last_seen_id ORDER BY id LIMIT size）替代OFFSET；或使用延迟关联（先查ID再关联取数据）",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-015",
+            "name": "未使用预编译语句(PreparedStatement)重复解析SQL",
+            "severity": "S3",
+            "category": "database",
+            "description": "每次执行SQL都拼接字符串发送完整SQL语句，数据库每次都需要解析SQL、生成执行计划，无法利用查询缓存",
+            "suggestion": "使用PreparedStatement/参数化查询，SQL模板只解析一次后复用执行计划；同时防止SQL注入攻击",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-016",
+            "name": "长事务持有行锁阻塞其他写操作",
+            "severity": "S1",
+            "category": "database",
+            "description": "事务中包含大量计算或等待外部资源（如用户输入确认），长时间持有行锁导致其他写操作排队等待，严重时导致连接池耗尽",
+            "suggestion": "保持事务尽可能短（毫秒级）；将计算和IO操作移到事务外；需要乐观锁场景使用版本号替代行级锁",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-017",
+            "name": "ORDER BY未命中索引导致文件排序",
+            "severity": "S2",
+            "category": "database",
+            "description": "ORDER BY排序字段未建索引，数据库需要将全部结果加载到内存中排序（Using filesort），大数据集时消耗大量内存和CPU",
+            "suggestion": "为ORDER BY字段创建索引，确保排序方向与索引一致；复合排序使用复合索引覆盖所有排序字段",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-018",
+            "name": "子查询使用不当可改写为JOIN",
+            "severity": "S3",
+            "category": "database",
+            "description": "使用相关子查询（Subquery）在WHERE中逐行关联查询，每条外层记录都执行一次子查询，性能远低于等价的JOIN写法",
+            "suggestion": "将相关子查询改写为JOIN查询；使用EXISTS替代IN子查询（EXISTS找到第一条匹配即返回）；大表关联确保关联字段有索引",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-019",
+            "name": "数据库连接泄漏未正确关闭",
+            "severity": "S1",
+            "category": "database",
+            "description": "数据库连接在使用后未正确关闭（如异常发生时跳过close调用），连接泄漏累积最终耗尽连接池导致服务不可用",
+            "suggestion": "使用try-with-resources（Java）、using语句（C#）、contextmanager（Python）确保连接在finally中关闭；使用连接池自动回收",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-020",
+            "name": "冗余索引和重复索引浪费存储空间和写入性能",
+            "severity": "S3",
+            "category": "database",
+            "description": "表中存在大量冗余索引（如(a)和(a,b)重复），每个索引增加写入时的维护成本和存储空间，降低INSERT/UPDATE性能",
+            "suggestion": "定期使用工具（pt-duplicate-key-checker、sys.schema_redundant_indexes）清理冗余索引；合并可覆盖的单一索引为复合索引",
+            "applicable_files": [
+                "*.sql"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-021",
+            "name": "UPDATE/DELETE影响行数未限制",
+            "severity": "S1",
+            "category": "database",
+            "description": "UPDATE或DELETE语句未设置LIMIT限制，可能一次性修改/删除数十万行数据，长时间持有大量行锁并产生大量undo日志",
+            "suggestion": "大批量更新/删除分批执行（每次1000-5000行），批次间添加短暂延迟减少对主库的影响；先在测试环境确认影响行数",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-022",
+            "name": "读写分离未配置：读操作占用主库资源",
+            "severity": "S2",
+            "category": "database",
+            "description": "所有数据库读写操作都发往主库，大量报表查询、列表查询等读操作占用主库CPU和IO资源，影响写入性能",
+            "suggestion": "配置读写分离，读操作路由到从库（replica）；使用数据库中间件（ProxySQL、MyCat）自动分流；确保从库延迟可接受",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-023",
+            "name": "GROUP BY字段未建索引导致临时表排序",
+            "severity": "S2",
+            "category": "database",
+            "description": "GROUP BY聚合查询的分组字段未建索引，数据库需要创建临时表并排序完成分组操作（Using temporary; Using filesort）",
+            "suggestion": "为GROUP BY字段创建索引加速分组操作；大表聚合考虑使用预聚合表或物化视图缓存统计结果",
+            "applicable_files": [
+                "*.sql",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-024",
+            "name": "ORM懒加载在序列化时触发大量查询",
+            "severity": "S2",
+            "category": "database",
+            "description": "ORM模型的关联对象默认为懒加载，JSON序列化时访问每个关联属性都触发一次数据库查询（循环中的N+1问题）",
+            "suggestion": "序列化前使用eager loading预加载需要的关联；或使用DTO/VO对象只查询和序列化需要的字段，避免模型直接序列化",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-DB-025",
+            "name": "数据库表未设置合适的字符集和排序规则",
+            "severity": "S3",
+            "category": "database",
+            "description": "表使用utf8mb4_unicode_ci排序规则但业务仅需ASCII匹配，或在关联查询中两张表的字符集/排序规则不一致导致索引失效",
+            "suggestion": "统一表的字符集和排序规则（推荐utf8mb4_general_ci或utf8mb4_0900_ai_ci）；确保JOIN字段使用相同的字符集和排序规则",
+            "applicable_files": [
+                "*.sql"
+            ],
+            "pattern": ""
+        }
+    ]
+}

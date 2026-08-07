@@ -1,0 +1,45 @@
+{
+  "rules": [
+    {
+      "id": "DEP-OPT-001",
+      "name": "存在未使用的依赖",
+      "severity": "medium",
+      "category": "dependency_optimization",
+      "description": "package.json/requirements.txt/pom.xml中声明的依赖在代码中未被import或使用，增加了安装时间和供应链风险。",
+      "suggestion": "使用depcheck（JS）/pipdeptree（Python）/mvn dependency:analyze（Java）检测未使用依赖；从配置文件中移除。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt",
+        "pom.xml",
+        "go.mod",
+        "*.csproj",
+        "Gemfile"
+      ]
+    },
+    {
+      "id": "DEP-OPT-002",
+      "name": "可使用更轻量替代的依赖",
+      "severity": "low",
+      "category": "dependency_optimization",
+      "description": "引入了功能庞大但仅使用少量功能的依赖包（如引入lodash全库但只用了map和filter、引入moment.js但只用了格式化）。",
+      "suggestion": "使用按需引入（lodash-es/map）或更轻量的替代（dayjs替代moment、date-fns替代moment、原生方法替代underscore）。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt",
+        "pom.xml",
+        "go.mod"
+      ]
+    },
+    {
+      "id": "DEP-OPT-003",
+      "name": "devDependencies混入生产依赖",
+      "severity": "medium",
+      "category": "dependency_optimization",
+      "description": "将仅开发时使用的依赖（如测试框架、类型定义、构建工具）放在了dependencies而非devDependencies中，增加生产包体积。",
+      "suggestion": "将测试框架（jest/mocha）、类型定义（@types/*）、构建工具（webpack/eslint）移到devDependencies；使用npm install --production部署。",
+      "applicable_files": [
+        "package.json"
+      ]
+    }
+  ]
+}

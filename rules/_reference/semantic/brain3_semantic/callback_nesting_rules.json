@@ -1,0 +1,132 @@
+{
+  "rules": [
+    {
+      "id": "SEM-CB-001",
+      "name": "回调嵌套超过3层（Callback Hell）",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "回调函数嵌套超过3层，形成金字塔形代码结构。代码可读性极差，错误处理困难。",
+      "suggestion": "使用Promise链替代嵌套回调；使用async/await将异步代码写为同步风格；使用async库管理复杂异步流程。"
+    },
+    {
+      "id": "SEM-CB-002",
+      "name": "Promise链中混用async/await",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "在async函数中既使用await又使用.then()链。.then()中的错误不会被外层try/catch捕获。",
+      "suggestion": "统一使用async/await风格处理异步操作，避免混用.then()和await。"
+    },
+    {
+      "id": "SEM-CB-003",
+      "name": "条件嵌套超过4层",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "if/else嵌套超过4层，每增加一层嵌套，代码的复杂度指数增长。",
+      "suggestion": "使用提前返回(guard clause)减少嵌套；提取子函数降低嵌套层级。"
+    },
+    {
+      "id": "SEM-CB-004",
+      "name": "循环内嵌套异步操作",
+      "severity": "high",
+      "category": "callback-nesting",
+      "description": "在for/forEach循环中执行异步操作但未正确等待：forEach中直接调用async函数。循环不会等待每次迭代完成。",
+      "suggestion": "使用for...of配合await串行执行；使用Promise.all配合map并行执行。"
+    },
+    {
+      "id": "SEM-CB-005",
+      "name": "事件处理器中包含复杂业务逻辑",
+      "severity": "low",
+      "category": "callback-nesting",
+      "description": "事件处理函数(onClick、onChange)中直接编写复杂的业务逻辑(超过20行)。事件处理器与业务逻辑耦合。",
+      "suggestion": "将业务逻辑提取到独立的Service/Handler函数中，事件处理器只做事件转发。"
+    },
+    {
+      "id": "SEM-CB-006",
+      "name": "递归无终止保护",
+      "severity": "high",
+      "category": "callback-nesting",
+      "description": "递归函数缺少终止条件或终止条件不正确，导致无限递归和StackOverflowError。",
+      "suggestion": "确保递归有明确的终止条件；添加递归深度计数器作为安全保护。"
+    },
+    {
+      "id": "SEM-CB-007",
+      "name": "闭包中捕获循环变量的问题",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "循环中创建闭包捕获循环变量(var i)，所有闭包共享同一个变量引用。循环结束时所有闭包看到的都是最终值。",
+      "suggestion": "使用let代替var声明循环变量；使用IIFE立即执行函数创建独立作用域。"
+    },
+    {
+      "id": "SEM-CB-008",
+      "name": "嵌套try-catch块",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "try-catch块中嵌套了另一个try-catch块，异常处理逻辑变得复杂混乱。",
+      "suggestion": "合并异常处理逻辑；将嵌套的try-catch提取为独立函数。"
+    },
+    {
+      "id": "SEM-CB-009",
+      "name": "过深的模板/JSX嵌套",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "前端模板(HTML/JSX)嵌套超过5层。DOM结构过深影响渲染性能和可维护性。",
+      "suggestion": "将深层嵌套的模板提取为独立组件；使用扁平化结构设计。"
+    },
+    {
+      "id": "SEM-CB-010",
+      "name": "中间件链嵌套过深（Express/Koa）",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "Express中间件内部执行了异步操作并嵌套了额外的处理逻辑。中间件的嵌套深度不可控。",
+      "suggestion": "使用中间件编排模式；将复杂逻辑提取到Service层。"
+    },
+    {
+      "id": "SEM-CB-011",
+      "name": "嵌套的集合操作（map/filter/reduce内嵌）",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "集合操作中嵌套了另一个集合操作：list.map(x => items.filter(y => y.id === x.id))。时间复杂度为O(n*m)。",
+      "suggestion": "使用Map/Set进行O(1)查找；将嵌套操作拆分为多步处理。"
+    },
+    {
+      "id": "SEM-CB-012",
+      "name": "React组件中嵌套过多条件渲染",
+      "severity": "medium",
+      "category": "callback-nesting",
+      "description": "JSX中嵌套多层条件渲染超过3层。条件渲染嵌套过深，JSX可读性极差。",
+      "suggestion": "使用提前返回模式；将条件渲染提取为独立组件。"
+    },
+    {
+      "id": "SEM-CB-013",
+      "name": "嵌套的泛型类型声明",
+      "severity": "low",
+      "category": "callback-nesting",
+      "description": "泛型类型嵌套过深：Map<String, List<Map<String, Optional<User>>>>。极难阅读。",
+      "suggestion": "使用类型别名简化嵌套泛型；拆分为多层类型定义。"
+    },
+    {
+      "id": "SEM-CB-014",
+      "name": "SQL查询中嵌套过多子查询",
+      "severity": "high",
+      "category": "callback-nesting",
+      "description": "SQL中嵌套超过3层子查询。查询性能极差且难以优化。",
+      "suggestion": "使用JOIN替代子查询；使用WITH子句(CTE)提高可读性。"
+    },
+    {
+      "id": "SEM-CB-015",
+      "name": "嵌套的配置/对象字面量超过4层",
+      "severity": "low",
+      "category": "callback-nesting",
+      "description": "配置对象或JSON字面量嵌套超过4层。深层嵌套的配置难以维护。",
+      "suggestion": "扁平化配置结构；使用工厂函数构建复杂对象。"
+    },
+    {
+      "id": "SEM-CB-016",
+      "name": "递归中使用全局/外部状态",
+      "severity": "high",
+      "category": "callback-nesting",
+      "description": "递归函数依赖全局变量或外部可变状态。并发调用时全局状态被多个递归实例共享，导致数据竞争。",
+      "suggestion": "将外部状态作为参数传递；使用纯函数避免副作用。"
+    }
+  ]
+}

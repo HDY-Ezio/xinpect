@@ -1,0 +1,93 @@
+{
+    "rules": [
+        {
+            "id": "PERF-COL-001",
+            "name": "使用数组进行频繁的查找/包含判断",
+            "severity": "medium",
+            "category": "collection-performance",
+            "description": "使用Array/List的includes/contains进行频繁的查找操作，时间复杂度为O(n)；当数据量大且查找频繁时应使用Set/Map（O(1)）。",
+            "suggestion": "将频繁查找的数组转换为Set（new Set(arr)）；需要键值查找时使用Map；对于有序数据使用二分查找。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-COL-002",
+            "name": "在数组头部频繁插入/删除元素",
+            "severity": "medium",
+            "category": "collection-performance",
+            "description": "使用Array.unshift()或在List头部插入/删除元素，每次操作需要移动所有后续元素，时间复杂度O(n)。",
+            "suggestion": "使用链表（LinkedList）替代数组实现队列；或使用双端队列（Deque）；在尾部操作后reverse。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-COL-003",
+            "name": "在循环中使用filter/map链式创建新数组",
+            "severity": "medium",
+            "category": "collection-performance",
+            "description": "对大数组连续使用多个filter/map/reduce，每次调用都创建新数组并遍历整个数据集，内存和时间开销倍增。",
+            "suggestion": "合并多个filter/map为单次遍历；使用for-of循环减少中间数组创建；对超大数据集考虑使用生成器/迭代器。",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-COL-004",
+            "name": "使用Object/Map作为队列（FIFO）",
+            "severity": "low",
+            "category": "collection-performance",
+            "description": "使用数组的shift()实现FIFO队列，每次shift操作O(n)；高频操作场景下性能较差。",
+            "suggestion": "使用双指针实现环形队列；使用专门的Queue/Deque数据结构；或使用链表实现。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-COL-005",
+            "name": "大集合的排序未指定比较函数",
+            "severity": "low",
+            "category": "collection-performance",
+            "description": "对包含数字的数组使用sort()但未提供比较函数，JavaScript默认按字符串字典序排序（如10排在2前面）。",
+            "suggestion": "始终为sort提供比较函数：arr.sort((a,b) => a-b)；或使用localeCompare处理字符串排序。",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-COL-006",
+            "name": "集合遍历中使用索引而非迭代器",
+            "severity": "low",
+            "category": "collection-performance",
+            "description": "对LinkedList等链表结构使用索引访问（list.get(i)），每次get从头遍历，总体O(n²)。",
+            "suggestion": "使用迭代器/增强for循环遍历链表结构；对需要随机访问的场景使用ArrayList。",
+            "applicable_files": [
+                "*.java",
+                "*.cs"
+            ],
+            "pattern": ""
+        }
+    ]
+}

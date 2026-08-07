@@ -1,0 +1,270 @@
+{
+  "metadata": {
+    "platform": "config_deploy",
+    "version": "1.0",
+    "author": "煋旺智能"
+  },
+  "rules": [
+    {
+      "check_id": "CD-001",
+      "name": "环境变量读取无默认值",
+      "severity": "high",
+      "category": "config",
+      "description": "os.environ['KEY']读取环境变量未提供默认值，缺失时直接崩溃",
+      "pattern": "os\\.environ\\s*\\[\\s*['\"][^'\"]+['\"]\\s*\\]",
+      "file_pattern": "*.py",
+      "suggestion": "使用os.getenv('KEY', default_value)提供默认值，或在启动时统一校验必需的环境变量",
+      "references": [
+        "https://docs.python.org/3/library/os.html#os.getenv"
+      ]
+    },
+    {
+      "check_id": "CD-002",
+      "name": "生产环境DEBUG模式未关闭",
+      "severity": "critical",
+      "category": "security",
+      "description": "DEBUG=True在生产环境暴露敏感调试信息，包括SQL查询、配置详情和完整堆栈",
+      "pattern": "DEBUG\\s*=\\s*True",
+      "file_pattern": "*.py",
+      "suggestion": "DEBUG设置应从环境变量读取，生产环境必须为False",
+      "references": [
+        "https://docs.djangoproject.com/en/stable/ref/settings/#debug",
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    },
+    {
+      "check_id": "CD-003",
+      "name": "Docker容器以root用户运行",
+      "severity": "high",
+      "category": "security",
+      "description": "Dockerfile未指定USER指令，容器默认以root身份运行，容器逃逸时风险极大",
+      "pattern": "^FROM\\s+\\S+",
+      "file_pattern": "Dockerfile*",
+      "suggestion": "在Dockerfile中添加USER指令，使用非root用户运行应用",
+      "references": [
+        "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user"
+      ]
+    },
+    {
+      "check_id": "CD-004",
+      "name": "Dockerfile缺少HEALTHCHECK",
+      "severity": "medium",
+      "category": "config",
+      "description": "Dockerfile未定义HEALTHCHECK指令，容器编排系统无法检测应用是否正常运行",
+      "pattern": "^FROM\\s+",
+      "file_pattern": "Dockerfile*",
+      "suggestion": "添加HEALTHCHECK指令定义健康检查命令和参数",
+      "references": [
+        "https://docs.docker.com/engine/reference/builder/#healthcheck"
+      ]
+    },
+    {
+      "check_id": "CD-005",
+      "name": "Dockerfile暴露敏感端口",
+      "severity": "high",
+      "category": "security",
+      "description": "EXPOSE暴露了数据库(3306/5432/6379/27017)或调试(9229)等敏感端口",
+      "pattern": "EXPOSE\\s+(?:3306|5432|6379|27017|9229|5005|2375)",
+      "file_pattern": "Dockerfile*",
+      "suggestion": "不要暴露内部服务端口；如必须暴露，通过docker网络策略限制访问",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    },
+    {
+      "check_id": "CD-006",
+      "name": "docker-compose中硬编码数据库密码",
+      "severity": "critical",
+      "category": "security",
+      "description": "docker-compose.yml中直接写入数据库密码等敏感信息，密码会进入版本控制",
+      "pattern": "(?:password|passwd|secret|api_key|token)\\s*:\\s*['\"][^$\\{][^'\"]*['\"]",
+      "file_pattern": "docker-compose*.yml",
+      "suggestion": "使用环境变量（${DB_PASSWORD}）或Docker secrets管理敏感配置",
+      "references": [
+        "https://docs.docker.com/compose/compose-file/compose-file-v3/#secrets"
+      ]
+    },
+    {
+      "check_id": "CD-007",
+      "name": "日志级别未配置或使用NOTSET",
+      "severity": "medium",
+      "category": "config",
+      "description": "日志级别未设置或设置为DEBUG级别，生产环境可能输出过多信息影响性能和磁盘",
+      "pattern": "logging\\.basicConfig\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "生产环境日志级别设置为INFO或WARNING，从环境变量读取日志级别",
+      "references": [
+        "https://docs.python.org/3/library/logging.html#logging-levels"
+      ]
+    },
+    {
+      "check_id": "CD-008",
+      "name": "Kubernetes容器未设置资源限制",
+      "severity": "high",
+      "category": "config",
+      "description": "K8s Pod定义未设置resources.limits，单个Pod可能耗尽节点资源",
+      "pattern": "kind:\\s*Pod",
+      "file_pattern": "*.yaml",
+      "suggestion": "为每个容器设置resources.requests和resources.limits（CPU和内存）",
+      "references": [
+        "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+      ]
+    },
+    {
+      "check_id": "CD-009",
+      "name": "Kubernetes容器以privileged模式运行",
+      "severity": "critical",
+      "category": "security",
+      "description": "Pod securityContext中设置privileged: true，容器获得宿主机完全权限",
+      "pattern": "privileged:\\s*true",
+      "file_pattern": "*.yaml",
+      "suggestion": "移除privileged: true，使用最小权限原则配置securityContext",
+      "references": [
+        "https://kubernetes.io/docs/concepts/security/pod-security-standards/"
+      ]
+    },
+    {
+      "check_id": "CD-010",
+      "name": "Nginx配置中server_tokens未关闭",
+      "severity": "medium",
+      "category": "security",
+      "description": "Nginx默认在响应头中暴露版本号，为攻击者提供信息",
+      "pattern": "server_tokens\\s+on",
+      "file_pattern": "nginx.conf",
+      "suggestion": "在http块中添加server_tokens off;隐藏版本号",
+      "references": [
+        "https://nginx.org/en/docs/http/ngx_http_core_module.html#server_tokens"
+      ]
+    },
+    {
+      "check_id": "CD-011",
+      "name": "健康检查端点缺失",
+      "severity": "medium",
+      "category": "config",
+      "description": "Web应用未定义/health或/healthz端点，负载均衡器和监控系统无法判断服务状态",
+      "pattern": "@(?:app|router)\\.(?:get|route)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "添加/health或/healthz端点返回服务状态和依赖检查结果",
+      "references": [
+        "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
+      ]
+    },
+    {
+      "check_id": "CD-012",
+      "name": "Dockerfile中使用latest标签",
+      "severity": "medium",
+      "category": "config",
+      "description": "FROM指令使用latest标签或无标签，构建结果不可复现",
+      "pattern": "^FROM\\s+\\S+:latest",
+      "file_pattern": "Dockerfile*",
+      "suggestion": "使用固定的版本标签（如python:3.11-slim），确保构建可复现",
+      "references": [
+        "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#from"
+      ]
+    },
+    {
+      "check_id": "CD-013",
+      "name": "Dockerfile中COPY整个项目目录",
+      "severity": "medium",
+      "category": "config",
+      "description": "COPY . .将整个项目目录（含.git/node_modules/.env）复制到镜像，增大镜像体积且泄露敏感文件",
+      "pattern": "COPY\\s+\\.\\s+\\.",
+      "file_pattern": "Dockerfile*",
+      "suggestion": "使用.dockerignore排除无关文件，按需COPY特定目录和文件",
+      "references": [
+        "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#exclude-with-dockerignore"
+      ]
+    },
+    {
+      "check_id": "CD-014",
+      "name": ".env文件未加入.gitignore",
+      "severity": "high",
+      "category": "security",
+      "description": ".env文件包含敏感配置，未加入.gitignore可能泄露到版本控制",
+      "pattern": "(?:DATABASE_URL|SECRET_KEY|API_KEY|REDIS_URL)\\s*=",
+      "file_pattern": ".env",
+      "suggestion": "确保.env在.gitignore中，使用.env.example作为模板",
+      "references": [
+        "https://12factor.net/config"
+      ]
+    },
+    {
+      "check_id": "CD-015",
+      "name": "CORS配置过于宽松",
+      "severity": "high",
+      "category": "security",
+      "description": "CORS设置为Access-Control-Allow-Origin: *，任意网站可以跨域调用API",
+      "pattern": "Access-Control-Allow-Origin['\"]?\\s*[:=]\\s*['\"]\\*['\"]",
+      "file_pattern": "*",
+      "suggestion": "将CORS限制为可信域名白名单，不要使用通配符*",
+      "references": [
+        "https://owasp.org/www-community/attacks/CORS_OriginHeaderScrutiny"
+      ]
+    },
+    {
+      "check_id": "CD-016",
+      "name": "HTTPS未强制重定向",
+      "severity": "high",
+      "category": "security",
+      "description": "Web服务器未配置HTTP到HTTPS的强制重定向，用户可能通过不安全的HTTP连接访问",
+      "pattern": "listen\\s+80",
+      "file_pattern": "nginx.conf",
+      "suggestion": "配置HTTP 80端口强制301重定向到HTTPS 443端口",
+      "references": [
+        "https://owasp.org/www-community/controls/HTTP_Strict_Transport_Security"
+      ]
+    },
+    {
+      "check_id": "CD-017",
+      "name": "生产环境使用默认SECRET_KEY",
+      "severity": "critical",
+      "category": "security",
+      "description": "Django/Flask等框架使用代码中硬编码的默认SECRET_KEY，可被预测导致session伪造",
+      "pattern": "SECRET_KEY\\s*=\\s*['\"][^'\"$\\{]+['\"]",
+      "file_pattern": "*.py",
+      "suggestion": "SECRET_KEY必须从环境变量读取，且每个环境使用不同的随机值",
+      "references": [
+        "https://docs.djangoproject.com/en/stable/ref/settings/#secret-key"
+      ]
+    },
+    {
+      "check_id": "CD-018",
+      "name": "数据库ALLOWED_HOSTS为空列表",
+      "severity": "high",
+      "category": "security",
+      "description": "Django ALLOWED_HOSTS为空列表，当DEBUG=False时会拒绝所有请求导致服务不可用",
+      "pattern": "ALLOWED_HOSTS\\s*=\\s*\\[\\s*\\]",
+      "file_pattern": "*.py",
+      "suggestion": "从环境变量读取ALLOWED_HOSTS列表，配置实际的域名",
+      "references": [
+        "https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts"
+      ]
+    },
+    {
+      "check_id": "CD-019",
+      "name": "Kubernetes中ConfigMap存储敏感信息",
+      "severity": "high",
+      "category": "security",
+      "description": "将密码、密钥等敏感信息存储在ConfigMap中而非Secret中，ConfigMap不做加密保护",
+      "pattern": "kind:\\s*ConfigMap",
+      "file_pattern": "*.yaml",
+      "suggestion": "敏感信息使用Secret资源类型，并启用etcd加密",
+      "references": [
+        "https://kubernetes.io/docs/concepts/configuration/secret/"
+      ]
+    },
+    {
+      "check_id": "CD-020",
+      "name": "日志输出到stdout但未配置日志轮转",
+      "severity": "medium",
+      "category": "config",
+      "description": "应用日志输出到stdout但容器/系统未配置日志轮转，长时间运行后日志文件占满磁盘",
+      "pattern": "print\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "配置日志轮转策略（如RotatingFileHandler）或在容器编排中设置日志大小限制",
+      "references": [
+        "https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler"
+      ]
+    }
+  ]
+}

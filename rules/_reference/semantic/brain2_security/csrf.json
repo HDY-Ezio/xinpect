@@ -1,0 +1,266 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "CSRF防护规则集 - 覆盖跨站请求伪造攻击与防御",
+    "total_rules": 16,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-051",
+      "name": "CSRF：状态变更请求未验证CSRF Token",
+      "severity": "critical",
+      "category": "csrf",
+      "description": "POST/PUT/DELETE等状态变更请求未验证CSRF Token，攻击者可构造恶意页面诱导用户提交请求，执行未授权操作。OWASP Top 10 A01:2021。",
+      "suggestion": "对所有状态变更请求验证CSRF Token；使用框架内置的CSRF防护(Spring Security、Django CSRF Middleware、Express的csurf)；将Token放在HTTP头(X-CSRF-Token)而非URL参数。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "SEC-052",
+      "name": "CSRF：GET请求执行状态变更",
+      "severity": "high",
+      "category": "csrf",
+      "description": "使用GET请求执行删除、修改等状态变更操作，容易被CSRF攻击(可通过<img src>、<link href>等方式触发)。",
+      "suggestion": "所有状态变更操作使用POST/PUT/DELETE方法；GET请求仅用于数据查询(幂等操作)；使用框架的方法路由限制(GET仅映射到查询操作)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "SEC-053",
+      "name": "CSRF：CSRF Token未与用户会话绑定",
+      "severity": "high",
+      "category": "csrf",
+      "description": "CSRF Token如果对所有用户相同(如全局固定Token)，攻击者可获取该Token并构造有效请求，CSRF防护失效。",
+      "suggestion": "为每个用户会话生成独立的CSRF Token；Token与会话ID绑定；定期轮换Token；使用Double Submit Cookie模式(将Token同时放在Cookie和请求参数中)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-054",
+      "name": "CSRF：SameSite Cookie属性未设置",
+      "severity": "medium",
+      "category": "csrf",
+      "description": "Cookie未设置SameSite属性，浏览器会在跨站请求中携带Cookie，导致CSRF攻击。现代浏览器默认SameSite=Lax但仍需明确设置。",
+      "suggestion": "为认证Cookie设置SameSite=Strict或SameSite=Lax；对需要跨站携带的Cookie使用SameSite=None+Secure；结合CSRF Token双重防护；对敏感操作使用二次验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "SEC-055",
+      "name": "CSRF：Referer/Origin头验证缺失",
+      "severity": "medium",
+      "category": "csrf",
+      "description": "未验证HTTP请求的Referer或Origin头，无法识别跨站请求。这是CSRF防护的补充手段。",
+      "suggestion": "验证Referer或Origin头是否来自可信域名；对敏感操作强制验证来源；注意Referer可能被隐私设置移除，需结合其他防护手段；使用白名单验证而非黑名单。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-056",
+      "name": "CSRF：API的CSRF防护",
+      "severity": "high",
+      "category": "csrf",
+      "description": "前后端分离的API如果仅依赖Cookie认证且未实现CSRF防护，容易受到CSRF攻击。特别是使用Cookie存储session ID的架构。",
+      "suggestion": "使用Token-based认证(Authorization: Bearer token)而非Cookie认证；如必须使用Cookie，配合CSRF Token或SameSite属性；对API使用自定义HTTP头(X-Requested-With)检测Ajax请求。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-057",
+      "name": "CSRF：JSON API的Content-Type验证",
+      "severity": "medium",
+      "category": "csrf",
+      "description": "某些CSRF攻击无法设置自定义Content-Type(如application/json)，可通过验证Content-Type识别合法请求。",
+      "suggestion": "对API强制验证Content-Type: application/json；拒绝text/plain、multipart/form-data等非预期类型；结合CORS预检请求(OPTIONS)验证；注意此方法非万能，需配合其他防护。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-058",
+      "name": "CSRF：Double Submit Cookie模式实现不当",
+      "severity": "medium",
+      "category": "csrf",
+      "description": "Double Submit Cookie模式(将Token同时放在Cookie和请求参数)如果Cookie未设置Secure和HttpOnly，或Token可预测，防护会失效。",
+      "suggestion": "使用加密或签名的Cookie Token；确保Cookie设置Secure标志；Token使用安全的随机数生成；结合SameSite属性增强防护；验证Token的有效期。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-059",
+      "name": "CSRF：WebSocket的CSRF防护",
+      "severity": "medium",
+      "category": "csrf",
+      "description": "WebSocket握手使用HTTP Upgrade，如果未验证Origin或使用Cookie认证，可能受到CSRF攻击建立恶意WebSocket连接。",
+      "suggestion": "在WebSocket握手时验证Origin头；对WebSocket使用Token认证而非Cookie；实现WebSocket连接的消息级认证；对敏感WebSocket操作要求二次确认。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-060",
+      "name": "CSRF：跨站请求的敏感操作",
+      "severity": "high",
+      "category": "csrf",
+      "description": "修改密码、邮箱、支付等敏感操作如果仅依赖CSRF Token而未进行二次验证，一旦CSRF防护被绕过后果严重。",
+      "suggestion": "对敏感操作要求二次验证(重新输入密码、短信验证码、2FA)；使用短有效期的CSRF Token；对敏感操作记录详细审计日志；实现操作确认页面。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-061",
+      "name": "CSRF：多标签页的CSRF Token同步",
+      "severity": "low",
+      "category": "csrf",
+      "description": "用户同时打开多个标签页时，如果CSRF Token在每次请求后轮换，可能导致其他标签页的Token失效，影响用户体验。",
+      "suggestion": "使用会话级Token(整个会话使用同一Token)而非请求级Token；或使用Ajax方式提交表单避免页面刷新；使用Double Submit Cookie模式避免Token同步问题。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-062",
+      "name": "CSRF：GraphQL的CSRF防护",
+      "severity": "medium",
+      "category": "csrf",
+      "description": "GraphQL通常使用单一POST端点，所有操作(查询和变更)都通过POST，需要特别关注CSRF防护。",
+      "suggestion": "对GraphQL的mutation操作验证CSRF Token；使用Apollo Client等库的CSRF防护机制；对GraphQL API使用Token认证；结合CORS和SameSite Cookie。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEC-063",
+      "name": "CSRF：自定义协议和移动端的CSRF",
+      "severity": "low",
+      "category": "csrf",
+      "description": "移动端应用或自定义协议(如myapp://)可能通过Deep Link触发CSRF攻击，调用应用内的敏感操作。",
+      "suggestion": "对Deep Link参数进行严格验证和清洗；对敏感操作要求二次认证；使用Intent Filter白名单限制可接受的Deep Link；对移动端API实现CSRF防护。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.swift",
+        "*.dart"
+      ]
+    },
+    {
+      "id": "SEC-064",
+      "name": "CSRF：OAuth和OpenID Connect的CSRF",
+      "severity": "high",
+      "category": "csrf",
+      "description": "OAuth授权流程(特别是Authorization Code Flow)如果未使用state参数验证，可能受到CSRF攻击，导致授权码被劫持。",
+      "suggestion": "在OAuth授权请求中使用随机state参数；验证回调时的state与请求时一致；使用PKCE(Proof Key for Code Exchange)增强安全性；对state使用加密或签名。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-065",
+      "name": "CSRF：微服务和内部API的CSRF",
+      "severity": "low",
+      "category": "csrf",
+      "description": "内部微服务API通常认为不受CSRF威胁，但如果暴露到公网或存在SSRF漏洞，仍可能受到CSRF攻击。",
+      "suggestion": "对内部API也实现认证和授权；使用服务间认证(mTLS、JWT)而非依赖网络隔离；对敏感内部操作实现审计日志；使用网络策略限制API访问来源。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-169",
+      "name": "CWE-352：跨站请求伪造(CSRF)",
+      "severity": "high",
+      "category": "csrf",
+      "description": "Web应用未验证请求来源，攻击者可构造恶意页面诱导用户提交请求，以用户身份执行未授权操作。",
+      "suggestion": "对所有状态变更请求验证CSRF Token；使用SameSite Cookie属性；对敏感操作要求二次验证；使用自定义HTTP头检测Ajax请求。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    }
+  ]
+}

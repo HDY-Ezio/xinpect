@@ -1,0 +1,74 @@
+{
+  "rules": [
+    {
+      "id": "B3-05-R001",
+      "name": "隐式类型转换导致逻辑错误",
+      "severity": "high",
+      "category": "type-safety",
+      "description": "使用==而非===进行JavaScript比较，隐式类型转换导致意外匹配（如0==''为true、null==undefined为true），产生逻辑错误。",
+      "suggestion": "始终使用===和!==进行比较；启用TypeScript strict模式；使用ESLint的eqeqeq规则。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "B3-05-R002",
+      "name": "不安全的类型断言/强转",
+      "severity": "high",
+      "category": "type-safety",
+      "description": "使用as（TypeScript）、(Type)（C#）、强制类型转换将对象转为不兼容类型，运行时可能出现方法不存在或属性访问失败。",
+      "suggestion": "使用类型守卫（type guard）进行运行时类型检查；使用instanceof判断；避免不必要的类型断言。",
+      "applicable_files": [
+        "*.ts",
+        "*.cs",
+        "*.java",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "B3-05-R003",
+      "name": "泛型参数推断错误",
+      "severity": "medium",
+      "category": "type-safety",
+      "description": "泛型函数调用时未显式指定类型参数，编译器推断的类型与实际使用不匹配，导致后续操作类型不安全。",
+      "suggestion": "显式指定泛型类型参数；检查推断结果是否符合预期；在复杂场景下使用类型注解明确约束。",
+      "applicable_files": [
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.kotlin"
+      ]
+    },
+    {
+      "id": "B3-05-R004",
+      "name": "数值精度丢失",
+      "severity": "high",
+      "category": "type-safety",
+      "description": "使用浮点数（float/double）进行金额、计数等精确计算，由于IEEE 754精度限制导致计算结果不准确（如0.1+0.2≠0.3）。",
+      "suggestion": "使用Decimal/BigDecimal类型处理金额；整数运算使用最小单位（分）；比较浮点数时使用epsilon容差。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B3-05-R005",
+      "name": "any/Object类型滥用绕过类型系统",
+      "severity": "medium",
+      "category": "type-safety",
+      "description": "大量使用any（TypeScript）、Object（Java）、interface{}（Go）等逃逸类型，绕过编译期类型检查，运行时可能出现类型错误。",
+      "suggestion": "定义具体的接口/类型替代any；使用泛型约束替代Object；启用strict/strictNullChecks。",
+      "applicable_files": [
+        "*.ts",
+        "*.java",
+        "*.go",
+        "*.cs"
+      ]
+    }
+  ]
+}

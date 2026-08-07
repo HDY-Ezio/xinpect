@@ -1,0 +1,210 @@
+{
+  "rules": [
+    {
+      "id": "PERF-A-001",
+      "name": "嵌套循环导致O(n²)或更高复杂度",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "两层或多层嵌套循环遍历大数据集，时间复杂度为O(n²)或O(n³)，数据量增大时性能急剧恶化",
+      "suggestion": "使用哈希表（Map/Set）将查找降为O(1)，或排序后使用双指针法降为O(nlogn)",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "PERF-A-002",
+      "name": "在循环中使用Array.includes/Object.keys做查找",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "循环内使用Array.includes()进行成员检测，每次检测O(n)；或使用Object.keys()每次重建键数组",
+      "suggestion": "将检测数组转为Set（O(1)查找），使用Object.hasOwn()替代key in object避免原型链遍历",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "PERF-A-003",
+      "name": "未使用二分查找处理有序数据",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "在有序数组中进行查找操作时使用线性遍历O(n)，而非二分查找O(logn)",
+      "suggestion": "有序数组查找使用二分查找算法，或使用内置方法如Array.prototype.find（需确认数据已排序）",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "PERF-A-005",
+      "name": "正则表达式在循环中重复编译",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "在循环内部每次创建新的RegExp对象（new RegExp(pattern)），正则表达式被重复编译",
+      "suggestion": "将正则表达式提取到循环外部作为常量，或使用字面量（/pattern/）让引擎自动缓存编译结果",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "PERF-A-006",
+      "name": "使用Array.filter().map()链式调用可合并",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "先filter再map的链式调用会遍历数组两次，大数据集时可合并为单次reduce遍历",
+      "suggestion": "使用reduce()合并filter+map为一次遍历；或对于大数据集使用for循环替代函数式链调用",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "PERF-A-007",
+      "name": "JSON序列化/反序列化作为数据转换方式",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "频繁使用JSON.parse/stringify做数据格式转换或深拷贝，序列化开销远大于直接数据处理",
+      "suggestion": "直接使用Object.assign/展开运算符做浅拷贝，或使用structuredClone；避免用JSON做类型转换中介",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "PERF-A-008",
+      "name": "重复计算可缓存的结果",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "相同输入多次调用纯函数进行重复计算（如复杂的格式化、数据聚合），浪费CPU资源",
+      "suggestion": "使用memoize缓存纯函数结果（如lodash.memoize、useMemo），或预先计算并存储",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "PERF-A-009",
+      "name": "大数据排序使用不稳定的自定义比较函数",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "大数据集排序的比较函数过于复杂（如内含字符串解析、日期转换），每次比较都执行昂贵操作",
+      "suggestion": "排序前预先计算排序键（Schwartzian transform），使用简单比较函数；或使用索引排序",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "PERF-A-010",
+      "name": "嵌套对象深度遍历无提前终止",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "深度遍历嵌套对象/树结构查找目标节点，找到后仍继续遍历所有分支",
+      "suggestion": "查找到目标后立即返回/抛出异常终止遍历；或使用BFS配合提前终止条件",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "PERF-A-011",
+      "name": "不必要的深比较操作",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "使用深比较（deep equal）检测对象是否变化，每次比较递归遍历所有属性，复杂度高",
+      "suggestion": "使用不可变数据（immutable）通过引用比较（===）替代深比较；或添加版本号/hash字段快速判断",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "PERF-A-012",
+      "name": "Map/Reduce操作未利用并行化",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "大规模数据的Map/Reduce操作在单线程串行执行，未利用多核CPU并行加速",
+      "suggestion": "使用Worker Pool/线程池并行处理数据分片，或使用Promise.all并发处理独立子任务",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "PERF-A-013",
+      "name": "使用for...in遍历数组",
+      "severity": "S2",
+      "category": "algorithm",
+      "description": "使用for...in遍历数组会遍历所有可枚举属性（含原型链上的），且顺序不保证",
+      "suggestion": "使用for...of遍历数组值，或使用forEach/map/filter等数组方法；for...in仅用于对象属性遍历",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "PERF-A-014",
+      "name": "树形结构递归查找可改为迭代+栈",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "对深层嵌套的树形结构使用递归查找，调用栈深度与树深度成正比，深层树有栈溢出风险",
+      "suggestion": "使用显式栈（数组模拟）+迭代方式遍历树，避免调用栈限制；或使用BFS逐层搜索",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "PERF-A-015",
+      "name": "频繁使用Array.concat合并大数组",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "多次使用Array.concat()合并大数组，每次concat创建新数组并复制所有元素，总开销O(n*m)",
+      "suggestion": "使用Array.push(...items)就地追加，或预先分配数组长度后填充；大数据集考虑TypedArray",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "PERF-A-016",
+      "name": "日期解析在循环中重复执行",
+      "severity": "S3",
+      "category": "algorithm",
+      "description": "循环中对相同或重复的日期字符串反复调用new Date()解析，日期解析是相对昂贵的操作",
+      "suggestion": "预先解析日期并缓存时间戳，或使用Date.parse()快速比较；相同日期字符串只解析一次",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    }
+  ]
+}

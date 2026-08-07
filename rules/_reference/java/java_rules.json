@@ -1,0 +1,203 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "language_specific",
+    "generated": "2026-08",
+    "description": "Java语言特有规则，涵盖NPE防护、资源管理、线程安全、Spring框架陷阱、JPA性能、安全漏洞等Java高频问题",
+    "total_rules": 20,
+    "standards_reference": [
+      "Effective Java - Joshua Bloch",
+      "Java Concurrency in Practice",
+      "Spring Framework Reference",
+      "OWASP Java Security Guide"
+    ]
+  },
+  "rules": [
+    {
+      "id": "JAVA-001",
+      "name": "NullPointerException未防护",
+      "severity": "high",
+      "category": "null_safety",
+      "description": "方法返回值、集合元素、链式调用未进行空值检查就直接使用，导致运行时NullPointerException。NPE是Java生产环境中最常见的异常，占比超过30%。在多线程环境下，即使之前检查过非空，对象也可能被其他线程置为null。",
+      "suggestion": "使用Optional、@NonNull注解、Objects.requireNonNull()或显式空值检查。\n\n// 错误示例\npublic String getUserName(User user) {\n    return user.getAddress().getCity().getName(); // 任一环节为null则NPE\n}\n\n// 正确示例1 - Optional\npublic String getUserName(User user) {\n    return Optional.ofNullable(user)\n        .map(User::getAddress)\n        .map(Address::getCity)\n        .map(City::getName)\n        .orElse(\"未知\");\n}\n\n// 正确示例2 - 方法入口校验\npublic void processOrder(@NonNull Order order) {\n    Objects.requireNonNull(order, \"order不能为null\");\n    Objects.requireNonNull(order.getId(), \"orderId不能为null\");\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-002",
+      "name": "资源未在finally或try-with-resources中关闭",
+      "severity": "high",
+      "category": "resource_leak",
+      "description": "InputStream、OutputStream、Connection、Statement、ResultSet等可关闭资源未使用try-with-resources或在finally中关闭。当发生异常时，资源永远不会被释放，导致文件句柄泄漏、数据库连接泄漏、内存溢出。在长时间运行的应用中，这类泄漏会逐步累积最终导致系统崩溃。",
+      "suggestion": "始终使用try-with-resources语句自动关闭资源。\n\n// 错误示例\npublic String readFile(String path) throws IOException {\n    BufferedReader reader = new BufferedReader(new FileReader(path));\n    String line = reader.readLine(); // 若此处抛异常，reader不会关闭\n    reader.close(); // 可能永远执行不到\n    return line;\n}\n\n// 正确示例\npublic String readFile(String path) throws IOException {\n    try (BufferedReader reader = new BufferedReader(new FileReader(path))) {\n        return reader.readLine();\n    } // reader自动关闭，即使发生异常\n}\n\n// 数据库连接\npublic User findUser(Long id) {\n    try (Connection conn = dataSource.getConnection();\n         PreparedStatement ps = conn.prepareStatement(\"SELECT * FROM user WHERE id=?\")) {\n        ps.setLong(1, id);\n        try (ResultSet rs = ps.executeQuery()) {\n            return rs.next() ? mapUser(rs) : null;\n        }\n    }\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-003",
+      "name": "equals()比较顺序错误导致NPE",
+      "severity": "medium",
+      "category": "null_safety",
+      "description": "使用可能为null的变量调用equals()方法，当变量为null时抛出NullPointerException。常见于字符串比较、枚举比较等场景。例如 user.getStatus().equals(\"ACTIVE\")，当status为null时崩溃。",
+      "suggestion": "将常量或确定非null的值放在equals()左侧，或使用Objects.equals()、StringUtils.equals()。\n\n// 错误示例\nif (user.getStatus().equals(\"ACTIVE\")) { ... }\nif (user.getRole().equals(Role.ADMIN)) { ... }\n\n// 正确示例1 - 常量在左\nif (\"ACTIVE\".equals(user.getStatus())) { ... }\nif (Role.ADMIN.equals(user.getRole())) { ... }\n\n// 正确示例2 - Objects.equals\nif (Objects.equals(user.getStatus(), \"ACTIVE\")) { ... }\n\n// 正确示例3 - 枚举直接用==\nif (user.getRole() == Role.ADMIN) { ... }",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-004",
+      "name": "HashMap线程安全问题",
+      "severity": "high",
+      "category": "concurrency",
+      "description": "在多线程环境中使用HashMap作为共享变量，多线程同时put操作可能导致死循环（JDK 7）或数据丢失（JDK 8+）。HashMap不是线程安全的，并发修改时内部结构可能被破坏。即使使用Collections.synchronizedMap()也有性能问题。",
+      "suggestion": "多线程场景使用ConcurrentHashMap。只读共享使用ImmutableMap或Collections.unmodifiableMap()。\n\n// 错误示例\nprivate Map<String, Object> cache = new HashMap<>();\n// 多线程同时调用 cache.put() 导致数据竞争\n\n// 正确示例1 - ConcurrentHashMap\nprivate ConcurrentMap<String, Object> cache = new ConcurrentHashMap<>();\n\n// 正确示例2 - 使用computeIfAbsent原子操作\nObject value = cache.computeIfAbsent(key, k -> loadFromDb(k));\n\n// 注意：ConcurrentHashMap不支持null key和null value\n// 错误：cache.put(null, value); // 抛NPE\n// 错误：cache.put(key, null);   // 抛NPE",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-005",
+      "name": "循环中使用+拼接字符串",
+      "severity": "medium",
+      "category": "performance",
+      "description": "在循环中使用+操作符拼接字符串，每次拼接都会创建新的String对象和StringBuilder实例，产生大量临时对象，增加GC压力。循环次数多时性能极差，1000次拼接产生的对象是StringBuilder方式的1000倍。",
+      "suggestion": "使用StringBuilder（单线程）或StringBuffer（多线程），或使用Stream.collect(joining())。\n\n// 错误示例\nString result = \"\";\nfor (String item : items) {\n    result += item + \",\"; // 每次循环创建新对象\n}\n\n// 正确示例1 - StringBuilder\nStringBuilder sb = new StringBuilder(items.size() * 16);\nfor (String item : items) {\n    sb.append(item).append(\",\");\n}\nString result = sb.toString();\n\n// 正确示例2 - Stream\nString result = items.stream().collect(Collectors.joining(\",\"));\n\n// 正确示例3 - StringJoiner\nStringJoiner joiner = new StringJoiner(\", \");\nitems.forEach(joiner::add);",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-006",
+      "name": "日期API使用不当",
+      "severity": "medium",
+      "category": "thread_safety",
+      "description": "使用java.util.Date、java.util.Calendar或SimpleDateFormat，这些类都是线程不安全的。SimpleDateFormat在多线程共享实例时会导致日期解析错误或异常。Date类的API设计混乱（月份从0开始、年份减1900），容易引入逻辑bug。",
+      "suggestion": "使用Java 8+的java.time包（LocalDate、LocalDateTime、DateTimeFormatter），这些都是不可变且线程安全的。\n\n// 错误示例\nprivate static final SimpleDateFormat SDF = new SimpleDateFormat(\"yyyy-MM-dd\");\n// 多线程共享SDF导致日期解析错误！\n\npublic Date parseDate(String str) throws ParseException {\n    return SDF.parse(str); // 并发下可能抛异常或返回错误结果\n}\n\n// 正确示例\nprivate static final DateTimeFormatter FORMATTER = \n    DateTimeFormatter.ofPattern(\"yyyy-MM-dd\");\n\npublic LocalDate parseDate(String str) {\n    return LocalDate.parse(str, FORMATTER); // 线程安全\n}\n\n// 如果需要格式化时间戳\npublic String formatTimestamp(Instant instant) {\n    return instant.atZone(ZoneId.of(\"Asia/Shanghai\"))\n        .format(DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm:ss\"));\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-007",
+      "name": "Spring循环依赖",
+      "severity": "high",
+      "category": "framework",
+      "description": "两个或多个Spring Bean互相依赖形成循环（A→B→A），导致Spring容器启动失败。Spring Boot 2.6+默认禁止循环依赖。循环依赖通常是设计问题的信号，说明职责划分不合理。虽然可以用@Lazy临时绕过，但会隐藏设计缺陷。",
+      "suggestion": "重新设计类结构，引入第三方Bean打破循环，或合并紧密耦合的类。\n\n// 错误示例 - 循环依赖\n@Service\npublic class OrderService {\n    @Autowired private PaymentService paymentService; // A依赖B\n}\n\n@Service\npublic class PaymentService {\n    @Autowired private OrderService orderService; // B依赖A\n}\n\n// 正确示例1 - 引入第三方服务\n@Service\npublic class OrderSettlementService {\n    @Autowired private OrderRepository orderRepo;\n    @Autowired private PaymentRepository paymentRepo;\n    // 将互相调用的逻辑提取到这里\n}\n\n// 正确示例2 - 事件驱动解耦\n@Service\npublic class OrderService {\n    @Autowired private ApplicationEventPublisher eventPublisher;\n    \n    public void completeOrder(Order order) {\n        orderRepo.update(order);\n        eventPublisher.publishEvent(new OrderCompletedEvent(order.getId()));\n    }\n}\n\n@EventListener\npublic void onOrderCompleted(OrderCompletedEvent event) {\n    paymentService.processPayment(event.getOrderId());\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-008",
+      "name": "@Transactional在private方法上无效",
+      "severity": "high",
+      "category": "framework",
+      "description": "在private方法上使用@Transactional注解，事务不会生效。Spring的@Transactional基于AOP代理实现，代理只能拦截public方法的调用。private方法无法被代理，注解会被忽略。同类内部方法调用（self-invocation）也不会触发事务，因为绕过了代理对象。",
+      "suggestion": "将需要事务的方法设为public，或通过注入自身代理来调用。同类方法调用需特别注意。\n\n// 错误示例1 - private方法\n@Transactional // 无效！\nprivate void createOrder(OrderDTO dto) { ... }\n\n// 错误示例2 - 同类内部调用\n@Service\npublic class OrderService {\n    public void placeOrder(OrderDTO dto) {\n        doCreateOrder(dto); // 内部调用，@Transactional无效！\n    }\n    \n    @Transactional // 无效！因为是从同类内部调用的\n    public void doCreateOrder(OrderDTO dto) {\n        orderRepo.save(dto);\n        paymentRepo.deduct(dto);\n    }\n}\n\n// 正确示例 - 方法改为public，从外部调用\n@Service\npublic class OrderService {\n    @Autowired private OrderService self; // 注入自身代理\n    \n    public void placeOrder(OrderDTO dto) {\n        self.doCreateOrder(dto); // 通过代理调用，事务生效\n    }\n    \n    @Transactional\n    public void doCreateOrder(OrderDTO dto) {\n        orderRepo.save(dto);\n        paymentRepo.deduct(dto);\n    }\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-009",
+      "name": "JPA懒加载导致N+1查询",
+      "severity": "medium",
+      "category": "performance",
+      "description": "JPA实体的关联关系默认使用懒加载（LAZY），在遍历集合时触发额外的SQL查询（N+1问题）。例如查询100个订单，然后遍历每个订单获取订单项，会产生1+100=101次SQL查询。这在数据量大时性能极差，且问题不易被察觉。",
+      "suggestion": "使用@EntityGraph或JOIN FETCH显式预加载关联数据。或使用@BatchSize设置批量加载。\n\n// 错误示例\nList<Order> orders = orderRepository.findAll(); // 1次SQL\nfor (Order o : orders) {\n    o.getItems().size(); // 每个order触发1次SQL，共N次\n}\n\n// 正确示例1 - @EntityGraph\n@EntityGraph(attributePaths = {\"items\", \"customer\"})\n@Query(\"SELECT o FROM Order o\")\nList<Order> findAllWithDetails();\n\n// 正确示例2 - JOIN FETCH\n@Query(\"SELECT o FROM Order o JOIN FETCH o.items i JOIN FETCH o.customer c\")\nList<Order> findAllWithDetails();\n\n// 正确示例3 - @BatchSize减少查询次数\n@OneToMany(mappedBy = \"order\", fetch = FetchType.LAZY)\n@BatchSize(size = 50) // 每50个一批查询\nprivate List<OrderItem> items;",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-010",
+      "name": "Jackson反序列化漏洞",
+      "severity": "high",
+      "category": "security",
+      "description": "Jackson的enableDefaultTyping()或@JsonTypeInfo(use=Id.CLASS)配置允许反序列化任意Java类，攻击者可通过构造恶意JSON实例化危险类（如JdbcRowSetImpl执行SQL、TemplatesImpl执行代码）。这是高危远程代码执行（RCE）漏洞，已被多次利用。",
+      "suggestion": "禁止使用enableDefaultTyping()。使用@JsonTypeInfo时限定允许的类型白名单。升级Jackson到最新版本。\n\n// 错误示例 - 极度危险\nObjectMapper mapper = new ObjectMapper();\nmapper.enableDefaultTyping(); // 允许反序列化任意类！\nObject obj = mapper.readValue(userInput, Object.class); // RCE！\n\n// 错误示例2 - 未限制子类型\n@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS) // 允许任意类！\nclass Message { ... }\n\n// 正确示例 - 使用白名单限制\n@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY)\n@JsonSubTypes({\n    @JsonSubTypes.Type(value = TextMessage.class, name = \"text\"),\n    @JsonSubTypes.Type(value = ImageMessage.class, name = \"image\")\n})\nclass Message { ... }\n\n// 正确示例2 - 禁用多态类型处理\nObjectMapper mapper = new ObjectMapper();\n// 不调用 enableDefaultTyping()\nmapper.deactivateDefaultTyping();",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-011",
+      "name": "System.out.println替代日志框架",
+      "severity": "low",
+      "category": "logging",
+      "description": "使用System.out.println或System.err.println输出日志信息。System.out无法控制日志级别、无法输出到文件、无法格式化、无法异步、生产环境无法动态调整。且System.out是同步阻塞的，高并发下会影响性能。",
+      "suggestion": "使用SLF4J + Logback/Log4j2日志框架，配合MDC输出上下文信息。\n\n// 错误示例\nSystem.out.println(\"User \" + userId + \" logged in at \" + new Date());\n\n// 正确示例\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\n\n@Slf4j // Lombok注解\npublic class UserService {\n    // 或手动声明: private static final Logger log = LoggerFactory.getLogger(UserService.class);\n    \n    public void login(Long userId) {\n        log.info(\"User logged in, userId={}\", userId); // 占位符，不拼接字符串\n        log.debug(\"Login details: {}\", () -> getExpensiveDebugInfo()); // 延迟求值\n    }\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-012",
+      "name": "异常被catch后未处理",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "catch块为空或仅包含e.printStackTrace()，异常被吞掉。这导致错误无法被追踪和排查，程序在不正确的状态下继续运行，可能产生更严重的问题。生产环境中的\"幽灵bug\"往往来源于被吞掉的异常。",
+      "suggestion": "至少记录日志，必要时向上抛出或转换为业务异常。\n\n// 错误示例1 - 空catch块\ntry {\n    riskyOperation();\n} catch (Exception e) {\n    // 什么都不做\n}\n\n// 错误示例2 - 只打印堆栈\ntry {\n    riskyOperation();\n} catch (Exception e) {\n    e.printStackTrace(); // 输出到System.err，生产环境不可控\n}\n\n// 正确示例\ntry {\n    riskyOperation();\n} catch (BusinessException e) {\n    log.warn(\"业务处理失败, orderId={}, reason={}\", orderId, e.getMessage());\n    throw new OrderException(\"订单处理失败\", e);\n} catch (Exception e) {\n    log.error(\"系统异常, orderId={}\", orderId, e); // 记录完整堆栈\n    throw new SystemException(\"系统内部错误\", e);\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-013",
+      "name": "Integer比较使用==而非equals",
+      "severity": "high",
+      "category": "type_safety",
+      "description": "使用==比较Integer对象的值。==比较的是对象引用而非值。Integer缓存范围为-128~127，超出此范围的Integer对象使用==比较会返回false，即使值相同。这是一个隐蔽的bug，在测试数据小时正常，上线后出现异常。",
+      "suggestion": "使用equals()比较Integer值，或使用基本类型int进行比较。先做null检查或使用Objects.equals()。\n\n// 错误示例\nInteger a = 200;\nInteger b = 200;\nif (a == b) { ... } // false! 超出缓存范围\n\nInteger x = 100;\nInteger y = 100;\nif (x == y) { ... } // true! 在缓存范围内，产生误导\n\n// 正确示例1 - equals()\nif (Objects.equals(a, b)) { ... }\n\n// 正确示例2 - 拆箱为int\nif (a != null && b != null && a.intValue() == b.intValue()) { ... }\n\n// 正确示例3 - 业务代码中尽量使用基本类型\nint count = getCount(); // 用int而非Integer\nif (count == 200) { ... }",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-014",
+      "name": "BigDecimal构造器使用double",
+      "severity": "medium",
+      "category": "precision",
+      "description": "使用new BigDecimal(double)创建BigDecimal对象，double的精度问题会直接传递到BigDecimal中。例如new BigDecimal(0.1)实际值为0.1000000000000000055511151231257827021181583404541015625，而非精确的0.1。在金融计算中会导致金额误差。",
+      "suggestion": "使用BigDecimal.valueOf(double)或new BigDecimal(String)。\n\n// 错误示例\nBigDecimal price = new BigDecimal(0.1); // 0.10000000000000000555...\nBigDecimal total = new BigDecimal(19.99); // 19.989999999999998...\n\n// 正确示例1 - valueOf\nBigDecimal price = BigDecimal.valueOf(0.1); // 精确的0.1\nBigDecimal total = BigDecimal.valueOf(19.99); // 精确的19.99\n\n// 正确示例2 - String构造器\nBigDecimal price = new BigDecimal(\"0.1\"); // 精确的0.1\nBigDecimal total = new BigDecimal(\"19.99\");\n\n// 正确示例3 - 常量\nBigDecimal ZERO = BigDecimal.ZERO;\nBigDecimal HUNDRED = new BigDecimal(\"100\");",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-015",
+      "name": "Arrays.asList返回固定大小列表",
+      "severity": "medium",
+      "category": "api_misuse",
+      "description": "Arrays.asList()返回的是固定大小的列表（java.util.Arrays.ArrayList），不支持add()和remove()操作，调用会抛出UnsupportedOperationException。但开发者常误以为返回的是java.util.ArrayList，导致运行时异常。此外，修改返回的列表会影响原始数组。",
+      "suggestion": "需要可变列表时，使用new ArrayList<>(Arrays.asList(...))或List.of()包装。\n\n// 错误示例\nList<String> list = Arrays.asList(\"a\", \"b\", \"c\");\nlist.add(\"d\"); // UnsupportedOperationException!\nlist.remove(\"a\"); // UnsupportedOperationException!\n\n// 正确示例1 - 包装为ArrayList\nList<String> list = new ArrayList<>(Arrays.asList(\"a\", \"b\", \"c\"));\nlist.add(\"d\"); // OK\n\n// 正确示例2 - Java 9+\nList<String> list = new ArrayList<>(List.of(\"a\", \"b\", \"c\"));\n\n// 正确示例3 - Stream\nList<String> list = Stream.of(\"a\", \"b\", \"c\").collect(Collectors.toList());\n\n// 注意：Arrays.asList的修改会影响原数组\nString[] arr = {\"a\", \"b\"};\nList<String> list = Arrays.asList(arr);\nlist.set(0, \"x\"); // arr[0]也变成了\"x\"！",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-016",
+      "name": "ConcurrentHashMap不支持null值",
+      "severity": "medium",
+      "category": "api_misuse",
+      "description": "ConcurrentHashMap的key和value都不允许为null，传入null会立即抛出NullPointerException。这与HashMap不同（HashMap允许一个null key和多个null value）。从HashMap切换到ConcurrentHashMap时，如果数据中包含null值，会突然出现NPE。",
+      "suggestion": "确保存入ConcurrentHashMap的key和value不为null。使用Optional或特殊值替代null。",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-017",
+      "name": "Stream操作副作用",
+      "severity": "medium",
+      "category": "functional_programming",
+      "description": "在Stream的map()、filter()、forEach()等操作中修改外部状态（如外部集合、AtomicInteger等），违反了函数式编程的无副作用原则。这会导致并发问题、代码难以理解和调试，且行为依赖于Stream的执行顺序（如parallel stream下结果不确定）。",
+      "suggestion": "使用Stream的归约操作（collect、reduce）代替外部状态修改。\n\n// 错误示例 - 在Stream中修改外部集合\nList<String> result = new ArrayList<>();\nnames.stream()\n    .filter(n -> n.startsWith(\"A\"))\n    .map(n -> { result.add(n.toUpperCase()); return n; }) // 副作用！\n    .collect(Collectors.toList());\n\n// 正确示例\nList<String> result = names.stream()\n    .filter(n -> n.startsWith(\"A\"))\n    .map(String::toUpperCase)\n    .collect(Collectors.toList());\n\n// 错误示例2 - 在forEach中修改共享变量\nAtomicInteger counter = new AtomicInteger(0);\nlist.stream().forEach(item -> {\n    if (item.isValid()) counter.incrementAndGet(); // 应避免\n});\n\n// 正确示例\nlong count = list.stream().filter(Item::isValid).count();",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-018",
+      "name": "Optional误用作为字段类型或参数类型",
+      "severity": "low",
+      "category": "api_design",
+      "description": "将Optional用作类的字段类型、方法参数类型或集合元素类型。Optional设计初衷是作为方法返回值，表示\"可能不存在的结果\"。作为字段会引入额外的对象开销和序列化问题；作为参数增加了调用者的负担；作为集合元素违反了Optional的语义。",
+      "suggestion": "Optional仅用于方法返回值。字段直接允许null或使用默认值，参数使用@Nullable注解或方法重载。\n\n// 错误示例\npublic class User {\n    private Optional<String> phone; // 不应使用Optional作为字段\n    \n    public void setPhone(Optional<String> phone) { ... } // 不应作为参数\n}\n\n// 正确示例\npublic class User {\n    private String phone; // 允许null或使用默认值\n    \n    public Optional<String> getPhone() {\n        return Optional.ofNullable(phone); // 仅在getter返回时包装\n    }\n    \n    public void setPhone(String phone) {\n        this.phone = phone;\n    }\n}\n\n// Optional正确用法 - 方法返回值\npublic Optional<User> findById(Long id) {\n    return Optional.ofNullable(userRepo.findById(id));\n}\n\n// 禁止：Optional作为集合元素\nList<Optional<String>> list; // 禁止！",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-019",
+      "name": "synchronized范围过大",
+      "severity": "medium",
+      "category": "concurrency",
+      "description": "synchronized块或方法覆盖的代码范围过大，包含了不需要同步的操作（如IO、网络调用、日志记录等），导致锁持有时间过长，严重降低并发性能。过大的同步范围也增加了死锁风险。",
+      "suggestion": "将synchronized块缩小到仅包含共享可变状态操作的代码段。IO操作、日志记录等应移出同步块。\n\n// 错误示例 - synchronized范围过大\npublic synchronized void processOrder(Order order) {\n    // 1. 验证订单（不需要同步）\n    validate(order);\n    // 2. 调用外部API（不需要同步且很慢）\n    String token = authService.getToken();\n    httpClient.call(token, order);\n    // 3. 更新共享状态（真正需要同步的部分）\n    orderCount++;\n    orderMap.put(order.getId(), order);\n    // 4. 记录日志（不需要同步）\n    log.info(\"Order processed: {}\", order.getId());\n}\n\n// 正确示例 - 精确同步\npublic void processOrder(Order order) {\n    validate(order);\n    String token = authService.getToken();\n    httpClient.call(token, order);\n    \n    synchronized (this) { // 仅同步共享状态操作\n        orderCount++;\n        orderMap.put(order.getId(), order);\n    }\n    \n    log.info(\"Order processed: {}\", order.getId());\n}",
+      "applicable_files": ["*.java"]
+    },
+    {
+      "id": "JAVA-020",
+      "name": "ThreadLocal未清理导致内存泄漏",
+      "severity": "high",
+      "category": "memory_leak",
+      "description": "ThreadLocal使用完毕后未调用remove()清理，在线程池环境下导致内存泄漏和数据污染。线程池中的线程被复用，若ThreadLocal未清理，下次使用该线程的请求会读到上一次请求的脏数据。这在Web应用中尤其危险，可能导致用户A看到用户B的数据。",
+      "suggestion": "始终在finally块中调用ThreadLocal.remove()。使用try-finally确保清理。\n\n// 错误示例 - 未清理ThreadLocal\npublic class UserContext {\n    private static final ThreadLocal<User> CURRENT_USER = new ThreadLocal<>();\n    \n    public static void set(User user) {\n        CURRENT_USER.set(user);\n    }\n    \n    public static User get() {\n        return CURRENT_USER.get(); // 可能读到其他用户的脏数据！\n    }\n    // 没有remove方法！\n}\n\n// 正确示例 - Filter中确保清理\npublic class UserContextFilter implements Filter {\n    @Override\n    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) \n            throws IOException, ServletException {\n        try {\n            UserContext.set(extractUser(req));\n            chain.doFilter(req, resp);\n        } finally {\n            UserContext.remove(); // 必须在finally中清理\n        }\n    }\n}\n\npublic class UserContext {\n    private static final ThreadLocal<User> CURRENT_USER = new ThreadLocal<>();\n    \n    public static void set(User user) { CURRENT_USER.set(user); }\n    public static User get() { return CURRENT_USER.get(); }\n    public static void remove() { CURRENT_USER.remove(); } // 提供清理方法\n}",
+      "applicable_files": ["*.java"]
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 8,
+    "medium": 10,
+    "low": 2
+  }
+}

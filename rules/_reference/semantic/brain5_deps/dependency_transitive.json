@@ -1,0 +1,32 @@
+{
+  "rules": [
+    {
+      "id": "DEP-TRANS-003",
+      "name": "传递依赖版本冲突（Diamond Dependency）",
+      "severity": "medium",
+      "category": "dependency_transitive",
+      "description": "多个直接依赖引用同一传递依赖的不同版本（菱形依赖），可能导致运行时行为不一致或功能缺失。",
+      "suggestion": "使用resolutions/overrides统一传递依赖版本；升级直接依赖到兼容同一传递依赖版本的组合。",
+      "applicable_files": [
+        "package.json",
+        "pom.xml",
+        "go.mod",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-TRANS-004",
+      "name": "传递依赖缺少版本锁定",
+      "severity": "medium",
+      "category": "dependency_transitive",
+      "description": "传递依赖未在lock文件中锁定精确版本，安装时可能获取到不兼容的新版本，导致构建不可复现。",
+      "suggestion": "确保lock文件（package-lock.json、poetry.lock、go.sum）提交到版本控制；使用确定性安装命令。",
+      "applicable_files": [
+        "package.json",
+        "pom.xml",
+        "go.mod",
+        "requirements.txt"
+      ]
+    }
+  ]
+}

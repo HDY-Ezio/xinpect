@@ -1,0 +1,362 @@
+{
+    "metadata": {
+        "name": "性能-网络优化规则",
+        "total_rules": 25
+    },
+    "rules": [
+        {
+            "id": "PERF-NET-001",
+            "name": "前端未合并HTTP请求导致连接开销过大",
+            "severity": "S2",
+            "category": "network",
+            "description": "页面加载时发起大量小体积的独立HTTP请求（如每个图标、字体、小组件各一个请求），每个请求都有TCP/TLS建连开销和HTTP头部开销",
+            "suggestion": "使用HTTP/2多路复用或合并小文件（CSS sprites、icon font）；使用打包工具合并JS/CSS文件；减少第三方资源请求",
+            "applicable_files": [
+                "*.html",
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-002",
+            "name": "HTTP/2未启用导致无法多路复用",
+            "severity": "S2",
+            "category": "network",
+            "description": "服务端仍使用HTTP/1.1，浏览器对同一域名最多开6个TCP连接，多资源并行加载受连接数限制，后续请求排队等待",
+            "suggestion": "启用HTTP/2支持（需TLS），利用多路复用在单个TCP连接上并行传输多个请求/响应；配置Server Push推送关键资源",
+            "applicable_files": [
+                "*.conf",
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "*.nginx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-003",
+            "name": "API响应未启用gzip/brotli压缩",
+            "severity": "S2",
+            "category": "network",
+            "description": "服务端响应未启用压缩或使用低效的deflate压缩，JSON/HTML/CSS等文本内容以原始体积传输，浪费带宽增加传输时间",
+            "suggestion": "启用brotli压缩（优先）或gzip压缩（兼容性更广）；压缩级别设为4-6平衡CPU和压缩率；对图片/视频等已压缩格式跳过压缩",
+            "applicable_files": [
+                "*.conf",
+                "*.yaml",
+                "*.yml",
+                "*.nginx",
+                "*.py",
+                "*.java",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-004",
+            "name": "CDN未配置或配置不当导致回源率高",
+            "severity": "S2",
+            "category": "network",
+            "description": "静态资源未使用CDN分发或CDN缓存规则配置不当（TTL过短、缓存路径错误），大量请求回源到业务服务器",
+            "suggestion": "静态资源使用CDN分发；配置合理的缓存策略（HTML短缓存+JS/CSS长缓存+文件名hash）；监控CDN回源率，目标<5%",
+            "applicable_files": [
+                "*.html",
+                "*.yaml",
+                "*.yml",
+                "*.conf",
+                "*.json"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-005",
+            "name": "未使用预加载(preload)和预连接(preconnect)优化资源加载",
+            "severity": "S3",
+            "category": "network",
+            "description": "关键资源（字体、首屏图片、关键CSS）由JS动态加载，浏览器在HTML解析完成后才发现资源需求，增加数百毫秒的加载延迟",
+            "suggestion": "使用<link rel='preload'>预加载关键资源；使用<link rel='preconnect'>提前建立第三方域名的DNS+TCP+TLS连接；使用<link rel='dns-prefetch'>加速DNS解析",
+            "applicable_files": [
+                "*.html",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-006",
+            "name": "请求未启用Keep-Alive导致频繁TCP握手",
+            "severity": "S2",
+            "category": "network",
+            "description": "HTTP客户端每次请求都创建新的TCP连接，未使用连接复用（Keep-Alive），每次请求额外增加TCP三次握手+TLS握手的延迟（约100-300ms）",
+            "suggestion": "HTTP客户端配置Keep-Alive连接复用（Node.js http.Agent keepAlive:true；Python requests.Session；Java HttpClient连接池）",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-007",
+            "name": "WebSocket未启用消息压缩",
+            "severity": "S3",
+            "category": "network",
+            "description": "WebSocket传输大量JSON消息未启用压缩扩展（permessage-deflate），每条消息都携带完整的JSON文本和WebSocket帧头开销",
+            "suggestion": "启用permessage-deflate扩展压缩WebSocket消息；或使用二进制协议（Protocol Buffers、MessagePack）替代JSON减少传输体积",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-008",
+            "name": "DNS预解析未配置导致首次访问延迟",
+            "severity": "S3",
+            "category": "network",
+            "description": "页面引用的第三方域名（CDN、API、统计）未做DNS预解析，首次使用时需等待DNS查询完成（通常50-300ms）才能发起连接",
+            "suggestion": "对关键第三方域名添加<link rel='dns-prefetch' href='//cdn.example.com'>提前DNS解析；重要资源使用preconnect包含TCP+TLS",
+            "applicable_files": [
+                "*.html"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-009",
+            "name": "HTTP请求超时和重试策略缺失",
+            "severity": "S2",
+            "category": "network",
+            "description": "外部HTTP调用未设置超时时间（默认可能无限等待），且无重试机制，网络抖动导致请求长时间挂起、连接资源泄漏",
+            "suggestion": "设置合理的连接超时（3-5s）和读取超时（10-15s）；配置指数退避重试（1s、2s、4s）；使用断路器模式（Circuit Breaker）防止雪崩",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-010",
+            "name": "gRPC未使用流式传输处理大数据",
+            "severity": "S3",
+            "category": "network",
+            "description": "gRPC服务使用Unary RPC传输大数据集（如百万条记录），单条消息受gRPC默认4MB限制，大数据需要分页多次调用",
+            "suggestion": "大数据传输使用Server Streaming或Bidirectional Streaming RPC，客户端逐条接收处理；避免单消息超过4MB限制",
+            "applicable_files": [
+                "*.proto",
+                "*.go",
+                "*.java",
+                "*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-011",
+            "name": "API网关未启用响应缓存",
+            "severity": "S2",
+            "category": "network",
+            "description": "API网关对所有请求都转发到后端服务，包括频繁请求的不变数据（如配置信息、字典数据），后端重复计算浪费资源",
+            "suggestion": "API网关配置响应缓存（Nginx proxy_cache、Kong caching plugin），对GET请求按URL+参数缓存；设置合理的Cache-Control头",
+            "applicable_files": [
+                "*.conf",
+                "*.yaml",
+                "*.yml",
+                "*.json"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-012",
+            "name": "HTTP请求头过大导致带宽浪费",
+            "severity": "S3",
+            "category": "network",
+            "description": "HTTP请求携带过大的Cookie、Authorization JWT（含完整用户信息）或自定义Header，每个请求增加数KB的头部开销",
+            "suggestion": "Cookie只存储必要的session ID，用户信息存服务端；JWT使用短token+服务端查询；减少自定义Header数量",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-013",
+            "name": "未使用Service Worker离线缓存策略",
+            "severity": "S3",
+            "category": "network",
+            "description": "Web应用每次访问都需要网络请求加载所有资源，弱网环境下页面加载缓慢，离线状态完全无法使用",
+            "suggestion": "使用Service Worker实现离线缓存策略：静态资源使用cache-first、API请求使用stale-while-revalidate；配合Workbox简化实现",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-014",
+            "name": "TLS握手未启用会话复用增加延迟",
+            "severity": "S3",
+            "category": "network",
+            "description": "每次HTTPS连接都需要完整的TLS握手（1-2个RTT），未启用TLS Session Resumption或TLS 1.3，增加首字节时间",
+            "suggestion": "启用TLS Session Tickets（Session Resumption）减少重连握手；升级到TLS 1.3只需1个RTT（甚至0-RTT复用）；使用OCSP Stapling加速证书验证",
+            "applicable_files": [
+                "*.conf",
+                "*.yaml",
+                "*.yml",
+                "*.nginx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-015",
+            "name": "前端请求未使用请求去重导致重复调用",
+            "severity": "S2",
+            "category": "network",
+            "description": "用户快速点击按钮或组件多次触发相同API请求（如提交表单、加载数据），同一时间发出多个相同请求浪费带宽和后端资源",
+            "suggestion": "实现请求去重（相同URL+参数的并发请求只发一次）；按钮点击后立即禁用防止重复提交；使用AbortController取消过期请求",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-016",
+            "name": "TCP_NODELAY未设置导致小包延迟发送",
+            "severity": "S3",
+            "category": "network",
+            "description": "TCP连接未禁用Nagle算法（TCP_NODELAY），小数据包被缓冲等待合并发送（最多等待200ms），对实时性要求高的场景（如游戏、聊天）造成明显延迟",
+            "suggestion": "对低延迟场景设置TCP_NODELAY选项禁用Nagle算法；Node.js socket.setNoDelay(true)；Java socket.setTcpNoDelay(true)",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cpp"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-017",
+            "name": "API接口未使用分页导致大数据传输",
+            "severity": "S1",
+            "category": "network",
+            "description": "列表类API接口一次性返回所有数据（无LIMIT限制），可能返回数十MB的JSON响应体，前端解析和网络传输都极慢",
+            "suggestion": "API必须实现分页（page/pageSize或cursor/limit参数）；默认每页20-50条；大数据导出使用异步任务+下载链接",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-018",
+            "name": "未使用HTTP/2 Server Push推送关键资源",
+            "severity": "S3",
+            "category": "network",
+            "description": "HTML页面加载后浏览器需要解析HTML才发现需要加载的CSS/JS资源，每个资源都需要一次额外的请求往返",
+            "suggestion": "使用HTTP/2 Server Push在返回HTML时同时推送关键CSS/JS资源；或使用<link rel='preload'>让浏览器尽早发现资源需求",
+            "applicable_files": [
+                "*.conf",
+                "*.nginx",
+                "*.py",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-019",
+            "name": "长轮询替代方案：未使用WebSocket或SSE",
+            "severity": "S2",
+            "category": "network",
+            "description": "使用短轮询（setInterval发HTTP请求）实现实时数据更新，每次请求都携带完整HTTP头部开销，服务端频繁处理空响应",
+            "suggestion": "实时双向通信使用WebSocket（全双工）；服务端推送使用SSE（Server-Sent Events，单向推送）；减少无效请求和头部开销",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-020",
+            "name": "跨域请求未优化预检(OPTIONS)请求开销",
+            "severity": "S3",
+            "category": "network",
+            "description": "跨域请求携带非简单请求头（如Authorization、Content-Type: application/json）触发OPTIONS预检请求，每个实际请求前都有额外的预检往返",
+            "suggestion": "服务端配置Access-Control-Max-Age延长预检结果缓存时间（如86400s=1天）；简单请求避免触发预检（使用简单请求头和GET/POST）",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-021",
+            "name": "资源加载未使用优先级提示导致关键资源延迟",
+            "severity": "S3",
+            "category": "network",
+            "description": "浏览器资源加载调度不感知业务优先级，关键资源（首屏CSS）可能被低优先级资源（第三方脚本）抢占带宽",
+            "suggestion": "使用fetchpriority属性提示资源优先级（high/low/auto）；关键CSS内联或preload；非关键JS使用defer延迟加载",
+            "applicable_files": [
+                "*.html",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-022",
+            "name": "未启用QUIC/HTTP3导致高延迟网络体验差",
+            "severity": "S3",
+            "category": "network",
+            "description": "在高延迟或丢包率较高的网络环境下（如移动网络），基于TCP的HTTP/2因队头阻塞导致性能急剧下降",
+            "suggestion": "启用HTTP/3（基于QUIC协议）消除TCP队头阻塞；QUIC 0-RTT连接恢复减少重连延迟；在CDN层面启用HTTP/3支持",
+            "applicable_files": [
+                "*.conf",
+                "*.yaml",
+                "*.nginx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-NET-023",
+            "name": "API响应缺少Cache-Control导致重复请求",
+            "severity": "S2",
+            "category": "network",
+            "description": "API响应未设置Cache-Control头，浏览器每次请求都发往服务器（即使数据未变化），增加服务器负载和用户等待时间",
+            "suggestion": "不变数据设置长缓存（Cache-Control: max-age=3600）；可变数据使用stale-while-revalidate返回缓存同时后台更新；使用ETag实现304响应",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        }
+    ]
+}

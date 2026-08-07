@@ -1,0 +1,162 @@
+{
+  "rules": [
+    {
+      "id": "DEP-LIC-004",
+      "name": "Apache 2.0与GPL协议冲突",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "Apache 2.0与GPL-2.0（不含or later条款）存在许可证冲突，不能在同一项目中混合使用。",
+      "suggestion": "选择兼容的协议版本，或将GPL依赖替换为Apache 2.0/MIT协议的替代。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt",
+        "pom.xml"
+      ]
+    },
+    {
+      "id": "DEP-LIC-005",
+      "name": "EPL协议专利条款风险",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "EPL（Eclipse Public License）包含明确的专利授权条款，对专利组合丰富的企业可能有额外影响。",
+      "suggestion": "法务评估专利条款影响，确保不违反项目的专利策略。",
+      "applicable_files": [
+        "pom.xml",
+        "build.gradle"
+      ]
+    },
+    {
+      "id": "DEP-LIC-006",
+      "name": "依赖License版本不一致",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "同一依赖的不同版本使用了不同的许可证（如Node.js从Artistic 2.0改为MIT），升级可能引入协议变更。",
+      "suggestion": "核实依赖各版本的许可证，确保升级后协议仍兼容。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-LIC-007",
+      "name": "双重许可证依赖的选择风险",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "依赖提供双重许可证（如GPL/MIT），默认安装了GPL版本导致传染性风险。",
+      "suggestion": "明确选择与项目兼容的许可证版本，在安装时指定license字段。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-LIC-008",
+      "name": "商业软件嵌入开源组件声明缺失",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "商业产品使用了开源组件但未在关于页面或文档中提供必要的许可证声明和归属信息。",
+      "suggestion": "在产品文档/关于页面中列出所有开源组件及其许可证信息。",
+      "applicable_files": [
+        "README.md",
+        "NOTICE",
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-LIC-009",
+      "name": "修改开源代码未标注",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "修改了LGPL/MPL/EPL等协议的源代码但未按要求标注修改内容和日期。",
+      "suggestion": "在修改的文件中添加修改说明注释，保留原始版权声明。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "DEP-LIC-010",
+      "name": "开源组件用于专利诉讼产品",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "含有GPL/AGPL协议的依赖用于可能涉及专利诉讼的产品，可能触发专利报复条款。",
+      "suggestion": "法务评估专利风险，移除具有专利报复条款的协议依赖。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-LIC-011",
+      "name": "出口管制合规风险",
+      "severity": "high",
+      "category": "dependency_license",
+      "description": "加密相关依赖可能受出口管制法规限制（如美国EAR），在特定国家/地区分发可能违法。",
+      "suggestion": "法务评估出口管制合规，必要时移除或替换加密依赖。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt",
+        "pom.xml"
+      ]
+    },
+    {
+      "id": "DEP-LIC-012",
+      "name": "依赖缺失License声明",
+      "severity": "medium",
+      "category": "dependency_license",
+      "description": "依赖包未在package.json/LICENSE文件中声明许可证类型，法律上默认版权所有不可使用。",
+      "suggestion": "联系包维护者补充License声明，或替换为有明确许可证的替代包。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-LIC-013",
+      "name": "依赖License字段为空",
+      "severity": "medium",
+      "category": "dependency_license",
+      "description": "package.json中license字段为空字符串或无效值，无法判断合规性。",
+      "suggestion": "检查包的GitHub仓库确认实际许可证，联系维护者修正。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-LIC-014",
+      "name": "非标准License标识符",
+      "severity": "medium",
+      "category": "dependency_license",
+      "description": "依赖使用非SPDX标准许可证标识符（如Free as in Beer），无法自动识别合规性。",
+      "suggestion": "人工审查该许可证条款，或联系维护者使用标准SPDX标识符。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-LIC-015",
+      "name": "子依赖License未检查",
+      "severity": "medium",
+      "category": "dependency_license",
+      "description": "仅检查了直接依赖的许可证，未覆盖所有传递依赖（transitive dependencies）的许可证。",
+      "suggestion": "使用license-checker、licensee等工具扫描完整的依赖树许可证。",
+      "applicable_files": [
+        "package.json",
+        "package-lock.json"
+      ]
+    },
+    {
+      "id": "DEP-LIC-016",
+      "name": "License文件缺失但声明存在",
+      "severity": "medium",
+      "category": "dependency_license",
+      "description": "package.json声明了许可证但仓库中缺少对应的LICENSE文件，法律效力存疑。",
+      "suggestion": "确认实际许可证文件是否存在，缺失则视为未授权。",
+      "applicable_files": [
+        "package.json"
+      ]
+    }
+  ]
+}

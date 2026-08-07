@@ -1,0 +1,354 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain6_code_quality",
+    "description": "代码可维护性规则集",
+    "total_rules": 30
+  },
+  "rules": [
+    {
+      "id": "CQ-MNT-001",
+      "name": "可维护性指数过低",
+      "severity": "critical",
+      "category": "maintainability",
+      "description": "代码的可维护性指数(Maintainability Index)低于10，表明代码极难维护。MI综合考虑圈复杂度、代码行数、Halstead体积和注释比例。",
+      "suggestion": "全面重构该代码：降低复杂度、减少代码行数、增加有意义的注释、拆分为更小的模块。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-MNT-002",
+      "name": "技术债务过高",
+      "severity": "critical",
+      "category": "maintainability",
+      "description": "通过静态分析检测到的技术债务时间超过240分钟（4小时），累积的修改成本已严重影响开发效率。",
+      "suggestion": "制定技术债务清理计划，优先处理高影响力的债务项。在每个迭代中预留固定时间处理技术债务。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-MNT-003",
+      "name": "上帝类/上帝对象",
+      "severity": "critical",
+      "category": "maintainability",
+      "description": "类承担了过多职责，包含过多方法（>30）和属性（>15），严重违反单一职责原则。",
+      "suggestion": "按职责将类拆分为多个专注的小类，提取公共逻辑到基类或工具类，使用组合模式组织功能。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-004",
+      "name": "特性依恋",
+      "severity": "high",
+      "category": "maintainability",
+      "description": "一个类的方法过多地使用了另一个类的数据/方法（对某个外部类的依赖度>50%），存在特性依恋(Feature Envy)。",
+      "suggestion": "将被频繁使用的方法移动到数据所属的类中（Move Method重构），让行为靠近数据。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-005",
+      "name": "过度耦合",
+      "severity": "critical",
+      "category": "maintainability",
+      "description": "类的扇出(Fan-out)超过15，即该类直接依赖了过多的其他类，耦合度过高。",
+      "suggestion": "引入中间层/适配器解耦，使用依赖注入减少直接依赖，遵循依赖倒置原则(DIP)。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-006",
+      "name": "不稳定依赖",
+      "severity": "high",
+      "category": "maintainability",
+      "description": "稳定模块依赖了不稳定模块（违反稳定依赖原则SDP），依赖方向不正确。",
+      "suggestion": "引入抽象层/接口来反转依赖方向，确保依赖指向更稳定的模块。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-007",
+      "name": "抽象类使用不当",
+      "severity": "medium",
+      "category": "maintainability",
+      "description": "抽象类只有1-2个子类实现，或抽象类过于庞大（>20个抽象方法），设计可能不合理。",
+      "suggestion": "如果只有一个子类，考虑直接合并；如果抽象方法过多，考虑拆分为多个接口(接口隔离原则)。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-008",
+      "name": "循环依赖",
+      "severity": "critical",
+      "category": "maintainability",
+      "description": "检测到模块/类之间存在循环依赖关系（A依赖B，B依赖A），导致系统难以理解和修改。",
+      "suggestion": "引入第三方协调模块打破循环，使用事件/消息机制解耦，或使用依赖注入容器管理依赖关系。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-009",
+      "name": "全局变量滥用",
+      "severity": "high",
+      "category": "maintainability",
+      "description": "代码中过多使用全局变量/模块级可变状态，导致代码行为不可预测，测试困难。",
+      "suggestion": "使用依赖注入传递共享状态，封装为单例或上下文对象，最小化可变全局状态的使用。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-MNT-010",
+      "name": "魔法数字",
+      "severity": "medium",
+      "category": "maintainability",
+      "description": "代码中直接使用未解释的数字字面量（如3600、86400、1024等），含义不明确。",
+      "suggestion": "将魔法数字提取为具名常量，常量名应清晰表达数值的含义和单位。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-MNT-011",
+      "name": "过长表达式",
+      "severity": "medium",
+      "category": "maintainability",
+      "description": "单行表达式包含过多操作（超过5个运算符或方法调用），难以理解表达式的意图。",
+      "suggestion": "将复杂表达式拆分为多个有意义的中间变量，每个变量名描述子表达式的含义。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-MNT-012",
+      "name": "中间人过多",
+      "severity": "medium",
+      "category": "maintainability",
+      "description": "类中超过一半的方法只是简单委托给其他对象（纯转发方法），形成不必要的中间层。",
+      "suggestion": "移除不必要的中间人，让调用者直接与目标对象交互，或使用接口直接暴露所需功能。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-013",
+      "name": "惰性类",
+      "severity": "low",
+      "category": "maintainability",
+      "description": "类几乎没有做任何实际工作（只有1-2个方法且功能简单），存在价值低。",
+      "suggestion": "如果类确实职责过少，考虑将其合并到相关类中，或在预期未来扩展时保留并添加注释说明。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-014",
+      "name": "紧耦合的模块边界",
+      "severity": "high",
+      "category": "maintainability",
+      "description": "模块之间的接口定义模糊，直接传递内部数据结构，模块边界不清晰。",
+      "suggestion": "使用DTO(Data Transfer Object)在模块间传递数据，定义明确的模块接口契约，隐藏内部实现细节。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-015",
+      "name": "副作用散布",
+      "severity": "high",
+      "category": "maintainability",
+      "description": "函数的副作用（修改全局状态、写文件、发送网络请求等）分散在各处，难以追踪程序状态变化。",
+      "suggestion": "将副作用集中到明确的边界层（如服务层、中间件），保持核心逻辑的纯函数特性。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-MNT-016",
+      "name": "隐藏函数耦合",
+      "severity": "medium",
+      "category": "maintainability",
+      "description": "函数通过修改闭包变量/全局变量产生隐式副作用，调用者无法从签名看出副作用。",
+      "suggestion": "将隐式依赖显式化为函数参数，使函数签名完整描述其行为，遵循引用透明原则。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-MNT-017",
+      "name": "不可测试的类设计",
+      "severity": "high",
+      "category": "maintainability",
+      "description": "类的构造函数中直接执行IO操作、访问静态方法或创建具体依赖实例，导致无法在测试中替换依赖。",
+      "suggestion": "通过依赖注入传入所有外部依赖，使用工厂方法创建实例，避免构造函数中的副作用。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-MNT-018",
+      "name": "代码腐化指标",
+      "severity": "critical",
+      "category": "maintainability",
+      "description": "多个维护性指标同时恶化（复杂度↑、重复率↑、耦合度↑、可测试性↓），代码整体质量正在退化。",
+      "suggestion": "引入持续代码质量监控，设置质量门禁(Quality Gate)，阻止质量退化的代码合入主干。建立定期重构机制。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    }
+  ]
+}

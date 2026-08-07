@@ -1,0 +1,81 @@
+{
+  "rules": [
+    {
+      "id": "B3-20-R001",
+      "name": "可用策略模式替代的条件分支",
+      "severity": "low",
+      "category": "refactor-suggestion",
+      "description": "存在大量if-else/switch分支且每个分支执行不同的策略逻辑，适合用策略模式替代以提高可扩展性。",
+      "suggestion": "将每个分支逻辑提取为独立的策略类/函数；使用Map/字典映射条件到策略；新增场景时只需添加新策略无需修改主逻辑。",
+      "applicable_files": [
+        "*.java",
+        "*.ts",
+        "*.py",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B3-20-R002",
+      "name": "可用建造者模式替代的长参数列表",
+      "severity": "low",
+      "category": "refactor-suggestion",
+      "description": "构造函数或方法参数超过5个且包含多个可选参数，可读性差且容易传错参数顺序。",
+      "suggestion": "使用Builder模式逐步构建对象；或将参数封装为配置对象（Config/Options）；使用命名参数/关键字参数。",
+      "applicable_files": [
+        "*.java",
+        "*.ts",
+        "*.cs",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B3-20-R003",
+      "name": "可用模板方法消除重复的算法骨架",
+      "severity": "low",
+      "category": "refactor-suggestion",
+      "description": "多个子类中存在相同的方法骨架（步骤序列），仅部分步骤实现不同，适合使用模板方法模式提取公共骨架。",
+      "suggestion": "在基类中定义模板方法，将不变步骤放在基类，可变步骤定义为抽象方法由子类实现。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.ts",
+        "*.py"
+      ]
+    },
+    {
+      "id": "B3-20-R004",
+      "name": "可用观察者模式解耦事件处理",
+      "severity": "low",
+      "category": "refactor-suggestion",
+      "description": "模块间通过直接调用紧密耦合，一个操作需要通知多个模块执行不同逻辑，适合用观察者/事件模式解耦。",
+      "suggestion": "引入事件总线（EventBus）或发布-订阅模式；操作只发布事件，由订阅者各自响应；降低模块间耦合度。",
+      "applicable_files": [
+        "*.java",
+        "*.ts",
+        "*.py",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B3-20-R005",
+      "name": "提取函数消除重复代码块",
+      "severity": "medium",
+      "category": "refactor-suggestion",
+      "description": "相同的代码逻辑出现在多处（≥2次），每次修改需同步更新所有副本，容易遗漏导致不一致。",
+      "suggestion": "将重复代码提取为独立函数/方法；通过参数化差异部分保持灵活性；确保提取后的函数职责单一。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    }
+  ]
+}

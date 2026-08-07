@@ -1,0 +1,54 @@
+{
+  "rules": [
+    {
+      "id": "CQ-MS-001",
+      "name": "可维护性评分综合报告",
+      "severity": "medium",
+      "category": "maintainability-score",
+      "description": "综合认知复杂度、代码行数、重复率、测试覆盖率、依赖耦合度等指标，输出A-F等级的可维护性评分，帮助快速定位质量瓶颈。",
+      "suggestion": "对D/F级模块优先进行重构；设定最低可维护性等级标准（如C级以上）；每个迭代改进一个低分模块。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-MS-002",
+      "name": "质量门禁：新增代码可维护性不达标",
+      "severity": "medium",
+      "category": "maintainability-score",
+      "description": "本次提交/PR中新增的代码可维护性指标低于团队设定的质量门禁阈值（如复杂度>15、重复率>5%）。",
+      "suggestion": "在CI中集成质量门禁检查；新增代码必须满足可维护性要求后才可合并；对不达标代码要求重构。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-MS-003",
+      "name": "可维护性退化检测",
+      "severity": "medium",
+      "category": "maintainability-score",
+      "description": "与上一版本相比，模块的可维护性指标明显退化（复杂度增加>20%、重复率增加>5%），表明代码质量正在恶化。",
+      "suggestion": "对比版本间的可维护性指标变化；对退化严重的模块安排重构sprint；建立质量退化告警机制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "rules": [
+    {
+      "id": "SEM-EH-001",
+      "name": "空catch块：异常被完全吞没",
+      "severity": "high",
+      "category": "exception-handling",
+      "description": "catch块为空或仅包含注释，异常被完全吞没。",
+      "suggestion": "至少记录异常信息；考虑是否需要恢复或重新抛出。"
+    },
+    {
+      "id": "SEM-EH-002",
+      "name": "异常吞没：catch块仅打印不处理",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "catch块中仅调用console.log/print但未做任何恢复或传播操作。",
+      "suggestion": "添加适当的错误恢复逻辑或重新抛出异常。"
+    },
+    {
+      "id": "SEM-EH-003",
+      "name": "宽泛捕获：catch Exception/Throwable",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "catch(Exception e)捕获了所有异常类型，包括不应被捕获的系统级异常。",
+      "suggestion": "捕获具体的异常类型；如必须宽泛捕获，确保重新抛出。"
+    },
+    {
+      "id": "SEM-EH-004",
+      "name": "异常信息丢失：重新抛出时丢失原始异常链",
+      "severity": "high",
+      "category": "exception-handling",
+      "description": "catch块中抛出新异常但未将原始异常作为cause传递。",
+      "suggestion": "始终将原始异常作为cause参数传递。"
+    },
+    {
+      "id": "SEM-EH-005",
+      "name": "finally中的return语句",
+      "severity": "high",
+      "category": "exception-handling",
+      "description": "finally块中使用return会覆盖try/catch中的返回值和异常。",
+      "suggestion": "移除finally中的return语句。"
+    },
+    {
+      "id": "SEM-EH-006",
+      "name": "catch中吞没资源关闭异常",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "在catch块中关闭资源时，关闭操作本身的异常被忽略。",
+      "suggestion": "使用try-with-resources或 separately处理关闭异常。"
+    },
+    {
+      "id": "SEM-EH-007",
+      "name": "Promise未处理rejection",
+      "severity": "high",
+      "category": "exception-handling",
+      "description": "async函数返回的Promise没有.catch()或await未被try/catch包裹。",
+      "suggestion": "为所有Promise添加.catch()或使用await配合try/catch。"
+    },
+    {
+      "id": "SEM-EH-008",
+      "name": "async函数缺少try/catch",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "async函数内部执行了可能失败的操作但整个函数没有try/catch。",
+      "suggestion": "为async函数添加try/catch或确保调用方处理错误。"
+    },
+    {
+      "id": "SEM-EH-009",
+      "name": "超时处理缺失",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "HTTP请求、数据库连接等网络操作未设置超时时间。",
+      "suggestion": "为所有网络操作设置合理的超时时间。"
+    },
+    {
+      "id": "SEM-EH-010",
+      "name": "重试逻辑缺失",
+      "severity": "low",
+      "category": "exception-handling",
+      "description": "网络请求等可能因瞬时故障失败但代码中没有重试逻辑。",
+      "suggestion": "添加指数退避重试机制。"
+    },
+    {
+      "id": "SEM-EH-011",
+      "name": "错误码不统一",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "同一模块中混用异常、错误码、null等多种错误表示方式。",
+      "suggestion": "统一错误表示方式，建立错误处理规范。"
+    },
+    {
+      "id": "SEM-EH-012",
+      "name": "异常类型混用",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "在不同层次交叉捕获异常，暴露内部实现细节。",
+      "suggestion": "在每一层使用 appropriate 的异常抽象。"
+    },
+    {
+      "id": "SEM-EH-013",
+      "name": "catch块中执行可能失败的操作",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "catch块中的恢复逻辑本身可能抛出异常。",
+      "suggestion": "在catch块的恢复逻辑中添加额外的错误保护。"
+    },
+    {
+      "id": "SEM-EH-014",
+      "name": "循环中的异常处理不当",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "在循环中捕获异常后continue但未记录失败次数或限制重试次数。",
+      "suggestion": "添加失败计数器和最大重试限制。"
+    },
+    {
+      "id": "SEM-EH-015",
+      "name": "异常消息暴露敏感信息",
+      "severity": "high",
+      "category": "exception-handling",
+      "description": "异常消息中包含SQL语句、文件路径、数据库连接字符串等敏感信息。",
+      "suggestion": "在异常消息中脱敏处理；返回通用错误信息给用户。"
+    },
+    {
+      "id": "SEM-EH-016",
+      "name": "过度使用异常控制流程",
+      "severity": "low",
+      "category": "exception-handling",
+      "description": "使用异常进行正常的业务逻辑控制。",
+      "suggestion": "使用条件判断替代异常控制流程。"
+    },
+    {
+      "id": "SEM-EH-017",
+      "name": "多个catch块处理逻辑完全相同",
+      "severity": "low",
+      "category": "exception-handling",
+      "description": "多个catch块分别捕获不同异常类型但处理逻辑完全相同。",
+      "suggestion": "合并为多异常捕获(multi-catch)。"
+    },
+    {
+      "id": "SEM-EH-018",
+      "name": "catch后仅记录不重新抛出导致状态不一致",
+      "severity": "high",
+      "category": "exception-handling",
+      "description": "在事务性操作中catch异常后仅记录日志但不重新抛出。",
+      "suggestion": "在事务场景中catch后必须重新抛出以触发回滚。"
+    },
+    {
+      "id": "SEM-EH-019",
+      "name": "错误处理中使用错误的日志级别",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "将严重错误用debug级别记录或将正常逻辑用error级别记录。",
+      "suggestion": "根据错误严重程度选择合适的日志级别。"
+    },
+    {
+      "id": "SEM-EH-020",
+      "name": "全局异常处理器未覆盖所有异步边界",
+      "severity": "medium",
+      "category": "exception-handling",
+      "description": "全局异常处理器未覆盖异步操作的异常。",
+      "suggestion": "为每种异步边界(setTimeout、Promise等)配置异常处理。"
+    }
+  ]
+}

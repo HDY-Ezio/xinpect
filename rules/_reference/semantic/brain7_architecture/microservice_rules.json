@@ -1,0 +1,347 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": 7,
+        "module": "architecture",
+        "description": "微服务规则 - 服务边界、通信规范、数据一致性",
+        "standard_refs": [
+            "Building Microservices(Sam Newman)",
+            "12-Factor App",
+            "Microservices Patterns(Chris Richardson)",
+            "DDD Strategic Design"
+        ],
+        "total_rules": 25
+    },
+    "rules": [
+        {
+            "id": "ARCH-MS-001",
+            "name": "微服务间共享数据库",
+            "severity": "critical",
+            "category": "service_boundary",
+            "description": "多个微服务直接连接同一个数据库的同一张表，违反服务自治原则，导致数据耦合",
+            "suggestion": "每个服务拥有独立数据库/Schema；通过API或事件共享数据；使用Database per Service模式",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-002",
+            "name": "服务粒度不当 - 纳米服务",
+            "severity": "high",
+            "category": "service_boundary",
+            "description": "微服务拆分过细(如一个服务只封装一个CRUD操作)，导致运维复杂度和网络开销远超收益",
+            "suggestion": "按DDD限界上下文划分服务边界；评估团队规模、变更频率、数据一致性需求",
+            "applicable_files": [
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "*.java",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-003",
+            "name": "服务间直接数据库访问",
+            "severity": "critical",
+            "category": "service_boundary",
+            "description": "服务A直接连接服务B的数据库表进行查询，绕过服务B的API",
+            "suggestion": "通过服务B提供的API获取数据；或使用CQRS+Event Sourcing同步读模型",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-004",
+            "name": "缺少API网关统一入口",
+            "severity": "high",
+            "category": "service_boundary",
+            "description": "客户端直接调用各微服务，缺少统一的API网关做认证、限流、路由",
+            "suggestion": "部署API Gateway(Kong/Envoy/APISIX)统一入口；处理认证、限流、日志、路由",
+            "applicable_files": [
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "*.conf"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-005",
+            "name": "服务间循环依赖",
+            "severity": "critical",
+            "category": "service_boundary",
+            "description": "服务A调用服务B的API，同时服务B也调用服务A的API，形成服务级循环依赖",
+            "suggestion": "重新划分服务边界；引入第三方服务协调；使用事件驱动异步通信",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-006",
+            "name": "缺少服务注册与发现",
+            "severity": "high",
+            "category": "service_boundary",
+            "description": "服务间调用使用硬编码的IP/域名，无法适应动态扩缩容",
+            "suggestion": "使用服务注册中心(Consul/Eureka/Nacos)；客户端或服务端负载均衡",
+            "applicable_files": [
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "*.java",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-007",
+            "name": "服务缺少独立部署能力",
+            "severity": "high",
+            "category": "service_boundary",
+            "description": "多个服务必须同时部署才能运行，无法独立发布和回滚",
+            "suggestion": "确保每个服务可以独立构建、测试、部署；使用CI/CD Pipeline per Service",
+            "applicable_files": [
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "Dockerfile*",
+                "*.toml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-008",
+            "name": "服务间缺少超时配置",
+            "severity": "high",
+            "category": "service_boundary",
+            "description": "服务间HTTP/gRPC调用未设置超时时间，可能因下游无响应导致线程耗尽",
+            "suggestion": "所有服务间调用必须设置合理的超时时间；使用断路器防止级联故障",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-009",
+            "name": "服务日志缺少关联标识",
+            "severity": "medium",
+            "category": "service_boundary",
+            "description": "跨服务调用链路中日志缺少统一的traceId，无法追踪一个请求的完整链路",
+            "suggestion": "在API网关生成traceId；通过HTTP Header传播到所有下游服务；统一日志格式",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-010",
+            "name": "同步调用链过长",
+            "severity": "high",
+            "category": "communication",
+            "description": "一个请求涉及超过4个服务的同步调用链(如A->B->C->D->E)，延迟累积且任一节点故障影响全链",
+            "suggestion": "减少同步调用深度；使用异步事件驱动；考虑编排(Orchestration)替代编舞(Choreography)",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-011",
+            "name": "事件消息缺少Schema",
+            "severity": "high",
+            "category": "communication",
+            "description": "异步事件消息(如Kafka/RabbitMQ消息)没有定义标准的消息Schema，消费者无法验证消息格式",
+            "suggestion": "使用Avro/Protobuf/JSON Schema定义消息格式；在Producer端做Schema校验",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml",
+                "*.json"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-012",
+            "name": "缺少消息幂等处理",
+            "severity": "critical",
+            "category": "communication",
+            "description": "消息消费者未实现幂等处理，重复消息导致重复操作(如重复扣款)",
+            "suggestion": "使用唯一消息ID做幂等校验；消费者维护已处理消息ID集合；数据库使用唯一约束",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-013",
+            "name": "事件消息缺少顺序保证",
+            "severity": "high",
+            "category": "communication",
+            "description": "对顺序有要求的事件消息(如订单创建->支付->发货)可能被乱序消费",
+            "suggestion": "使用消息队列的分区/顺序消息功能；或使用事件溯源(Event Sourcing)保证顺序",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-014",
+            "name": "gRPC服务缺少拦截器",
+            "severity": "medium",
+            "category": "communication",
+            "description": "gRPC服务缺少认证、日志、限流等拦截器(Interceptor)，直接暴露无保护的服务",
+            "suggestion": "实现UnaryInterceptor和StreamInterceptor处理认证、日志、超时、限流",
+            "applicable_files": [
+                "*.go",
+                "*.java",
+                "*.py",
+                "*.proto"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-015",
+            "name": "缺少死信队列处理",
+            "severity": "high",
+            "category": "communication",
+            "description": "消息消费失败后没有死信队列(Dead Letter Queue)机制，失败消息丢失",
+            "suggestion": "配置死信队列；消费失败N次后转入DLQ；实现DLQ消费者做人工处理或告警",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.yaml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-016",
+            "name": "跨服务使用分布式事务(2PC)",
+            "severity": "high",
+            "category": "data_consistency",
+            "description": "跨多个微服务使用两阶段提交(2PC/XA事务)，导致性能瓶颈和可用性下降",
+            "suggestion": "使用Saga模式替代2PC；编排式Saga或协同式Saga实现最终一致性",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-017",
+            "name": "Saga缺少补偿事务",
+            "severity": "critical",
+            "category": "data_consistency",
+            "description": "Saga模式中的步骤未定义补偿操作，中途失败时无法回滚已完成步骤",
+            "suggestion": "为每个Saga步骤定义对应的补偿事务；确保补偿操作的幂等性",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-018",
+            "name": "事件驱动缺少最终一致性保证",
+            "severity": "high",
+            "category": "data_consistency",
+            "description": "通过事件同步数据的服务之间没有实现最终一致性检查，数据可能长期不一致",
+            "suggestion": "实现定期对账机制；使用Outbox Pattern保证事件发布的原子性",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-019",
+            "name": "缺少Outbox Pattern",
+            "severity": "high",
+            "category": "data_consistency",
+            "description": "业务操作和事件发布不在同一事务中，可能出现数据库更新成功但事件发布失败的不一致",
+            "suggestion": "使用Transactional Outbox Pattern：业务操作和事件写入同一本地事务的outbox表",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-MS-020",
+            "name": "缓存与数据库一致性未保证",
+            "severity": "high",
+            "category": "data_consistency",
+            "description": "服务使用缓存但未实现缓存失效/更新策略，导致读取到过期数据",
+            "suggestion": "使用Cache-Aside/Write-Through/Write-Behind策略；设置合理的TTL；数据变更时主动失效",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        }
+    ]
+}

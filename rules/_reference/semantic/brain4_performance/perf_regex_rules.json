@@ -1,0 +1,73 @@
+{
+    "rules": [
+        {
+            "id": "PERF-REG-001",
+            "name": "正则表达式存在灾难性回溯风险",
+            "severity": "high",
+            "category": "regex-performance",
+            "description": "正则表达式包含嵌套量词（如(a+)+或(a|a)*）或重叠的交替分支，对特定输入可能产生指数级回溯（ReDoS）。",
+            "suggestion": "消除嵌套量词；使用原子组（atomic group）或占有量词（possessive quantifier）；使用非回溯正则引擎（如RE2）。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-REG-002",
+            "name": "使用正则处理可用字符串方法解决的简单匹配",
+            "severity": "low",
+            "category": "regex-performance",
+            "description": "使用正则表达式进行简单的字符串查找/替换（如查找固定子串、判断前后缀），可用更高效的原生方法替代。",
+            "suggestion": "使用indexOf/includes替代/substring/.test()；使用startsWith/endsWith替代正则锚点；使用split替代正则切割。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-REG-003",
+            "name": "正则表达式过度使用通配符",
+            "severity": "medium",
+            "category": "regex-performance",
+            "description": "正则中使用.*或[\\s\\S]*匹配大段文本，引擎需要大量回溯尝试，尤其在多行文本中性能急剧下降。",
+            "suggestion": "使用更精确的字符集替代.（如[^<]*替代.*?匹配HTML内容）；使用[^\\n]*替代.*匹配单行。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-REG-004",
+            "name": "大文本上反复执行正则匹配",
+            "severity": "medium",
+            "category": "regex-performance",
+            "description": "对大文本（如整个文件内容）反复执行正则匹配/替换，每次都需要从头扫描整个文本。",
+            "suggestion": "合并多个正则为一次扫描；使用流式处理逐行匹配；对固定位置的提取使用substring而非正则。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        }
+    ]
+}

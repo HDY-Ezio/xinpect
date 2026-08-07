@@ -1,0 +1,310 @@
+{
+  "metadata": {
+    "name": "小程序性能规则",
+    "total_rules": 25
+  },
+  "rules": [
+    {
+      "id": "MPERF-001",
+      "name": "主包体积超过2MB",
+      "severity": "S1",
+      "category": "miniprogram-performance",
+      "description": "小程序主包（不含分包）体积超过2MB，首屏加载时间显著增加，用户流失率上升",
+      "suggestion": "启用分包加载，将非首屏页面移到分包；使用图片CDN而非本地资源；开启代码压缩",
+      "applicable_files": [
+        "app.json",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-002",
+      "name": "未启用分包加载",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "所有页面放在主包中未做分包，首次加载需要下载全部页面代码",
+      "suggestion": "在app.json中配置subpackages分包，将独立功能模块的页面放入分包，主包只保留tabBar页面",
+      "applicable_files": [
+        "app.json"
+      ]
+    },
+    {
+      "id": "MPERF-003",
+      "name": "分包未使用独立分包",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "分包使用普通分包模式，各分包共享主包公共模块，重复下载公共代码",
+      "suggestion": "对体积大的分包使用独立分包（independent: true），各分包独立运行，减少下载量",
+      "applicable_files": [
+        "app.json"
+      ]
+    },
+    {
+      "id": "MPERF-004",
+      "name": "图片未使用CDN或压缩",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "页面中引用本地大图片（>100KB）或未压缩的远程图片，增加加载时间",
+      "suggestion": "图片上传CDN并使用WebP格式，使用wx.image.compress或在URL中添加图片处理参数进行压缩",
+      "applicable_files": [
+        "*.wxml",
+        "*.wxss",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-005",
+      "name": "列表使用scroll-view而非虚拟列表",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "长列表（>100条）使用普通scroll-view渲染全部DOM节点，滑动时内存占用过高导致卡顿",
+      "suggestion": "使用recycle-view或recycle-view组件实现虚拟列表，仅渲染可视区域内的节点",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-006",
+      "name": "频繁调用wx.getStorageSync同步API",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "频繁使用同步Storage API（wx.getStorageSync）读取数据，阻塞主线程影响渲染性能",
+      "suggestion": "启动时一次性读取Storage缓存到内存变量，后续使用内存数据；非必要时使用异步API",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-007",
+      "name": "WXML节点数超过1000",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "单个页面WXML节点数超过1000个，渲染层需要构建大量节点，导致渲染耗时增加",
+      "suggestion": "使用wx.createSelectorQuery检查节点数，减少嵌套层级，使用虚拟列表，条件渲染隐藏不需要的节点",
+      "applicable_files": [
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "MPERF-008",
+      "name": "wx.request并发未限制",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "页面加载时同时发起大量wx.request请求（>10个），超过小程序并发限制导致排队等待",
+      "suggestion": "控制并发请求数量（建议≤5个），使用请求队列管理，关键请求优先、非关键延迟加载",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-009",
+      "name": "未使用数据预拉取",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "首屏数据在onLoad中才开始请求，未利用微信的预拉取能力提前获取数据",
+      "suggestion": "使用wx.getBackgroundFetchData或后台预拉取，在小程序启动时预先获取首屏数据",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-010",
+      "name": "setData传输数据量过大",
+      "severity": "S1",
+      "category": "miniprogram-performance",
+      "description": "单次setData传输数据超过256KB（如传输大数组或完整对象），逻辑层到渲染层通信耗时过长",
+      "suggestion": "控制单次setData数据量在合理范围（<100KB），使用路径更新只传变化字段，大数据分片传输",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-011",
+      "name": "WXS未用于高频交互场景",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "高频交互（如滚动、手势）使用JS的setData响应，每次交互都触发逻辑层与渲染层通信",
+      "suggestion": "高频交互场景使用WXS直接响应事件，避免setData通信开销，如滚动位置跟随、动画效果",
+      "applicable_files": [
+        "*.wxml",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MPERF-012",
+      "name": "自定义组件未开启组件化",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "页面中大量重复结构未抽取为自定义组件，导致WXML解析和渲染效率低",
+      "suggestion": "将可复用UI结构抽取为自定义组件，开启componentGenerics，利用组件的独立更新机制提升性能",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.json"
+      ]
+    },
+    {
+      "id": "MPERF-013",
+      "name": "页面onReady中执行耗时操作",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "在onReady中执行大量计算或网络请求，阻塞页面首次渲染完成",
+      "suggestion": "将非首屏必要的数据加载延迟到onReady之后，使用requestIdleCallback或setTimeout分片执行",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-014",
+      "name": "未启用SKD抽象层缓存",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "频繁调用wx.getLocation等系统API，每次都发起新的系统调用，未做缓存复用",
+      "suggestion": "系统API调用结果缓存在内存中，设置合理的缓存过期时间（如位置信息缓存5分钟）",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-015",
+      "name": "使用大量CSS动画替代WXS",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "使用JS控制的复杂动画频繁触发重绘，未使用CSS animation或WXS动画",
+      "suggestion": "优先使用CSS transition/animation（GPU加速），复杂交互动画使用WXS实现",
+      "applicable_files": [
+        "*.wxss",
+        "*.wxml",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MPERF-016",
+      "name": "Canvas未使用离屏渲染",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "Canvas绑定在页面DOM中实时绘制复杂图形，阻塞页面渲染线程",
+      "suggestion": "使用离屏Canvas（wx.createOffscreenCanvas）预渲染，完成后一次性绘制到页面Canvas",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-017",
+      "name": "未配置预下载规则",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "分包未配置预下载规则，用户进入分包页面时才开始下载，体验卡顿",
+      "suggestion": "在app.json中配置preloadRule，根据网络状态预下载用户可能访问的分包",
+      "applicable_files": [
+        "app.json"
+      ]
+    },
+    {
+      "id": "MPERF-018",
+      "name": "本地缓存未设置过期策略",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "使用wx.setStorageSync缓存数据但不过期，导致用户看到陈旧数据或缓存无限增长",
+      "suggestion": "缓存数据附带timestamp，读取时检查是否过期；定期清理过期缓存，设置存储上限",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-019",
+      "name": "未使用性能监控API",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "未接入wx.getPerformance等性能监控API，无法发现线上性能问题",
+      "suggestion": "接入微信性能监控API（wx.getPerformance），采集启动耗时、渲染耗时等关键指标并上报",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-020",
+      "name": "页面栈超过10层未处理",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "页面跳转使用navigateTo导致页面栈超过10层，继续跳转将失败且内存占用过高",
+      "suggestion": "使用redirectTo或reLaunch替代深层跳转，或在跳转前检查getCurrentPages()长度并用switchTab",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-021",
+      "name": "未开启按需注入",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "小程序未开启按需注入（lazyCodeLoading），启动时加载了所有页面和组件的代码",
+      "suggestion": "在app.json中开启lazyCodeLoading: 'requiredComponents'，仅注入当前页面需要的组件代码",
+      "applicable_files": [
+        "app.json"
+      ]
+    },
+    {
+      "id": "MPERF-022",
+      "name": "setData回调中再次调用setData",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "在setData的callback中立即再次调用setData，导致连续两次渲染更新，性能浪费",
+      "suggestion": "合并多次setData为一次调用，或使用中间变量缓存后批量更新",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-023",
+      "name": "Worker未合理使用",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "CPU密集型计算（如大数据排序、图片处理）在主线程执行，阻塞UI渲染",
+      "suggestion": "使用Worker线程处理CPU密集型任务，通过postMessage与主线程通信，避免阻塞渲染",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MPERF-024",
+      "name": "未使用骨架屏或占位图",
+      "severity": "S3",
+      "category": "miniprogram-performance",
+      "description": "页面数据加载期间显示空白，用户感知加载时间长，体验差",
+      "suggestion": "使用骨架屏（skeleton）或占位图在数据加载期间展示页面框架，提升感知加载速度",
+      "applicable_files": [
+        "*.wxml",
+        "*.wxss",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MPERF-025",
+      "name": "未清理页面定时器",
+      "severity": "S2",
+      "category": "miniprogram-performance",
+      "description": "页面onUnload中未清理setInterval/setTimeout定时器，页面销毁后定时器仍在执行浪费资源",
+      "suggestion": "在onUnload中使用clearInterval/clearTimeout清理所有定时器，防止内存泄漏",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

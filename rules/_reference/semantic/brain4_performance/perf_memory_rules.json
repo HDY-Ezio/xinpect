@@ -1,0 +1,254 @@
+{
+    "metadata": {
+        "name": "性能-内存分析规则",
+        "total_rules": 20
+    },
+    "rules": [
+        {
+            "id": "PERF-M-001",
+            "name": "循环内创建大量临时对象",
+            "severity": "S2",
+            "category": "memory",
+            "description": "在循环体内部每轮迭代都创建新的对象/数组实例，导致GC压力骤增和内存峰值过高",
+            "suggestion": "将对象创建移到循环外部复用，或使用对象池模式；避免在循环中频繁创建闭包捕获大变量",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-002",
+            "name": "全局变量持续累积未清理",
+            "severity": "S1",
+            "category": "memory",
+            "description": "全局对象/Map/数组持续追加数据但从未清理，随运行时间增长无限膨胀导致OOM",
+            "suggestion": "对全局集合设置容量上限（LRU淘汰），或定期清理过期数据；避免在模块级作用域无限增长",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-003",
+            "name": "事件监听器未移除导致内存泄漏",
+            "severity": "S1",
+            "category": "memory",
+            "description": "组件/页面销毁时未移除通过addEventListener注册的事件监听器，闭包引用阻止GC回收",
+            "suggestion": "在组件卸载/页面销毁时调用removeEventListener移除所有监听器，或使用AbortController统一管理",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-004",
+            "name": "大数组使用splice而非迭代器处理",
+            "severity": "S3",
+            "category": "memory",
+            "description": "对大数组（>10000项）使用splice/shift/unshift操作，每次操作触发数组元素整体搬移，O(n)开销",
+            "suggestion": "使用双指针法或生成器迭代处理，避免在数组头部做插入删除；大集合考虑使用LinkedList或Map",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-005",
+            "name": "闭包捕获外部大对象",
+            "severity": "S2",
+            "category": "memory",
+            "description": "闭包中引用了外部大对象（如整个state），即使只需要其中一个字段，导致大对象无法被GC回收",
+            "suggestion": "闭包中仅捕获需要的具体字段而非整个对象，解构赋值提取所需变量",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-006",
+            "name": "字符串大循环中使用+=拼接",
+            "severity": "S2",
+            "category": "memory",
+            "description": "在循环中使用字符串+=拼接大量字符串，每次拼接创建新的字符串对象，产生大量中间垃圾对象",
+            "suggestion": "使用数组收集后join('')，或使用StringBuilder（Java）、io.StringIO（Python）",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-007",
+            "name": "定时器未清理导致对象无法回收",
+            "severity": "S2",
+            "category": "memory",
+            "description": "setInterval/setTimeout创建的定时器在组件销毁后未清除，定时器回调持续引用组件实例阻止GC",
+            "suggestion": "在组件生命周期unmount/onDestroy中clearInterval/clearTimeout所有定时器",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-008",
+            "name": "DOM节点引用未释放",
+            "severity": "S2",
+            "category": "memory",
+            "description": "JavaScript变量持有已移除DOM节点的引用（如通过querySelector缓存），阻止节点被GC回收",
+            "suggestion": "DOM节点移除后将对应变量置为null，避免长期持有已脱离文档树的DOM引用",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-009",
+            "name": "Python列表推导生成不必要的大列表",
+            "severity": "S3",
+            "category": "memory",
+            "description": "使用列表推导式处理大数据集时一次性生成完整列表，内存占用与数据量成正比",
+            "suggestion": "改用生成器表达式（使用()替代[]）实现惰性求值，按需产生数据减少内存占用",
+            "applicable_files": [
+                "*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-010",
+            "name": "Buffer/TypedArray未释放",
+            "severity": "S2",
+            "category": "memory",
+            "description": "创建的ArrayBuffer/Buffer使用完后未释放引用，尤其在大文件处理场景中造成内存累积",
+            "suggestion": "处理完成后将Buffer变量置null或使用pool管理Buffer分配；大文件使用流式处理而非全量读入",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.node"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-011",
+            "name": "WeakRef/WeakMap可替代强引用场景",
+            "severity": "S3",
+            "category": "memory",
+            "description": "使用强引用（Map/Set）存储可被外部释放的对象关联关系，阻止对象GC回收",
+            "suggestion": "使用WeakMap/WeakSet替代Map/Set存储对象关联，允许在外部引用释放后自动GC",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-012",
+            "name": "递归过深导致调用栈溢出",
+            "severity": "S1",
+            "category": "memory",
+            "description": "递归调用没有深度限制，或递归深度超过调用栈容量（通常10000层），导致StackOverflow",
+            "suggestion": "将尾递归改为迭代；必须递归时设置最大深度参数；使用 trampolining 技术避免栈溢出",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-013",
+            "name": "大数据集深拷贝使用JSON.parse(JSON.stringify())",
+            "severity": "S2",
+            "category": "memory",
+            "description": "使用JSON序列化/反序列化进行深拷贝，大数据集时内存峰值为原始数据3倍（原对象+JSON字符串+新对象）",
+            "suggestion": "小数据使用structuredClone()；大数据使用浅拷贝+局部深拷贝；或使用immutable数据结构库",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-014",
+            "name": "日志对象序列化大对象",
+            "severity": "S2",
+            "category": "memory",
+            "description": "日志中序列化完整的大对象（如request.body含文件上传数据），瞬时占用大量内存",
+            "suggestion": "日志中仅记录对象关键字段（id、type、size），避免序列化完整大对象",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-015",
+            "name": "图片/文件全量读入内存",
+            "severity": "S2",
+            "category": "memory",
+            "description": "将大图片或文件通过readFileSync/readAllBytes一次性全部读入内存，大文件场景直接OOM",
+            "suggestion": "使用流式读取（createReadStream/BufferedInputStream），分块处理避免一次性加载",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-016",
+            "name": "React组件state存储大数组频繁触发重渲染",
+            "severity": "S2",
+            "category": "memory",
+            "description": "将大数组（>1000项）整体存储在React state中，任何元素的修改都会创建新数组引用触发全组件树重渲染",
+            "suggestion": "大列表使用useReducer局部更新，或将大列表拆分为子组件各自管理状态，配合React.memo",
+            "applicable_files": [
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-M-017",
+            "name": "Map/Set在组件卸载后未清空",
+            "severity": "S3",
+            "category": "memory",
+            "description": "组件内部使用的Map/Set等集合在组件卸载后仍持有数据引用，阻止内部元素GC",
+            "suggestion": "在组件卸载回调中调用map.clear()/set.clear()清空集合，释放内部引用",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        }
+    ]
+}

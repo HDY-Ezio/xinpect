@@ -1,0 +1,315 @@
+{
+  "metadata": {
+    "name": "小程序体验规则",
+    "total_rules": 25
+  },
+  "rules": [
+    {
+      "id": "MUX-001",
+      "name": "网络请求缺少loading状态",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "页面发起网络请求时未显示loading提示，用户以为页面卡死而反复点击或退出",
+      "suggestion": "请求开始时wx.showLoading({title: '加载中'}），请求结束后wx.hideLoading()，并在finally中确保关闭",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-002",
+      "name": "空列表未显示空状态",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "列表数据为空时页面显示空白，用户无法区分是加载中还是确实没有数据",
+      "suggestion": "列表为空时显示空状态插画和提示文案（如'暂无数据'），区分加载失败和空数据两种情况",
+      "applicable_files": [
+        "*.wxml",
+        "*.wxss",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MUX-003",
+      "name": "网络异常未提供重试入口",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "网络请求失败后页面显示空白或错误信息，但没有提供重试按钮，用户只能退出重进",
+      "suggestion": "网络异常时显示友好的错误提示页面，并提供'重新加载'按钮让用户一键重试",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-004",
+      "name": "按钮点击无防重复处理",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "提交按钮点击后未置灰或加锁，用户连续点击导致重复提交",
+      "suggestion": "按钮点击后立即设置disabled或loading状态，请求完成后恢复；后端配合做幂等校验",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-005",
+      "name": "页面滚动位置未恢复",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "从列表页进入详情页再返回时，列表滚动位置丢失，需要重新滚动查找",
+      "suggestion": "使用page-scroll或记录滚动位置（onPageScroll），返回时通过scroll-top恢复位置",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-006",
+      "name": "长文本未做截断和展开",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "长文本（如商品描述、评论内容）直接全量展示，页面布局被撑开影响浏览体验",
+      "suggestion": "长文本默认显示3行并截断，提供'展开/收起'交互按钮",
+      "applicable_files": [
+        "*.wxml",
+        "*.wxss"
+      ]
+    },
+    {
+      "id": "MUX-007",
+      "name": "图片加载未设置占位和失败态",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "image组件未设置loading占位图和加载失败的fallback图片，加载过程中显示空白",
+      "suggestion": "image组件使用lazy-load属性，设置mode属性控制裁剪方式，binderror时显示默认占位图",
+      "applicable_files": [
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "MUX-008",
+      "name": "表单校验反馈不及时",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "表单提交后才显示校验错误，用户填写过程中没有实时反馈",
+      "suggestion": "使用失焦校验（bindblur）实时反馈错误，错误信息紧跟输入框下方显示，使用红色高亮",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.wxss"
+      ]
+    },
+    {
+      "id": "MUX-009",
+      "name": "删除操作未二次确认",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "删除收藏、清空购物车等操作点击后立即执行，没有确认弹窗防止误操作",
+      "suggestion": "使用wx.showModal进行二次确认，明确告知用户操作不可撤销",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-010",
+      "name": "tabBar图标未适配深色模式",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "tabBar仅配置了浅色模式图标，系统切换深色模式后图标与背景不协调",
+      "suggestion": "在app.json的tabBar中配置iconPath和selectedIconPath的同时，适配darkmode或提供深色图标资源",
+      "applicable_files": [
+        "app.json"
+      ]
+    },
+    {
+      "id": "MUX-011",
+      "name": "安全区域未适配底部Home Indicator",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "底部固定操作栏（如'立即购买'）未考虑iPhone X+的Home Indicator区域，被遮挡无法点击",
+      "suggestion": "使用env(safe-area-inset-bottom)或padding-bottom适配底部安全区域",
+      "applicable_files": [
+        "*.wxss",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "MUX-012",
+      "name": "导航栏标题未在加载中设置",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "页面数据加载完成后未更新导航栏标题（如显示具体分类名称），始终使用固定标题",
+      "suggestion": "数据加载完成后使用wx.setNavigationBarTitle动态更新标题，增强页面上下文感",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-013",
+      "name": "下拉刷新未处理数据为空",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "下拉刷新后数据为空，页面未更新为空状态，用户以为刷新没有生效",
+      "suggestion": "下拉刷新后判断数据是否为空，为空时切换到空状态展示；同时使用wx.stopStorageSync确保刷新动画停止",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-014",
+      "name": "页面转场动画缺失",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "页面跳转使用默认的左右滑动转场，缺少与业务场景匹配的过渡动画",
+      "suggestion": "使用wx.navigateTo的animationType参数或自定义转场动画，提升页面切换流畅感",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.json"
+      ]
+    },
+    {
+      "id": "MUX-015",
+      "name": "toast提示遮挡操作区域",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "wx.showToast使用默认的无遮罩模式，toast显示期间用户可操作底层按钮造成意外触发",
+      "suggestion": "关键操作提示使用wx.showToast({mask: true})或wx.showLoading({mask: true})阻止底层点击",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-016",
+      "name": "字体大小使用px未适配",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "全局字体大小使用px单位而非rpx，在不同屏幕密度的设备上显示大小不一致",
+      "suggestion": "字体大小使用rpx单位或小程序提供的系统字号（--font-size-base），确保多设备一致性",
+      "applicable_files": [
+        "*.wxss"
+      ]
+    },
+    {
+      "id": "MUX-017",
+      "name": "手势操作缺少引导提示",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "页面支持左滑删除、长按排序等手势操作，但没有任何视觉提示，用户无法发现",
+      "suggestion": "首次使用时展示手势引导动画或提示气泡，或在可操作区域添加暗示性UI（如左滑露出按钮）",
+      "applicable_files": [
+        "*.wxml",
+        "*.wxss",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MUX-018",
+      "name": "键盘弹出遮挡输入框",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "底部输入框在键盘弹出时被遮挡，用户看不到自己输入的内容",
+      "suggestion": "使用scroll-view包裹输入区域，键盘弹出时自动滚动到输入框可见位置；或设置adjust-position属性",
+      "applicable_files": [
+        "*.wxml",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MUX-019",
+      "name": "权限拒绝后无引导",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "用户拒绝定位/相机/相册权限后，功能直接不可用但未引导用户去设置中开启",
+      "suggestion": "权限被拒绝时弹窗说明原因，并提供'去设置'按钮调用wx.openSetting引导用户开启权限",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-020",
+      "name": "长表单未分步引导",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "超过10个字段的长表单一次性展示，用户填写压力大、放弃率高",
+      "suggestion": "将长表单拆分为多步骤（step wizard），每步3-4个字段，显示进度条让用户感知进度",
+      "applicable_files": [
+        "*.wxml",
+        "*.js",
+        "*.wxss"
+      ]
+    },
+    {
+      "id": "MUX-021",
+      "name": "倒计时未格式化显示",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "倒计时以秒数原始数字展示（如'3600'），用户不直观理解剩余时间",
+      "suggestion": "将倒计时格式化为'XX:XX:XX'或'X天X时X分'格式，使用WXS实时计算避免setData开销",
+      "applicable_files": [
+        "*.wxml",
+        "*.js"
+      ]
+    },
+    {
+      "id": "MUX-022",
+      "name": "返回操作未保留填写内容",
+      "severity": "S2",
+      "category": "miniprogram-ux",
+      "description": "用户填写了部分表单后返回上一页，再次进入时已填内容丢失",
+      "suggestion": "使用页面缓存（如getOpenerEventChannel或全局状态管理）保存已填内容，返回时恢复",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "MUX-023",
+      "name": "错误提示使用技术语言",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "错误提示使用技术性文案（如'Error: ENOTFOUND'、'500 Internal Server Error'），普通用户无法理解",
+      "suggestion": "错误提示使用用户能理解的自然语言（如'网络不太给力，请稍后重试'），技术细节仅记录日志",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "MUX-024",
+      "name": "点击热区过小",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "图标按钮或链接的可点击区域过小（<44rpx），用户难以精确点击",
+      "suggestion": "确保可点击区域最小44rpx×44rpx，可通过增加padding扩大热区而不改变视觉大小",
+      "applicable_files": [
+        "*.wxss",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "MUX-025",
+      "name": "页面切换无过渡导致闪烁",
+      "severity": "S3",
+      "category": "miniprogram-ux",
+      "description": "页面切换时新页面数据未准备好就展示，出现先空白后内容闪现的闪烁现象",
+      "suggestion": "使用骨架屏或loading态过渡，确保数据准备好后再渲染内容区域，或使用wx:if延迟渲染",
+      "applicable_files": [
+        "*.wxml",
+        "*.wxss",
+        "*.js"
+      ]
+    }
+  ]
+}

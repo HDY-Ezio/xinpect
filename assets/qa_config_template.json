@@ -1,0 +1,112 @@
+{
+  "thresholds": {
+    "nav_depth_max": 3,
+    "function_lines_warning": 80,
+    "function_lines_error": 150,
+    "duplication_similarity": 0.8,
+    "main_package_size_mb": 2,
+    "total_package_size_mb": 20,
+    "large_image_kb_warning": 100,
+    "large_image_kb_error": 300,
+    "setdata_kb_warning": 256,
+    "wxml_node_warning": 200,
+    "wxml_node_error": 1000,
+    "concurrent_requests_warning": 5,
+    "storage_mb_warning": 1,
+    "code_dup_rate_max": 0.1,
+    "cyclomatic_complexity_max": 15,
+    "brand_colors": [
+      "#E87722",
+      "#FF6B35"
+    ],
+    "card_border_radius": "12px",
+    "brand_color": "#E87722",
+    "brand_color_name": "primary",
+    "min_button_height": 44,
+    "min_metric_font_size": 28,
+    "max_tab_count": 4,
+    "indicator_style": "dots",
+    "ai_avatar_type": "brand_icon",
+    "forbidden_emojis": [
+      "🤖",
+      "💡",
+      "📊",
+      "📋",
+      "🔔",
+      "✅",
+      "🤝",
+      "📝",
+      "🎯",
+      "🔥",
+      "💰",
+      "📈",
+      "🎉",
+      "⚠️"
+    ],
+    "min_body_font_size_rpx": 24,
+    "spacing_system_rpx": [
+      16,
+      24,
+      32,
+      40,
+      48,
+      64,
+      96
+    ],
+    "max_spacing_values": 15,
+    "min_contrast_ratio": 4.5,
+    "min_contrast_large": 3.0,
+    "max_no_hover_ratio": 0.5
+  },
+  "exclude_dirs": [
+    "node_modules",
+    "miniprogram_npm",
+    ".git",
+    "__pycache__",
+    "venv",
+    "pkg",
+    "pymysql",
+    ".pymysql",
+    "codeact",
+    "ec-canvas",
+    "tests",
+    "test"
+  ],
+  "exclude_files": [
+    ".min.js",
+    ".min.css",
+    ".min.wxss"
+  ],
+  "backend_exclude_files": [
+    "b2_order_forecast.py",
+    "d3_d9_extension.py",
+    "check_layers.py",
+    "create_layer.py",
+    "create_layer2.py",
+    "get_config.py",
+    "update_env.py",
+    "upload_scf.py",
+    "upload_scf_sdk.py",
+    "qa_framework.py",
+    "qa_workflow.py",
+    "ui_design_audit.py",
+    "store_video_analysis.py",
+    "video_content_extract.py",
+    "meituan_food_safety_audit.py",
+    "transcribe_audio.py"
+  ],
+  "public_actions": {
+    "/api/auth": [
+      "register",
+      "send_code",
+      "login",
+      "wx_login",
+      "confirm_password",
+      "session_ttl_options"
+    ]
+  },
+  "smoke_test_urls": [],
+  "smoke_test_base_url": "",
+  "reference_backend_path": "",
+  "reference_frontend_mapping": ""
+}

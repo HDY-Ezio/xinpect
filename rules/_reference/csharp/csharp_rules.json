@@ -1,0 +1,112 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain1_rule_engine",
+    "generated": "2026-08",
+    "description": "C# 语言专项静态分析规则集，覆盖异步编程、空引用、资源释放、LINQ性能、死锁等常见问题",
+    "total_rules": 10,
+    "standards_reference": [
+      "Microsoft C# Coding Conventions",
+      "C# Language Specification",
+      "ASP.NET Core Security Best Practices"
+    ]
+  },
+  "rules": [
+    {
+      "id": "CSHARP-001",
+      "name": "async方法未await导致静默失败",
+      "severity": "high",
+      "category": "async_await",
+      "description": "当调用async方法时未使用await关键字，异步操作将作为fire-and-forget执行，其异常会被静默吞掉，导致程序行为异常但无任何错误信息。这在后台任务、事件处理中尤为常见且难以排查。",
+      "suggestion": "始终对async方法使用await，或者显式使用ContinueWith处理异常：\n```csharp\n// 错误\nSomeAsyncMethod();\n// 正确\nawait SomeAsyncMethod();\n// 或显式处理异常\n_ = SomeAsyncMethod().ContinueWith(t => { if (t.IsFaulted) Logger.Error(t.Exception); });\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-002",
+      "name": "null引用未防护（Nullable未启用）",
+      "severity": "high",
+      "category": "null_safety",
+      "description": "C#中引用类型默认允许null值，未启用Nullable Reference Types时编译器不会警告可能的NullReferenceException。这是.NET生态中最常见的运行时异常来源，会导致生产环境服务崩溃。",
+      "suggestion": "在.csproj中启用Nullable，并在可能为null的地方使用?标注：\n```xml\n<Nullable>enable</Nullable>\n```\n```csharp\n// 启用后可空检查\nstring? name = GetName(); // 明确标记可能为null\nstring result = name ?? \"default\"; // 提供默认值\nif (name is not null) { /* 安全使用 */ }\n```",
+      "applicable_files": ["*.cs", "*.csproj"]
+    },
+    {
+      "id": "CSHARP-003",
+      "name": "IDisposable资源未using释放",
+      "severity": "high",
+      "category": "resource_management",
+      "description": "实现了IDisposable接口的对象（如Stream、SqlConnection、HttpClient等）未通过using语句释放，会导致非托管资源（文件句柄、数据库连接、网络端口）泄漏，最终导致系统资源耗尽。",
+      "suggestion": "使用using声明或using语句确保资源释放：\n```csharp\n// 错误\nvar stream = new FileStream(\"file.txt\", FileMode.Open);\nstream.Read(buffer, 0, length);\n// stream忘记关闭\n\n// 正确 - C# 8.0 using声明\nusing var stream = new FileStream(\"file.txt\", FileMode.Open);\nstream.Read(buffer, 0, length);\n// 离开作用域自动释放\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-004",
+      "name": "LINQ查询在循环中执行（N+1问题）",
+      "severity": "medium",
+      "category": "performance",
+      "description": "在for/foreach循环内部执行LINQ查询（特别是EF Core的数据库查询），会导致N+1查询问题。例如查询100条订单，每条订单再单独查询其商品详情，产生101次数据库访问，严重影响性能。",
+      "suggestion": "使用Include预加载关联数据，或将循环内查询重构为批量查询：\n```csharp\n// 错误 - N+1查询\nvar orders = dbContext.Orders.ToList();\nforeach (var order in orders) {\n    order.Items = dbContext.Items.Where(i => i.OrderId == order.Id).ToList(); // 每次循环查库\n}\n\n// 正确 - 预加载\nvar orders = dbContext.Orders.Include(o => o.Items).ToList(); // 一次查询搞定\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-005",
+      "name": "string拼接在循环中使用+而非StringBuilder",
+      "severity": "medium",
+      "category": "performance",
+      "description": "C#中string是不可变类型，每次使用+拼接都会创建新的string对象并分配内存。在循环中大量拼接字符串会导致严重的内存分配压力和GC负担，循环1000次就会产生1000个临时字符串对象。",
+      "suggestion": "使用StringBuilder进行循环内字符串拼接：\n```csharp\n// 错误 - 循环内+拼接\nstring result = \"\";\nfor (int i = 0; i < 1000; i++) {\n    result += items[i].ToString(); // 每次创建新string\n}\n\n// 正确\nvar sb = new StringBuilder();\nfor (int i = 0; i < 1000; i++) {\n    sb.Append(items[i]);\n}\nstring result = sb.ToString();\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-006",
+      "name": "EF Core Tracking导致内存膨胀",
+      "severity": "medium",
+      "category": "performance",
+      "description": "EF Core默认启用变更追踪（Change Tracking），查询出的每个实体都会被DbContext持有引用并监控变更。在只读场景（如列表查询、报表展示）中启用Tracking会导致大量对象驻留内存，DbContext体积膨胀，GC压力增大。",
+      "suggestion": "对只读查询使用AsNoTracking()：\n```csharp\n// 错误 - 只读场景也追踪\nvar users = await dbContext.Users.ToListAsync(); // 所有用户被追踪\n\n// 正确 - 只读查询禁用追踪\nvar users = await dbContext.Users.AsNoTracking().ToListAsync(); // 不追踪，节省内存\n\n// 需要修改时再单独查询\nvar user = await dbContext.Users.FindAsync(id); // 需要修改时才追踪\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-007",
+      "name": "Task.Result同步阻塞导致死锁",
+      "severity": "critical",
+      "category": "async_await",
+      "description": "在同步上下文中使用Task.Result或Task.Wait()阻塞等待异步任务完成，当存在SynchronizationContext时（如ASP.NET旧版本、WinForms、WPF），会导致经典的死锁问题：异步回调等待同步上下文释放，而同步上下文正阻塞在.Result上。",
+      "suggestion": "永远使用await而非.Result/.Wait()：\n```csharp\n// 错误 - 可能死锁\nvar result = SomeAsyncMethod().Result; // 阻塞当前线程\nSomeAsyncMethod().Wait(); // 同样危险\n\n// 正确 - 使用await\nvar result = await SomeAsyncMethod();\n\n// 如果必须在同步方法中调用异步方法\n// 使用ConfigureAwait(false)并包装\nvar result = Task.Run(() => SomeAsyncMethod()).GetAwaiter().GetResult();\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-008",
+      "name": "异常被catch后吞掉不处理",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "catch块中没有任何处理逻辑（空的catch块或仅有注释），异常被静默吞掉。这会导致程序在异常状态下继续运行，数据可能已经损坏但无迹可查，极大增加故障排查难度。",
+      "suggestion": "至少记录异常日志，或重新抛出异常：\n```csharp\n// 错误 - 吞掉异常\ntry {\n    ProcessData();\n} catch (Exception ex) {\n    // 什么都不做\n}\n\n// 正确 - 记录日志\ntry {\n    ProcessData();\n} catch (Exception ex) {\n    logger.LogError(ex, \"处理数据失败: {Message}\", ex.Message);\n    throw; // 或者向上层传播\n}\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-009",
+      "name": "集合在foreach中被修改",
+      "severity": "high",
+      "category": "collection_safety",
+      "description": "在foreach遍历集合的过程中对集合进行增删操作，会抛出InvalidOperationException异常。即使使用for循环通过索引访问，在遍历过程中修改集合长度也会导致索引越界或跳过元素等问题。",
+      "suggestion": "使用临时集合收集变更，或使用反向遍历删除：\n```csharp\n// 错误 - foreach中修改\nforeach (var item in list) {\n    if (item.ShouldRemove())\n        list.Remove(item); // 抛出异常\n}\n\n// 正确方式1 - 使用RemoveAll\nlist.RemoveAll(item => item.ShouldRemove());\n\n// 正确方式2 - 收集后批量处理\nvar toRemove = list.Where(item => item.ShouldRemove()).ToList();\nforeach (var item in toRemove) list.Remove(item);\n\n// 正确方式3 - 反向遍历\nfor (int i = list.Count - 1; i >= 0; i--) {\n    if (list[i].ShouldRemove()) list.RemoveAt(i);\n}\n```",
+      "applicable_files": ["*.cs"]
+    },
+    {
+      "id": "CSHARP-010",
+      "name": "反射调用未缓存MethodInfo",
+      "severity": "low",
+      "category": "performance",
+      "description": "每次反射调用都通过Type.GetMethod()获取MethodInfo对象，这是一个相对昂贵的操作（涉及元数据查找）。在高频调用路径（如序列化、ORM映射、AOP切面）中反复获取MethodInfo会造成不必要的性能开销。",
+      "suggestion": "缓存MethodInfo到静态字段或使用委托缓存：\n```csharp\n// 错误 - 每次调用都查找\npublic void Process(object obj) {\n    var method = obj.GetType().GetMethod(\"Execute\"); // 每次都查找\n    method.Invoke(obj, null);\n}\n\n// 正确 - 缓存MethodInfo\nprivate static readonly MethodInfo _executeMethod =\n    typeof(MyClass).GetMethod(\"Execute\");\n\npublic void Process(object obj) {\n    _executeMethod.Invoke(obj, null); // 直接使用缓存\n}\n\n// 更优 - 编译为委托\nprivate static readonly Action<object> _compiledAction = ...\n```",
+      "applicable_files": ["*.cs"]
+    }
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 4,
+    "medium": 4,
+    "low": 1
+  }
+}

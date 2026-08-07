@@ -1,0 +1,343 @@
+{
+    "metadata": {
+        "name": "性能-缓存优化规则",
+        "total_rules": 25
+    },
+    "rules": [
+        {
+            "id": "PERF-CACHE-001",
+            "name": "缓存穿透：未缓存空结果导致反复穿透到数据库",
+            "severity": "S1",
+            "category": "caching",
+            "description": "查询不存在的数据时缓存未命中也不缓存结果，每次请求都穿透缓存直达数据库，恶意攻击者可利用不存在的key压垮数据库",
+            "suggestion": "对查询为空的结果也缓存（设置短TTL如30-60s）；使用布隆过滤器预判key是否存在；使用互斥锁限制同一key的并发穿透",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CACHE-002",
+            "name": "缓存击穿：热点key过期瞬间大量请求穿透",
+            "severity": "S1",
+            "category": "caching",
+            "description": "高并发访问的热点key（如首页数据、秒杀商品）过期瞬间，大量并发请求同时穿透缓存查询数据库，造成数据库瞬时压力暴增",
+            "suggestion": "热点key永不过期（逻辑过期+异步更新）；使用分布式锁（setnx）保证同一key只有一个线程回源；或使用singleflight模式合并并发请求",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CACHE-003",
+            "name": "缓存雪崩：大量key同时过期导致请求涌向数据库",
+            "severity": "S1",
+            "category": "caching",
+            "description": "缓存中大量key设置了相同的TTL，同一时间集中过期，请求全部涌向数据库导致数据库负载飙升甚至崩溃",
+            "suggestion": "TTL添加随机偏移量（base_ttl + random(0, 300s)）打散过期时间；使用多级缓存（本地+分布式）降低单点失效风险；配置缓存降级策略",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CACHE-004",
+            "name": "缓存与数据库数据不一致",
+            "severity": "S2",
+            "category": "caching",
+            "description": "更新数据库时未同步更新或删除缓存，导致用户读取到过期数据；先更新缓存再更新数据库也存在中间态不一致",
+            "suggestion": "采用Cache Aside Pattern：先更新数据库再删除缓存；配合短TTL兜底；强一致场景使用延迟双删策略或订阅binlog异步更新缓存",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-005",
+            "name": "缓存key设计不当导致无法命中",
+            "severity": "S2",
+            "category": "caching",
+            "description": "缓存key包含过多变量或粒度过细（如包含时间戳、用户ID），导致同一数据被重复缓存，缓存命中率极低",
+            "suggestion": "缓存key只包含必要的业务参数；公共数据使用共享key（不含用户ID）；按查询维度设计key而非按请求参数",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-006",
+            "name": "本地缓存无容量限制导致内存溢出",
+            "severity": "S1",
+            "category": "caching",
+            "description": "使用Map/Object作为本地缓存只增不减，无最大容量和淘汰策略，缓存数据持续增长最终导致OOM",
+            "suggestion": "使用LRU Cache（如lru-cache、Caffeine、Guava Cache）设置最大容量；配置TTL自动过期淘汰；监控缓存大小和命中率",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-007",
+            "name": "大Value缓存导致Redis阻塞",
+            "severity": "S2",
+            "category": "caching",
+            "description": "单个缓存Value过大（如完整列表>1MB），Redis是单线程处理命令，大Value的序列化/反序列化阻塞其他请求",
+            "suggestion": "控制单个Value大小在10KB以内；大对象拆分为多个小key；使用压缩（snappy/lz4）减少Value体积；避免存储完整列表",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-008",
+            "name": "多级缓存未设置合理的降级策略",
+            "severity": "S2",
+            "category": "caching",
+            "description": "多级缓存（本地→Redis→数据库）中某一级故障时无降级策略，直接抛出异常导致服务不可用",
+            "suggestion": "设计缓存降级链路：Redis不可用时降级到本地缓存；本地缓存miss时降级到数据库；配置合理的超时和重试机制",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-009",
+            "name": "缓存预热缺失导致冷启动性能差",
+            "severity": "S2",
+            "category": "caching",
+            "description": "服务重启或新实例上线后缓存为空，所有请求穿透到数据库，冷启动期间数据库压力骤增、响应时间飙升",
+            "suggestion": "实现缓存预热：服务启动时异步加载热点数据到缓存；使用缓存加载器（CacheLoader）按需预热；灰度上线减少冷启动影响范围",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-010",
+            "name": "Redis使用不当：keys命令在线上使用",
+            "severity": "S1",
+            "category": "caching",
+            "description": "在Redis线上实例中使用KEYS pattern命令遍历所有key，KEYS是O(N)操作且阻塞Redis单线程，数据量大时导致Redis长时间无响应",
+            "suggestion": "使用SCAN命令替代KEYS进行渐进式遍历（不阻塞）；按业务前缀分库或使用Hash组织key便于批量管理",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-011",
+            "name": "缓存更新使用先删缓存再更新数据库的错误顺序",
+            "severity": "S2",
+            "category": "caching",
+            "description": "更新数据时先删除缓存再更新数据库，并发读请求在数据库更新完成前重新加载旧数据到缓存，导致缓存长期存储脏数据",
+            "suggestion": "采用Cache Aside：先更新数据库再删除缓存；使用延迟双删（先删→更新DB→延迟500ms再删）兜底；或订阅数据库binlog异步更新",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-012",
+            "name": "HTTP缓存头未配置导致浏览器重复请求",
+            "severity": "S2",
+            "category": "caching",
+            "description": "API响应或静态资源未设置合理的Cache-Control/ETag/Last-Modified头，浏览器每次请求都发往服务器，浪费带宽和服务器资源",
+            "suggestion": "静态资源配置强缓存（Cache-Control: max-age=31536000）+文件名hash；API响应使用ETag/304协商缓存或短max-age+stale-while-revalidate",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.conf"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-013",
+            "name": "缓存序列化方式性能差",
+            "severity": "S3",
+            "category": "caching",
+            "description": "使用JSON.stringify/parse做缓存序列化，大对象序列化/反序列化耗时长；或使用Java原生序列化存在安全和性能问题",
+            "suggestion": "高性能场景使用Protocol Buffers、MessagePack或Kryo替代JSON序列化；Redis使用二进制协议（RESP）存储；避免Java原生序列化",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-014",
+            "name": "缓存未区分冷热数据统一TTL",
+            "severity": "S3",
+            "category": "caching",
+            "description": "所有缓存数据使用相同的TTL策略，热点数据过早过期反复回源，冷数据长期占用缓存空间浪费内存",
+            "suggestion": "按数据访问频率分级设置TTL：热点数据长TTL或永不过期+主动更新；冷数据短TTL快速淘汰；使用LFU/LRU策略自动识别冷热",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-015",
+            "name": "Redis Pipeline未使用导致逐条命令网络往返",
+            "severity": "S2",
+            "category": "caching",
+            "description": "连续执行多个Redis命令（如批量GET/SET）每条命令都单独发送等待响应，N条命令产生N次网络RTT",
+            "suggestion": "使用Pipeline批量发送命令一次往返完成；使用MGET/MSET批量读写；使用Lua脚本合并原子操作",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-016",
+            "name": "分布式缓存未设置合理的序列化兼容性",
+            "severity": "S3",
+            "category": "caching",
+            "description": "服务升级后对象字段变化，旧缓存数据反序列化失败或得到错误数据，导致服务异常或业务逻辑错误",
+            "suggestion": "使用向前兼容的序列化格式（如Protocol Buffers）；缓存key包含版本号（v2:user:123）；版本升级时清理旧缓存",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-017",
+            "name": "缓存未监控：命中率和内存使用无告警",
+            "severity": "S3",
+            "category": "caching",
+            "description": "缓存系统未设置监控指标（命中率、内存使用、key数量、慢查询），缓存失效或异常时无法及时发现和处理",
+            "suggestion": "监控关键指标：缓存命中率（目标>95%）、内存使用率、evicted keys、慢命令数；设置告警阈值；定期分析大key和热key",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-018",
+            "name": "Redis使用Hash存储小对象而非String",
+            "severity": "S3",
+            "category": "caching",
+            "description": "存储大量小对象（如用户信息）时使用一个key存一个完整JSON String，每个key都有额外内存开销（dictEntry约72字节）",
+            "suggestion": "使用Hash类型存储对象字段（HSET user:123 name xxx age 20），多个小对象可合并到一个Hash中减少内存开销；注意Hash大key问题",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-019",
+            "name": "缓存并发竞争：未使用分布式锁导致重复回源",
+            "severity": "S2",
+            "category": "caching",
+            "description": "缓存miss时多个并发请求同时查询数据库并写入缓存，浪费数据库资源且可能写入不一致的数据",
+            "suggestion": "缓存miss时使用分布式锁（Redis SETNX）确保只有一个请求回源，其他请求等待或返回旧数据；或使用singleflight模式",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-020",
+            "name": "本地缓存与分布式缓存数据不一致",
+            "severity": "S2",
+            "category": "caching",
+            "description": "多级缓存架构中本地缓存（L1）更新不及时，分布式缓存（L2）已更新但各节点本地缓存仍存储旧数据，导致不同节点返回不同结果",
+            "suggestion": "本地缓存设置短TTL（如10-30s）保证最终一致性；使用Redis Pub/Sub通知所有节点清除本地缓存；或使用key版本机制",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-021",
+            "name": "缓存更新策略：未使用异步刷新导致请求阻塞",
+            "severity": "S3",
+            "category": "caching",
+            "description": "缓存更新采用同步阻塞方式，缓存过期后第一个请求必须等待数据库查询完成才能返回，用户体验差",
+            "suggestion": "使用异步刷新策略：缓存即将过期时由后台线程异步更新，当前请求返回旧数据（stale-while-revalidate模式）",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-CACHE-022",
+            "name": "Redis连接未使用连接池",
+            "severity": "S2",
+            "category": "caching",
+            "description": "每次Redis操作都创建新的TCP连接，连接建立开销（三次握手）显著增加缓存操作延迟",
+            "suggestion": "使用Redis连接池（如JedisPool、lettuce pool、ioredis默认连接池）复用连接；合理设置连接池大小和超时参数",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,83 @@
+{
+  "rules": [
+    {
+      "id": "B3-18-R001",
+      "name": "测试断言缺失或无意义",
+      "severity": "medium",
+      "category": "test-semantic",
+      "description": "测试方法中没有断言（assert），或仅有toBeTruthy()等弱断言，无法验证实际业务逻辑是否正确。",
+      "suggestion": "每个测试至少有一个明确的断言验证预期行为；使用精确的断言方法（toEqual/toBe/toContain）而非模糊断言。",
+      "applicable_files": [
+        "*.test.js",
+        "*.test.ts",
+        "*.spec.js",
+        "*.spec.ts",
+        "*Test.java",
+        "*_test.py",
+        "*_test.go"
+      ]
+    },
+    {
+      "id": "B3-18-R002",
+      "name": "测试之间存在依赖/执行顺序敏感",
+      "severity": "high",
+      "category": "test-semantic",
+      "description": "测试用例依赖其他测试的执行结果（如共享可变状态、依赖数据库中的数据、依赖全局变量的前一个测试设置），并行或乱序执行时失败。",
+      "suggestion": "每个测试独立设置和清理环境（beforeEach/afterEach）；使用测试fixture或factory创建独立数据；避免共享可变状态。",
+      "applicable_files": [
+        "*.test.js",
+        "*.test.ts",
+        "*.spec.*",
+        "*Test.java",
+        "*_test.py",
+        "*_test.go"
+      ]
+    },
+    {
+      "id": "B3-18-R003",
+      "name": "测试过度mock导致无法验证真实行为",
+      "severity": "medium",
+      "category": "test-semantic",
+      "description": "测试中mock了几乎所有依赖，mock的返回值与真实实现行为不一致，测试通过但实际代码仍有bug。",
+      "suggestion": "仅mock外部依赖（网络、数据库、第三方API）；对内部逻辑使用真实实现；增加集成测试验证真实行为。",
+      "applicable_files": [
+        "*.test.*",
+        "*.spec.*",
+        "*Test.java",
+        "*_test.py",
+        "*_test.go"
+      ]
+    },
+    {
+      "id": "B3-18-R004",
+      "name": "测试仅覆盖happy path",
+      "severity": "medium",
+      "category": "test-semantic",
+      "description": "测试用例仅覆盖了正常路径（happy path），未覆盖边界条件、错误路径、异常情况，无法发现防御性编程的缺陷。",
+      "suggestion": "补充边界值测试（空值、最大值、最小值）；补充错误路径测试（网络失败、权限不足、数据不存在）；使用等价类划分。",
+      "applicable_files": [
+        "*.test.*",
+        "*.spec.*",
+        "*Test.java",
+        "*_test.py",
+        "*_test.go"
+      ]
+    },
+    {
+      "id": "B3-18-R005",
+      "name": "测试中包含硬编码的敏感信息",
+      "severity": "high",
+      "category": "test-semantic",
+      "description": "测试代码中硬编码了真实的API密钥、数据库密码、生产环境URL等敏感信息，可能随代码提交到版本库泄露。",
+      "suggestion": "使用环境变量或测试配置文件管理敏感信息；使用mock/fake服务替代真实外部服务；CI中使用secrets管理。",
+      "applicable_files": [
+        "*.test.*",
+        "*.spec.*",
+        "*Test.java",
+        "*_test.py",
+        "*_test.go",
+        "conftest.py"
+      ]
+    }
+  ]
+}

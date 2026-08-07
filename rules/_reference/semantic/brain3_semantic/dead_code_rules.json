@@ -1,0 +1,164 @@
+{
+  "rules": [
+    {
+      "id": "SEM-DC-001",
+      "name": "恒假条件：if(false)不可达分支",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "条件永远为false的分支永远不会执行，代码被废弃但未清理。",
+      "suggestion": "删除不可达的代码分支；检查条件表达式是否有逻辑错误。"
+    },
+    {
+      "id": "SEM-DC-002",
+      "name": "恒真条件：if(true)冗余分支",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "条件永远为true的分支中else部分永远不会执行。",
+      "suggestion": "移除恒真条件，直接保留true分支代码。"
+    },
+    {
+      "id": "SEM-DC-003",
+      "name": "return后不可达代码",
+      "severity": "high",
+      "category": "dead-code",
+      "description": "return、throw、break、continue语句之后的代码永远不会被执行。",
+      "suggestion": "删除return/throw后的不可达代码。"
+    },
+    {
+      "id": "SEM-DC-004",
+      "name": "被注释掉的大段代码块",
+      "severity": "low",
+      "category": "dead-code",
+      "description": "大段被注释掉的代码(超过5行)保留在源文件中。",
+      "suggestion": "删除注释代码，使用版本控制系统管理历史。"
+    },
+    {
+      "id": "SEM-DC-005",
+      "name": "未使用的私有方法",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "私有方法在定义后未被任何代码调用。",
+      "suggestion": "删除未使用的私有方法。"
+    },
+    {
+      "id": "SEM-DC-006",
+      "name": "未使用的私有类/内部类",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "私有类或内部类未被任何代码引用。",
+      "suggestion": "删除未使用的类定义。"
+    },
+    {
+      "id": "SEM-DC-007",
+      "name": "switch中不可达的case",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "switch语句中在含有break/return的case后面又出现了相同条件值的case。",
+      "suggestion": "删除不可达的case分支。"
+    },
+    {
+      "id": "SEM-DC-008",
+      "name": "条件互斥导致的死分支",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "连续的条件判断中，后续条件与前面条件互斥，导致后续分支永远不会执行。",
+      "suggestion": "检查条件逻辑，修复互斥条件。"
+    },
+    {
+      "id": "SEM-DC-009",
+      "name": "未使用的局部变量（赋值后未读取）",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "局部变量被赋值但之后从未被读取。",
+      "suggestion": "删除未使用的变量。"
+    },
+    {
+      "id": "SEM-DC-010",
+      "name": "for循环条件永假导致循环体不执行",
+      "severity": "high",
+      "category": "dead-code",
+      "description": "for循环的终止条件在初始化时就已经为false。",
+      "suggestion": "检查循环条件是否有逻辑错误。"
+    },
+    {
+      "id": "SEM-DC-011",
+      "name": "重复的条件判断",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "if-else if链中后面的条件与前面完全相同。",
+      "suggestion": "删除重复的条件分支。"
+    },
+    {
+      "id": "SEM-DC-012",
+      "name": "空的文件/模块",
+      "severity": "low",
+      "category": "dead-code",
+      "description": "源文件中没有实际的函数/类/变量定义，仅包含import语句或注释。",
+      "suggestion": "删除空文件或补充实际功能。"
+    },
+    {
+      "id": "SEM-DC-013",
+      "name": "三元表达式中恒真/恒假条件",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "三元表达式的条件部分恒为true或false。",
+      "suggestion": "简化为直接取值。"
+    },
+    {
+      "id": "SEM-DC-014",
+      "name": "未使用的枚举值/常量",
+      "severity": "low",
+      "category": "dead-code",
+      "description": "枚举类型中定义了从未被引用的枚举值。",
+      "suggestion": "删除未使用的枚举值或常量。"
+    },
+    {
+      "id": "SEM-DC-015",
+      "name": "空的构造函数/析构函数",
+      "severity": "low",
+      "category": "dead-code",
+      "description": "类的构造函数或析构函数体为空。",
+      "suggestion": "删除空的构造/析构函数。"
+    },
+    {
+      "id": "SEM-DC-016",
+      "name": "已废弃标记但仍被内部使用",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "方法/类上标注了@Deprecated但内部仍有大量调用。",
+      "suggestion": "将内部调用迁移到新API。"
+    },
+    {
+      "id": "SEM-DC-017",
+      "name": "不可达的catch块",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "catch块捕获的异常类型在对应的try块中不可能被抛出。",
+      "suggestion": "删除不可达的catch块。"
+    },
+    {
+      "id": "SEM-DC-018",
+      "name": "条件表达式中的死代码（短路逻辑）",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "逻辑运算符短路导致部分表达式不执行。",
+      "suggestion": "移除短路逻辑中的无效表达式。"
+    },
+    {
+      "id": "SEM-DC-019",
+      "name": "TODO/FIXME超过一年的遗留代码",
+      "severity": "low",
+      "category": "dead-code",
+      "description": "代码中的TODO/FIXME注释超过一年未处理。",
+      "suggestion": "处理或清理遗留的TODO/FIXME标记。"
+    },
+    {
+      "id": "SEM-DC-020",
+      "name": "空的接口实现",
+      "severity": "medium",
+      "category": "dead-code",
+      "description": "实现接口时方法体为空或仅返回默认值。",
+      "suggestion": "检查接口设计是否匹配实现需要。"
+    }
+  ]
+}

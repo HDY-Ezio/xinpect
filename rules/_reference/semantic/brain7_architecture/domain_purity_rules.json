@@ -1,0 +1,36 @@
+{
+  "rules": [
+    {
+      "id": "ARCH-DOM-001",
+      "name": "领域层包含基础设施代码",
+      "severity": "high",
+      "category": "domain-purity",
+      "description": "领域层（Domain Layer）的代码中直接引用了基础设施相关类（如数据库连接、HTTP客户端、文件系统操作、消息队列），违反Clean Architecture/DDD原则。",
+      "suggestion": "在领域层定义接口（Repository/Gateway），在基础设施层实现；领域层只能依赖抽象而非具体实现；使用依赖倒置。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-DOM-004",
+      "name": "领域服务依赖外部服务",
+      "severity": "high",
+      "category": "domain-purity",
+      "description": "领域服务（Domain Service）直接依赖外部服务（如发送邮件、调用第三方API），应通过领域事件或应用服务协调。",
+      "suggestion": "领域服务只包含纯业务逻辑；外部服务调用提升到应用服务层；使用领域事件解耦跨限界上下文的操作。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go"
+      ],
+      "pattern": ""
+    }
+  ]
+}

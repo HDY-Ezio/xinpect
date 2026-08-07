@@ -1,0 +1,351 @@
+{
+  "metadata": {
+    "name": "日志规范",
+    "total_rules": 25
+  },
+  "rules": [
+    {
+      "id": "LOG-001",
+      "name": "生产环境禁止console.log",
+      "severity": "S2",
+      "category": "logging",
+      "description": "生产代码中包含console.log/console.debug语句，影响性能且可能泄露信息",
+      "suggestion": "使用条件编译或日志框架控制日志输出，生产环境移除或禁用console输出",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "LOG-002",
+      "name": "日志中记录密码/密钥",
+      "severity": "S1",
+      "category": "logging",
+      "description": "日志内容中包含password、secret、token、api_key等敏感字段的明文值",
+      "suggestion": "对敏感字段进行脱敏处理，只记录字段的存在性而非值，或使用掩码（如***）替代",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "LOG-003",
+      "name": "日志级别使用不当",
+      "severity": "S3",
+      "category": "logging",
+      "description": "所有日志都使用同一级别（如全部info），无法区分错误严重程度",
+      "suggestion": "合理使用日志级别：ERROR用于影响业务的异常，WARN用于可恢复的问题，INFO用于关键业务流程，DEBUG用于调试信息",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "LOG-004",
+      "name": "日志缺少结构化格式",
+      "severity": "S3",
+      "category": "logging",
+      "description": "日志使用字符串拼接输出，格式不统一，难以被日志分析系统解析",
+      "suggestion": "使用结构化日志格式（JSON），包含timestamp、level、message、context等标准字段",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-005",
+      "name": "循环体内打印大量日志",
+      "severity": "S2",
+      "category": "logging",
+      "description": "在循环体内逐条打印日志，高频循环导致日志量暴增影响性能",
+      "suggestion": "将循环日志聚合输出，如记录总数和采样值，或将日志级别设为DEBUG",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "LOG-006",
+      "name": "日志中包含完整用户数据",
+      "severity": "S1",
+      "category": "logging",
+      "description": "日志中记录了用户的完整个人信息（手机号、身份证、地址等）",
+      "suggestion": "对用户个人信息进行脱敏，如手机号显示为138****1234，身份证显示前3后4位",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-007",
+      "name": "缺少请求追踪ID",
+      "severity": "S2",
+      "category": "logging",
+      "description": "请求处理日志中没有traceId/requestId，无法跨服务追踪同一请求",
+      "suggestion": "在请求入口生成唯一traceId，传递给下游服务和日志上下文",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-008",
+      "name": "日志文件未配置轮转策略",
+      "severity": "S2",
+      "category": "logging",
+      "description": "日志文件没有大小限制和轮转策略，可能占满磁盘空间",
+      "suggestion": "配置日志轮转策略：按大小（如100MB）或时间（按天）轮转，设置保留期限",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-009",
+      "name": "异常日志缺少堆栈信息",
+      "severity": "S2",
+      "category": "logging",
+      "description": "记录异常时只记录了message，没有包含完整的堆栈信息",
+      "suggestion": "记录异常时包含完整堆栈：logger.error('msg', exc_info=True)或logger.error('msg', error.stack)",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-010",
+      "name": "日志输出到标准输出而非文件",
+      "severity": "S3",
+      "category": "logging",
+      "description": "生产环境日志仅输出到stdout，容器重启后日志丢失",
+      "suggestion": "生产环境日志应同时输出到文件（配置轮转）和日志收集系统（如ELK/Loki）",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-011",
+      "name": "敏感HTTP请求体完整记录",
+      "severity": "S1",
+      "category": "logging",
+      "description": "日志中完整记录了包含敏感信息的HTTP请求体（如登录请求含密码）",
+      "suggestion": "对请求体中的敏感字段进行脱敏后再记录，或使用白名单方式只记录非敏感字段",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-012",
+      "name": "日志时间戳缺少时区信息",
+      "severity": "S3",
+      "category": "logging",
+      "description": "日志时间戳不包含时区信息，跨时区部署时难以对齐时间线",
+      "suggestion": "使用UTC时间戳并标注时区，格式如ISO 8601: 2024-01-01T00:00:00.000Z",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-013",
+      "name": "调试日志在生产环境开启",
+      "severity": "S2",
+      "category": "logging",
+      "description": "DEBUG级别日志在生产环境中处于开启状态，产生大量日志影响性能",
+      "suggestion": "生产环境日志级别设置为INFO或WARN以上，通过配置文件控制而非硬编码",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-014",
+      "name": "日志中包含SQL完整语句含参数",
+      "severity": "S2",
+      "category": "logging",
+      "description": "日志中打印包含实际参数值的完整SQL语句，可能泄露业务数据",
+      "suggestion": "记录SQL模板和参数数量，不记录具体参数值；或对参数值进行脱敏",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-015",
+      "name": "缺少关键操作审计日志",
+      "severity": "S2",
+      "category": "logging",
+      "description": "关键业务操作（如支付、权限变更、数据删除）没有审计日志记录",
+      "suggestion": "为关键操作添加审计日志，记录操作人、操作时间、操作内容、操作结果",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-016",
+      "name": "异步日志丢失风险",
+      "severity": "S3",
+      "category": "logging",
+      "description": "使用异步日志但在进程退出时未等待日志缓冲区刷新，导致日志丢失",
+      "suggestion": "进程退出前调用日志框架的flush/shutdown方法确保缓冲区日志写入完成",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js"
+      ]
+    },
+    {
+      "id": "LOG-017",
+      "name": "日志中记录完整IP地址",
+      "severity": "S3",
+      "category": "logging",
+      "description": "日志中记录用户完整IP地址，在某些地区属于个人隐私数据",
+      "suggestion": "根据隐私合规要求，对IP地址进行截断处理（如只记录到网段）或加密存储",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-018",
+      "name": "print语句替代正式日志",
+      "severity": "S2",
+      "category": "logging",
+      "description": "使用print语句输出信息而非使用标准日志框架",
+      "suggestion": "替换所有print为日志框架调用（如logging.info），以获得日志级别控制和格式化能力",
+      "applicable_files": [
+        "*.py"
+      ]
+    },
+    {
+      "id": "LOG-019",
+      "name": "日志消息使用字符串拼接",
+      "severity": "S3",
+      "category": "logging",
+      "description": "使用字符串拼接（+）构建日志消息，即使日志级别不满足也会执行拼接操作",
+      "suggestion": "使用参数化日志：logger.info('User %s logged in', user_id)，延迟字符串格式化",
+      "applicable_files": [
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "LOG-020",
+      "name": "缺少性能日志记录",
+      "severity": "S3",
+      "category": "logging",
+      "description": "关键业务接口没有记录耗时信息，无法进行性能分析",
+      "suggestion": "在关键方法入口和出口记录耗时，使用装饰器或中间件统一记录接口响应时间",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-021",
+      "name": "日志中包含完整请求Header",
+      "severity": "S2",
+      "category": "logging",
+      "description": "日志中记录了完整的HTTP请求头，可能包含Authorization、Cookie等敏感信息",
+      "suggestion": "只记录非敏感的Header（如Content-Type、User-Agent），过滤Authorization、Cookie等",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-022",
+      "name": "缺少日志采样机制",
+      "severity": "S3",
+      "category": "logging",
+      "description": "高频接口每条请求都记录完整日志，日志量过大影响存储和分析效率",
+      "suggestion": "对高频日志实施采样策略，如每100条记录1条，或使用rate limiter限制日志频率",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-023",
+      "name": "日志文件权限过于宽松",
+      "severity": "S2",
+      "category": "logging",
+      "description": "日志文件权限设置为777或666，任何用户可读取包含敏感信息的日志",
+      "suggestion": "日志文件权限设置为640或600，确保只有应用用户和日志管理组可以访问",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js"
+      ]
+    },
+    {
+      "id": "LOG-024",
+      "name": "缺少应用上下文日志信息",
+      "severity": "S3",
+      "category": "logging",
+      "description": "日志中缺少应用名称、版本号、环境标识等上下文信息",
+      "suggestion": "在日志初始化时设置应用名称、版本、环境（dev/staging/prod）等MDC上下文",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "LOG-025",
+      "name": "错误日志缺少告警联动",
+      "severity": "S2",
+      "category": "logging",
+      "description": "ERROR级别日志没有触发告警通知，关键问题无法被及时发现",
+      "suggestion": "ERROR日志应联动告警系统（如PagerDuty、钉钉），根据错误频率和类型配置告警规则",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

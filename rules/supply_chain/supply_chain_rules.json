@@ -1,0 +1,271 @@
+{
+  "metadata": {
+    "platform": "supply_chain",
+    "brain": "brain2",
+    "version": "1.0",
+    "author": "煋旺智能"
+  },
+  "rules": [
+    {
+      "check_id": "SC-001",
+      "name": "拼写劫持：lodash相似包名检测",
+      "severity": "critical",
+      "category": "security",
+      "description": "检测到与热门包lodash拼写相近的依赖名，可能为拼写劫持(typosquatting)恶意包，如lodasch、1odash、ldoash等变体",
+      "pattern": "\"(?:lodasch|lodash|1odash|lodashs|_lodash|lodahs|ldoash|lodssh|loodash|l0dash)\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "核实包名拼写，确保使用官方包lodash（注意大小写和字符顺序）。在npmjs.com上验证包的发布者和下载量",
+      "references": [
+        "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident"
+      ]
+    },
+    {
+      "check_id": "SC-002",
+      "name": "拼写劫持：requests相似包名检测",
+      "severity": "critical",
+      "category": "security",
+      "description": "检测到与Python热门包requests拼写相近的依赖名，可能为拼写劫持恶意包，如reqeusts、request、requets等变体",
+      "pattern": "(?:^|\\s)(?:reqeusts|requets|requestss|requess|reequests|rquests|requsts|requestes|requ1ests|reqyests)\\s*[>=<~]",
+      "file_pattern": "requirements.txt",
+      "suggestion": "核实包名拼写，确保使用官方包requests。在pypi.org上验证包的发布者和下载量",
+      "references": [
+        "https://pypi.org/project/requests/"
+      ]
+    },
+    {
+      "check_id": "SC-003",
+      "name": "拼写劫持：express/react/axios等npm热门包相似名检测",
+      "severity": "critical",
+      "category": "security",
+      "description": "检测到与热门npm包拼写相近的依赖名，可能为拼写劫持恶意包。覆盖express、react、axios、chalk、webpack等高频被仿冒包",
+      "pattern": "\"(?:expres|expreses|expresjs|reagt|reactt|raxios|ax1os|axiox|cah1k|cha1k|webpakk|webapck)\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "核实每个可疑包名是否为官方正版。前往npmjs.com搜索确认发布者和周下载量",
+      "references": [
+        "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident"
+      ]
+    },
+    {
+      "check_id": "SC-004",
+      "name": "拼写劫持：Python热门包相似名检测",
+      "severity": "critical",
+      "category": "security",
+      "description": "检测到与Python热门包拼写相近的依赖名，可能为拼写劫持恶意包。覆盖django、flask、numpy、pandas、urllib3等",
+      "pattern": "(?:^|\\s)(?:djnago|djago|flsak|flaask|nunpy|numpyy|pandsa|pandass|urrlib3|urllib33|beautfiulsoup4|bs44)\\s*[>=<~]",
+      "file_pattern": "requirements.txt",
+      "suggestion": "核实每个可疑包名是否为官方正版。前往pypi.org搜索确认发布者和下载量",
+      "references": [
+        "https://pypi.org/"
+      ]
+    },
+    {
+      "check_id": "SC-005",
+      "name": "恶意生命周期脚本：postinstall/preinstall执行外部命令",
+      "severity": "critical",
+      "category": "security",
+      "description": "package.json中的postinstall或preinstall脚本包含curl/wget/eval等危险命令。npm安装时会自动执行这些脚本，攻击者可借此窃取环境变量、下载恶意二进制文件",
+      "pattern": "\"(?:postinstall|preinstall|install)\"\\s*:\\s*\"[^\"]*(?:curl|wget|eval|exec|spawn|child_process|\\.\\/install|bash\\s+-c|sh\\s+-c|powershell)[^\"]*\"",
+      "file_pattern": "package.json",
+      "suggestion": "审查所有lifecycle scripts内容。如非必须应删除这些脚本。若需安装时执行操作，使用安全的跨平台工具如node-gyp并限制命令范围",
+      "references": [
+        "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident",
+        "https://cwe.mitre.org/data/definitions/829.html"
+      ]
+    },
+    {
+      "check_id": "SC-006",
+      "name": "恶意生命周期脚本：Python setup.py包含远程代码执行",
+      "severity": "high",
+      "category": "security",
+      "description": "setup.py中包含通过urllib/requests/exec下载并执行远程代码的行为。pip install时会自动执行setup.py，攻击者可借此注入恶意代码",
+      "pattern": "(?:urllib|requests|http\\.client)\\.(?:urlopen|get|post|request)\\s*\\(.*\\).*\\n.*(?:exec|eval|os\\.system|subprocess)",
+      "file_pattern": "setup.py",
+      "suggestion": "审查setup.py中所有网络请求和动态执行代码。Python包安装不应在setup阶段下载并执行远程脚本",
+      "references": [
+        "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident"
+      ]
+    },
+    {
+      "check_id": "SC-007",
+      "name": "非官方npm registry源引用",
+      "severity": "high",
+      "category": "security",
+      "description": "检测到npm registry配置指向非官方或未知镜像源。非官方registry可能被中间人攻击篡改包内容，分发恶意版本",
+      "pattern": "registry\\s*=\\s*\"https?://(?!registry\\.npmjs\\.org|registry\\.npmmirror\\.com|mirrors\\.(?:cloud|huaweicloud)\\.tencent\\.com|(?:[\\w-]+\\.)?npm\\.taobao\\.org)[^\"]+\"",
+      "file_pattern": ".npmrc",
+      "suggestion": "使用官方npm registry(https://registry.npmjs.org)或可信镜像源。验证registry URL的TLS证书和域名真实性",
+      "references": [
+        "https://docs.npmjs.com/cli/v10/configuring-npm/npmrc"
+      ]
+    },
+    {
+      "check_id": "SC-008",
+      "name": "非官方pip index-url源引用",
+      "severity": "high",
+      "category": "security",
+      "description": "检测到pip配置指向非官方或未知PyPI镜像源。非官方源可能被劫持分发被篡改的包版本",
+      "pattern": "(?:index-url|extra-index-url)\\s*=\\s*https?://(?!pypi\\.org|pypi\\.tuna\\.tsinghua\\.edu\\.cn|mirrors\\.(?:aliyun|tencent|huaweicloud|ustc)\\.com|pypi\\.douban\\.com)[^\"]+",
+      "file_pattern": "pip.conf",
+      "suggestion": "使用官方PyPI(https://pypi.org/simple)或知名可信镜像源（清华TUNA、阿里云、腾讯云等）。验证镜像源域名真实性",
+      "references": [
+        "https://pip.pypa.io/en/stable/cli/pip_config/"
+      ]
+    },
+    {
+      "check_id": "SC-009",
+      "name": "直接引用git仓库作为npm依赖（无版本锁定）",
+      "severity": "medium",
+      "category": "security",
+      "description": "package.json中依赖直接引用git仓库URL而非正式发布的版本。git依赖无法保证版本一致性，且仓库随时可能被篡改推送恶意代码",
+      "pattern": "\"[^\"]+\"\\s*:\\s*\"(?:git(?:\\+https?|\\+ssh)?://|https?://github\\.com/[^/]+/[^/]+(?:\\.git)?(?:#[^/\"]+)?)\"",
+      "file_pattern": "package.json",
+      "suggestion": "优先使用npm registry上正式发布的版本。如必须使用git依赖，至少锁定到具体commit hash而非分支名",
+      "references": [
+        "https://docs.npmjs.com/cli/v10/configuring-npm/package-json#git-urls-as-dependencies"
+      ]
+    },
+    {
+      "check_id": "SC-010",
+      "name": "直接引用git仓库作为Python依赖（无版本锁定）",
+      "severity": "medium",
+      "category": "security",
+      "description": "requirements.txt中依赖直接引用git仓库而非PyPI正式版本。git依赖缺乏版本锁定机制，仓库被篡改后无法追溯",
+      "pattern": "^git\\+https?://[^\\s]+(?:@[^\\s#]*)?(?:#egg=[^\\s]+)?\\s*$",
+      "file_pattern": "requirements.txt",
+      "suggestion": "使用pip install从PyPI安装正式版本。如必须使用git，使用@commit_hash锁定到具体提交：git+https://github.com/org/repo@abc1234#egg=pkg",
+      "references": [
+        "https://pip.pypa.io/en/stable/topics/vcs-support/"
+      ]
+    },
+    {
+      "check_id": "SC-011",
+      "name": "npm scope包命名异常：疑似伪造组织包",
+      "severity": "medium",
+      "category": "security",
+      "description": "检测到使用@scope/package形式的npm包，但scope名称与已知热门组织的官方scope存在细微拼写差异，可能为仿冒包",
+      "pattern": "\"@(?:lodasch|reqeusts|faceboook|g00gle|rnicrosoft|arnazon|appl3|micros0ft|githu|npnm)\\/[^\"]+\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "核实@scope组织是否为官方认证。访问npmjs.com/org/~验证组织真实性和包发布记录",
+      "references": [
+        "https://docs.npmjs.com/about-scopes-and-namespaces"
+      ]
+    },
+    {
+      "check_id": "SC-012",
+      "name": "依赖数量过多：单文件依赖超过50个",
+      "severity": "medium",
+      "category": "security",
+      "description": "package.json中dependencies与devDependencies合计超过50个直接依赖。依赖过多会显著扩大攻击面，每个依赖都可能是潜在的风险入口",
+      "pattern": "\"dependencies\"\\s*:\\s*\\{[^}]*(?:\"[^\"]+\"\\s*:\\s*\"[^\"]*\"\\s*,?\\s*){50,}[^}]*\\}",
+      "file_pattern": "package.json",
+      "suggestion": "审查并精简依赖列表。移除未使用的包，合并功能重叠的包。目标：直接依赖控制在30个以内，使用bundlephobia分析包体积影响",
+      "references": [
+        "https://snyk.io/blog/what-is-a-supply-chain-attack/"
+      ]
+    },
+    {
+      "check_id": "SC-013",
+      "name": "使用已废弃/Deprecated的npm包",
+      "severity": "high",
+      "category": "security",
+      "description": "使用了已被npm标记为deprecated的包。废弃包不再接收安全补丁，持续使用将暴露在已知漏洞中",
+      "pattern": "\"(?:request|moment|left-pad|event-stream|babel-polyfill|core-js@2|uuid@3|querystring|url|punycode)\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "替换为活跃维护的替代包：request→got/axios, moment→dayjs/date-fns, babel-polyfill→@babel/polyfill, event-stream→移除, querystring→URLSearchParams",
+      "references": [
+        "https://www.npmjs.com/package/request"
+      ]
+    },
+    {
+      "check_id": "SC-014",
+      "name": "使用已废弃/Deprecated的Python包",
+      "severity": "high",
+      "category": "security",
+      "description": "使用了已被PyPI标记为deprecated或不维护的Python包。废弃包不再接收安全更新，可能存在未修复漏洞",
+      "pattern": "^(?:django-nose|python3-openid|optparse|imp|distutils|easy_install|pip-tools<5|flake8<4|pycrypto|python-nmap|django-utils)\\s*[>=<]",
+      "file_pattern": "requirements.txt",
+      "suggestion": "查找并替换为活跃维护的替代包。pycrypto→pycryptodome, django-nose→pytest-django, optparse→argparse。使用pip-audit检测已知漏洞",
+      "references": [
+        "https://pypi.org/project/pycrypto/"
+      ]
+    },
+    {
+      "check_id": "SC-015",
+      "name": "依赖使用通配符版本（无版本锁定）",
+      "severity": "high",
+      "category": "security",
+      "description": "依赖版本使用*或空字符串，每次安装可能拉取完全不同的版本。攻击者可在发布恶意新版本后被自动安装，且构建产物无法复现",
+      "pattern": "\"[^\"]+\"\\s*:\\s*\"(?:\\*|)\"\\s*[,}]",
+      "file_pattern": "package.json",
+      "suggestion": "将版本锁定为精确语义化版本号如\"1.2.3\"，或使用^前缀配合lock文件。严禁使用*作为版本约束",
+      "references": [
+        "https://docs.npmjs.com/cli/v10/configuring-npm/package-json#dependencies"
+      ]
+    },
+    {
+      "check_id": "SC-016",
+      "name": "依赖使用latest标签（无版本锁定）",
+      "severity": "high",
+      "category": "security",
+      "description": "依赖版本使用latest标签，等同于不锁定版本。latest指向可能随时被更改为恶意版本，构建不可复现",
+      "pattern": "\"[^\"]+\"\\s*:\\s*\"latest\"",
+      "file_pattern": "package.json",
+      "suggestion": "将latest替换为具体的语义化版本号。配合npm install生成package-lock.json锁定完整依赖树",
+      "references": [
+        "https://docs.npmjs.com/cli/v10/configuring-npm/package-json#dependencies"
+      ]
+    },
+    {
+      "check_id": "SC-017",
+      "name": "Python依赖缺少版本约束",
+      "severity": "medium",
+      "category": "security",
+      "description": "requirements.txt中存在未指定版本约束的依赖（仅包名无版本号）。未锁定版本导致pip install可能安装任意版本，包括含漏洞的旧版本或被注入恶意代码的新版本",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*\\s*$",
+      "file_pattern": "requirements.txt",
+      "suggestion": "为每个依赖添加精确版本约束：package==1.2.3。使用pip freeze > requirements.txt或pip-compile生成锁定版本文件",
+      "references": [
+        "https://pip.pypa.io/en/stable/user_guide/#pinned-versions"
+      ]
+    },
+    {
+      "check_id": "SC-018",
+      "name": "依赖通过HTTP协议从registry拉取（未加密传输）",
+      "severity": "critical",
+      "category": "security",
+      "description": "检测到从HTTP（非HTTPS）协议的registry拉取依赖包。明文传输可被中间人攻击篡改包内容，注入恶意代码",
+      "pattern": "(?:registry|index-url|extra-index-url)\\s*[=:]\\s*http://(?!localhost|127\\.0\\.0\\.1)",
+      "file_pattern": "*",
+      "suggestion": "将所有registry URL升级为HTTPS协议。对于内网registry，配置TLS证书验证。禁止使用HTTP明文传输依赖",
+      "references": [
+        "https://owasp.org/www-community/attacks/Man-in-the-middle_attack"
+      ]
+    },
+    {
+      "check_id": "SC-019",
+      "name": "依赖包含可疑的安装后自动执行脚本",
+      "severity": "high",
+      "category": "security",
+      "description": "package.json中包含prepare脚本且涉及文件系统操作或网络请求。prepare在npm install时自动执行，可被用于窃取信息或下载恶意组件",
+      "pattern": "\"prepare\"\\s*:\\s*\"[^\"]*(?:curl|wget|fetch|http|\\.\\/scripts|node\\s+-e|eval)[^\"]*\"",
+      "file_pattern": "package.json",
+      "suggestion": "审查prepare脚本内容，确保不包含网络请求或敏感文件访问。prepare应仅用于编译/构建操作",
+      "references": [
+        "https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts"
+      ]
+    },
+    {
+      "check_id": "SC-020",
+      "name": "依赖引用包含可疑编码混淆的包名",
+      "severity": "high",
+      "category": "security",
+      "description": "检测到包名中使用Unicode相似字符（如西里尔字母替换拉丁字母）或其他非ASCII字符。这种同形异义攻击可绕过人工审查",
+      "pattern": "\"[^\"]*[\\u0400-\\u04FF\\u0370-\\u03FF][^\"]*\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "包名应仅使用标准ASCII字符。使用punycode或Unicode转义检测工具检查依赖名是否包含同形异义字符",
+      "references": [
+        "https://util.unicode.org/UnicodeJsps/list-unicodeset.jsp?a=%5B%3AConfusable%3A%5D"
+      ]
+    }
+  ]
+}

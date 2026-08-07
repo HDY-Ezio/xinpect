@@ -1,0 +1,113 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2026-08",
+    "description": "供应链安全规则，检查依赖管理、第三方包引用、CI/CD脚本等方面的安全风险",
+    "total_rules": 10,
+    "standards_reference": [
+      "OWASP Software Composition Analysis",
+      "SLSA Supply Chain Levels",
+      "CWE-829: Inclusion of Functionality from Untrusted Control Sphere",
+      "CWE-1357: Reliance on Untrusted Dependencies"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-SC-001",
+      "name": "npm/pip依赖使用*或latest版本标签",
+      "severity": "high",
+      "category": "供应链安全",
+      "description": "package.json或requirements.txt中使用*或latest作为版本号，导致每次安装可能拉取不同版本的依赖包，引入不可控的安全风险。攻击者可以在新版本中注入恶意代码，且由于版本不锁定，构建产物无法复现，难以追溯问题。",
+      "suggestion": "将依赖版本固定为具体语义化版本号（如1.2.3），使用lock文件锁定完整依赖树。对于npm使用精确版本或^前缀配合package-lock.json；对于pip使用==精确版本配合requirements.txt或Pipfile.lock。",
+      "applicable_files": ["package.json", "requirements.txt", "Pipfile", "Gemfile", "build.gradle", "pom.xml", "Cargo.toml", "go.mod"]
+    },
+    {
+      "id": "SEC-SC-002",
+      "name": "package.json包含未审核的第三方包",
+      "severity": "medium",
+      "category": "供应链安全",
+      "description": "项目引入的第三方包缺乏审核机制，可能包含后门、数据窃取、或功能异常的代码。未审核的包可能维护状态不明（已弃用/无维护者），或存在可疑的下载量骤增/骤降等异常指标，增加供应链攻击面。",
+      "suggestion": "建立依赖包审核流程：1) 引入新包前检查其npm/PyPI页面，确认下载量、维护状态、GitHub星标等；2) 检查是否存在同名或近似的恶意包（typosquatting）；3) 使用npm audit或snyk进行安全扫描；4) 定期审查依赖清单，移除不再使用的包。",
+      "applicable_files": ["package.json", "requirements.txt", "Pipfile", "Gemfile", "go.mod", "Cargo.toml", "build.gradle"]
+    },
+    {
+      "id": "SEC-SC-003",
+      "name": "依赖包存在已知CVE漏洞未更新",
+      "severity": "critical",
+      "category": "供应链安全",
+      "description": "项目使用的依赖包存在已被公开的安全漏洞（CVE），但项目尚未升级到修复版本。已知CVE漏洞的利用方式通常已在公开渠道披露，攻击者可以轻松构造攻击，如远程代码执行（RCE）、拒绝服务（DoS）、信息泄露等。",
+      "suggestion": "1) 在CI/CD中集成npm audit / pip-audit / safety / trivy等工具，每次构建自动扫描已知CVE；2) 配置依赖自动更新工具如Dependabot或Renovate；3) 建立漏洞响应SOP，对critical/high级别漏洞48小时内修复；4) 订阅CVE通知获取早期预警。",
+      "applicable_files": ["package.json", "package-lock.json", "requirements.txt", "Pipfile.lock", "go.sum", "Cargo.lock", "Gemfile.lock", "pom.xml", "build.gradle"]
+    },
+    {
+      "id": "SEC-SC-004",
+      "name": "从非官方源拉取依赖（typosquatting风险）",
+      "severity": "critical",
+      "category": "供应链安全",
+      "description": "配置的包仓库源不是官方或可信的镜像源，或者包名与热门包存在细微拼写差异（typosquatting）。攻击者可以在公共仓库注册如lodashs、requeast等近似的包名，在其中嵌入恶意代码。非官方源还可能被中间人攻击篡改包内容。",
+      "suggestion": "1) 使用官方仓库源（npmjs.org、pypi.org），如使用内部镜像确保来源可信；2) 配置.npmrc/.pip.conf锁定registry地址；3) 在CI中检测包名与已知热门包的相似度（如Levenshtein距离≤2）；4) 使用包完整性校验（integrity hash）；5) 建立白名单机制限制可安装的包范围。",
+      "applicable_files": [".npmrc", ".yarnrc", "pip.conf", "package.json", "requirements.txt"]
+    },
+    {
+      "id": "SEC-SC-005",
+      "name": "CI/CD脚本执行远程脚本（curl|sh）",
+      "severity": "high",
+      "category": "供应链安全",
+      "description": "CI/CD流水线中使用curl ... | sh或wget ... | bash的方式从远程下载并执行脚本。如果网络被劫持或远程服务器被入侵，攻击者可以在构建过程中注入任意恶意代码，包括窃取密钥、植入后门、篡改构建产物等，且由于是一次性执行，难以被事后审计发现。",
+      "suggestion": "1) 避免使用curl|sh模式，改为先下载脚本验证SHA256校验和后再执行；2) 使用包管理器安装工具而非脚本安装；3) 如必须使用远程脚本，固定脚本的完整URL到特定版本（含commit hash）并校验完整性；4) 在CI日志中记录所有外部下载行为用于审计。",
+      "applicable_files": ["*.sh", "*.bash", "Dockerfile", ".gitlab-ci.yml", "*.github/workflows/*.yml", "Jenkinsfile", "*.yaml", "*.yml"]
+    },
+    {
+      "id": "SEC-SC-006",
+      "name": "构建过程未锁定依赖版本（lock文件缺失）",
+      "severity": "high",
+      "category": "供应链安全",
+      "description": "项目中存在package.json等依赖声明文件但缺少对应的lock文件（如package-lock.json、yarn.lock、Pipfile.lock、go.sum等），导致每次构建时依赖版本不确定，不同环境可能安装不同版本的依赖，造成构建不可复现和潜在的版本兼容性安全问题。",
+      "suggestion": "1) 生成并提交lock文件到版本控制：npm使用npm install生成package-lock.json；yarn使用yarn install生成yarn.lock；pip使用pip-compile或pip freeze生成lock文件；2) 在CI中配置--frozen-lockfile参数确保严格使用锁定版本；3) 在.gitignore中不要排除lock文件。",
+      "applicable_files": ["package.json", "requirements.txt", "Pipfile", "go.mod", "Cargo.toml", "Gemfile", "build.gradle"]
+    },
+    {
+      "id": "SEC-SC-007",
+      "name": "postinstall脚本执行危险操作",
+      "severity": "medium",
+      "category": "供应链安全",
+      "description": "依赖包的postinstall或preinstall生命周期脚本执行了网络请求、文件读写、环境变量读取等危险操作。这些脚本在npm install时自动执行，可能窃取密钥、下载额外恶意载荷、修改系统配置。据统计，npm供应链攻击中超过40%通过生命周期脚本实施。",
+      "suggestion": "1) 使用--ignore-scripts参数安装，然后手动审核必要的postinstall脚本；2) 使用.npmrc配置ignore-scripts=true全局禁用；3) 审查依赖包的package.json中scripts字段，特别关注postinstall/preinstall/install；4) 对必须使用postinstall的包（如node-sass编译）建立白名单；5) 使用lockdown等工具监控安装时的文件系统变化。",
+      "applicable_files": ["package.json", ".npmrc"]
+    },
+    {
+      "id": "SEC-SC-008",
+      "name": "Docker多阶段构建未验证镜像摘要",
+      "severity": "medium",
+      "category": "供应链安全",
+      "description": "Dockerfile中使用FROM node:latest等标签引用基础镜像，而非使用固定的镜像摘要（digest）。镜像标签是可变的，攻击者可以在registry中替换标签指向恶意镜像。在供应链攻击场景中，这意味着构建环境本身可能已被污染。",
+      "suggestion": "1) 使用镜像摘要替代标签：FROM node@sha256:abc123...而非FROM node:18；2) 使用renovate或dependabot自动更新镜像摘要；3) 配置镜像签名验证（cosign/notation）；4) 使用mirror registry缓存和审查基础镜像；5) 在CI中配置trivy扫描基础镜像漏洞。",
+      "applicable_files": ["Dockerfile", "Dockerfile.*", "docker-compose.yml", "docker-compose.yaml", "*.dockerfile"]
+    },
+    {
+      "id": "SEC-SC-009",
+      "name": "私有包仓库未配置认证",
+      "severity": "high",
+      "category": "供应链安全",
+      "description": "私有npm/PyPI/Maven等包仓库未配置身份认证，允许匿名访问和下载。攻击者可以在同一网络中直接访问私有仓库下载源码，甚至上传恶意包替代合法包。此外未认证的仓库可能遭受中间人攻击，篡改包内容。",
+      "suggestion": "1) 为私有仓库配置Token或Basic Auth认证；2) 在.npmrc/.pip.conf中配置认证凭据，使用环境变量引用避免硬编码；3) 启用仓库访问日志审计；4) 配置网络层访问控制限制仓库可达范围；5) 启用包发布审批流程防止恶意包上传；6) 使用HTTPS协议通信。",
+      "applicable_files": [".npmrc", ".yarnrc", "pip.conf", "settings.xml", "nuget.config", "*.toml", "verdaccio.yaml"]
+    },
+    {
+      "id": "SEC-SC-010",
+      "name": "子依赖未定期扫描",
+      "severity": "low",
+      "category": "供应链安全",
+      "description": "项目仅关注直接依赖的安全性，忽视了深层子依赖（传递依赖）的安全扫描。实际项目中传递依赖数量通常是直接依赖的5-20倍，大量已知漏洞存在于传递依赖中。缺乏定期扫描意味着已修复的漏洞可能在数月内不被发现。",
+      "suggestion": "1) 使用npm audit / snyk test / trivy等工具扫描完整依赖树（含传递依赖）；2) 在CI/CD中配置每次PR自动扫描依赖安全；3) 每周/每月定期运行全量扫描生成报告；4) 使用SBOM（软件物料清单）工具生成完整依赖清单；5) 配置通知机制在发现新CVE时及时告警。",
+      "applicable_files": ["package.json", "package-lock.json", "requirements.txt", "Pipfile.lock", "go.sum", "Cargo.lock", "pom.xml", "build.gradle"]
+    }
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 4,
+    "medium": 3,
+    "low": 1
+  }
+}

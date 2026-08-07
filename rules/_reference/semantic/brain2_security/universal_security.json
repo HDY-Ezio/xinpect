@@ -1,0 +1,167 @@
+[
+  {
+    "check_id": "PAY-001",
+    "name": "支付金额未校验非负数",
+    "description": "支付相关代码中，金额变量必须校验非负数，防止负数支付导致退款而非收款。检查 `amount`、`price`、`total`、`fee` 等变量是否有 `> 0` 或 `>= 0` 校验",
+    "severity": "critical",
+    "category": "payment_security",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "在执行支付前添加: if amount <= 0: raise ValueError('支付金额必须大于0')"
+  },
+  {
+    "check_id": "PAY-002",
+    "name": "支付操作缺少幂等性保护",
+    "description": "支付/扣款操作应有幂等性保护，使用 `idempotency_key`、`transaction_id`、`order_no` 等唯一标识防止重复扣款。检查是否存在 `payment`、`charge`、`pay` 相关函数缺少幂等键",
+    "severity": "critical",
+    "category": "payment_security",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "为支付接口添加幂等键: 使用 uuid 或订单号作为 idempotency_key，服务端做去重"
+  },
+  {
+    "check_id": "PAY-003",
+    "name": "支付回调未验签",
+    "description": "支付回调接口应验证签名，防止伪造回调。检查 `callback`、`notify`、`webhook`、`return_url` 相关代码是否有 `verify_sign`、`signature`、`hmac` 验证",
+    "severity": "critical",
+    "category": "payment_security",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "支付回调必须验证签名: 使用平台提供的验签方法(如 wechatpay.VerifySignature)验证请求合法性"
+  },
+  {
+    "check_id": "PAY-004",
+    "name": "退款金额超过原订单金额",
+    "description": "退款操作应校验退款总额不超过原订单金额。检查 `refund`、`退款` 相关代码是否有累计退款金额校验",
+    "severity": "high",
+    "category": "payment_security",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "退款前校验: if total_refunded + refund_amount > order.amount: raise Error('退款超额')"
+  },
+  {
+    "check_id": "DATA-001",
+    "name": "敏感数据明文存储",
+    "description": "用户敏感数据(手机号、身份证、银行卡、密码)不应明文存储。检查 `phone`、`id_card`、`bank_card`、`password`、`ssn` 等变量是否使用了 `encrypt`、`hash`、`bcrypt`、`mask` 处理",
+    "severity": "high",
+    "category": "data_protection",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "敏感数据存储前必须加密或脱敏: 密码用bcrypt哈希，手机号用AES加密或中间四位替换"
+  },
+  {
+    "check_id": "DATA-002",
+    "name": "敏感信息写入日志",
+    "description": "日志中不应记录密码、token、手机号、身份证号等敏感信息。检查 `logging`、`logger`、`print`、`console.log` 是否输出了敏感变量",
+    "severity": "high",
+    "category": "data_protection",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "日志输出前脱敏: logger.info(f'用户{user_id}登录') 而非 logger.info(f'用户{phone}登录')"
+  },
+  {
+    "check_id": "DATA-003",
+    "name": "API响应返回完整敏感字段",
+    "description": "API响应不应返回完整的密码hash、token原文、手机号等。检查 `response`、`return`、`jsonify`、`JSONResponse` 中是否包含敏感字段未做脱敏",
+    "severity": "high",
+    "category": "data_protection",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "API响应使用DTO/Serializer过滤敏感字段: 手机号返回 138****1234，不返回完整号码"
+  },
+  {
+    "check_id": "DATA-004",
+    "name": "用户数据导出缺少鉴权",
+    "description": "数据导出/批量查询接口应有严格的权限校验，防止越权获取他人数据。检查 `export`、`download`、`batch`、`list_all` 相关接口是否有 `user_id` 或 `tenant_id` 过滤",
+    "severity": "high",
+    "category": "data_protection",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "数据导出必须绑定当前用户权限: WHERE user_id = current_user.id AND tenant_id = current_tenant.id"
+  },
+  {
+    "check_id": "MT-001",
+    "name": "多租户数据查询缺少租户隔离",
+    "description": "多租户系统中，数据查询必须包含 `tenant_id` 过滤条件，防止跨租户数据泄露。检查 `SELECT`、`find`、`query`、`filter` 操作是否有租户过滤",
+    "severity": "critical",
+    "category": "multi_tenant",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "所有数据查询添加租户过滤: WHERE tenant_id = current_tenant_id"
+  },
+  {
+    "check_id": "MT-002",
+    "name": "多租户接口缺少租户鉴权",
+    "description": "多租户API接口应校验当前用户的租户归属，防止越权访问。检查API handler中是否有 `tenant_id` 与当前用户的绑定校验",
+    "severity": "critical",
+    "category": "multi_tenant",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "API入口校验租户归属: if user.tenant_id != request.tenant_id: raise Forbidden()"
+  },
+  {
+    "check_id": "MT-003",
+    "name": "多租户文件上传缺少隔离",
+    "description": "多租户系统的文件存储应按租户隔离目录。检查文件上传/存储代码是否将 `tenant_id` 或 `org_id` 纳入存储路径",
+    "severity": "high",
+    "category": "multi_tenant",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "文件存储路径包含租户标识: /uploads/{tenant_id}/{filename}，下载时校验租户归属"
+  }
+]

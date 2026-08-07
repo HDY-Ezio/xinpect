@@ -1,0 +1,157 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": "brain7_architecture",
+        "generated": "2026-08",
+        "description": "领域纯洁性扩展规则，检查领域层是否被外部关注点污染，确保DDD架构中领域模型的独立性和纯粹性",
+        "total_rules": 8,
+        "standards_reference": [
+            "Domain-Driven Design by Eric Evans",
+            "Clean Architecture by Robert C. Martin",
+            "DDD Reference by Eric Evans"
+        ]
+    },
+    "rules": [
+        {
+            "id": "ARCH-DOMEX-001",
+            "name": "领域层引用基础设施层代码",
+            "severity": "high",
+            "category": "领域纯洁性",
+            "description": "领域层（Domain Layer）的代码直接引用了基础设施层（Infrastructure Layer）的类，如领域实体直接import了数据库访问类（Repository实现）、外部API客户端、消息队列发送者等。这违反了依赖方向规则（领域层不应依赖任何外部层），导致领域模型与具体技术实现耦合，无法独立演进和测试。当基础设施变更时（如更换数据库），领域层代码也需要修改。",
+            "suggestion": "1) 领域层只定义接口（如Repository接口），由基础设施层实现；2) 使用依赖反转原则（DIP），依赖方向指向领域层；3) 使用六边形架构的端口（Port）概念，领域层定义端口，基础设施层实现适配器；4) 通过包/模块级别的import检查防止领域层引用基础设施层命名空间。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.kt"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-002",
+            "name": "领域模型包含持久化注解（如@Table）",
+            "severity": "medium",
+            "category": "领域纯洁性",
+            "description": "领域实体或值对象上直接标注了持久化相关的注解，如JPA的@Entity/@Table/@Column、MongoDB的@Document、MyBatis的@TableName等。这使得领域模型与特定的持久化技术绑定，违反了领域模型应该纯粹表达业务概念的原则。当需要更换存储方案或在不同上下文复用领域模型时，这些注解会成为障碍。",
+            "suggestion": "1) 将持久化注解从领域模型移除，使用独立的持久化映射类（如Doctrine的XML/YAML映射、Hibernate的hbm.xml）；2) 如无法完全避免，至少在领域层和持久化层之间建立防腐层（ACL），领域层不直接import持久化包的注解；3) 使用Data Mapper模式替代Active Record模式；4) 考虑CQRS中将读模型的持久化与领域模型分离。",
+            "applicable_files": [
+                "*.java",
+                "*.kt",
+                "*.cs",
+                "*.ts",
+                "*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-003",
+            "name": "领域服务直接调用HTTP客户端",
+            "severity": "high",
+            "category": "领域纯洁性",
+            "description": "领域服务（Domain Service）中直接使用了HTTP客户端（如RestTemplate、Axios、http.Get等）调用外部API。HTTP协议属于技术关注点，不应出现在表达业务逻辑的领域层。这不仅污染了领域模型的纯粹性，还使得领域服务难以进行单元测试（需要mock HTTP层），且领域逻辑与外部API的格式、超时、重试等技术细节纠缠在一起。",
+            "suggestion": "1) 在领域层定义抽象接口（如PaymentGateway接口），在基础设施层实现具体HTTP调用；2) 领域服务只依赖抽象接口，通过依赖注入获取实现；3) 使用防腐层（ACL）封装外部服务的调用细节和数据转换；4) 领域服务接收和返回领域对象，而非DTO或HTTP响应。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.kt"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-004",
+            "name": "领域对象包含框架依赖（Spring/Express等）",
+            "severity": "medium",
+            "category": "领域纯洁性",
+            "description": "领域实体或值对象中引入了应用框架的依赖，如Spring的@Autowired、@Component，Express的req/res对象，Django的HttpRequest等。框架是技术实现的基础设施，领域模型不应感知框架的存在。这种依赖使得领域模型无法脱离框架独立使用，也无法在框架迁移时保持领域逻辑不变。",
+            "suggestion": "1) 领域对象使用构造器注入或工厂方法创建，而非框架注解注入；2) 框架相关的对象（如Request/Response）在应用层（Application Layer）转换为领域对象后传入领域层；3) 使用POJO/Plain Object作为领域对象，不包含任何框架import；4) 通过包级别的依赖检查确保领域包不引用框架包。",
+            "applicable_files": [
+                "*.java",
+                "*.kt",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-005",
+            "name": "领域事件被外部层直接构造",
+            "severity": "medium",
+            "category": "领域纯洁性",
+            "description": "领域事件（Domain Event）的构造逻辑不在领域层内部，而是由应用层或基础设施层直接new/create领域事件对象。领域事件是领域模型的重要组成部分，表达领域中发生的重要业务事实。如果外部层可以直接构造领域事件，就可能构造出业务上不合理的事件，破坏领域模型的完整性约束。",
+            "suggestion": "1) 领域事件仅在领域实体/聚合根的内部方法中创建和发布；2) 使用领域事件注册表，聚合根在执行领域操作后收集事件；3) 领域事件的构造函数使用领域概念参数（而非技术ID），确保只有合法的业务操作才能创建事件；4) 基础设施层只负责事件的持久化和分发，不参与事件的构造。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.kt"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-006",
+            "name": "仓储接口在领域层但实现在外部但未使用依赖反转",
+            "severity": "low",
+            "category": "领域纯洁性",
+            "description": "仓储（Repository）接口定义在领域层，实现放在基础设施层，但在应用层中直接使用具体实现类而非接口引用。这种模式虽然形式上分离了接口和实现，但未正确应用依赖反转原则——应用层应该只依赖领域层定义的接口，而非基础设施层的具体类。这导致应用层与特定实现绑定，切换实现需要修改应用层代码。",
+            "suggestion": "1) 应用层通过接口类型引用仓储，而非具体实现类；2) 使用依赖注入框架在启动时绑定接口到实现；3) 确保接口定义足够通用，不包含特定实现的技术细节；4) 在测试中使用内存实现替代数据库实现，验证依赖反转是否生效。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.kt"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-007",
+            "name": "聚合根间直接引用而非通过ID",
+            "severity": "high",
+            "category": "领域纯洁性",
+            "description": "不同聚合根之间通过对象直接引用（持有对方的实体引用）而非通过ID关联。这会导致：1) 加载一个聚合根时需要级联加载其引用的其他聚合根，产生巨大的对象图；2) 事务边界模糊，修改一个聚合可能影响另一个聚合的一致性；3) 无法独立持久化和加载聚合根，影响性能和并发控制。DDD明确指出聚合间应通过ID引用。",
+            "suggestion": "1) 聚合根之间仅通过ID（如userId: string）关联，不持有对方的对象引用；2) 需要跨聚合操作时，通过领域服务协调多个聚合根；3) 使用领域事件实现聚合间的最终一致性通信；4) 每个聚合根有独立的仓储，各自管理自己的持久化。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.kt"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DOMEX-008",
+            "name": "领域逻辑散布在Controller/Service层",
+            "severity": "high",
+            "category": "领域纯洁性",
+            "description": "本应在领域实体或领域服务中表达的业务逻辑，被分散写在Controller层或应用Service层的if-else/switch语句中。这些Controller/Service层包含了大量业务判断规则，而领域对象退化为仅包含getter/setter的贫血模型。这导致业务逻辑散落各处难以维护、复用和测试，修改业务规则需要查找多个文件。",
+            "suggestion": "1) 将业务逻辑下沉到领域实体和领域服务中，Controller/Service仅做参数转换和流程编排；2) 使用富领域模型替代贫血模型，将业务规则封装为领域对象的方法；3) 使用规约模式（Specification）封装复杂业务规则；4) 对Controller/Service层进行代码审查，识别属于业务逻辑的if-else并提取到领域层。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.kt"
+            ],
+            "pattern": ""
+        }
+    ],
+    "summary": {
+        "critical": 0,
+        "high": 4,
+        "medium": 3,
+        "low": 1
+    }
+}

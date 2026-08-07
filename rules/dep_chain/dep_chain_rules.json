@@ -1,0 +1,239 @@
+{
+  "rules": [
+    {
+      "check_id": "DEP-CHAIN-001",
+      "name": "使用已知高危版本的lodash",
+      "severity": "high",
+      "category": "security",
+      "description": "lodash版本低于4.17.21存在原型污染漏洞（CVE-2021-23337）",
+      "pattern": "\"lodash\"\\s*:\\s*\"(?:[<>=^~]*\\s*)?(?:[0-3]\\.|4\\.0|4\\.1[0-6]|4\\.17\\.[0-9]|4\\.17\\.1[0-9]|4\\.17\\.20)\"",
+      "file_pattern": "package.json",
+      "suggestion": "升级lodash至4.17.21或更高版本",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-23337"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-002",
+      "name": "使用已知高危版本的requests库",
+      "severity": "high",
+      "category": "security",
+      "description": "requests库版本低于2.31.0存在未验证代理证书导致信息泄露的漏洞",
+      "pattern": "requests[>=<~^]*([01]\\.|2\\.[0-9]|2\\.1[0-9]|2\\.2[0-9]|2\\.30)",
+      "file_pattern": "requirements.txt",
+      "suggestion": "升级requests至2.31.0或更高版本",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-32681"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-003",
+      "name": "使用废弃的依赖包",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用了已标记为废弃/弃用的npm包，不再接收安全更新",
+      "pattern": "\"(?:request|moment|left-pad|event-stream|babel-polyfill)\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "替换为活跃的维护替代包：request->got/axios, moment->dayjs/date-fns",
+      "references": [
+        "https://www.npmjs.com/package/request"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-004",
+      "name": "使用废弃的Python包",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用了已废弃的Python包，不再接收安全更新和维护",
+      "pattern": "^(?:django-nose|python3-openid|optparse)\\s*[>=<]",
+      "file_pattern": "requirements.txt",
+      "suggestion": "查找并替换为活跃维护的替代包",
+      "references": [
+        "https://pypi.org/project/django-nose/"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-005",
+      "name": "GPL协议的依赖用于闭源项目",
+      "severity": "high",
+      "category": "config",
+      "description": "GPL/LGPL协议的依赖包具有传染性，要求衍生作品也必须开源，闭源商业项目使用存在法律风险",
+      "pattern": "\"license\"\\s*:\\s*\"(?:GPL-[23]\\.0|AGPL-[3]\\.0)\"",
+      "file_pattern": "package.json",
+      "suggestion": "审查项目许可证兼容性；闭源项目避免使用GPL依赖，寻找MIT/Apache/BSD协议的替代",
+      "references": [
+        "https://opensource.org/licenses/GPL-3.0",
+        "https://choosealicense.com/"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-006",
+      "name": "依赖数量过多警告",
+      "severity": "low",
+      "category": "config",
+      "description": "package.json中dependencies超过50个，增加攻击面和维护负担",
+      "pattern": "\"dependencies\"\\s*:\\s*\\{",
+      "file_pattern": "package.json",
+      "suggestion": "审查依赖列表，移除不必要的依赖，考虑使用原生API替代第三方库",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/1104.html"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-009",
+      "name": "使用非官方npm registry",
+      "severity": "critical",
+      "category": "security",
+      "description": "依赖配置使用非官方registry源，可能被投毒或劫持",
+      "pattern": "\"registry\"\\s*:\\s*\"(?!https://registry\\.npmjs\\.org)",
+      "file_pattern": "*.json",
+      "suggestion": "确保使用官方npm registry或企业可信的私有registry",
+      "references": [
+        "https://docs.npmjs.com/cli/v9/using-npm/registry"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-010",
+      "name": "使用非官方pip index-url",
+      "severity": "critical",
+      "category": "security",
+      "description": "pip配置使用非官方PyPI源，可能被投毒安装恶意包",
+      "pattern": "--(?:index-url|extra-index-url)\\s+https?://(?!pypi\\.org/simple|pypi\\.tuna)",
+      "file_pattern": "*",
+      "suggestion": "使用官方PyPI源或可信的企业内部镜像源",
+      "references": [
+        "https://pip.pypa.io/en/stable/cli/pip_install/#install-index-url"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-011",
+      "name": "使用通配符版本范围",
+      "severity": "medium",
+      "category": "security",
+      "description": "依赖版本使用*(任意版本)或空字符串，可能安装不兼容或恶意的新版本",
+      "pattern": "\"[\\w@/\\-]+\"\\s*:\\s*\"(?:\\*)\"",
+      "file_pattern": "package.json",
+      "suggestion": "锁定具体版本号或使用语义化版本范围（如^1.2.3）",
+      "references": [
+        "https://semver.npmjs.com/"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-012",
+      "name": "使用已知高危版本的express",
+      "severity": "high",
+      "category": "security",
+      "description": "express版本低于4.19.2存在开放重定向漏洞",
+      "pattern": "\"express\"\\s*:\\s*\"(?:[<>=^~]*\\s*)?(?:[0-3]\\.|4\\.[0-9]|4\\.1[0-8])",
+      "file_pattern": "package.json",
+      "suggestion": "升级express至4.19.2或更高版本",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-29041"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-013",
+      "name": "使用已知高危版本的Django",
+      "severity": "critical",
+      "category": "security",
+      "description": "Django版本低于安全版本可能存在SQL注入/XSS等已知漏洞",
+      "pattern": "Django[>=<~^]*([12]\\.|3\\.[01]|3\\.2\\.[0-9]|4\\.[01]|4\\.2\\.[0-6])",
+      "file_pattern": "requirements.txt",
+      "suggestion": "升级Django至最新LTS版本",
+      "references": [
+        "https://www.djangoproject.com/weblog/security/"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-014",
+      "name": "测试框架版本过低",
+      "severity": "low",
+      "category": "config",
+      "description": "测试框架在devDependencies中但版本过低或长期未更新",
+      "pattern": "\"(?:mocha|jest|chai)\"\\s*:\\s*\"(?:[<>=^~]*\\s*)?[0-3]\\.",
+      "file_pattern": "package.json",
+      "suggestion": "更新测试框架至最新版本以获取安全修复和性能改进",
+      "references": [
+        "https://semver.org/"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-015",
+      "name": "直接引用git仓库作为依赖",
+      "severity": "medium",
+      "category": "security",
+      "description": "依赖直接指向git仓库而非npm/PyPI发布版本，仓库被攻破时自动拉取恶意代码",
+      "pattern": "\"[\\w\\-]+\"\\s*:\\s*\"(?:git\\+https?://|github:|git://)",
+      "file_pattern": "package.json",
+      "suggestion": "使用npm/PyPI上发布的稳定版本替代git仓库直接引用",
+      "references": [
+        "https://docs.npmjs.com/cli/v9/configuring-npm/package-json#git-urls-as-dependencies"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-016",
+      "name": "使用本地路径作为依赖",
+      "severity": "medium",
+      "category": "config",
+      "description": "依赖使用本地文件路径（file:或相对路径），不同开发环境可能路径不存在",
+      "pattern": "\"[\\w\\-]+\"\\s*:\\s*\"(?:file:|\\.\\./|\\./)",
+      "file_pattern": "package.json",
+      "suggestion": "将本地依赖发布到私有registry，或使用monorepo工具（如lerna/nx）管理",
+      "references": [
+        "https://docs.npmjs.com/cli/v9/configuring-npm/package-json#local-paths"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-017",
+      "name": "使用已知存在RCE漏洞的Jackson版本",
+      "severity": "critical",
+      "category": "security",
+      "description": "Jackson版本低于2.15.0存在反序列化远程代码执行漏洞",
+      "pattern": "com\\.fasterxml\\.jackson",
+      "file_pattern": "pom.xml",
+      "suggestion": "升级Jackson至2.15.0或更高版本",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-42003"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-018",
+      "name": "使用已知高危版本的axios",
+      "severity": "high",
+      "category": "security",
+      "description": "axios版本低于1.6.0存在SSRF和跨站请求伪造漏洞",
+      "pattern": "\"axios\"\\s*:\\s*\"(?:[<>=^~]*\\s*)?(?:0\\.|1\\.[0-5])",
+      "file_pattern": "package.json",
+      "suggestion": "升级axios至1.6.0或更高版本",
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-45857"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-019",
+      "name": "pip install使用--trusted-host跳过SSL验证",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用--trusted-host跳过SSL证书验证，可能遭受中间人攻击下载恶意包",
+      "pattern": "--trusted-host",
+      "file_pattern": "*",
+      "suggestion": "修复SSL证书问题而非跳过验证，确保pip使用HTTPS源",
+      "references": [
+        "https://pip.pypa.io/en/stable/topics/security/"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-020",
+      "name": "生产环境依赖了过大的bundle",
+      "severity": "low",
+      "category": "performance",
+      "description": "moment.js/lodash-full等大包直接引入生产环境，严重影响加载性能",
+      "pattern": "\"dependencies\"\\s*:\\s*\\{[^}]*\"(?:moment|lodash|rxjs|core-js)\"\\s*:",
+      "file_pattern": "package.json",
+      "suggestion": "使用tree-shaking友好的替代方案（dayjs/date-fns），或按需引入（lodash-es）",
+      "references": [
+        "https://webpack.js.org/guides/tree-shaking/"
+      ]
+    }
+  ]
+}

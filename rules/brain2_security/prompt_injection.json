@@ -1,0 +1,57 @@
+{
+  "rules": [
+    {
+      "id": "SEC-PROMPT-004",
+      "name": "提示词中包含敏感信息（API Key/内部指令）",
+      "severity": "critical",
+      "category": "sensitive-data-exposure",
+      "description": "在发送给LLM的提示词中硬编码或动态注入了敏感信息，如API密钥、数据库凭证、内部服务地址、管理员指令等。这些信息可能被模型记忆并在后续回复中泄露给其他用户，或通过提示词注入攻击被诱导输出。即使使用环境变量，如果直接将环境变量拼入提示词发送，同样存在泄露风险。",
+      "suggestion": "1. 严禁在提示词中嵌入任何密钥、凭证或内部地址；2. API密钥等敏感信息应在应用层使用，不传入LLM上下文；3. 对提示词进行敏感信息扫描（正则匹配API Key格式、密钥格式等）；4. 使用密钥管理服务（如AWS Secrets Manager、Vault）管理敏感凭证；5. 实施输出检测，防止模型泄露提示词中的敏感内容。\n\n示例：\n```python\n# 错误：将API Key放入提示词\nprompt = f'使用API Key {api_key} 查询数据...'\n\n# 正确：在应用层使用API Key\nresult = call_api_with_key(api_key, query)\nprompt = f'查询结果为：{result}，请分析...'\n```",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.go",
+        "*.yaml",
+        "*.json",
+        "*.env"
+      ]
+    },
+    {
+      "id": "SEC-PROMPT-009",
+      "name": "AI生成代码直接执行未沙箱",
+      "severity": "critical",
+      "category": "code-execution-security",
+      "description": "AI模型生成的代码（如Python脚本、SQL查询、Shell命令）未经安全审查和沙箱隔离即直接在宿主环境中执行。攻击者可通过提示词注入诱导AI生成恶意代码，实现任意命令执行、文件系统访问、网络渗透等。即使没有恶意攻击，AI幻觉生成的错误代码也可能造成数据丢失或系统损坏。这是AI Agent应用中最严重的安全风险之一。",
+      "suggestion": "1. 所有AI生成的代码必须在沙箱环境中执行（如Docker容器、gVisor、Firecracker）；2. 实施代码执行前的静态分析，检测危险函数调用；3. 限制沙箱的文件系统访问、网络访问和系统调用权限；4. 设置代码执行超时和资源限制；5. 对高风险操作（文件删除、网络请求）实施白名单机制；6. 保留完整的执行审计日志。\n\n示例（Python）：\n```python\nimport docker\n\ndef execute_ai_code_sandboxed(code: str):\n    DANGEROUS_PATTERNS = ['os.system', 'subprocess', 'exec(', 'eval(',\n                          '__import__', 'open(', 'shutil.']\n    for pattern in DANGEROUS_PATTERNS:\n        if pattern in code:\n            raise SecurityError(f'检测到危险代码模式: {pattern}')\n    \n    client = docker.from_env()\n    result = client.containers.run(\n        'python:3.11-slim',\n        f'python -c \"{code}\"',\n        mem_limit='256m',\n        network_mode='none',  # 禁止网络访问\n        read_only=True,  # 只读文件系统\n        timeout=30\n    )\n    return result\n```",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.go",
+        "*.sh",
+        "*.sql"
+      ]
+    },
+    {
+      "id": "SEC-PROMPT-011",
+      "name": "用户输入直接作为SQL/命令模板",
+      "severity": "critical",
+      "category": "injection",
+      "description": "在AI应用中，用户输入被直接用作SQL查询模板或系统命令的参数，通过AI模型的处理后传递给数据库或操作系统执行。即使经过了LLM的处理，用户输入中的注入载荷仍可能被保留并最终执行。这种模式结合了提示词注入和传统注入攻击的特点，比单纯的SQL注入更难检测和防御。常见于AI驱动的数据库查询（如Text-to-SQL）和自动化运维场景。",
+      "suggestion": "1. 严禁将用户输入直接拼接到SQL或命令中；2. 使用参数化查询/预编译语句处理所有数据库操作；3. 对Text-to-SQL场景，限制AI只能生成SELECT查询，禁止DDL/DML；4. 对生成的SQL进行白名单校验（表名、列名、操作类型）；5. 使用ORM框架替代原生SQL；6. 实施最小权限原则，限制数据库账户权限。\n\n示例（Python）：\n```python\n# 错误：用户输入直接作为SQL模板\nquery = f\"SELECT * FROM users WHERE name = '{user_input}'\"\n\n# 正确：参数化查询\ncursor.execute(\"SELECT * FROM users WHERE name = %s\", (user_input,))\n\n# Text-to-SQL场景的安全处理\ndef safe_text_to_sql(user_query: str) -> str:\n    allowed_tables = ['orders', 'products', 'users']\n    sql = ai_generate_sql(user_query)  # AI生成SQL\n    validated_sql = validate_sql(sql, \n        allowed_tables=allowed_tables,\n        allowed_operations=['SELECT'],  # 只允许查询\n        max_complexity=5  # 限制查询复杂度\n    )\n    return validated_sql\n```",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.go",
+        "*.sql",
+        "*.rb",
+        "*.php"
+      ]
+    }
+  ]
+}

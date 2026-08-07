@@ -1,0 +1,54 @@
+{
+  "rules": [
+    {
+      "id": "SEC-MOB-004",
+      "name": "敏感信息写入系统剪贴板",
+      "severity": "medium",
+      "category": "sensitive-data-exposure",
+      "description": "移动应用将密码、Token、信用卡号、身份证号等敏感信息复制到系统剪贴板。剪贴板数据可被其他应用读取（Android 10以下所有应用可读，11以上前台应用可读），也可能被剪贴板管理工具记录。此外，iOS的剪贴板访问会在用户界面上显示提示，影响用户体验。敏感信息一旦进入剪贴板，其生命周期不可控，可能长期驻留。",
+      "suggestion": "1. 禁止将密码、Token等敏感信息复制到系统剪贴板；2. 如必须提供复制功能，使用应用内安全的剪贴板实现，设置自动过期；3. Android上使用setClipData时标记为敏感信息（API 33+）；4. 对敏感输入框禁用长按复制功能；5. 应用进入后台时清除剪贴板中的敏感内容。\n\n示例（Android - Kotlin）：\n```kotlin\n// 标记剪贴板内容为敏感信息（Android 13+）\nval clipData = ClipData.newPlainText(\"\", sensitiveText)\nclipData.description.extras = PersistableBundle().apply {\n    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)\n}\nclipboardManager.setPrimaryClip(clipData)\n\n// 对密码输入框禁止复制\n// XML: android:inputType=\"textPassword\"\n// 密码字段默认禁止复制到剪贴板\n```\n\n示例（iOS - Swift）：\n```swift\n// 密码输入框禁止复制\npasswordField.isSecureTextEntry = true\n// UITextField的isSecureTextEntry会自动禁止复制\n\n// 如需要临时复制，设置过期\nUIPasteboard.general.string = token\nUIPasteboard.general.setItems([[UIPasteboard.typeAutomatic: token]],\n    options: [.expirationDate: Date().addingTimeInterval(60)])\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-MOB-005",
+      "name": "应用日志输出敏感数据",
+      "severity": "high",
+      "category": "sensitive-data-exposure",
+      "description": "应用在生产环境中通过日志系统（Logcat、NSLog、Console.log等）输出敏感数据，包括用户凭证、Token、个人身份信息（PII）、支付信息、API响应中的敏感字段等。在Android上，任何应用都可以读取Logcat日志（取决于系统版本）；在iOS上，日志可能被同步到Mac或通过Xcode查看。日志数据还可能被日志收集系统（如Crashlytics）上传到云端，造成大规模数据泄露。调试日志未在生产环境中关闭是常见的安全问题。",
+      "suggestion": "1. 在生产构建中禁用或最小化日志输出；2. 使用日志级别控制，生产环境仅允许ERROR级别以上；3. 实施日志脱敏框架，自动过滤敏感字段；4. 禁止在日志中输出凭证、Token、PII等；5. 使用代码扫描规则检测日志中的敏感模式；6. 对第三方SDK的日志输出进行审计。\n\n示例（Android - Kotlin）：\n```kotlin\n// 封装安全日志工具\nobject SafeLogger {\n    private const val TAG = \"AppLogger\"\n    \n    fun d(tag: String, message: String) {\n        if (BuildConfig.DEBUG) {\n            Log.d(tag, message)\n        }\n    }\n    \n    // 自动脱敏\n    fun logApiRequest(request: Request) {\n        val sanitized = request.toString()\n            .replace(Regex(\"(Authorization:\\s*)Bearer\\\\s+\\\\S+\"), \"$1***\")\n            .replace(Regex(\"(password=)[^&]+\"), \"$1***\")\n        d(TAG, sanitized)\n    }\n}\n```\n\n示例（iOS - Swift）：\n```swift\nenum LogLevel: Int {\n    case debug = 0, info, warning, error\n}\n\nclass Logger {\n    static var level: LogLevel = .error  // 生产环境设置\n    \n    static func debug(_ message: String, file: String = #file) {\n        guard level <= .debug else { return }\n        // 过滤敏感模式\n        let sanitized = sanitize(message)\n        print(\"[DEBUG] \\(sanitized)\")\n    }\n    \n    private static func sanitize(_ text: String) -> String {\n        var result = text\n        result = result.replacingOccurrences(\n            of: \"token=\\\\w+\", with: \"token=***\", options: .regularExpression)\n        return result\n    }\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m"
+      ]
+    },
+    {
+      "id": "SEC-MOB-006",
+      "name": "后台截图包含敏感信息",
+      "severity": "medium",
+      "category": "sensitive-data-exposure",
+      "description": "移动应用进入后台时，系统自动截取当前界面作为任务切换预览图，如果当前界面包含敏感信息（银行卡号、余额、聊天记录、个人信息），这些截图会被保存到文件系统中且可能被其他应用访问。在Android上，最近任务截图存储在/data/system/目录下；在iOS上，截图存储在Caches/Snapshots目录。此外，截屏功能也可能导致敏感信息泄露。",
+      "suggestion": "1. 在应用进入后台时覆盖敏感界面（显示Logo或模糊层）；2. 使用FLAG_SECURE（Android）阻止截屏和后台截图；3. 对包含敏感信息的视图禁用截屏功能；4. 在iOS上使用UIApplication的ignoreScreenshot机制；5. 在关键界面禁用系统截屏。\n\n示例（Android - Kotlin）：\n```kotlin\nclass SecureActivity : AppCompatActivity() {\n    override fun onPause() {\n        super.onPause()\n        // 进入后台时用Logo覆盖\n        secureOverlay.visibility = View.VISIBLE\n    }\n    \n    override fun onResume() {\n        super.onResume()\n        secureOverlay.visibility = View.GONE\n    }\n}\n\n// 禁止截屏的Activity\nclass PaymentActivity : AppCompatActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        window.setFlags(\n            WindowManager.LayoutParams.FLAG_SECURE,\n            WindowManager.LayoutParams.FLAG_SECURE\n        )\n    }\n}\n```\n\n示例（iOS - Swift）：\n```swift\n// 在AppDelegate中监听后台切换\nfunc applicationDidEnterBackground(_ application: UIApplication) {\n    let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .light))\n    blurView.frame = window.rootViewController!.view.bounds\n    blurView.tag = 999\n    window.rootViewController!.view.addSubview(blurView)\n}\n\nfunc applicationWillEnterForeground(_ application: UIApplication) {\n    window.rootViewController!.view.viewWithTag(999)?.removeFromSuperview()\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.m"
+      ]
+    }
+  ]
+}

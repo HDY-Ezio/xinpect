@@ -1,0 +1,82 @@
+{
+  "rules": [
+    {
+      "id": "KOTLIN-002",
+      "name": "lateinit未初始化就访问",
+      "severity": "high",
+      "category": "initialization",
+      "description": "lateinit var属性在使用前必须通过赋值完成初始化，如果在初始化前访问会抛出UninitializedPropertyAccessException。在Android中常见于onCreate之前就访问lateinit变量，或在异步回调中Activity已销毁但lateinit引用仍存在。",
+      "suggestion": "使用::property.isInitialized检查或使用可空类型：\n```kotlin\n// 危险\nclass MyActivity : AppCompatActivity() {\n    lateinit var viewModel: MainViewModel\n    \n    fun someMethod() {\n        viewModel.doSomething() // 如果onCreate前调用则崩溃\n    }\n}\n\n// 安全 - 检查初始化状态\nclass MyActivity : AppCompatActivity() {\n    lateinit var viewModel: MainViewModel\n    \n    fun someMethod() {\n        if (::viewModel.isInitialized) {\n            viewModel.doSomething()\n        }\n    }\n}\n\n// 更推荐 - 使用委托或可空类型\nclass MyActivity : AppCompatActivity() {\n    private val viewModel: MainViewModel by viewModels()\n    // viewModels委托自动在需要时初始化\n}\n```",
+      "applicable_files": [
+        "*.kt"
+      ]
+    },
+    {
+      "id": "KOTLIN-003",
+      "name": "协程launch未处理异常导致崩溃",
+      "severity": "high",
+      "category": "coroutine_error",
+      "description": "CoroutineScope.launch的异常处理机制与async不同：launch中的未捕获异常会向上传播并取消整个协程作用域，在SupervisorJob下虽不会传播但仍会导致协程终止。如果未安装CoroutineExceptionHandler，Android应用会直接crash。",
+      "suggestion": "使用CoroutineExceptionHandler或在launch中使用try-catch：\n```kotlin\n// 危险 - 未处理异常\nviewModelScope.launch {\n    val data = api.fetchData() // 网络异常未处理 -> 崩溃\n    updateUI(data)\n}\n\n// 安全 - try-catch\nviewModelScope.launch {\n    try {\n        val data = api.fetchData()\n        updateUI(data)\n    } catch (e: IOException) {\n        showError(\"网络错误\")\n    }\n}\n\n// 安全 - CoroutineExceptionHandler\nval handler = CoroutineExceptionHandler { _, exception ->\n    Log.e(\"Coroutine\", \"异常: ${exception.message}\")\n}\nviewModelScope.launch(handler) {\n    val data = api.fetchData()\n    updateUI(data)\n}\n```",
+      "applicable_files": [
+        "*.kt"
+      ]
+    },
+    {
+      "id": "KOTLIN-004",
+      "name": "data class的copy浅拷贝问题",
+      "severity": "medium",
+      "category": "immutability",
+      "description": "data class的copy()执行浅拷贝，嵌套的引用类型（如List、Map、其他对象）在copy后仍共享同一引用。修改原对象的嵌套属性会影响copy出来的对象，反之亦然。这在状态管理中容易产生难以追踪的Bug。",
+      "suggestion": "对嵌套引用类型进行深拷贝：\n```kotlin\n// 问题\ndata class Order(val items: List<Item>, val total: Double)\ndata class Item(val name: String, var price: Double)\n\nval order1 = Order(listOf(Item(\"A\", 10.0)), 10.0)\nval order2 = order1.copy() // items是同一List引用！\n\n// order1和order2的items列表是同一对象\n// 注意：如果List内元素可变，修改会影响两者\n\n// 安全 - 深拷贝嵌套结构\ndata class Order(val items: List<Item>, val total: Double) {\n    fun deepCopy() = copy(\n        items = items.map { it.copy() } // 深拷贝列表\n    )\n}\nval order2 = order1.deepCopy()\n```",
+      "applicable_files": [
+        "*.kt"
+      ]
+    },
+    {
+      "id": "KOTLIN-005",
+      "name": "withContext(Dispatchers.Main)在IO中使用",
+      "severity": "medium",
+      "category": "coroutine_dispatching",
+      "description": "在IO密集型协程（Dispatchers.IO）中切换到Dispatchers.Main执行耗时操作会阻塞主线程，导致UI卡顿甚至ANR。常见错误包括在Main线程执行文件IO、数据库操作、大量计算等阻塞操作。",
+      "suggestion": "合理使用不同Dispatcher：\n```kotlin\n// 危险 - 主线程执行IO\nviewModelScope.launch {\n    withContext(Dispatchers.Main) {\n        val data = database.query() // 主线程执行数据库！\n        textView.text = data.toString()\n    }\n}\n\n// 正确 - IO切换到Main更新UI\nviewModelScope.launch {\n    val data = withContext(Dispatchers.IO) {\n        database.query() // IO线程执行\n    }\n    textView.text = data.toString() // 自动在Main（viewModelScope默认）\n}\n\n// 注意：viewModelScope.launch默认在Dispatchers.Main\n// 只有耗时操作才需要withContext(Dispatchers.IO)\nviewModelScope.launch {\n    // 这里已经是主线程\n    val result = withContext(Dispatchers.IO) {\n        heavyComputation() // 耗时操作切IO\n    }\n    // 回到主线程更新UI\n    textView.text = result.toString()\n}\n```",
+      "applicable_files": [
+        "*.kt"
+      ]
+    },
+    {
+      "id": "KOTLIN-006",
+      "name": "Flow.collect未处理生命周期（Android泄漏）",
+      "severity": "high",
+      "category": "lifecycle",
+      "description": "在Activity/Fragment中直接使用lifecycleScope.launch或flow.collect收集数据流，当View被销毁（如旋转屏幕、导航切换）时协程可能仍在运行，导致内存泄漏和对已销毁View的引用。使用repeatOnLifecycle可以自动管理生命周期。",
+      "suggestion": "使用repeatOnLifecycle管理Flow收集：\n```kotlin\n// 危险 - 未管理生命周期\nclass MyFragment : Fragment() {\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        viewLifecycleOwner.lifecycleScope.launch {\n            viewModel.dataFlow.collect { data -> // 即使View销毁仍在收集\n                updateUI(data)\n            }\n        }\n    }\n}\n\n// 安全 - 使用repeatOnLifecycle\nclass MyFragment : Fragment() {\n    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {\n        viewLifecycleOwner.lifecycleScope.launch {\n            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {\n                viewModel.dataFlow.collect { data ->\n                    // 仅在STARTED~STOPPED之间收集\n                    updateUI(data)\n                }\n            }\n        }\n    }\n}\n\n// 或使用flowWithLifecycle\nviewLifecycleOwner.lifecycleScope.launch {\n    viewModel.dataFlow\n        .flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)\n        .collect { data -> updateUI(data) }\n}\n```",
+      "applicable_files": [
+        "*.kt"
+      ]
+    },
+    {
+      "id": "KOTLIN-007",
+      "name": "when表达式缺少else分支",
+      "severity": "medium",
+      "category": "exhaustiveness",
+      "description": "when表达式用作表达式（赋值给变量或作为返回值）时必须有else分支或穷尽所有可能。如果后续添加了新的enum值或sealed class子类但未更新when表达式，会导致编译错误或运行时未处理的情况。即使when作为语句使用，缺少else也可能遗漏重要逻辑。",
+      "suggestion": "确保when穷尽所有分支或添加else：\n```kotlin\n// 危险 - enum新增值时可能遗漏\nwhen (status) {\n    Status.LOADING -> showLoading()\n    Status.SUCCESS -> showContent()\n    // Status.ERROR 遗漏！\n}\n\n// 安全 - 穷尽或else\nwhen (status) {\n    Status.LOADING -> showLoading()\n    Status.SUCCESS -> showContent()\n    Status.ERROR -> showError()\n}\n\n// 安全 - else兜底\nwhen (status) {\n    Status.LOADING -> showLoading()\n    Status.SUCCESS -> showContent()\n    else -> showError(\"未知状态\")\n}\n\n// 作为表达式必须穷尽\nval message = when (status) {\n    Status.LOADING -> \"加载中\"\n    Status.SUCCESS -> \"完成\"\n    Status.ERROR -> \"失败\"\n    // 如果是sealed class/enum，编译器会检查穷尽\n}\n```",
+      "applicable_files": [
+        "*.kt"
+      ]
+    },
+    {
+      "id": "KOTLIN-008",
+      "name": "平台类型（Java互操作）未做空安全处理",
+      "severity": "medium",
+      "category": "java_interop",
+      "description": "Kotlin调用Java方法时返回的是平台类型（platform type，标记为T!），编译器既不强制空检查也不保证非空。Java代码可能返回null但Kotlin侧当作非空使用，会在赋值或方法调用时抛出NullPointerException。这是Kotlin-Java混合项目中最常见的空指针来源。",
+      "suggestion": "对Java返回值显式声明可空性并做检查：\n```kotlin\n// Java方法\npublic String getName() { return null; } // 可能返回null\n\n// 危险 - 平台类型隐式假设非空\nval name: String = javaObj.getName() // 如果返回null则NPE\nval length = javaObj.getName().length // NPE!\n\n// 安全 - 显式声明可空\nval name: String? = javaObj.getName()\nval length = name?.length ?: 0\n\n// 安全 - 使用let处理\njavaObj.getName()?.let { name ->\n    println(name.length)\n}\n\n// 使用@Nullable/@NotNull注解帮助编译器\n// 或在Java侧添加注解\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java"
+      ]
+    }
+  ]
+}

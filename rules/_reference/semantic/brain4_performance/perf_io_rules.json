@@ -1,0 +1,141 @@
+{
+    "metadata": {
+        "name": "性能-IO分析规则",
+        "total_rules": 20
+    },
+    "rules": [
+        {
+            "id": "PERF-IO-001",
+            "name": "同步阻塞IO在请求线程中调用",
+            "severity": "S1",
+            "category": "io",
+            "description": "在Node.js主线程或Python异步框架中使用同步文件/网络IO操作，阻塞事件循环影响所有并发请求",
+            "suggestion": "使用异步IO API（fs.promises、aiohttp等）替代同步版本；必须同步时使用Worker线程",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-IO-002",
+            "name": "数据库连接未使用连接池",
+            "severity": "S2",
+            "category": "io",
+            "description": "每次数据库操作都创建新的连接，连接建立开销（TCP握手+认证）远大于操作本身",
+            "suggestion": "使用数据库连接池（如pg-pool、HikariCP、SQLAlchemy pool），复用已建立的连接",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-IO-003",
+            "name": "文件读写未使用缓冲/流",
+            "severity": "S2",
+            "category": "io",
+            "description": "对大文件使用readFileSync/readLines一次性全量读入，或逐字节写入未使用缓冲",
+            "suggestion": "大文件使用流式处理（createReadStream/BufferedReader），设置合理的缓冲区大小（如64KB-1MB）",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-IO-004",
+            "name": "文件上传未使用分片上传",
+            "severity": "S2",
+            "category": "io",
+            "description": "大文件（>10MB）上传使用单次请求全量传输，上传中断后需重新上传整个文件",
+            "suggestion": "大文件使用分片上传（如5MB一片），支持断点续传；前端使用File.slice()分片读取",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ]
+        },
+        {
+            "id": "PERF-IO-005",
+            "name": "日志同步写入磁盘",
+            "severity": "S2",
+            "category": "io",
+            "description": "每条日志都同步写入磁盘（fs.appendFileSync），频繁磁盘IO影响业务请求处理速度",
+            "suggestion": "使用异步日志写入（流式写入+缓冲），或写入内存队列后由独立线程异步刷盘",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "PERF-IO-006",
+            "name": "HTTP请求超时时间过长",
+            "severity": "S2",
+            "category": "io",
+            "description": "外部HTTP调用设置超时时间过长（>30s），慢请求占用连接池资源导致后续请求排队",
+            "suggestion": "设置合理的超时时间（连接超时3-5s，读取超时10-15s），配合重试和降级策略",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-IO-007",
+            "name": "WebSocket连接未做心跳保活",
+            "severity": "S3",
+            "category": "io",
+            "description": "WebSocket长连接未实现心跳机制，连接可能已被中间网络设备断开但双方不知情",
+            "suggestion": "实现心跳机制（如每30s发送ping），超时未收到pong则重连；或使用ws库的perMessageDeflate",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ]
+        },
+        {
+            "id": "PERF-IO-008",
+            "name": "文件下载未设置Content-Disposition和Range支持",
+            "severity": "S3",
+            "category": "io",
+            "description": "文件下载接口不支持Range请求（断点续传），且未设置Content-Disposition导致浏览器行为不可控",
+            "suggestion": "支持Range请求实现断点续传；设置Content-Disposition控制在线预览或下载行为",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-IO-009",
+            "name": "消息队列消费者并发不足",
+            "severity": "S2",
+            "category": "io",
+            "description": "消息队列消费者使用单线程串行处理，消费速度跟不上生产速度导致消息积压",
+            "suggestion": "增加消费者实例数或线程数，配合合理的prefetch_count控制；或使用批量消费模式",
+            "applicable_files": [
+                "*.py",
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ]
+        }
+    ]
+}

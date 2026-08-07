@@ -1,0 +1,167 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": "brain7_architecture",
+        "generated": "2026-08",
+        "description": "API版本控制与兼容性规则，检测API设计中的版本管理、向后兼容性、废弃通知、变更日志等架构层面的问题",
+        "total_rules": 8,
+        "standards_reference": [
+            "Microsoft REST API Guidelines",
+            "Google API Design Guide",
+            "Semantic Versioning 2.0.0",
+            "Zalando REST API Guidelines"
+        ]
+    },
+    "rules": [
+        {
+            "id": "ARCH-VER-001",
+            "name": "API接口无版本控制",
+            "severity": "high",
+            "category": "versioning",
+            "description": "API接口缺少版本标识，所有请求共享同一个接口路径。一旦接口发生不兼容变更，现有客户端将直接崩溃，无法平滑过渡。无版本控制意味着无法同时维护多个版本的接口，强制所有客户端同步升级，严重影响系统的可演进性和稳定性。",
+            "suggestion": "采用URL版本或Header版本控制策略。推荐使用URL路径版本号，清晰直观。\n\n// 方式1：URL路径版本（推荐）\nGET /api/v1/users\nGET /api/v2/users\n\n// Spring Boot 示例\n@RestController\n@RequestMapping(\"/api/v1/users\")\npublic class UserControllerV1 { ... }\n\n@RestController\n@RequestMapping(\"/api/v2/users\")\npublic class UserControllerV2 { ... }\n\n// 方式2：Header版本\n// GET /api/users\n// Header: API-Version: 1\n@GetMapping(value = \"/users\", headers = \"API-Version=1\")\npublic List<UserDTO> getUsersV1() { ... }\n\n@GetMapping(value = \"/users\", headers = \"API-Version=2\")\npublic List<UserVO> getUsersV2() { ... }",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-002",
+            "name": "破坏性变更未升级版本号",
+            "severity": "high",
+            "category": "breaking_change",
+            "description": "对API进行了破坏性变更（如删除字段、修改字段类型、更改必填项、变更URL路径等）但未升级主版本号，导致依赖旧接口的客户端在不知情的情况下被破坏。破坏性变更包括但不限于：删除或重命名字段、修改字段类型、修改必填/可选状态、变更HTTP方法、修改错误码格式。",
+            "suggestion": "遵循语义化版本规范（SemVer）：破坏性变更必须升级主版本号。在发布前进行API兼容性检查。\n\n// 破坏性变更检查清单\n// 1. 删除/重命名响应字段 → 必须升主版本\n// 2. 修改字段类型（如 String → Integer） → 必须升主版本\n// 3. 新增必传参数 → 必须升主版本\n// 4. 修改URL路径 → 必须升主版本\n// 5. 修改HTTP方法 → 必须升主版本\n\n// 使用 OpenAPI diff 工具检测破坏性变更\n// npx oasdiff break https://api.example.com/v1/openapi.json new-openapi.json",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.yaml",
+                "*.yml",
+                "*.json"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-003",
+            "name": "旧版本API无废弃通知机制",
+            "severity": "medium",
+            "category": "deprecation",
+            "description": "旧版本API被标记为废弃但缺少有效的通知机制，客户端无法感知到接口即将下线。没有废弃通知会导致客户端在API突然下线时措手不及，造成线上故障。废弃通知应包含：废弃时间、替代方案、迁移截止日期。",
+            "suggestion": "在响应Header中添加废弃通知，并在API文档中标注废弃状态和迁移指南。\n\n// 1. 响应Header添加废弃标记\nHTTP/1.1 200 OK\nSunset: Sat, 01 Mar 2027 00:00:00 GMT\nDeprecation: true\nLink: <https://api.example.com/docs/migration-v1-to-v2>; rel=\"successor-version\"\n\n// Spring Boot 实现\npublic ResponseEntity<?> getUser(@PathVariable Long id) {\n    return ResponseEntity.ok()\n        .header(\"Sunset\", \"Sat, 01 Mar 2027 00:00:00 GMT\")\n        .header(\"Deprecation\", \"true\")\n        .header(\"Link\", \"<https://api.example.com/docs/migration>; rel=\\\"successor-version\\\"\")\n        .body(userService.getUser(id));\n}\n\n// 2. Swagger/OpenAPI 标注\n@Deprecated\n@ApiOperation(value = \"获取用户\", notes = \"已废弃，请使用/api/v2/users\")\n@GetMapping(\"/users/{id}\")",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-004",
+            "name": "多版本API共存未隔离",
+            "severity": "medium",
+            "category": "isolation",
+            "description": "多个API版本共用相同的业务逻辑层和数据访问层，未做适当隔离。当新版本修改了底层数据结构或业务逻辑时，旧版本接口的行为可能发生变化，导致旧客户端异常。过度共享使版本间耦合，无法独立演进。",
+            "suggestion": "在Controller/Handler层隔离不同版本，共享稳定的Service层核心逻辑，通过适配器模式处理版本差异。\n\n// 错误示例 - 版本间共享可变状态\n@GetMapping(\"/api/v1/users\")\npublic List<UserDTO> getUsersV1() {\n    return userService.findAll().stream() // 共享了可变的转换逻辑\n        .map(this::toV1DTO).collect(toList());\n}\n\n@GetMapping(\"/api/v2/users\")\npublic Page<UserVO> getUsersV2(Pageable page) {\n    return userService.findAll(page).map(this::toV2VO); // 共享了同一方法\n}\n\n// 正确示例 - 版本隔离 + 共享核心逻辑\n// V1 Controller 有自己的转换逻辑\n@RestController\n@RequestMapping(\"/api/v1\")\npublic class UserV1Controller {\n    @GetMapping(\"/users\")\n    public List<UserV1Response> getUsers() {\n        return userService.findActiveUsers().stream()\n            .map(UserV1Mapper::toResponse).collect(toList());\n    }\n}\n\n// V2 Controller 独立演进\n@RestController\n@RequestMapping(\"/api/v2\")\npublic class UserV2Controller {\n    @GetMapping(\"/users\")\n    public Page<UserV2Response> getUsers(Pageable page) {\n        return userService.findUsers(page).map(UserV2Mapper::toResponse);\n    }\n}",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-005",
+            "name": "API响应格式变更未向后兼容",
+            "severity": "high",
+            "category": "compatibility",
+            "description": "API响应格式发生了不向后兼容的变更，如将对象字段从字符串改为数字、将数组改为对象、将驼峰命名改为下划线、删除了客户端依赖的字段等。客户端的解析代码会因此崩溃，且这类问题在编译期无法发现，只在运行时暴露。",
+            "suggestion": "遵循\"只增不删、只扩不缩\"原则。新增字段使用新名称，旧字段保留至少一个版本周期。字段类型变更必须新增字段而非修改原字段。\n\n// 错误示例 - 不兼容变更\n// v1响应: { \"userAge\": \"25\" }\n// v1改后: { \"userAge\": 25 }  // String → Integer，破坏兼容\n\n// 正确示例 - 向后兼容\n// v1: { \"userAge\": \"25\" }         // 保持原样\n// v2: { \"userAge\": \"25\", \"age\": 25 } // 新增数值字段\n// v3: { \"age\": 25 }                // 删除旧字段（升了主版本）\n\n// 使用@JsonInclude确保不意外丢失字段\n@Data\npublic class UserResponse {\n    @JsonProperty(\"userAge\")\n    private String userAgeString; // 保留兼容\n    \n    @JsonProperty(\"age\")\n    private Integer age; // 新增字段\n}",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-006",
+            "name": "必传参数新增未做默认值处理",
+            "severity": "medium",
+            "category": "compatibility",
+            "description": "API新增了必传参数但未提供默认值处理，导致旧客户端的请求因缺少新参数而返回400错误。这本质上是一种破坏性变更，但未升级版本号。在微服务架构中，不同服务的升级节奏不同，这种问题特别常见。",
+            "suggestion": "新增参数应设为可选并提供合理默认值。若必须为必传，应在同一主版本升级中处理。\n\n// 错误示例 - 新增必传参数\n@GetMapping(\"/api/v1/users\")\npublic List<User> getUsers(\n    @RequestParam String status,  // 新增的必传参数\n    @RequestParam String region   // 新增的必传参数\n) { ... }\n\n// 正确示例 - 提供默认值\n@GetMapping(\"/api/v1/users\")\npublic List<User> getUsers(\n    @RequestParam(defaultValue = \"ACTIVE\") String status,\n    @RequestParam(defaultValue = \"ALL\") String region\n) { ... }\n\n// 或者使用请求对象封装\n@Data\npublic class UserQueryRequest {\n    private String status = \"ACTIVE\";\n    private String region = \"ALL\";\n    private Integer pageSize = 20;\n}",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-007",
+            "name": "字段删除未保留只读兼容期",
+            "severity": "medium",
+            "category": "compatibility",
+            "description": "直接删除了API响应中的字段，而未保留只读兼容期。旧客户端可能仍在读取该字段，突然删除会导致客户端解析失败或显示异常。字段的废弃应有一个过渡期，让所有消费方有足够时间完成迁移。",
+            "suggestion": "废弃字段先标记@Deprecated，保留至少一个版本周期（建议3-6个月）后再删除。在API文档和变更日志中通知消费方。\n\n// 1. 标记废弃但保留字段\n@Data\npublic class UserResponse {\n    private String username;\n    \n    @Deprecated // 标记废弃\n    @ApiModelProperty(notes = \"已废弃，请使用displayName字段\")\n    private String name; // 保留但不再更新\n    \n    private String displayName; // 新的替代字段\n}\n\n// 2. 废弃字段返回值指向新字段\npublic UserResponse toResponse(User user) {\n    UserResponse resp = new UserResponse();\n    resp.setUsername(user.getUsername());\n    resp.setDisplayName(user.getDisplayName());\n    resp.setName(user.getDisplayName()); // name字段返回displayName的值\n    return resp;\n}\n\n// 3. 在变更日志中记录\n// CHANGELOG.md:\n// ## [1.3.0] - 2026-08-01\n// ### Deprecated\n// - `UserResponse.name` 已废弃，请迁移至 `UserResponse.displayName`\n// - 计划于 v2.0.0 移除",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-VER-008",
+            "name": "缺少API变更日志",
+            "severity": "low",
+            "category": "documentation",
+            "description": "API发生变更但没有维护变更日志（Changelog），客户端开发者无法了解接口变更内容、影响范围和迁移方式。缺少变更日志导致客户端团队无法评估变更影响，增加了集成调试成本和线上故障风险。",
+            "suggestion": "维护格式规范的CHANGELOG文件，遵循Keep a Changelog规范。每次API变更都应有记录。\n\n// CHANGELOG.md 格式示例\n# Changelog\n\n## [2.1.0] - 2026-08-01\n### Added\n- POST /api/v2/orders 新增批量取消接口\n- UserResponse 新增 `lastLoginIp` 字段\n\n### Changed\n- GET /api/v2/users 排序默认改为按创建时间倒序\n\n### Deprecated\n- GET /api/v1/users 将在2027-01-01下线\n\n### Fixed\n- PUT /api/v2/orders/{id} 金额字段精度问题\n\n### Security\n- 修复 GET /api/v2/admin/logs 未鉴权的问题\n\n// 自动化：使用 OpenAPI diff 工具生成变更报告\n// 结合 CI/CD 在每次API变更时自动生成 Changelog",
+            "applicable_files": [
+                "*.md",
+                "*.yaml",
+                "*.yml",
+                "*.json"
+            ],
+            "pattern": ""
+        }
+    ],
+    "summary": {
+        "critical": 0,
+        "high": 3,
+        "medium": 4,
+        "low": 1
+    }
+}

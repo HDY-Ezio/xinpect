@@ -1,0 +1,81 @@
+{
+  "rules": [
+    {
+      "id": "B1-11-R001",
+      "name": "文件流未在finally/finally等价结构中关闭",
+      "severity": "high",
+      "category": "resource-leak",
+      "description": "打开了文件/流/连接等资源但未在finally块或使用try-with-resources/closeable模式中确保释放，异常发生时资源将永久泄漏。",
+      "suggestion": "使用try-with-resources（Java）、using（C#）、with（Python）或defer（Go）确保资源释放；在finally中手动close。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.cs",
+        "*.go",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "B1-11-R002",
+      "name": "数据库连接未关闭",
+      "severity": "high",
+      "category": "resource-leak",
+      "description": "获取了数据库连接（Connection）但未在使用后关闭，连接池将被耗尽导致服务不可用。",
+      "suggestion": "使用try-with-resources管理Connection；使用连接池并确保finally中关闭；使用ORM框架的自动连接管理。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.cs",
+        "*.go",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "B1-11-R003",
+      "name": "HTTP响应体未消费/关闭",
+      "severity": "medium",
+      "category": "resource-leak",
+      "description": "发起HTTP请求后未读取或关闭Response Body，底层连接无法被连接池复用，导致连接泄漏。",
+      "suggestion": "使用defer response.Body.Close()（Go）；确保读取完响应体或在finally中关闭；使用try-with-resources。",
+      "applicable_files": [
+        "*.go",
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "B1-11-R004",
+      "name": "事件监听器未移除",
+      "severity": "medium",
+      "category": "resource-leak",
+      "description": "注册了事件监听器（addEventListener/on）但在组件销毁/页面卸载时未移除，导致内存泄漏和重复触发。",
+      "suggestion": "在组件unmount/dispose/destroy生命周期中移除所有监听器；使用AbortController管理。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.vue",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "B1-11-R005",
+      "name": "定时器未清除",
+      "severity": "medium",
+      "category": "resource-leak",
+      "description": "使用setTimeout/setInterval/setInterval创建了定时器但未在适当时机clearInterval/clearTimeout，导致内存泄漏或非预期执行。",
+      "suggestion": "保存定时器ID，在组件销毁或不再需要时清除；在useEffect返回函数中清理。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.vue",
+        "*.jsx",
+        "*.tsx"
+      ]
+    }
+  ]
+}

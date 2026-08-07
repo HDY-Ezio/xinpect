@@ -1,0 +1,279 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain3_semantic",
+    "generated": "2025-07",
+    "description": "未使用代码检测规则集 - 覆盖未使用import/变量/函数/类型/CSS类/依赖等各类未使用代码",
+    "total_rules": 25,
+    "standards_reference": [
+      "ESLint no-unused-vars",
+      "SonarQube Unused Code Detection",
+      "Pylint W0611-W0614",
+      "TypeScript noUnusedLocals/noUnusedParameters"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEM-UC-001",
+      "name": "未使用的import语句",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "import语句导入了模块或符号但在代码中从未使用。增加了不必要的依赖关系，影响打包体积。",
+      "suggestion": "删除未使用的import语句；IDE自动检测和移除；ESLint配置no-unused-vars；提交前运行lint检查。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-UC-002",
+      "name": "未使用的局部变量",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "声明了局部变量但从未读取其值。可能是重构遗留或逻辑错误。",
+      "suggestion": "删除未使用的变量；如果变量用于解构但不需要某些值，使用_前缀。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-UC-003",
+      "name": "未使用的函数参数",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "函数定义中声明了参数但函数体中从未使用。可能是接口约束或重构遗留。",
+      "suggestion": "删除未使用的参数；接口约束的参数使用_前缀命名；TypeScript使用noUnusedParameters。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-UC-004",
+      "name": "未使用的类型定义（TypeScript interface/type）",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "定义了interface或type但未在任何地方引用。增加了代码库的类型定义噪音。",
+      "suggestion": "删除未使用的类型定义；TypeScript启用--noUnusedLocals。",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEM-UC-005",
+      "name": "未使用的常量/枚举值",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "定义了常量或枚举值但从未引用。可能是早期设计中使用但后来移除了引用。",
+      "suggestion": "删除未使用的常量和枚举值；IDE的Find Usages确认无引用。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-UC-006",
+      "name": "重复的import语句",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "同一模块被多次import或完全重复import。增加了代码噪音。",
+      "suggestion": "合并同一模块的import语句；ESLint配置no-duplicate-imports。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEM-UC-007",
+      "name": "导入但未使用的第三方模块",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "package.json/requirements.txt/go.mod中声明了依赖但项目代码中从未import使用。增加了安装时间和安全攻击面。",
+      "suggestion": "定期使用depcheck/npm-check/dep prune检查未使用的依赖；CI中加入依赖检查。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-UC-008",
+      "name": "声明但未调用的函数",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "函数已定义但从未被调用(包括导出的函数在模块内未调用且无外部引用)。增加了代码库的复杂度。",
+      "suggestion": "删除未使用的函数定义；使用IDE的Find Usages确认无引用后再删除；检查是否有动态调用。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-UC-009",
+      "name": "未使用的CSS变量/自定义属性",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "CSS中定义了自定义属性(--primary-color: #xxx)但从未被引用(var(--primary-color))。",
+      "suggestion": "删除未使用的CSS变量；使用构建工具检测未使用的自定义属性。",
+      "applicable_files": [
+        "*.css",
+        "*.scss",
+        "*.less"
+      ]
+    },
+    {
+      "id": "SEM-UC-010",
+      "name": "未使用的类型导入（TypeScript import type）",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "使用import type导入了类型但未在类型标注中使用。或import了值但仅作为类型使用(应使用import type)。",
+      "suggestion": "删除未使用的类型导入；TypeScript 3.8+使用import type明确类型导入；启用importsNotUsedAsValues。",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEM-UC-011",
+      "name": "未使用的async标记",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "函数标记为async但函数体中没有await表达式。多余的async会将返回值包装为Promise，调用方可能需要额外处理。",
+      "suggestion": "移除不必要的async关键字；如果函数确实是异步的(返回Promise)，添加await或使用.then()。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-UC-012",
+      "name": "未使用的泛型约束",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "泛型参数声明了extends约束但函数体中未使用该约束提供的能力。约束提供了虚假的类型安全感。",
+      "suggestion": "检查是否真正需要泛型约束；如果未使用约束的特性，移除extends部分。",
+      "applicable_files": [
+        "*.ts",
+        "*.java",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-UC-013",
+      "name": "未使用的React组件props",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "React组件通过props接收了属性但在render/JSX中未使用。增加了组件的接口复杂度。",
+      "suggestion": "删除未使用的props；使用TypeScript的Pick/Omit精确声明需要的props；ESLint配置react/no-unused-prop-types。",
+      "applicable_files": [
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEM-UC-014",
+      "name": "未使用的Vue组件data/computed",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "Vue组件中定义了data属性或computed属性但在template和其他方法中未引用。",
+      "suggestion": "删除未使用的data和computed属性；Vue ESLint插件检测未使用的组件属性。",
+      "applicable_files": [
+        "*.vue"
+      ]
+    },
+    {
+      "id": "SEM-UC-015",
+      "name": "未使用的数据库字段/列映射",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "实体类/模型中定义了数据库字段的映射但代码中从未读取该字段。增加了ORM的加载开销。",
+      "suggestion": "确认是否需要该字段(是否用于查询条件或关联)；如不需要可考虑删除映射。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-UC-016",
+      "name": "未使用的中间件/管道处理",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "Web框架中注册了中间件(Express app.use、Koa middleware)但中间件未对请求/响应做任何处理(next()直接传递)。",
+      "suggestion": "删除空中间件；如果中间件仅用于日志记录，确保有实际的日志输出。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-UC-017",
+      "name": "未使用的路由/API端点",
+      "severity": "medium",
+      "category": "unused-code",
+      "description": "定义了路由处理器(/api/v1/xxx)但从未有客户端调用。可能是已废弃的API未清理。",
+      "suggestion": "使用API监控确认路由的实际调用情况；废弃的路由先返回410 Gone再删除。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-UC-018",
+      "name": "未使用的注解/装饰器",
+      "severity": "low",
+      "category": "unused-code",
+      "description": "方法或类上的注解(@Deprecated、@SuppressWarnings、@Override)在特定上下文中无实际效果。",
+      "suggestion": "检查注解是否有实际效果(如@Override在无父类方法时无效)；移除无意义的注解。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.py",
+        "*.ts"
+      ]
+    }
+  ]
+}

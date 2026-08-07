@@ -1,0 +1,188 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "language_specific",
+    "generated": "2026-08",
+    "description": "Go语言特有规则，涵盖goroutine管理、defer使用、error处理、并发安全、channel使用、接口陷阱、内存管理、HTTP安全等Go高频问题",
+    "total_rules": 15,
+    "standards_reference": [
+      "Effective Go",
+      "Go Concurrency in Practice",
+      "Go Code Review Comments",
+      "Uber Go Style Guide"
+    ]
+  },
+  "rules": [
+    {
+      "id": "GO-001",
+      "name": "goroutine泄漏",
+      "severity": "high",
+      "category": "concurrency",
+      "description": "goroutine启动后未控制其生命周期，可能永远无法退出，导致goroutine泄漏。泄漏的goroutine持有的栈内存、channel引用、文件句柄等资源永远不会释放。长时间运行的服务中goroutine数量会持续增长，最终导致OOM。常见原因：等待永远不会到来的channel消息、无限循环无退出条件、阻塞在已关闭/无人发送的channel上。",
+      "suggestion": "为每个goroutine设定明确的退出机制。使用context控制生命周期，使用select+超时避免永久阻塞。\n\n// 错误示例 - goroutine泄漏\nfunc startWorker() {\n    go func() {\n        for data := range ch { // ch永远有人发送则不会退出\n            process(data)\n        }\n    }()\n}\n\n// 正确示例 - 使用context控制生命周期\nfunc startWorker(ctx context.Context) {\n    go func() {\n        for {\n            select {\n            case data := <-ch:\n                process(data)\n            case <-ctx.Done():\n                return // context取消时退出\n            }\n        }\n    }()\n}\n\nctx, cancel := context.WithCancel(context.Background())\ndefer cancel()\nstartWorker(ctx)",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-002",
+      "name": "defer在循环中使用导致资源延迟释放",
+      "severity": "medium",
+      "category": "resource_management",
+      "description": "在循环体内使用defer，所有defer的调用会被推迟到函数返回时才执行，而非循环迭代结束时执行。这意味着循环中打开的所有资源（文件、连接等）会在整个函数返回前一直占用，可能导致资源耗尽（如文件描述符用完）。",
+      "suggestion": "将循环体提取为独立函数，在函数内使用defer。或手动调用Close()。\n\n// 错误示例 - defer在循环中\nfunc processFiles(files []string) error {\n    for _, file := range files {\n        f, err := os.Open(file)\n        if err != nil {\n            return err\n        }\n        defer f.Close() // 所有文件在processFiles返回时才关闭！\n        data, _ := io.ReadAll(f)\n        process(data)\n    }\n    return nil\n}\n\n// 正确示例 - 提取为函数\nfunc processFiles(files []string) error {\n    for _, file := range files {\n        if err := processOneFile(file); err != nil {\n            return err\n        }\n    }\n    return nil\n}\n\nfunc processOneFile(file string) error {\n    f, err := os.Open(file)\n    if err != nil {\n        return err\n    }\n    defer f.Close() // 每次调用processOneFile返回时关闭\n    data, _ := io.ReadAll(f)\n    return process(data)\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-003",
+      "name": "error返回值被忽略",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "Go语言中函数返回的error被用_忽略或未检查。Go的设计哲学是显式处理错误，忽略error会导致错误被静默吞掉，程序在不正确的状态下继续运行。常见场景：文件操作、网络请求、JSON解析、数据库操作等返回的error被忽略，导致数据丢失、逻辑错误、安全漏洞。",
+      "suggestion": "始终检查error返回值。若确实不需要处理，添加注释说明原因。\n\n// 错误示例\nfunc readConfig(path string) map[string]string {\n    data, _ := os.ReadFile(path)     // error被忽略\n    var config map[string]string\n    json.Unmarshal(data, &config)     // error被忽略\n    return config\n}\n\n// 正确示例\nfunc readConfig(path string) (map[string]string, error) {\n    data, err := os.ReadFile(path)\n    if err != nil {\n        return nil, fmt.Errorf(\"读取配置文件失败 %s: %w\", path, err)\n    }\n    var config map[string]string\n    if err := json.Unmarshal(data, &config); err != nil {\n        return nil, fmt.Errorf(\"解析配置文件失败: %w\", err)\n    }\n    return config, nil\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-004",
+      "name": "map并发读写未加锁",
+      "severity": "critical",
+      "category": "concurrency",
+      "description": "Go的map不是并发安全的，多个goroutine同时读写map会导致fatal error: concurrent map read and map write，程序直接panic崩溃。Go runtime会检测map的并发访问并终止程序。这在生产中是致命的，因为并发访问时机不确定，难以在测试中发现。",
+      "suggestion": "使用sync.Map、sync.RWMutex加锁、或使用channel串行化访问。\n\n// 错误示例 - 并发读写map\ntype Cache struct {\n    data map[string]interface{}\n}\n\nfunc (c *Cache) Set(key string, val interface{}) {\n    c.data[key] = val // 并发写\n}\n\nfunc (c *Cache) Get(key string) interface{} {\n    return c.data[key] // 并发读 -> fatal error!\n}\n\n// 正确示例 - sync.RWMutex\ntype SafeCache struct {\n    mu   sync.RWMutex\n    data map[string]interface{}\n}\n\nfunc (c *SafeCache) Set(key string, val interface{}) {\n    c.mu.Lock()\n    defer c.mu.Unlock()\n    c.data[key] = val\n}\n\nfunc (c *SafeCache) Get(key string) interface{} {\n    c.mu.RLock()\n    defer c.mu.RUnlock()\n    return c.data[key]\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-005",
+      "name": "slice扩容陷阱",
+      "severity": "medium",
+      "category": "memory",
+      "description": "append()可能返回新的slice（当底层数组容量不够时），若未将返回值赋回原变量，后续操作使用的是旧的slice，导致数据丢失。另一个陷阱是多个slice共享同一底层数组时，修改一个会影响其他slice。这是Go新手最常犯的错误之一。",
+      "suggestion": "始终将append的返回值赋回变量。预分配slice容量避免频繁扩容。使用copy()创建独立副本。\n\n// 错误示例 - append返回值未赋回\nfunc addItems(s []int) {\n    s = append(s, 1, 2, 3) // 局部变量s更新了，但调用者的slice未变！\n}\n\nfunc main() {\n    items := []int{0}\n    addItems(items)\n    fmt.Println(items) // [0] - 数据丢失！\n}\n\n// 正确示例\nfunc addItems(s []int) []int {\n    return append(s, 1, 2, 3)\n}\n\nfunc main() {\n    items := []int{0}\n    items = addItems(items) // 接收返回值\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-006",
+      "name": "channel未关闭导致panic或泄漏",
+      "severity": "high",
+      "category": "concurrency",
+      "description": "channel使用后未关闭导致读取方永久阻塞（goroutine泄漏），或向已关闭的channel发送数据导致panic。对nil channel的读写也会永久阻塞。关闭channel的规则不清晰，可能导致close(nil) panic或重复close panic。",
+      "suggestion": "明确channel的生命周期：由发送方负责关闭。使用range读取直到channel关闭。避免向已关闭或nil channel发送数据。\n\n// 错误示例 - channel未关闭导致goroutine泄漏\nfunc consume(ch <-chan int) {\n    for {\n        val := <-ch // channel无人发送且未关闭时永久阻塞\n        process(val)\n    }\n}\n\n// 正确示例 - 发送方关闭，接收方用range\nfunc producer() <-chan int {\n    ch := make(chan int)\n    go func() {\n        defer close(ch) // 发送方负责关闭\n        for i := 0; i < 10; i++ {\n            ch <- i\n        }\n    }()\n    return ch\n}\n\nfunc consumer(ch <-chan int) {\n    for val := range ch { // channel关闭后自动退出循环\n        process(val)\n    }\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-007",
+      "name": "context未传递导致超时不生效",
+      "severity": "medium",
+      "category": "context",
+      "description": "HTTP请求处理中未使用request的context，或创建新请求时未传递context，导致请求取消或超时时下游操作无法感知，继续执行浪费资源。常见于HTTP客户端调用、数据库查询、gRPC调用中未传递ctx。",
+      "suggestion": "始终将context作为函数第一个参数传递。HTTP请求使用req.WithContext(ctx)。\n\n// 错误示例 - 未传递context\nfunc fetchUser(id string) (*User, error) {\n    resp, err := http.Get(\"http://user-service/users/\" + id)\n    // http.Get使用Background context，无法感知请求取消\n    if err != nil {\n        return nil, err\n    }\n    defer resp.Body.Close()\n    var user User\n    json.NewDecoder(resp.Body).Decode(&user)\n    return &user, nil\n}\n\n// 正确示例 - 传递context\nfunc fetchUser(ctx context.Context, id string) (*User, error) {\n    req, err := http.NewRequestWithContext(ctx, \"GET\",\n        \"http://user-service/users/\"+id, nil)\n    if err != nil {\n        return nil, err\n    }\n    resp, err := http.DefaultClient.Do(req)\n    if err != nil {\n        return nil, fmt.Errorf(\"请求用户服务失败: %w\", err)\n    }\n    defer resp.Body.Close()\n    var user User\n    if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {\n        return nil, err\n    }\n    return &user, nil\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-008",
+      "name": "interface值为nil但类型不为nil",
+      "severity": "medium",
+      "category": "type_safety",
+      "description": "Go的interface在内部由(type, value)组成。当一个具体类型的nil指针赋值给interface时，interface的value为nil但type不为nil，导致interface != nil判断为true。这是一个经典的Go陷阱，会导致条件判断不符合预期。",
+      "suggestion": "避免将具体类型的nil指针赋值给interface。使用显式的nil判断或返回未初始化的interface。\n\n// 错误示例\nfunc getUser() *User {\n    user, err := findUser()\n    if err != nil {\n        return nil // *User的nil\n    }\n    return user\n}\n\nfunc process() {\n    user := getUser()\n    var i interface{} = user // type=*User, value=nil\n    if i != nil { // true! 但实际是nil指针\n        u := i.(*User)\n        u.DoSomething() // panic: nil pointer dereference\n    }\n}\n\n// 正确示例 - 在赋值前判断\nvar result interface{}\nuser := getUser()\nif user != nil {\n    result = user\n}\n// result在没有赋值时保持零值 nil interface",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-009",
+      "name": "range循环中修改迭代变量",
+      "severity": "high",
+      "category": "language_gotcha",
+      "description": "在Go 1.22之前，for range循环中的迭代变量是复用的同一个变量，而非每次迭代创建新变量。在goroutine或闭包中捕获迭代变量时，所有goroutine共享同一个变量，最终看到的全部是最后一个值。即使Go 1.22修复了此问题，老代码和旧版本编译的程序仍有此bug。",
+      "suggestion": "Go 1.22+无需额外处理。Go 1.21及以下版本：在循环体内创建局部变量副本。\n\n// 错误示例 - Go 1.22之前\nvalues := []string{\"a\", \"b\", \"c\"}\nvar wg sync.WaitGroup\nfor _, v := range values {\n    wg.Add(1)\n    go func() {\n        defer wg.Done()\n        fmt.Println(v) // 所有goroutine可能都打印\"c\"\n    }()\n}\nwg.Wait()\n\n// 正确示例 - 创建局部副本（Go 1.21及以下）\nfor _, v := range values {\n    v := v // 创建循环内局部变量\n    wg.Add(1)\n    go func() {\n        defer wg.Done()\n        fmt.Println(v) // 正确打印各自值\n    }()\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-010",
+      "name": "JSON反序列化未校验字段类型",
+      "severity": "medium",
+      "category": "data_validation",
+      "description": "JSON反序列化时未校验字段类型和必填字段，导致类型不匹配的数据被静默转换为零值（如数字字段收到字符串变为0），必填字段缺失时无感知。这在API开发中可能导致业务逻辑错误和安全问题。",
+      "suggestion": "使用json.Decoder的DisallowUnknownFields()、自定义UnmarshalJSON、或使用validator库进行校验。\n\n// 错误示例 - 未校验\ntype Request struct {\n    Age    int    `json:\"age\"`\n    Name   string `json:\"name\"`\n}\n\nfunc handle(w http.ResponseWriter, r *http.Request) {\n    var req Request\n    json.NewDecoder(r.Body).Decode(&req) // age传\"abc\"变成0，不报错\n    if req.Age < 18 { ... } // 0 < 18，逻辑错误\n}\n\n// 正确示例 - 使用指针检测必填字段\ntype Request struct {\n    Age  *int    `json:\"age\" validate:\"required,gte=0,lte=150\"`\n    Name *string `json:\"name\" validate:\"required,min=1,max=50\"`\n}\n\nfunc handle(w http.ResponseWriter, r *http.Request) {\n    var req Request\n    dec := json.NewDecoder(r.Body)\n    dec.DisallowUnknownFields()\n    if err := dec.Decode(&req); err != nil {\n        http.Error(w, \"invalid json\", 400)\n        return\n    }\n    if req.Age == nil || req.Name == nil {\n        http.Error(w, \"missing required fields\", 400)\n        return\n    }\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-011",
+      "name": "panic恢复不完整",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "使用defer recover()恢复panic时位置不正确或未正确处理。recover()仅在defer函数中直接调用才有效。常见错误：recover放在非defer函数中、recover返回值未处理、HTTP handler中未recover导致整个进程崩溃。",
+      "suggestion": "在关键入口点（HTTP handler、goroutine顶层）添加defer recover。确保recover在defer中直接调用。\n\n// 错误示例 - recover不在defer中\nfunc safe() {\n    recover() // 无效！不是defer调用\n    panic(\"error\")\n}\n\n// 正确示例 - HTTP中间件统一恢复\nfunc RecoveryMiddleware(next http.Handler) http.Handler {\n    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n        defer func() {\n            if err := recover(); err != nil {\n                log.Printf(\"panic recovered: %v\", err)\n                http.Error(w, \"Internal Server Error\", 500)\n            }\n        }()\n        next.ServeHTTP(w, r)\n    })\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-012",
+      "name": "字符串与字节切片频繁转换",
+      "severity": "low",
+      "category": "performance",
+      "description": "在循环或高频路径中频繁进行string([]byte)和[]byte(string)转换，每次转换都会分配新内存并复制数据。字符串在Go中是不可变的，转换时必须分配新内存。在高性能场景（如HTTP处理、日志写入、协议解析）中，频繁转换会造成显著的GC压力和性能损失。",
+      "suggestion": "使用unsafe包零拷贝转换（只读场景），或尽量减少转换次数，在单一类型上操作。\n\n// 错误示例 - 循环中频繁转换\nfunc processLines(data []byte) []string {\n    var result []string\n    for _, line := range bytes.Split(data, []byte(\"\\n\")) {\n        s := string(line) // 每次循环分配新字符串\n        result = append(result, strings.TrimSpace(s))\n    }\n    return result\n}\n\n// 正确示例1 - 零拷贝转换（只读场景）\nfunc b2s(b []byte) string {\n    return *(*string)(unsafe.Pointer(&b))\n}\n\n// 正确示例2 - 使用bytes包避免转换\nfunc processLines(data []byte) [][]byte {\n    lines := bytes.Split(data, []byte(\"\\n\"))\n    for i, line := range lines {\n        lines[i] = bytes.TrimSpace(line) // 全程使用[]byte\n    }\n    return lines\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-013",
+      "name": "sync.Pool使用不当导致数据竞争",
+      "severity": "high",
+      "category": "concurrency",
+      "description": "sync.Pool中取出的对象在未归还前被多个goroutine共享使用，或归还后仍在引用。Pool中的对象可能在GC时被清除，且Get返回的对象可能在任何时刻被其他goroutine Get到。如果对象带有状态（如buffer中的数据）归还前未清理，下一个使用者会读到脏数据。",
+      "suggestion": "从Pool获取对象后确保独占使用，使用完毕重置状态后归还。\n\n// 错误示例 - 未重置状态就归还\nvar bufPool = sync.Pool{\n    New: func() interface{} { return new(bytes.Buffer) },\n}\n\nfunc process() {\n    buf := bufPool.Get().(*bytes.Buffer)\n    buf.WriteString(\"sensitive data\")\n    fmt.Println(buf.String())\n    bufPool.Put(buf) // 归还时buffer中仍有数据！\n}\n\n// 正确示例\nfunc process() {\n    buf := bufPool.Get().(*bytes.Buffer)\n    defer bufPool.Put(buf)\n    buf.Reset() // 使用前重置\n    buf.WriteString(\"data\")\n    fmt.Println(buf.String())\n}",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-014",
+      "name": "HTTP Server未设置超时",
+      "severity": "medium",
+      "category": "security",
+      "description": "http.Server未设置ReadTimeout、WriteTimeout、IdleTimeout等超时参数。无超时的HTTP服务器可能被Slowloris等攻击拖垮（大量慢连接占用goroutine），或因为客户端不读取响应导致goroutine永久阻塞。默认http.ListenAndServe没有任何超时限制。",
+      "suggestion": "显式创建http.Server并设置合理的超时参数。\n\n// 错误示例 - 无超时\nhttp.ListenAndServe(\":8080\", mux) // 无任何超时保护\n\n// 正确示例\nserver := &http.Server{\n    Addr:              \":8080\",\n    Handler:           mux,\n    ReadTimeout:       10 * time.Second,\n    WriteTimeout:      30 * time.Second,\n    IdleTimeout:       120 * time.Second,\n    ReadHeaderTimeout: 5 * time.Second,\n}\n\n// 优雅关闭\ngo func() {\n    if err := server.ListenAndServe(); err != http.ErrServerClosed {\n        log.Fatal(err)\n    }\n}()",
+      "applicable_files": [
+        "*.go"
+      ]
+    },
+    {
+      "id": "GO-015",
+      "name": "SQL拼接导致注入",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用字符串拼接（fmt.Sprintf或+）构建SQL语句，将用户输入直接嵌入SQL中，导致SQL注入漏洞。攻击者可通过构造恶意输入执行任意SQL命令，包括读取、修改、删除数据，甚至执行系统命令。SQL注入是最危险的Web安全漏洞之一。",
+      "suggestion": "始终使用参数化查询（占位符），禁止字符串拼接SQL。动态ORDER BY等场景使用白名单校验。\n\n// 错误示例 - SQL注入漏洞\nfunc findUser(db *sql.DB, name string) (*User, error) {\n    query := fmt.Sprintf(\"SELECT * FROM users WHERE name='%s'\", name)\n    row := db.QueryRow(query)\n    // ...\n}\n\n// 正确示例 - 参数化查询\nfunc findUser(db *sql.DB, name string) (*User, error) {\n    query := \"SELECT id, name, email FROM users WHERE name = $1\"\n    row := db.QueryRow(query, name) // 参数安全绑定\n    var user User\n    err := row.Scan(&user.ID, &user.Name, &user.Email)\n    if err != nil {\n        return nil, err\n    }\n    return &user, nil\n}\n\n// 动态ORDER BY使用白名单\nvar orderBy string\nswitch sortField {\ncase \"name\":\n    orderBy = \"name\"\ncase \"created_at\":\n    orderBy = \"created_at\"\ndefault:\n    orderBy = \"id\"\n}\nquery := fmt.Sprintf(\"SELECT * FROM users ORDER BY %s\", orderBy)",
+      "applicable_files": [
+        "*.go"
+      ]
+    }
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 5,
+    "medium": 7,
+    "low": 1
+  }
+}

@@ -1,0 +1,388 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain6_code_quality",
+    "description": "测试质量规则集",
+    "total_rules": 25
+  },
+  "rules": [
+    {
+      "id": "CQ-TST-001",
+      "name": "测试覆盖率过低",
+      "severity": "critical",
+      "category": "testing",
+      "description": "核心业务模块的代码行覆盖率低于50%，大量代码未经测试验证，存在较高的回归风险。",
+      "suggestion": "优先为核心业务逻辑编写单元测试，目标行覆盖率至少80%。使用覆盖率工具识别未覆盖的关键路径。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-002",
+      "name": "无断言测试",
+      "severity": "critical",
+      "category": "testing",
+      "description": "测试方法中没有任何断言(assert/expect)，测试执行不会验证任何条件，属于无效测试。",
+      "suggestion": "每个测试方法至少包含一个有意义的断言，验证预期行为。断言应检查具体的输出值、状态变化或异常。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-003",
+      "name": "断言密度不足",
+      "severity": "high",
+      "category": "testing",
+      "description": "测试方法覆盖的代码行较多但断言过少（断言密度<1个断言/10行被测代码），测试验证不充分。",
+      "suggestion": "增加断言覆盖，确保关键输出、状态变化和副作用都被验证。每个重要行为路径至少一个断言。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-004",
+      "name": "测试方法过长",
+      "severity": "medium",
+      "category": "testing",
+      "description": "单个测试方法超过50行，测试逻辑过于复杂，可能测试了多个行为。",
+      "suggestion": "将长测试拆分为多个独立的测试方法，每个测试方法只验证一个行为。使用setUp/helper方法提取公共准备代码。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-005",
+      "name": "测试间存在依赖",
+      "severity": "high",
+      "category": "testing",
+      "description": "测试用例之间共享可变状态或依赖执行顺序，单独运行某个测试可能失败。",
+      "suggestion": "确保每个测试独立运行，使用beforeEach初始化状态，避免使用静态变量或共享实例传递状态。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-006",
+      "name": "硬编码的测试数据",
+      "severity": "medium",
+      "category": "testing",
+      "description": "测试中使用硬编码的值（如日期、ID、URL），环境变化时测试可能失败。",
+      "suggestion": "使用测试夹具(fixture)和工厂方法生成测试数据，避免依赖特定的日期、ID或环境配置。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-007",
+      "name": "测试访问真实外部服务",
+      "severity": "high",
+      "category": "testing",
+      "description": "测试中直接访问真实数据库、外部API或真实支付系统，测试不稳定且有安全风险。",
+      "suggestion": "使用Mock/Stub替代真实外部服务，使用内存数据库或测试容器，通过依赖注入便于替换。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-008",
+      "name": "缺少边界值测试",
+      "severity": "high",
+      "category": "testing",
+      "description": "对于有输入范围限制的函数，缺少边界值（空值、零值、最大值、最小值）的测试。",
+      "suggestion": "为每个输入范围编写边界测试：空字符串、null、0、MAX_VALUE、负数、单元素集合等边界条件。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-009",
+      "name": "缺少异常路径测试",
+      "severity": "high",
+      "category": "testing",
+      "description": "仅测试了正常路径(happy path)，未测试异常情况和错误处理路径。",
+      "suggestion": "为每个可能失败的点编写异常测试：无效输入、超时、权限不足、资源不可用等场景。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-010",
+      "name": "测试中catch所有异常",
+      "severity": "medium",
+      "category": "testing",
+      "description": "测试代码中使用try-catch包裹所有代码并catch所有异常，可能隐藏测试失败。",
+      "suggestion": "移除测试中的宽泛异常捕获，让测试框架自然报告失败。只在明确需要测试异常行为时使用expectException。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-011",
+      "name": "Mock过度使用",
+      "severity": "medium",
+      "category": "testing",
+      "description": "测试中大量使用Mock，导致测试与实现细节强耦合，内部重构会导致大量测试失败。",
+      "suggestion": "优先使用真实对象或Fake，仅Mock外部依赖和不可控因素。使用集成测试验证模块间协作。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-012",
+      "name": "缺少回归测试",
+      "severity": "high",
+      "category": "testing",
+      "description": "修复的Bug没有对应的回归测试，同样的Bug可能在未来再次出现。",
+      "suggestion": "为每个修复的Bug编写至少一个回归测试，确保Bug场景被覆盖且未来能自动检测。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-013",
+      "name": "测试运行过慢",
+      "severity": "medium",
+      "category": "testing",
+      "description": "完整测试套件运行时间超过5分钟，影响开发效率和CI/CD流水线速度。",
+      "suggestion": "将测试分级：单元测试（秒级）→ 集成测试（分钟级）→ E2E测试。日常开发只运行快速测试，CI中分层运行。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-014",
+      "name": "浮点数精确比较",
+      "severity": "medium",
+      "category": "testing",
+      "description": "测试中使用===或==直接比较浮点数结果，由于浮点精度问题可能导致间歇性失败。",
+      "suggestion": "使用近似比较（如toBeCloseTo、assertAlmostEqual）或指定epsilon容差进行浮点数比较。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-015",
+      "name": "测试跳过/skip过多",
+      "severity": "medium",
+      "category": "testing",
+      "description": "项目中存在大量被跳过（skip/pending/xit）的测试，测试有效性下降。",
+      "suggestion": "修复或移除被跳过的测试，长期跳过的测试说明测试或代码有问题。定期清理skip标记。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-016",
+      "name": "缺少集成测试",
+      "severity": "high",
+      "category": "testing",
+      "description": "项目仅有单元测试，缺少集成测试验证模块间的交互和数据流。",
+      "suggestion": "编写集成测试覆盖关键模块间的交互，如API→Service→Repository的完整链路。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-017",
+      "name": "测试中使用Thread.sleep/延时",
+      "severity": "medium",
+      "category": "testing",
+      "description": "测试中使用sleep/wait等固定延时等待条件满足，导致测试不稳定且运行缓慢。",
+      "suggestion": "使用条件等待（waitFor/assertEventually）替代固定延时，或使用依赖注入控制时间推进。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "CQ-TST-018",
+      "name": "测试环境污染",
+      "severity": "high",
+      "category": "testing",
+      "description": "测试修改了系统环境（文件系统、环境变量、全局配置）但未清理，影响其他测试或系统状态。",
+      "suggestion": "使用测试隔离机制（沙箱、临时目录），在teardown中恢复环境。使用依赖注入避免修改全局状态。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-019",
+      "name": "缺少性能基准测试",
+      "severity": "low",
+      "category": "testing",
+      "description": "性能敏感的代码缺少基准测试(benchmark)，无法检测和预防性能退化。",
+      "suggestion": "为关键路径编写基准测试，在CI中监控性能趋势。使用性能回归阈值阻止性能退化代码合入。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-TST-020",
+      "name": "测试代码重复率过高",
+      "severity": "medium",
+      "category": "testing",
+      "description": "测试代码之间高度重复（重复的setup、断言模式），测试代码本身也需要维护。",
+      "suggestion": "使用测试辅助函数、自定义匹配器/断言、参数化测试来消除重复。保持测试代码同样简洁。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-TST-021",
+      "name": "测试缺少清理/teardown",
+      "severity": "high",
+      "category": "testing",
+      "description": "测试创建了资源（临时文件、数据库记录、Mock服务）但未在teardown中清理，可能导致后续测试失败。",
+      "suggestion": "使用afterEach/tearDown确保每个测试后清理资源。使用临时目录和自动清理机制。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    }
+  ]
+}

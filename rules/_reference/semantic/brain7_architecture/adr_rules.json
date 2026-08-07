@@ -1,0 +1,57 @@
+{
+    "rules": [
+        {
+            "id": "ARCH-ADR-001",
+            "name": "代码实现与架构决策记录不一致",
+            "severity": "high",
+            "category": "adr-compliance",
+            "description": "架构决策记录（ADR）明确要求使用特定技术/模式（如'使用消息队列解耦订单和库存'），但代码实现未遵循该决策。",
+            "suggestion": "定期审查ADR与代码实现的一致性；将ADR作为代码审查的参考标准；偏离ADR需要新的决策记录说明原因。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.cs",
+                "*.md"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-ADR-002",
+            "name": "重要架构变更缺少ADR",
+            "severity": "medium",
+            "category": "adr-compliance",
+            "description": "引入了重要的架构级变更（如新增中间件、改变通信协议、引入新的存储方案）但未创建对应的架构决策记录。",
+            "suggestion": "为每个重要架构决策创建ADR文档；记录背景、选项对比、决策理由和后果；ADR与代码变更一起提交。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.cs",
+                "*.md"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-ADR-003",
+            "name": "ADR状态未更新",
+            "severity": "low",
+            "category": "adr-compliance",
+            "description": "代码中已经废弃或替换了某个架构决策对应的实现（如从REST迁移到gRPC），但ADR仍标记为Accepted（已采纳）而非Superseded（已替代）。",
+            "suggestion": "废弃架构决策时更新ADR状态为Deprecated/Superseded；创建新ADR记录替代方案；维护ADR索引目录。",
+            "applicable_files": [
+                "*.md",
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        }
+    ]
+}

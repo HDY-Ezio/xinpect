@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "id": "CQ-REF-002",
+      "name": "重构优先级排序",
+      "severity": "low",
+      "category": "refactor",
+      "description": "根据代码坏味道的严重程度、影响范围和修复成本，对重构建议进行优先级排序，帮助开发者决定处理顺序。",
+      "suggestion": "按ROI（影响面/工作量）排序重构项；优先处理高风险模块（如核心业务逻辑、频繁变更模块）。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-REF-003",
+      "name": "安全重构检查清单",
+      "severity": "low",
+      "category": "refactor",
+      "description": "在执行重构前检查是否具备安全重构的前提条件（充分测试覆盖、版本控制、小步重构等），降低重构引入新bug的风险。",
+      "suggestion": "确认测试覆盖率>70%再进行重构；每次只做一种重构；重构后运行完整测试；使用IDE的重构工具而非手动修改。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-REF-004",
+      "name": "重构时机识别",
+      "severity": "low",
+      "category": "refactor",
+      "description": "识别适合进行重构的时机（如功能开发完成后的整理期、bug修复时的周边改进、团队迭代回顾中的技术债务评审）。",
+      "suggestion": "遵循童子军规则（每次离开时让代码比来时更干净）；在每个sprint预留重构时间；利用代码审查触发重构讨论。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    }
+  ]
+}

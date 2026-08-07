@@ -1,0 +1,222 @@
+{
+  "rules": [
+    {
+      "id": "ARCH-DEP-001",
+      "name": "禁止模块间循环依赖",
+      "severity": "critical",
+      "category": "circular_dependency",
+      "description": "两个或多个模块相互引用形成环形依赖链，导致编译顺序不确定、部署耦合、重构困难，违反DAG原则",
+      "suggestion": "引入中间接口层或依赖反转(DIP)，将循环拆为单向依赖；或使用事件驱动解耦",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs",
+        "*.vue",
+        "*.jsx",
+        "*.tsx"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-DEP-002",
+      "name": "禁止三层架构跨层穿透调用",
+      "severity": "high",
+      "category": "layer_violation",
+      "description": "Controller层直接调用Repository/DAO层，跳过Service层，破坏分层架构的封装性和职责分离",
+      "suggestion": "所有跨层调用必须经过Service层；Controller仅调用Service接口",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-DEP-004",
+      "name": "禁止跨模块直接import实现类",
+      "severity": "high",
+      "category": "module_boundary",
+      "description": "一个模块直接import另一个模块的内部实现类而非公开接口，导致模块耦合紧密，内部重构会影响外部",
+      "suggestion": "只import模块的公开API/导出接口；模块通过barrel file(index.ts/index.py)控制导出范围",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.py",
+        "*.java",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-005",
+      "name": "禁止测试代码被生产代码依赖",
+      "severity": "critical",
+      "category": "module_boundary",
+      "description": "生产代码import了test目录下的文件（如mock、fixture），导致测试代码泄漏到生产环境",
+      "suggestion": "确保测试代码在test目录下且生产代码不引用；使用构建配置排除test目录",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-006",
+      "name": "禁止业务逻辑依赖特定UI框架",
+      "severity": "high",
+      "category": "module_boundary",
+      "description": "业务逻辑层import了React/Vue/Angular等UI框架API，导致业务逻辑无法在非UI环境（CLI/Serverless/测试）中复用",
+      "suggestion": "业务逻辑保持框架无关；UI适配通过适配器模式在表示层完成",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.java",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-007",
+      "name": "禁止共享模块依赖业务模块",
+      "severity": "critical",
+      "category": "module_boundary",
+      "description": "公共/共享/工具模块import了特定业务模块，导致共享模块无法被其他业务复用，且可能引入不必要的依赖",
+      "suggestion": "共享模块保持独立，不依赖任何业务模块；业务模块通过插件化扩展共享模块",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-008",
+      "name": "禁止DTO对象泄漏到领域层",
+      "severity": "high",
+      "category": "layer_violation",
+      "description": "将API的DTO(Data Transfer Object)直接传递到Domain层使用，导致领域模型与外部契约耦合",
+      "suggestion": "在应用层完成DTO与Domain Model的转换；领域层只使用领域对象",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.py",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-009",
+      "name": "禁止相对路径超过两级",
+      "severity": "medium",
+      "category": "dependency_structure",
+      "description": "import使用../../../等超过两级的相对路径，导致代码难以移动和重构",
+      "suggestion": "使用路径别名(path alias)如@/、~/；配置tsconfig paths或webpack alias",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx",
+        "*.vue"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-010",
+      "name": "禁止import整个lodash等重量级库",
+      "severity": "low",
+      "category": "dependency_structure",
+      "description": "import lodash或类似工具库的整体包，引入大量未使用代码增加bundle体积",
+      "suggestion": "使用按需import：import get from 'lodash/get'；或使用lodash-es配合tree-shaking",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-011",
+      "name": "禁止在生产代码中import开发依赖",
+      "severity": "high",
+      "category": "module_boundary",
+      "description": "生产代码中import了仅用于开发的工具（如debug、console.trace、测试helper），增加不必要的生产依赖",
+      "suggestion": "使用构建时移除或条件编译确保开发依赖不进入生产包",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.java",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-012",
+      "name": "禁止node_modules中的包被深层引用",
+      "severity": "medium",
+      "category": "module_boundary",
+      "description": "import路径直接指向node_modules中包的内部文件(如 lodash/内部文件)，依赖包的内部实现",
+      "suggestion": "只引用包的公开API；使用包的main/exports字段指定的入口",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-013",
+      "name": "禁止前端组件直接import后端代码",
+      "severity": "critical",
+      "category": "module_boundary",
+      "description": "前端代码import了后端专属模块（如数据库模型、服务端中间件），导致bundle包含服务端代码或构建失败",
+      "suggestion": "前后端代码物理隔离；共享逻辑提取到独立的shared包",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx",
+        "*.vue"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-014",
+      "name": "禁止monorepo中包的非声明依赖",
+      "severity": "high",
+      "category": "dependency_structure",
+      "description": "monorepo中某个包使用了未在其package.json/go.mod中声明的其他包，依赖隐式workspace解析",
+      "suggestion": "所有依赖必须显式声明；使用工具如dependency-cruiser或dep-cop检查",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.go",
+        "*.py"
+      ]
+    },
+    {
+      "id": "ARCH-DEP-015",
+      "name": "禁止使用已废弃的API入口",
+      "severity": "medium",
+      "category": "dependency_structure",
+      "description": "import了标记为@deprecated的模块入口或旧版本API，可能在下个版本被移除",
+      "suggestion": "迁移到推荐的替代API；设置ESLint规则检测deprecated import",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.java",
+        "*.py",
+        "*.go"
+      ]
+    }
+  ]
+}

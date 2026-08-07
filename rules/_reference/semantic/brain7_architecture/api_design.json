@@ -1,0 +1,308 @@
+{
+  "rules": [
+    {
+      "id": "ARCH-API-001",
+      "name": "API路径使用复数名词",
+      "severity": "medium",
+      "category": "restful_convention",
+      "description": "REST API资源路径使用单数名词(如/user/1)，违反REST约定导致消费者困惑",
+      "suggestion": "统一使用复数名词：/users/1；遵循RFC 6570 URI模板规范",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js",
+        "*.yaml",
+        "*.yml"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-002",
+      "name": "HTTP方法语义不正确",
+      "severity": "high",
+      "category": "restful_convention",
+      "description": "使用GET方法执行修改操作或使用POST执行查询操作，违反HTTP方法语义(幂等性/安全性)",
+      "suggestion": "GET-查询(幂等安全) POST-创建 POST-查询(复杂条件) PUT-全量更新(幂等) PATCH-部分更新 DELETE-删除(幂等)",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-004",
+      "name": "API缺少版本管理",
+      "severity": "high",
+      "category": "versioning",
+      "description": "API没有版本控制机制，接口变更直接覆盖旧版本，导致已有消费者突然崩溃",
+      "suggestion": "使用URL版本(/v1/users)或Header版本(Accept: version=1)；维护至少N-1版本兼容",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-005",
+      "name": "API缺少分页机制",
+      "severity": "medium",
+      "category": "restful_convention",
+      "description": "列表查询API没有分页支持，数据量大时导致超时和内存溢出",
+      "suggestion": "实现cursor-based或offset-based分页；返回total/hasMore/pageInfo元数据",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-006",
+      "name": "API缺少请求频率限制",
+      "severity": "high",
+      "category": "restful_convention",
+      "description": "公开API未实现Rate Limiting，可能被恶意请求耗尽资源",
+      "suggestion": "实现Rate Limiting(固定窗口/滑动窗口)；在响应头返回X-RateLimit-*信息",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-007",
+      "name": "API缺少幂等性设计",
+      "severity": "critical",
+      "category": "restful_convention",
+      "description": "非GET的写操作API缺少幂等性保证，网络重试可能导致重复创建或数据不一致",
+      "suggestion": "POST使用幂等键(Idempotency-Key)；PUT天然幂等；DELETE确保幂等",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-008",
+      "name": "API返回状态码使用不当",
+      "severity": "medium",
+      "category": "restful_convention",
+      "description": "所有API都返回200状态码，错误信息仅在body中；或错误使用了不恰当的HTTP状态码",
+      "suggestion": "正确使用状态码：200成功 201创建 204无内容 400参数错误 401未认证 403无权限 404未找到 409冲突 422校验失败 429限流 500服务器错误",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-010",
+      "name": "API缺少请求体大小限制",
+      "severity": "high",
+      "category": "restful_convention",
+      "description": "API未限制请求体大小，攻击者可发送超大payload导致服务器OOM",
+      "suggestion": "配置请求体大小限制(如10MB)；大文件使用分片上传",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js",
+        "*.yaml",
+        "*.yml",
+        "*.conf"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-011",
+      "name": "GraphQL缺少查询深度限制",
+      "severity": "critical",
+      "category": "graphql_convention",
+      "description": "GraphQL API未设置查询深度限制，攻击者可构造深层嵌套查询导致服务器资源耗尽",
+      "suggestion": "使用graphql-depth-limit等插件限制查询深度(建议8-10层)；配置查询复杂度分析",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.graphql",
+        "*.gql",
+        "*.java",
+        "*.py",
+        "*.go"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-012",
+      "name": "GraphQL Schema缺少文档描述",
+      "severity": "medium",
+      "category": "graphql_convention",
+      "description": "GraphQL Schema中的Type和Field缺少description，API消费者无法理解字段含义",
+      "suggestion": "为所有公开Type和Field添加description；使用SDL注释语法",
+      "applicable_files": [
+        "*.graphql",
+        "*.gql",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-013",
+      "name": "GraphQL Mutation缺少输入验证",
+      "severity": "high",
+      "category": "graphql_convention",
+      "description": "GraphQL Mutation resolver中缺少输入参数验证，接受非法数据",
+      "suggestion": "使用input type定义约束；在resolver层使用joi/zod等库验证输入",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.graphql",
+        "*.gql"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-014",
+      "name": "GraphQL N+1查询问题",
+      "severity": "high",
+      "category": "graphql_convention",
+      "description": "GraphQL resolver中存在N+1查询问题，每个列表项单独查询关联数据导致性能劣化",
+      "suggestion": "使用DataLoader批量加载关联数据；优化SQL使用IN查询替代逐条查询",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.graphql",
+        "*.gql",
+        "*.java",
+        "*.py"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-015",
+      "name": "GraphQL缺少查询成本分析",
+      "severity": "high",
+      "category": "graphql_convention",
+      "description": "GraphQL API未实现查询成本分析，无法阻止昂贵的查询消耗过多资源",
+      "suggestion": "实现Query Cost Analysis，为每个Field标注成本权重；拒绝超限查询",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.graphql",
+        "*.gql"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-016",
+      "name": "GraphQL缺少分页( Connection规范)",
+      "severity": "medium",
+      "category": "graphql_convention",
+      "description": "GraphQL列表查询未使用Relay Connection分页规范，大量数据无法高效分页",
+      "suggestion": "实现Relay Connection规范：edges/node/pageInfo/cursor；使用cursor-based分页",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.graphql",
+        "*.gql"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-017",
+      "name": "GraphQL Subscription缺少认证",
+      "severity": "critical",
+      "category": "graphql_convention",
+      "description": "GraphQL Subscription连接建立时未进行认证和授权，任何人可订阅敏感数据变更",
+      "suggestion": "在WebSocket连接升级时验证Token；在resolver层检查订阅权限",
+      "applicable_files": [
+        "*.ts",
+        "*.js",
+        "*.graphql",
+        "*.gql"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-018",
+      "name": "API废弃缺少迁移指南",
+      "severity": "medium",
+      "category": "versioning",
+      "description": "废弃API未提供迁移指南和Sunset日期，消费者无法计划升级",
+      "suggestion": "废弃API返回Deprecation头和Sunset日期；提供迁移文档和新API示例",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-019",
+      "name": "API Breaking Change缺少版本升级",
+      "severity": "critical",
+      "category": "versioning",
+      "description": "对已发布的API进行不兼容变更(删除字段、修改类型)而未升级主版本号",
+      "suggestion": "遵循语义化版本(SemVer)；Breaking Change必须升级主版本号；旧版本保持至少6个月",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js",
+        "*.yaml",
+        "*.yml"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "ARCH-API-020",
+      "name": "API响应字段名风格不一致",
+      "severity": "low",
+      "category": "restful_convention",
+      "description": "同一API的响应中字段命名风格混用(snake_case和camelCase)，增加消费者处理复杂度",
+      "suggestion": "统一命名风格：JSON推荐camelCase；Python后端可选snake_case但需全API一致",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.go",
+        "*.ts",
+        "*.js"
+      ],
+      "pattern": ""
+    }
+  ]
+}

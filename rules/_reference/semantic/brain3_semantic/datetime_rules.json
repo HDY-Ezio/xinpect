@@ -1,0 +1,67 @@
+{
+  "rules": [
+    {
+      "id": "B3-14-R001",
+      "name": "时区处理不当",
+      "severity": "high",
+      "category": "datetime",
+      "description": "使用本地时间（LocalTime/LocalDateTime）存储跨时区数据，或在时区转换时未使用IANA时区标识符，导致时间错乱。",
+      "suggestion": "内部统一使用UTC存储时间；显示时转换为用户本地时区；使用ZonedDateTime/OffsetDateTime带时区类型。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-14-R002",
+      "name": "日期格式解析不安全",
+      "severity": "medium",
+      "category": "datetime",
+      "description": "使用不安全的日期解析方法（如SimpleDateFormat非线程安全、Date.parse宽松模式），可能解析出错误日期或抛出未处理异常。",
+      "suggestion": "使用线程安全的DateTimeFormatter（Java）/ dayjs + 严格模式；显式指定格式模式；处理解析异常。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-14-R003",
+      "name": "时间比较使用错误方法",
+      "severity": "medium",
+      "category": "datetime",
+      "description": "使用字符串比较日期（如'2024-01-01'>'2024-1-1'格式不一致导致错误）、或使用getTime()比较不同精度的时间戳。",
+      "suggestion": "使用日期对象的原生比较方法（isBefore/isAfter/compareTo）；确保比较的时间精度一致。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-14-R004",
+      "name": "未处理闰年/夏令时边界",
+      "severity": "low",
+      "category": "datetime",
+      "description": "日期计算中硬编码了每月天数（如365天/年、30天/月）未考虑闰年；或未处理夏令时切换时的时间跳跃。",
+      "suggestion": "使用Duration/Period进行日期运算而非毫秒加减；使用java.time API自动处理夏令时；测试闰年边界。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    }
+  ]
+}

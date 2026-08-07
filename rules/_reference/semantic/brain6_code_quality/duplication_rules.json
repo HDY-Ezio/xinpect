@@ -1,0 +1,335 @@
+{
+  "rules": [
+    {
+      "id": "CQ-DUP-003",
+      "name": "结构相似代码块",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "检测到两段结构相似但字面量不同的代码块（相似度>70%），属于结构性重复。",
+      "suggestion": "识别代码中的变化点和不变点，将不变点提取为公共函数，变化点通过参数或策略模式处理。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DUP-004",
+      "name": "跨文件代码重复",
+      "severity": "high",
+      "category": "duplication",
+      "description": "在不同文件中发现重复或高度相似的代码段，违反DRY原则且维护成本高。",
+      "suggestion": "将重复代码提取到共享模块/工具类中，各文件通过导入引用。建立公共代码库统一管理。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DUP-005",
+      "name": "重复的测试代码",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "测试文件中存在重复的测试设置代码（setup/teardown逻辑重复）。",
+      "suggestion": "使用测试框架的beforeEach/afterEach钩子、测试夹具(fixture)或辅助函数来消除重复的测试准备代码。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-006",
+      "name": "重复的常量定义",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "相同的常量值（如magic number、字符串字面量）在多个位置重复定义。",
+      "suggestion": "将所有常量统一提取到常量类/配置文件中，使用枚举类型管理相关常量集合，避免魔法值散落。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DUP-007",
+      "name": "重复的条件判断",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "相同的条件判断逻辑在多处重复出现，当条件变更时容易遗漏修改。",
+      "suggestion": "将重复的条件判断提取为语义化的布尔函数，在需要判断的地方调用该函数，保证判断逻辑的一致性。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DUP-008",
+      "name": "重复的数据转换逻辑",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "相同的数据格式转换/映射逻辑在多处重复（如DTO到Entity的转换、JSON解析等）。",
+      "suggestion": "使用专门的Mapper/Converter类封装转换逻辑，或使用 AutoMapper等库实现自动映射，避免手动重复转换。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-009",
+      "name": "重复的错误处理代码",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "相同的错误处理/日志记录模式在多处重复出现。",
+      "suggestion": "使用全局错误处理中间件、装饰器/注解、AOP切面统一处理错误日志和异常转换，消除重复的错误处理代码。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-010",
+      "name": "复制粘贴的配置代码",
+      "severity": "low",
+      "category": "duplication",
+      "description": "配置相关的代码（如数据库连接配置、API端点配置等）在多处重复定义。",
+      "suggestion": "使用统一的配置管理模块，通过环境变量或配置文件集中管理，避免配置代码散落各处。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-011",
+      "name": "重复的SQL/查询构建",
+      "severity": "high",
+      "category": "duplication",
+      "description": "相似的SQL查询或数据库操作逻辑在多处重复构建。",
+      "suggestion": "使用ORM/QueryBuilder统一管理查询逻辑，或将公共查询提取为Repository方法复用。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-012",
+      "name": "重复的表单验证逻辑",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "表单数据验证规则在前后端或多个表单中重复定义。",
+      "suggestion": "使用Schema验证库（如Zod、Joi、Pydantic）统一定义验证规则，前后端共享验证逻辑。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-013",
+      "name": "重复的API调用封装",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "HTTP请求的构建（header设置、错误处理、响应解析等）在多处重复。",
+      "suggestion": "封装统一的HTTP客户端，将通用逻辑（认证、重试、日志）内置到客户端中，业务代码只需关注请求参数。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-014",
+      "name": "重复的UI组件代码",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "前端代码中存在相似的UI组件/视图模板代码，样式和结构高度类似。",
+      "suggestion": "将相似UI元素抽取为可复用的组件，通过props/slots实现差异化，使用组合模式构建复杂UI。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html"
+      ]
+    },
+    {
+      "id": "CQ-DUP-015",
+      "name": "重复的序列化/反序列化代码",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "JSON/XML等数据的序列化和反序列化逻辑在多处重复。",
+      "suggestion": "使用统一的序列化/反序列化工具函数或装饰器，集中处理数据格式转换。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-016",
+      "name": "重复的文件/IO操作代码",
+      "severity": "low",
+      "category": "duplication",
+      "description": "文件读写、流处理等IO操作的模式在多处重复。",
+      "suggestion": "封装通用的文件操作工具类，提供统一的错误处理和资源释放机制，业务代码调用工具方法。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-017",
+      "name": "重复的缓存操作代码",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "缓存读取/写入/失效的相同模式在多处重复。",
+      "suggestion": "使用缓存装饰器或统一的缓存抽象层，将缓存策略（TTL、序列化、失效）集中管理。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-018",
+      "name": "重复的循环累加模式",
+      "severity": "low",
+      "category": "duplication",
+      "description": "相同的循环累加/聚合逻辑（如求和、计数、分组）在多处用手动循环实现。",
+      "suggestion": "使用语言内置的高阶函数（reduce、groupBy、filter+map）替代手动循环，或使用Stream API。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-DUP-019",
+      "name": "重复的国际化/本地化代码",
+      "severity": "low",
+      "category": "duplication",
+      "description": "多语言文本处理、翻译key查找等逻辑在多处重复。",
+      "suggestion": "使用统一的i18n/l10n库和翻译文件管理，封装翻译函数供全局调用。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DUP-020",
+      "name": "重复的数据校验链",
+      "severity": "medium",
+      "category": "duplication",
+      "description": "多个函数/方法中存在相同顺序的数据校验步骤（如先判空再判格式再判范围）。",
+      "suggestion": "使用管道(pipeline)模式或验证器链(Validator Chain)组合校验步骤，或使用装饰器声明式添加校验规则。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    }
+  ]
+}

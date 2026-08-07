@@ -1,0 +1,16 @@
+# QA Framework - 依赖清单
+# 核心框架仅使用Python标准库，无外部依赖
+# 以下为可选依赖（L2-L4工作流可能用到）
+
+# 标准库即可运行L1静态扫描（14模块118项）
+# Python >= 3.8
+
+# 可选：L2 API端到端测试
+requests>=2.31.0  # ⚠️ 维护者单点风险: 主要维护者仅Kenneth Reitz一人，建议关注urllib3替代  # 备选: httpx (更现代的HTTP客户端，支持异步)
+
+# 可选：Brain 3-7 门房API调用（try/except导入，非必需）
+# httpx>=0.24.0  # 备选: aiohttp (异步HTTP客户端)
+
+# 可选：代码规范检查（M14）
+# pylint>=2.17.0  # 备选: ruff (更快的Python linter，Rust实现)
+# ruff>=0.1.0  # 备选: flake8 (经典轻量linter)

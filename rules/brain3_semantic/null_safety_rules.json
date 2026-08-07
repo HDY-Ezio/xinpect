@@ -1,0 +1,330 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain3_semantic",
+    "generated": "2025-07",
+    "description": "空值安全规则集 - 覆盖链式调用null、Optional拆包、返回值判空、集合null、回调参数null等场景",
+    "total_rules": 30,
+    "standards_reference": [
+      "TypeScript strictNullChecks",
+      "Kotlin Null Safety",
+      "Java Optional Best Practices",
+      "SonarQube NullPointerException Detection",
+      "ESLint no-unsafe-optional-chaining"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEM-NS-001",
+      "name": "链式调用中间可能为null/undefined",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "链式调用a.b.c.d中，a.b或a.b.c可能返回null/undefined，导致后续属性访问抛出NullPointerException/TypeError。",
+      "suggestion": "使用可选链操作符(a?.b?.c?.d)；Java使用Optional链式操作；在链式调用前对中间结果进行非空断言或默认值处理。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.csharp",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEM-NS-002",
+      "name": "未检查的Optional拆包：直接get()",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "Java的Optional直接调用get()而未先检查isPresent()，当Optional为空时抛出NoSuchElementException。Kotlin的!!操作符有同样问题。",
+      "suggestion": "使用orElse/orElseGet提供默认值；使用ifPresent消费值；使用map/flatMap链式操作；Kotlin使用?:提供默认值或let进行安全调用。",
+      "applicable_files": [
+        "*.java",
+        "*.kt"
+      ]
+    },
+    {
+      "id": "SEM-NS-003",
+      "name": "函数返回值未判空就使用",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "调用可能返回null的函数(如map.get()、findById()、querySelector())后，未检查返回值是否为null就直接使用。",
+      "suggestion": "函数返回值使用前先判空；使用Optional/Nullable类型标注返回值；对可能返回null的API使用默认值。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-004",
+      "name": "集合操作前未判空",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "对可能为null的集合直接调用size()、forEach()、add()等操作。如从数据库查询的List结果未判空就遍历。",
+      "suggestion": "集合操作前判空或使用空集合替代null；返回空集合(Collections.emptyList())而非null；使用Optional包装。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.py",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-NS-005",
+      "name": "回调参数未判空",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "回调函数/Closure中使用的参数未判空。回调的调用者可能传入null(如错误回调的error参数、数据回调的data参数)。",
+      "suggestion": "回调参数使用@NonNull/@Nullable注解明确约束；回调入口对关键参数判空；TypeScript使用严格null检查。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-006",
+      "name": "数据库查询结果未判空",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "数据库查询(findById、selectOne、findOne)的结果可能为null(记录不存在)，未判空就直接访问属性会导致NPE。",
+      "suggestion": "查询结果使用判空后处理；Java返回Optional<User>；使用orElseThrow抛出具体的业务异常。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-007",
+      "name": "字符串拼接中的null风险",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "字符串拼接中包含可能为null的变量(如greeting = 'Hello ' + user.getName())。null会被转为'null'字符串或抛出NPE。",
+      "suggestion": "拼接前对变量判空或使用默认值：'Hello ' + (name ?? 'Guest')；Java使用String.format带null安全处理。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js",
+        "*.ts",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEM-NS-008",
+      "name": "解构赋值中的空值风险",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "对象/数组解构时，源对象可能为null/undefined(const {a, b} = response.data)。解构null会抛出TypeError。",
+      "suggestion": "解构前提供默认值：const {a, b} = response?.data ?? {}；数组解构使用默认值：const [first] = arr || []。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-NS-009",
+      "name": "类型断言跳过null检查",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "使用as操作符(TypeScript)、!操作符(Kotlin)、(Type)强制转换(Java)跳过null检查。编译器无法验证断言的正确性。",
+      "suggestion": "避免使用非空断言操作符(!!、as!)；使用类型守卫(is/instanceof)替代类型断言；启用strictNullChecks。",
+      "applicable_files": [
+        "*.ts",
+        "*.kt",
+        "*.java"
+      ]
+    },
+    {
+      "id": "SEM-NS-010",
+      "name": "数组/列表索引访问未检查边界",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "通过索引访问数组/列表元素(arr[0]、list.get(5))但未检查数组长度或索引范围，可能越界。",
+      "suggestion": "访问前检查索引范围：if(index < list.size())；使用安全访问方法；数组访问使用默认值模式。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-011",
+      "name": "Map.get()返回值未判空直接使用",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "Map.get(key)返回null(键不存在)后直接调用方法或赋值给非空类型变量，导致NPE。",
+      "suggestion": "使用getOrDefault(key, defaultValue)；使用computeIfAbsent确保值存在；Java 8+使用Optional.ofNullable(map.get(key))。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-NS-012",
+      "name": "JSON解析结果未判空",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "JSON.parse()可能返回null(输入为'null')，JSON反序列化后的对象属性可能为null(字段缺失)。",
+      "suggestion": "JSON解析后判空；使用可选链访问嵌套属性：data?.user?.address?.city；JSON Schema校验确保必要字段存在。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEM-NS-013",
+      "name": "环境特定API可能返回undefined",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "使用了仅特定环境可用的API(如window在Node.js、process在浏览器)而未检查存在性。",
+      "suggestion": "使用typeof检查：typeof window !== 'undefined'；使用可选链：globalThis.process?.env；为不同环境提供fallback实现。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-NS-014",
+      "name": "事件处理器中event.target可能为null",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "事件处理函数中直接使用event.target的属性而未判空。某些事件的target可能不是期望的元素类型。",
+      "suggestion": "使用event.target前先判空；使用类型守卫确认target类型；事件委托中使用closest()获取目标元素。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEM-NS-015",
+      "name": "Promise.then的回调参数可能为undefined",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "Promise.resolve()不传参数时，.then的回调参数为undefined。async函数无显式return时返回undefined。",
+      "suggestion": "Promise显式resolve具体值；async函数确保有返回值；then回调参数判空或使用默认值。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-NS-016",
+      "name": "方法链中返回this的方法可能返回null",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "Builder模式或流式API中，某个方法返回this用于链式调用。但如果该方法在某些条件下返回null，后续链式调用会NPE。",
+      "suggestion": "链式方法始终返回this或新对象，不返回null；如果对象状态不允许操作，抛出异常而非返回null。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-NS-017",
+      "name": "自动拆箱(Auto-unboxing)的空指针风险",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "Java中Integer/Long/Boolean等包装类为null时自动拆箱为基本类型会抛出NullPointerException。如int x = getInteger()当返回null时。",
+      "suggestion": "拆箱前判空；使用intValue()等方法替代自动拆箱；方法返回Optional<Integer>而非Integer。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-018",
+      "name": "跨线程/异步传递的值可能为null",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "异步操作的结果在未完成时获取可能为null；线程间传递的消息对象中某些字段可能未初始化。",
+      "suggestion": "异步结果使用超时获取并处理null；消息对象使用不可变类且所有字段在构造时初始化。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-NS-019",
+      "name": "外部API/SDK返回值未判空",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "调用外部API或第三方SDK的方法，返回值可能为null(网络异常、服务端错误)，但未判空就使用。",
+      "suggestion": "外部调用返回值统一判空；使用Wrapper类封装外部调用结果；对外部SDK的返回值进行防御性校验。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-020",
+      "name": "null作为集合元素插入导致的问题",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "向不允许null的集合中插入null(Arrays.asList、ImmutableList、TreeSet)导致NullPointerException。",
+      "suggestion": "使用null安全的集合；插入前判空过滤；Stream中使用filter(Objects::nonNull)。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-NS-021",
+      "name": "反射调用结果未判空",
+      "severity": "high",
+      "category": "null-safety",
+      "description": "通过反射调用方法(Method.invoke)或获取字段(Field.get)的返回值可能为null，但通常被忽略检查。",
+      "suggestion": "反射调用结果判空；使用Spring的ReflectionUtils的null安全方法；尽量用接口/抽象替代反射。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-NS-022",
+      "name": "equals比较中的空指针",
+      "severity": "medium",
+      "category": "null-safety",
+      "description": "变量可能为null时调用variable.equals(other)会抛出NPE。但常量或已知非null值放在前面是安全的。",
+      "suggestion": "使用常量.equals(变量)而非变量.equals(常量)；使用Objects.equals(a, b)进行null安全比较。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp"
+      ]
+    }
+  ]
+}

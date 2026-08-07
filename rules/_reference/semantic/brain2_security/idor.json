@@ -1,0 +1,71 @@
+{
+  "rules": [
+    {
+      "id": "SEC-IDOR-001",
+      "name": "IDOR：通过修改ID参数直接访问其他用户资源",
+      "severity": "high",
+      "category": "idor",
+      "description": "API通过用户可控的ID参数（如/user/123/profile）直接访问资源，未验证当前用户是否有权访问该ID对应的资源，攻击者修改ID即可越权。",
+      "suggestion": "在服务端验证请求用户与资源的归属关系；使用不可预测的资源标识符（UUID）；实现基于session的用户鉴权而非参数传递用户ID。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "SEC-IDOR-002",
+      "name": "IDOR：批量枚举接口缺少防护",
+      "severity": "high",
+      "category": "idor",
+      "description": "资源接口允许通过递增ID批量枚举所有资源（如/order/1、/order/2...），无任何频率限制或随机化。",
+      "suggestion": "使用UUID替代自增ID；添加请求频率限制；实现服务端权限校验；对敏感接口增加验证码。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "SEC-IDOR-003",
+      "name": "IDOR：引用令牌可预测",
+      "severity": "medium",
+      "category": "idor",
+      "description": "使用可预测的引用令牌（如自增序号、时间戳、用户名）作为资源标识符，攻击者可轻易猜测其他资源的标识。",
+      "suggestion": "使用CSPRNG生成的不可预测令牌；使用UUID v4；对引用令牌进行加密签名。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-IDOR-004",
+      "name": "IDOR：间接引用未校验所有权",
+      "severity": "high",
+      "category": "idor",
+      "description": "通过间接引用（如购物车ID、订单号）访问资源时，仅校验引用有效性但未校验当前用户是否拥有该资源。",
+      "suggestion": "在数据访问层加入所有权校验：SELECT * FROM orders WHERE id=? AND user_id=当前用户ID。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.cs"
+      ]
+    }
+  ]
+}

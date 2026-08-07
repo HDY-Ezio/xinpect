@@ -1,0 +1,53 @@
+{
+    "rules": [
+        {
+            "id": "PERF-SER-001",
+            "name": "使用反射式序列化框架处理大数据量",
+            "severity": "medium",
+            "category": "serialization-performance",
+            "description": "使用JSON.stringify/parse、Java原生序列化、Python pickle等反射式框架处理大量数据，反射开销在大数据量场景下显著。",
+            "suggestion": "对高频序列化场景使用Protocol Buffers/MessagePack/FlatBuffers等二进制格式；或使用代码生成替代反射。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-SER-002",
+            "name": "序列化包含大量不必要字段",
+            "severity": "medium",
+            "category": "serialization-performance",
+            "description": "序列化整个实体对象时包含大量不需要的字段（如密码hash、大文本字段、关联对象），增加网络传输和内存开销。",
+            "suggestion": "使用DTO/VO只包含需要的字段；使用@JsonIgnore排除不必要的字段；实现按需字段选择。",
+            "applicable_files": [
+                "*.java",
+                "*.ts",
+                "*.py",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-SER-003",
+            "name": "反序列化未使用流式解析处理大数据",
+            "severity": "medium",
+            "category": "serialization-performance",
+            "description": "使用DOM式解析（如JSON.parse、xml.etree）处理大型JSON/XML文件，将整个文档加载到内存中构建树结构。",
+            "suggestion": "使用SAX/StAX流式解析（Java）；使用JSON Stream/ijson逐条处理（Python）；使用stream-json逐块解析（Node.js）。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs",
+                "*.go"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,143 @@
+{
+  "metadata": {
+    "platform": "security",
+    "brain": "brain2",
+    "version": "1.0",
+    "author": "煋旺智能",
+    "description": "分发安全审计 - 检测包/项目中不该有的东西、不一致的地方、可被利用的隐患"
+  },
+  "rules": [
+    {
+      "check_id": "DIST-001",
+      "name": "影子实现检测：未注册但包含注册装饰器的文件",
+      "severity": "high",
+      "category": "security",
+      "description": "文件中包含 @register_brain / @app.route / @register 等注册装饰器，但文件名不在预期的活跃注册列表中。这可能是被隐藏的完整替代实现，攻击者可通过修改注册逻辑来激活付费功能或绕过安全控制。",
+      "pattern": "@(?:register_brain|register_handler|register_plugin|app\\.route|blueprint\\.route)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "确认该文件是否为当前激活版本。旧版实现的完整代码不应留在分发包含中，应移至服务端或备份目录。",
+      "references": ["https://owasp.org/www-project-code-review-guide/"]
+    },
+    {
+      "check_id": "DIST-002",
+      "name": "注册冲突检测：同一ID/路由被多次注册",
+      "severity": "critical",
+      "category": "security",
+      "description": "同一Brain ID / 路由路径 / 事件监听器被多个文件重复注册。加载顺序决定最终生效的实现，攻击者可通过重命名文件来切换行为。",
+      "pattern": "@register_brain\\s*\\(\\s*[\"](\\d+)[\"]",
+      "file_pattern": "*.py",
+      "suggestion": "每个ID/路由只允许一个注册点。清理旧版注册或合并到新文件中。",
+      "references": ["https://cwe.mitre.org/data/definitions/636.html"]
+    },
+    {
+      "check_id": "DIST-003",
+      "name": "备份/残留文件检测",
+      "severity": "medium",
+      "category": "security",
+      "description": "检测到 .bak / .backup / .old / .orig / .copy / _copy / ~ 等备份文件残留。这些文件可能包含旧版完整实现、密钥、或调试代码。",
+      "pattern": "\\.(bak|backup|old|orig|copy|save|tmp|swp|rej)\\b|~$",
+      "file_pattern": "*",
+      "suggestion": "打包前清理所有备份文件。在 .gitignore 和 CI 流程中排除备份文件。",
+      "references": ["https://cwe.mitre.org/data/definitions/459.html"]
+    },
+    {
+      "check_id": "DIST-004",
+      "name": "版本号不一致检测",
+      "severity": "medium",
+      "category": "security",
+      "description": "项目中多处声明版本号（SKILL.md / README / CHANGELOG / __init__.py / setup.py / pyproject.toml），若不一致会导致用户混淆、缓存错误、或发布版本与实际代码不匹配。",
+      "pattern": "version[:\\s]*[\"]?\\d+\\.\\d+\\.\\d+",
+      "file_pattern": "*.md",
+      "suggestion": "统一使用单一版本源（如 __version__.py），其他文件通过脚本同步。发版前自动校验一致性。",
+      "references": ["https://semver.org/"]
+    },
+    {
+      "check_id": "DIST-005",
+      "name": "内部架构信息暴露",
+      "severity": "high",
+      "category": "security",
+      "description": "客户端/分发文件中包含服务端内部端口映射、服务名、IP地址、微服务拓扑等信息。攻击者可利用这些信息直接访问未授权的服务或进行定向攻击。",
+      "pattern": "(?:port|PORT|PORTS)\\s*[=:{]\\s*[\"]?\\d{4,5}(?:\\s*[,\\s]+\\d{4,5}){2,}|(?:service|endpoint|upstream)\\s*[=:]\\s*[\"](?:https?://)?(?:10\\.|172\\.(?:1[6-9]|2|3[01])\\.|192\\.168\\.)",
+      "file_pattern": "*.py",
+      "suggestion": "端口/地址通过配置管理，不硬编码。客户端只暴露公共API地址，内部拓扑信息仅在服务端保留。",
+      "references": ["https://cwe.mitre.org/data/definitions/200.html"]
+    },
+    {
+      "check_id": "DIST-006",
+      "name": "包体积异常：大文件不应出现在分发包含",
+      "severity": "medium",
+      "category": "security",
+      "description": "非数据/非资源类Python文件超过500行，或单个分发包含超过预期大小。可能意味着完整实现、测试数据或调试工具被意外打包。",
+      "pattern": "^.{0}(.\\n){500,}",
+      "file_pattern": "*.py",
+      "suggestion": "大文件应拆分为模块。客户端/薄客户端代码应控制在200行以内。用 du 或 CI 脚本监控包大小趋势。",
+      "references": ["https://cwe.mitre.org/data/definitions/1089.html"]
+    },
+    {
+      "check_id": "DIST-007",
+      "name": "测试桩/Mock/调试入口残留",
+      "severity": "high",
+      "category": "security",
+      "description": "分发文件中包含 bypass / skip_check / mock_ / fake_ / debug_ / test_only / backdoor 等关键词的函数或变量。这些可能是用于绕过验证的调试入口。",
+      "pattern": "def\\s+\\w*(?:bypass|skip_check|mock_|fake_|debug_|test_only|backdoor|disable_auth|force_admin)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "打包前移除所有调试入口。使用条件编译或环境变量控制调试功能，不要在分发文件中保留。",
+      "references": ["https://cwe.mitre.org/data/definitions/489.html"]
+    },
+    {
+      "check_id": "DIST-008",
+      "name": "密钥/凭证残留",
+      "severity": "critical",
+      "category": "security",
+      "description": "分发文件中包含 API Key、Token、Password、Secret、Private Key 等硬编码凭证。即使是测试用的假密钥，也可能被攻击者利用或暴露内部系统命名规范。",
+      "pattern": "(?:api_key|apikey|API_KEY|secret_key|SECRET_KEY|password|PASSWORD|private_key|PRIVATE_KEY|token|TOKEN)\\s*[=:]\\s*[\"][A-Za-z0-9+/=_\\-]{16,}[\"]",
+      "file_pattern": "*.py",
+      "suggestion": "使用环境变量或密钥管理服务。分发前运行 secrets 扫描工具（如 detect-secrets / trufflehog）。",
+      "references": ["https://cwe.mitre.org/data/definitions/798.html"]
+    },
+    {
+      "check_id": "DIST-009",
+      "name": "环境配置泄露",
+      "severity": "high",
+      "category": "security",
+      "description": "分发文件中包含 .env 文件内容、数据库连接字符串、服务器地址等环境配置信息。",
+      "pattern": "(?:DATABASE_URL|REDIS_URL|MONGO_URI|MYSQL_|POSTGRES_)\\s*[=:]\\s*[\"](?:postgresql|mysql|mongodb|redis)://",
+      "file_pattern": "*",
+      "suggestion": ".env 文件不进入分发包含。使用 .env.example 提供模板（不含真实值）。CI中检查 .env 文件是否存在。",
+      "references": ["https://cwe.mitre.org/data/definitions/256.html"]
+    },
+    {
+      "check_id": "DIST-010",
+      "name": "版本控制元数据泄露",
+      "severity": "low",
+      "category": "security",
+      "description": "分发文件中包含 .git / .svn / .hg 等版本控制目录或 .gitignore 中应排除的文件。暴露项目历史、分支名、提交记录等。",
+      "pattern": "\\.(git|svn|hg)/",
+      "file_pattern": "*",
+      "suggestion": "打包脚本中排除所有 VCS 目录。使用 .gitattributes 的 export-ignore 标记。",
+      "references": ["https://cwe.mitre.org/data/definitions/532.html"]
+    },
+    {
+      "check_id": "DIST-011",
+      "name": "死代码文件：未被任何模块引用",
+      "severity": "low",
+      "category": "security",
+      "description": "Python文件存在但未被任何其他文件 import。死代码可能包含过时的逻辑，如果被意外激活会产生不可预期的行为。",
+      "pattern": "^#.*(?:unused|deprecated|legacy|obsolete|TODO.*remove)",
+      "file_pattern": "*.py",
+      "suggestion": "定期清理未引用的文件。使用 import 分析工具（如 pydeps / snakefood）检查依赖图。",
+      "references": ["https://cwe.mitre.org/data/definitions/561.html"]
+    },
+    {
+      "check_id": "DIST-012",
+      "name": "重复实现检测：同一功能存在多个版本",
+      "severity": "medium",
+      "category": "security",
+      "description": "检测到文件名包含相同功能关键词的多个版本（如 xxx.py / xxx_v2.py / xxx_new.py / xxx_old.py）。多个版本共存增加了维护风险和安全风险。",
+      "pattern": "(?:_v\\d|_new|_old|_bak|_copy|_backup|_temp|_tmp|_draft)\\.py$",
+      "file_pattern": "*.py",
+      "suggestion": "保留最新版本，删除/归档旧版本。使用版本控制系统管理变更，不要用文件名后缀。",
+      "references": ["https://cwe.mitre.org/data/definitions/1089.html"]
+    }
+  ]
+}

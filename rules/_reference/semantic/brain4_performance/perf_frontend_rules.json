@@ -1,0 +1,434 @@
+{
+    "metadata": {
+        "name": "性能-前端渲染优化规则",
+        "total_rules": 30
+    },
+    "rules": [
+        {
+            "id": "PERF-FE-001",
+            "name": "频繁同步读写DOM导致强制重排",
+            "severity": "S1",
+            "category": "frontend",
+            "description": "在循环中交替读写DOM属性（如先读offsetHeight再写style.height），每次都触发浏览器强制同步布局（Layout Thrashing），大量时间浪费在重排计算上",
+            "suggestion": "批量读取DOM属性后集中写入样式修改，或使用requestAnimationFrame分批修改；使用will-change提示浏览器优化",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-002",
+            "name": "使用table布局触发大面积重排",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "使用CSS display:table或HTML table元素做页面布局，任一单元格内容变化都会导致整个表格及周围元素重新计算布局",
+            "suggestion": "使用Flexbox或Grid布局替代table布局，局部变化只影响相邻元素；设置table-layout:fixed减少重排范围",
+            "applicable_files": [
+                "*.html",
+                "*.css",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-003",
+            "name": "大量DOM节点一次性插入页面",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "通过innerHTML或循环appendChild向页面插入大量DOM节点（>1000个），每次操作都触发重排和重绘",
+            "suggestion": "使用DocumentFragment批量构建后一次性插入；或使用虚拟滚动（react-window、vue-virtual-scroller）只渲染可视区域节点",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-004",
+            "name": "图片未指定宽高导致布局偏移(CLS)",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "img标签未设置width/height属性或CSS aspect-ratio，图片加载后尺寸变化导致页面布局偏移，影响Core Web Vitals中的CLS指标",
+            "suggestion": "为所有img标签设置明确的width和height属性，或使用CSS aspect-ratio预留空间；使用loading='lazy'延迟加载非首屏图片",
+            "applicable_files": [
+                "*.html",
+                "*.jsx",
+                "*.tsx",
+                "*.vue",
+                "*.css"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-005",
+            "name": "未使用IntersectionObserver实现懒加载",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "使用scroll事件监听+getBoundingClientRect计算元素可见性实现懒加载，每帧触发大量布局计算和重排",
+            "suggestion": "使用IntersectionObserver API实现懒加载，浏览器原生异步观测元素可见性，零性能开销；图片直接使用loading='lazy'属性",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-006",
+            "name": "CSS选择器过于复杂影响样式计算",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "使用深层嵌套的CSS选择器（如div > ul > li > a > span）或通用选择器通配（* .item），浏览器需要从右向左逐一匹配DOM树，样式计算成本高",
+            "suggestion": "使用扁平化的BEM命名（.block__element--modifier）或CSS Modules，减少选择器层级至2-3层；避免标签选择器嵌套",
+            "applicable_files": [
+                "*.css",
+                "*.scss",
+                "*.less",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-007",
+            "name": "使用!important破坏CSS层叠性能",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "大量使用!important声明，浏览器必须遍历所有样式规则确定优先级，增加样式计算时间并导致维护困难",
+            "suggestion": "通过合理的CSS特异性管理（BEM、CSS Layers）替代!important；使用@layer控制层叠顺序",
+            "applicable_files": [
+                "*.css",
+                "*.scss",
+                "*.less"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-008",
+            "name": "长列表未使用虚拟滚动",
+            "severity": "S1",
+            "category": "frontend",
+            "description": "渲染超过1000条数据的长列表（如表格、下拉选项），所有DOM节点同时存在于页面中，滚动时帧率严重下降",
+            "suggestion": "使用虚拟滚动库（react-window、react-virtualized、vue-virtual-scroller），仅渲染可视区域内的DOM节点，将DOM数量控制在固定范围内",
+            "applicable_files": [
+                "*.jsx",
+                "*.tsx",
+                "*.vue",
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-009",
+            "name": "Web字体加载阻塞文本渲染(FOIT)",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "自定义Web字体加载期间文本不可见（Flash of Invisible Text），阻塞LCP和FCP指标，用户看到空白页面",
+            "suggestion": "使用font-display:swap确保系统字体先显示，字体加载后替换；使用font preloading(<link rel='preload' as='font'>)提前加载",
+            "applicable_files": [
+                "*.css",
+                "*.html",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-010",
+            "name": "未使用will-change滥用GPU加速",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "对大量元素设置will-change:transform/opacity，为每个元素创建独立的GPU合成层，消耗大量显存导致整体性能下降",
+            "suggestion": "仅在动画触发前动态添加will-change，动画结束后移除；对频繁动画元素使用transform/opacity替代top/left避免重排",
+            "applicable_files": [
+                "*.css",
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-011",
+            "name": "滚动事件监听未使用passive选项",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "在scroll/touchmove事件中添加事件监听未设置{passive: true}，浏览器必须等待监听器执行完毕才能滚动，导致滚动卡顿",
+            "suggestion": "addEventListener第三个参数设置{passive: true}告知浏览器不会调用preventDefault；滚动处理逻辑使用requestAnimationFrame节流",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-012",
+            "name": "未使用CSS contain限制重排范围",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "页面组件内容变化时浏览器无法确定影响范围，每次修改都可能触发整个文档的布局计算",
+            "suggestion": "对独立组件使用CSS contain:layout style paint，告知浏览器该区域变化不影响外部布局，显著减少重排计算范围",
+            "applicable_files": [
+                "*.css",
+                "*.jsx",
+                "*.tsx",
+                "*.vue",
+                "*.html"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-013",
+            "name": "React组件缺少memo/useMemo/useCallback导致无效重渲染",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "React函数组件未使用React.memo包裹，父组件重渲染时子组件无条件重新渲染；内联函数/对象props每次创建新引用导致memo失效",
+            "suggestion": "纯展示组件使用React.memo包裹；计算值使用useMemo缓存；回调函数使用useCallback缓存；避免内联对象/函数作为props",
+            "applicable_files": [
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-014",
+            "name": "React大列表渲染未使用key或key使用index",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "React列表渲染未设置key或使用数组index作为key，列表项增删时React无法正确复用DOM节点，触发不必要的DOM创建和销毁",
+            "suggestion": "为列表项使用稳定唯一的id作为key；列表项频繁变动时避免使用index作为key",
+            "applicable_files": [
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-015",
+            "name": "Vue组件未使用v-once/v-memo缓存静态内容",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "Vue模板中不变的内容（如纯文本标签、静态图标）每次响应式数据变化都重新创建虚拟DOM和真实DOM",
+            "suggestion": "对纯静态内容使用v-once指令只渲染一次；对条件性静态块使用v-memo缓存渲染结果",
+            "applicable_files": [
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-016",
+            "name": "CSS动画使用触发重排的属性",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "对width/height/top/left/margin/padding等触发重排的属性做CSS过渡/动画，每帧都触发浏览器布局计算",
+            "suggestion": "仅对transform和opacity做动画（仅触发合成，不触发重排重绘）；使用translate替代top/left位移，使用scale替代width/height缩放",
+            "applicable_files": [
+                "*.css",
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-017",
+            "name": "首屏关键渲染路径未优化",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "首屏渲染前加载大量非关键CSS/JS资源，阻塞关键渲染路径，导致FCP/LCP时间过长",
+            "suggestion": "内联首屏关键CSS（<style>标签）；非关键CSS使用media属性延迟加载；JS使用defer/async；使用<link rel='preload'>预加载关键资源",
+            "applicable_files": [
+                "*.html"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-018",
+            "name": "图片资源未使用现代格式和响应式尺寸",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "仅使用JPEG/PNG格式且提供单一尺寸图片，大图片在小屏幕上浪费带宽，影响LCP指标",
+            "suggestion": "使用<picture>元素提供WebP/AVIF格式和srcset多尺寸适配；使用<picture>的type属性做格式降级；配合CDN图片处理动态裁剪",
+            "applicable_files": [
+                "*.html",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-019",
+            "name": "JavaScript主线程执行长时间计算任务",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "在主线程执行耗时计算（如大数据排序/过滤/格式化），阻塞UI渲染和用户交互，导致页面卡顿（INP指标恶化）",
+            "suggestion": "将耗时计算移至Web Worker中执行；或使用requestIdleCallback在空闲时执行；大任务拆分为多个微任务分批处理",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-020",
+            "name": "第三方脚本未异步加载",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "第三方脚本（统计、广告、聊天插件）使用普通<script>标签同步加载，阻塞HTML解析和页面渲染",
+            "suggestion": "第三方脚本添加async或defer属性；非关键脚本使用requestIdleCallback延迟加载；或使用Partytline模式在空闲时加载",
+            "applicable_files": [
+                "*.html",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-021",
+            "name": "DOM事件委托未使用导致监听器过多",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "为列表中每个子元素单独绑定事件监听器（如100个按钮各绑定一个click），大量事件监听器占用内存且创建/销毁开销高",
+            "suggestion": "使用事件委托，在父容器上绑定单个监听器，通过event.target判断实际触发元素；减少监听器数量至O(1)",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-022",
+            "name": "CSS filter/box-shadow滥用导致过度绘制",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "大量元素使用filter（blur、drop-shadow）或多层box-shadow，每次重绘的像素填充开销极大，导致GPU过度绘制",
+            "suggestion": "减少filter使用范围，用预渲染的图片替代静态滤镜效果；合并box-shadow层数；使用will-change:filter隔离合成层",
+            "applicable_files": [
+                "*.css",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-023",
+            "name": "Service Worker缓存策略不当导致首屏慢",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "Service Worker使用network-first策略缓存所有资源，每次访问都等待网络超时才返回缓存，首屏加载时间增加数秒",
+            "suggestion": "静态资源（JS/CSS/字体）使用cache-first策略；HTML使用stale-while-revalidate策略；API请求使用network-first",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-024",
+            "name": "Canvas/WebGL渲染未在requestAnimationFrame中执行",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "Canvas动画使用setTimeout/setInterval驱动渲染循环，帧率不稳定且与显示器刷新率不同步导致画面撕裂",
+            "suggestion": "使用requestAnimationFrame驱动Canvas渲染循环，自动匹配显示器刷新率；使用OffscreenCanvas在Worker中渲染避免阻塞主线程",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-025",
+            "name": "React useEffect依赖项缺失导致无限循环或多余执行",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "React useEffect的依赖数组遗漏关键依赖或遗漏空数组，导致effect在每次渲染后都执行或产生无限渲染循环",
+            "suggestion": "正确声明useEffect依赖项；使用eslint-plugin-react-hooks的exhaustive-deps规则检查；需要只执行一次的effect使用空依赖数组[]",
+            "applicable_files": [
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-026",
+            "name": "预渲染关键CSS未提取内联",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "首屏渲染需要等待外部CSS文件下载解析完成才能绘制，网络延迟直接增加FCP时间",
+            "suggestion": "使用工具（critics、Penthouse）提取首屏关键CSS内联到<head>中；剩余非关键CSS异步加载",
+            "applicable_files": [
+                "*.html"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-027",
+            "name": "Web Vitals - LCP元素加载优先级未提升",
+            "severity": "S2",
+            "category": "frontend",
+            "description": "LCP元素（通常是hero图片或标题文本）的加载优先级未被提升，被低优先级资源抢占带宽导致LCP指标差",
+            "suggestion": "对LCP元素（如hero图片）使用<link rel='preload' as='image'>提前加载；添加fetchpriority='high'提升优先级；避免在LCP元素前加载非必要资源",
+            "applicable_files": [
+                "*.html",
+                "*.jsx",
+                "*.tsx"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-028",
+            "name": "ResizeObserver未做防抖导致频繁回调",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "ResizeObserver回调中直接执行DOM操作或复杂计算，窗口调整大小时回调高频触发导致性能问题",
+            "suggestion": "在ResizeObserver回调中使用requestAnimationFrame或lodash.debounce做节流处理，合并多次回调为一次执行",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "*.vue"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-FE-029",
+            "name": "CSS动画使用steps()导致跳帧而非平滑过渡",
+            "severity": "S3",
+            "category": "frontend",
+            "description": "对连续属性（如位移、透明度）使用steps()时间函数产生跳帧效果，在需要平滑动画的场景视觉效果差且帧率不稳",
+            "suggestion": "连续属性动画使用ease/ease-in-out/linear时间函数确保平滑过渡；steps()仅适用于精灵图等离散帧动画",
+            "applicable_files": [
+                "*.css"
+            ],
+            "pattern": ""
+        }
+    ]
+}

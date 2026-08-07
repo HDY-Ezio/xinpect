@@ -1,0 +1,125 @@
+{
+  "rules": [
+    {
+      "id": "SEC-MOB-001",
+      "name": "移动端存储敏感数据未加密",
+      "severity": "high",
+      "category": "data-storage-security",
+      "description": "移动应用将敏感数据（用户凭证、令牌、个人信息、支付信息）以明文形式存储在本地文件系统、SharedPreferences/NSUserDefaults、SQLite数据库或应用沙箱中。设备丢失、被盗或被恶意应用获取root/越狱权限后，这些明文数据可直接被读取。即使应用使用了私有目录存储，在设备被root/越狱后保护即失效。此外，备份文件（iTunes/ADB backup）也可能包含未加密的敏感数据。",
+      "suggestion": "1. 使用平台提供的安全存储机制：iOS Keychain、Android Keystore/EncryptedSharedPreferences；2. 对SQLite数据库使用SQLCipher等加密方案；3. 避免在本地存储长期凭证，优先使用短期Token；4. 对必须本地缓存的敏感数据使用AES-256加密；5. 应用退出时清理内存中的敏感数据；6. 禁用应用数据备份或加密备份。\n\n示例（Android - Kotlin）：\n```kotlin\n// 使用EncryptedSharedPreferences\nval masterKey = MasterKey.Builder(context)\n    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)\n    .build()\n\nval sharedPreferences = EncryptedSharedPreferences.create(\n    context,\n    \"secure_prefs\",\n    masterKey,\n    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,\n    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM\n)\n```\n\n示例（iOS - Swift）：\n```swift\n// 使用Keychain存储敏感数据\nfunc saveToKeychain(key: String, data: Data) throws {\n    let query: [String: Any] = [\n        kSecClass as String: kSecClassGenericPassword,\n        kSecAttrAccount as String: key,\n        kSecValueData as String: data,\n        kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly\n    ]\n    SecItemAdd(query as CFDictionary, nil)\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m"
+      ]
+    },
+    {
+      "id": "SEC-MOB-002",
+      "name": "网络请求使用HTTP而非HTTPS",
+      "severity": "critical",
+      "category": "network-security",
+      "description": "移动应用使用HTTP明文协议进行网络通信，所有传输数据（包括用户凭证、个人信息、支付数据、会话Token）在网络中以明文形式传输，可被中间人攻击者轻松截获和篡改。在公共Wi-Fi、恶意路由器等不安全网络环境下，攻击者可使用Wireshark等工具直接读取通信内容。即使使用HTTPS，如果存在HTTP降级（Mixed Content）或HTTP重定向，同样存在安全风险。各大应用商店已要求所有网络通信必须使用HTTPS。",
+      "suggestion": "1. 所有网络请求强制使用HTTPS；2. 在Android中配置network_security_config禁止明文流量；3. 在iOS中确保ATS（App Transport Security）保持启用；4. 实施HSTS（HTTP Strict Transport Security）；5. 配置证书锁定（Certificate Pinning）防止中间人攻击；6. 在服务端配置HTTP到HTTPS的301重定向。\n\n示例（Android network_security_config.xml）：\n```xml\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<network-security-config>\n    <base-config cleartextTrafficPermitted=\"false\">\n        <trust-anchors>\n            <certificates src=\"system\" />\n        </trust-anchors>\n    </base-config>\n    <!-- 不允许任何HTTP明文流量 -->\n</network-security-config>\n```\n\n示例（iOS Info.plist - ATS保持默认）：\n```xml\n<!-- 不要添加以下例外，保持ATS默认开启 -->\n<!-- 错误做法：\n<key>NSAppTransportSecurity</key>\n<dict>\n    <key>NSAllowsArbitraryLoads</key>\n    <true/>\n</dict>\n-->\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m",
+        "*.xml",
+        "*.plist"
+      ]
+    },
+    {
+      "id": "SEC-MOB-003",
+      "name": "SSL证书校验被禁用/绕过",
+      "severity": "critical",
+      "category": "network-security",
+      "description": "移动应用在SSL/TLS连接中禁用了证书校验或自定义了不安全的证书验证逻辑，使得应用无法检测中间人攻击。常见的问题模式包括：TrustManager接受所有证书、OkHttp的证书回调始终返回true、NSURLSession的didReceiveChallenge始终使用.allow、调试代码遗留到生产版本等。这使得攻击者可以使用自签名证书伪装任何服务器，截获和篡改所有通信数据。",
+      "suggestion": "1. 严禁在生产代码中禁用SSL证书校验；2. 使用Certificate Pinning绑定服务器证书或公钥；3. 移除所有调试用的证书绕过代码；4. 使用成熟的网络安全库，避免自定义TLS验证逻辑；5. 使用代码扫描工具检测证书校验绕过模式。\n\n示例（Android - 错误的证书绕过）：\n```java\n// 极度危险！不要这样做\nTrustManager[] trustAllCerts = new TrustManager[]{\n    new X509TrustManager() {\n        public void checkClientTrusted(X509Certificate[] chain, String authType) {}\n        public void checkServerTrusted(X509Certificate[] chain, String authType) {}\n        public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }\n    }\n};\n```\n\n示例（Android - 正确的Certificate Pinning）：\n```kotlin\n// 使用OkHttp CertificatePinner\nval pinner = CertificatePinner.Builder()\n    .add(\"api.example.com\", \"sha256/AAAAAAAAAAAAAAAAAAAAAAAAA=\")\n    .add(\"api.example.com\", \"sha256/BBBBBBBBBBBBBBBBBBBBBBBBB=\")\n    .build()\n\nval client = OkHttpClient.Builder()\n    .certificatePinner(pinner)\n    .build()\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m"
+      ]
+    },
+    {
+      "id": "SEC-MOB-007",
+      "name": "深度链接未校验来源",
+      "severity": "high",
+      "category": "intent-security",
+      "description": "移动应用的深度链接（Deep Link / Universal Link / App Link）未对传入数据进行校验和过滤，直接解析并执行链接中的参数。攻击者可构造恶意深度链接（如myapp://transfer?to=attacker&amount=10000），诱导用户点击后执行非预期操作（转账、修改设置、泄露数据）。在Android上，未过滤的Intent可被任意应用触发；在iOS上，URL Scheme可被任何应用调用。此漏洞常被用于钓鱼攻击和授权绕过。",
+      "suggestion": "1. 对所有深度链接参数进行严格的白名单校验；2. 使用Universal Links（iOS）/ App Links（Android）替代自定义URL Scheme；3. 对敏感操作的深度链接增加二次确认；4. 验证链接来源应用的签名（Android）；5. 限制深度链接可执行的操作范围；6. 对链接参数进行长度和格式限制。\n\n示例（Android - Kotlin）：\n```kotlin\n// 安全处理深度链接\nfun handleDeepLink(intent: Intent) {\n    val uri = intent.data ?: return\n    \n    // 校验Scheme和Host\n    val allowedHosts = setOf(\"transfer\", \"profile\", \"settings\")\n    if (uri.host !in allowedHosts) {\n        Log.w(\"DeepLink\", \"Blocked unknown host: ${uri.host}\")\n        return\n    }\n    \n    // 校验参数\n    val amount = uri.getQueryParameter(\"amount\")?.toDoubleOrNull()\n    if (amount != null && amount > MAX_AMOUNT) {\n        showConfirmationDialog(amount)  // 大额操作需确认\n        return\n    }\n}\n```\n\n示例（iOS - Swift）：\n```swift\n// 安全处理Universal Links\nfunc application(_ application: UIApplication,\n    continue userActivity: NSUserActivity,\n    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {\n    \n    guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,\n          let url = userActivity.webpageURL,\n          let components = URLComponents(url: url, resolvingAgainstBaseURL: true)\n    else { return false }\n    \n    // 校验域名\n    guard components.host == \"www.example.com\" else { return false }\n    \n    // 白名单路径校验\n    let allowedPaths = [\"/transfer\", \"/profile\"]\n    guard allowedPaths.contains(components.path) else { return false }\n    \n    return handleRoute(components)\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-MOB-008",
+      "name": "WebView允许JS执行未限制",
+      "severity": "high",
+      "category": "webview-security",
+      "description": "移动应用中的WebView启用了JavaScript执行但未设置足够的安全限制，使得WebView可能执行恶意JavaScript代码。风险包括：XSS攻击在WebView中执行、JavaScript访问本地文件系统和应用数据、通过addJavascriptInterface暴露Java/Kotlin接口被JS调用、加载外部不可信网页内容。在未正确配置的情况下，WebView的安全问题可导致应用数据泄露、本地代码执行等。",
+      "suggestion": "1. 仅在必要时启用JavaScript，并确保加载的内容可信；2. 禁止WebView加载外部URL（使用白名单）；3. 避免使用addJavascriptInterface，如必须使用，限制暴露的接口方法；4. 禁用不必要的WebView功能（文件访问、内容访问等）；5. 对WebView实施CSP（Content Security Policy）。\n\n示例（Android - Kotlin）：\n```kotlin\nval webView = WebView(context).apply {\n    settings.javaScriptEnabled = true  // 仅在必要时启用\n    \n    // 禁用不安全的功能\n    settings.allowFileAccess = false\n    settings.allowContentAccess = false\n    settings.allowUniversalAccessFromFileURLs = false\n    settings.allowFileAccessFromFileURLs = false\n    \n    // 安全处理WebView导航\n    webViewClient = object : WebViewClient() {\n        override fun shouldOverrideUrlLoading(\n            view: WebView, request: WebResourceRequest\n        ): Boolean {\n            val url = request.url.toString()\n            // 白名单校验\n            val allowedDomains = listOf(\"api.example.com\", \"www.example.com\")\n            return !allowedDomains.any { url.contains(it) }\n        }\n    }\n}\n```\n\n示例（iOS - Swift）：\n```swift\nlet config = WKWebViewConfiguration()\n// 不注入不必要的脚本\nconfig.preferences.javaScriptEnabled = true\nconfig.preferences.javaScriptCanOpenWindowsAutomatically = false\n\nlet webView = WKWebView(frame: .zero, configuration: config)\nwebView.navigationDelegate = self\n\n// 限制导航范围\nfunc webView(_ webView: WKWebView,\n    decidePolicyFor navigationAction: WKNavigationAction,\n    decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {\n    \n    let allowedHosts = [\"www.example.com\", \"api.example.com\"]\n    if let host = navigationAction.request.url?.host,\n       allowedHosts.contains(host) {\n        decisionHandler(.allow)\n    } else {\n        decisionHandler(.cancel)\n    }\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-MOB-009",
+      "name": "本地数据库未加密",
+      "severity": "medium",
+      "category": "data-storage-security",
+      "description": "移动应用使用的本地数据库（SQLite、Realm、CoreData等）未启用加密功能，数据以明文形式存储在设备文件系统上。即使应用使用了私有目录，在设备被root/越狱后，数据库文件可被直接访问和读取。数据库可能包含用户信息、聊天记录、交易记录、缓存的敏感数据等。此外，未加密的数据库备份文件也可能被恢复和读取。",
+      "suggestion": "1. 使用SQLCipher或WCDB等加密数据库方案；2. 对Realm使用内置加密功能；3. 使用平台提供的安全存储方案替代明文数据库；4. 加密密钥存储在硬件安全模块（Keychain/Keystore）中；5. 对数据库中的敏感字段实施字段级加密；6. 定期清理不再需要的本地数据。\n\n示例（Android - Kotlin + SQLCipher）：\n```kotlin\n// 使用SQLCipher加密SQLite\nval passphrase = net.sqlcipher.database.SQLiteOpenHelper.getBytes(\n    getMasterKey()  // 从Keystore获取密钥\n)\nval db = SQLiteDatabase.openOrCreateDatabase(\n    getDatabasePath(\"secure.db\"),\n    passphrase,\n    null\n)\n\n// 使用WCDB（腾讯开源）\nval database = WCBDatabase(\n    path = databasePath,\n    key = masterKey  // 加密密钥\n)\n```\n\n示例（iOS - Swift + SQLCipher）：\n```swift\n// FMDB + SQLCipher\nlet db = FMDatabase(path: databasePath)\ndb.open(withFlags: SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,\n        vfs: nil)\ntry db.setKey(masterKey)  // 设置加密密钥\n\n// 或使用GRDB + SQLCipher\nvar config = Configuration()\nconfig.prepareDatabase { db in\n    try db.usePassphrase(masterKey)\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.ts",
+        "*.js",
+        "*.m"
+      ]
+    },
+    {
+      "id": "SEC-MOB-010",
+      "name": "生物认证降级为弱认证",
+      "severity": "high",
+      "category": "authentication-security",
+      "description": "移动应用在生物认证（指纹、面部识别）失败后，降级为弱认证方式（如简单PIN码、图案锁、明文密码问题），或者生物认证逻辑实现不当。常见问题包括：生物认证成功后仅设置一个布尔标志而非使用加密密钥、认证状态可被篡改、降级路径绕过了生物认证的安全保护。攻击者可通过触发降级机制使用弱认证方式绕过生物认证，或在root设备上直接修改认证状态标志。",
+      "suggestion": "1. 使用平台原生的生物认证API（BiometricPrompt/LocalAuthentication），不要自行实现；2. 生物认证应与加密密钥绑定（CryptoObject），认证通过才能解密密钥；3. 避免简单的布尔值标记认证状态；4. 降级策略应保持同等安全级别，不允许降级为明显弱于生物认证的方式；5. 使用setAllowDeviceCredential(false)禁止设备凭证降级。\n\n示例（Android - Kotlin）：\n```kotlin\n// 正确的生物认证 + 加密绑定\nval biometricPrompt = BiometricPrompt(activity, executor,\n    object : BiometricPrompt.AuthenticationCallback() {\n        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {\n            // 使用CryptoObject中的加密密钥\n            val crypto = result.cryptoObject\n            val cipher = crypto?.cipher\n            val decryptedToken = cipher?.doFinal(encryptedToken)\n            // 使用解密后的Token，而不是简单的布尔标志\n        }\n    })\n\nval promptInfo = BiometricPrompt.PromptInfo.Builder()\n    .setTitle(\"身份验证\")\n    .setSubtitle(\"请使用指纹验证身份\")\n    .setNegativeButtonText(\"取消\")\n    .setAllowedAuthenticators(BIOMETRIC_STRONG)  // 仅允许强生物认证\n    .setConfirmationRequired(true)\n    .build()\n\n// 使用CryptoObject绑定\nbiometricPrompt.authenticate(promptInfo, cryptoObject)\n```\n\n示例（iOS - Swift）：\n```swift\nimport LocalAuthentication\n\nfunc authenticateWithBiometrics(completion: @escaping (Bool, Error?) -> Void) {\n    let context = LAContext()\n    context.localizedCancelTitle = \"使用密码\"\n    \n    // 设置安全级别\n    if #available(iOS 11.0, *) {\n        // 不允许降级到设备密码\n        context.evaluatedPolicy == .deviceOwnerAuthenticationWithBiometrics\n    }\n    \n    var error: NSError?\n    if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {\n        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,\n            localizedReason: \"请使用生物认证登录\") { success, error in\n            DispatchQueue.main.async {\n                completion(success, error)\n            }\n        }\n    }\n}\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.java",
+        "*.swift",
+        "*.dart",
+        "*.m"
+      ]
+    }
+  ]
+}

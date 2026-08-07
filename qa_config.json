@@ -1,0 +1,207 @@
+{
+  "telemetry": false,
+  "llm_enhancement": {
+    "enabled": true,
+    "api_base": "https://ark.cn-beijing.volces.com/api/v3",
+    "api_key": "YOUR_VOLCENGINE_API_KEY",
+    "model": "deepseek-v4-flash-260425",
+    "timeout": 15,
+    "false_positive_filter": true,
+    "fix_suggestion": true,
+    "max_retries": 2,
+    "model_tiers": {
+      "fast": {
+        "model": "doubao-seed-2-0-lite-260428",
+        "api_base": "https://ark.cn-beijing.volces.com/api/v3",
+        "api_key": "YOUR_VOLCENGINE_API_KEY"
+      },
+      "standard": {
+        "model": "doubao-seed-2-1-turbo",
+        "api_base": "https://ark.cn-beijing.volces.com/api/v3",
+        "api_key": "YOUR_VOLCENGINE_API_KEY"
+      },
+      "strong": {
+        "model": "deepseek-v4-pro-260425",
+        "api_base": "https://ark.cn-beijing.volces.com/api/v3",
+        "api_key": "YOUR_VOLCENGINE_API_KEY"
+      }
+    }
+  },
+  "ai_enhancement": {
+    "false_positive_filter": true,
+    "fix_suggestion": true,
+    "severity_adjust": true,
+    "supplement_findings": false,
+    "max_issues_per_call": 20,
+    "max_content_chars": 3000
+  },
+  "cache": {
+    "enabled": true,
+    "ttl_days": 7,
+    "max_files": 1000,
+    "cache_dir": ".xinpect/cache"
+  },
+  "ai_code_check": {
+    "enabled": true,
+    "hallucination_deps_check": true,
+    "max_function_lines": 80,
+    "max_nesting_depth": 4,
+    "min_duplication_lines": 20,
+    "rules": {
+      "AI-SEC-01": true,
+      "AI-SEC-02": true,
+      "AI-SEC-03": true,
+      "AI-SEC-04": true,
+      "AI-SEC-05": true,
+      "AI-SPEC-01": true,
+      "AI-SPEC-02": true,
+      "AI-SPEC-03": true,
+      "AI-SPEC-04": false,
+      "AI-QUAL-01": true,
+      "AI-QUAL-02": true,
+      "AI-QUAL-03": true,
+      "AI-QUAL-04": true
+    }
+  },
+  "thresholds": {
+    "brand_colors": [
+      "#FF6B35",
+      "#E5572B",
+      "#D94F15",
+      "#FFF5F0",
+      "#FEF5EE",
+      "#FFEDE3",
+      "#FFF0E8"
+    ],
+    "min_contrast_large": 3.0,
+    "min_contrast_normal": 4.5
+  },
+  "exclude_dirs": [
+    "node_modules",
+    "miniprogram_npm",
+    ".git",
+    "__pycache__",
+    "venv",
+    "v52",
+    "backup",
+    "bak",
+    "dist",
+    "build",
+    "pkg",
+    "pymysql",
+    ".pymysql",
+    "codeact",
+    "archived",
+    "ec-canvas",
+    ".qa_history"
+  ],
+  "low_contrast_exceptions": [
+    ".*tag.*",
+    ".*badge.*",
+    ".*label.*",
+    ".*hint.*",
+    ".*chip.*",
+    ".*dot.*",
+    ".*indicator.*",
+    ".*divider.*",
+    ".*placeholder.*",
+    ".*confidence.*",
+    ".*p-tag.*",
+    ".*status-dot.*",
+    ".*sticker.*",
+    ".*watermark.*",
+    ".*skeleton.*",
+    ".*shimmer.*",
+    ".*ripple.*"
+  ],
+  "ssrf_safe_functions": [
+    "_is_safe_url",
+    "is_safe_url",
+    "validate_url",
+    "safe_request",
+    "_safe_fetch",
+    "verify_internal_url"
+  ],
+  "placeholder_skip_files": [
+    "README.md",
+    "package.json",
+    "project.config.json",
+    "app.json",
+    "sitemap.json",
+    "qa_config.json",
+    ".env.example",
+    "config.js"
+  ],
+  "log_skip_comments": true,
+  "edition": "internal",
+  "max_files": 0,
+  "brain_models": {
+    "brain1": {
+      "model": "deepseek-v4-flash-260425",
+      "timeout": 10
+    },
+    "brain2": {
+      "model": "deepseek-v4-flash-260425",
+      "timeout": 10
+    },
+    "brain3": {
+      "model": "deepseek-v4-pro-260425",
+      "timeout": 20
+    },
+    "brain4": {
+      "model": "glm-5-2-260617",
+      "timeout": 30
+    },
+    "brain5": {
+      "model": "deepseek-v4-pro-260425",
+      "timeout": 30
+    },
+    "brain6": {
+      "model": "glm-5-2-260617",
+      "timeout": 30
+    },
+    "brain7": {
+      "model": "deepseek-v4-flash-260425",
+      "timeout": 15
+    },
+    "brain8": {
+      "model": "deepseek-v4-flash-260425",
+      "timeout": 10
+    }
+  },
+  "credit_system": {
+    "enabled": true,
+    "multiplier": 3,
+    "unit_yuan": 0.01,
+    "free_tier": {
+      "ai_enabled": false,
+      "description": "免费版仅用静态规则，不调AI，不扣积分"
+    },
+    "packages": [
+      {
+        "name": "体验包",
+        "price_yuan": 10,
+        "credits": 1000
+      },
+      {
+        "name": "基础包",
+        "price_yuan": 50,
+        "credits": 5500,
+        "bonus": "10%"
+      },
+      {
+        "name": "专业包",
+        "price_yuan": 100,
+        "credits": 12000,
+        "bonus": "20%"
+      },
+      {
+        "name": "旗舰包",
+        "price_yuan": 300,
+        "credits": 40000,
+        "bonus": "33%"
+      }
+    ]
+  },
+  "api_key": "YOUR_VOLCENGINE_API_KEY"
+}

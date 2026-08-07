@@ -1,0 +1,115 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "路径遍历与命令注入防护规则集",
+    "total_rules": 6,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-141",
+      "name": "路径遍历：文件路径未验证",
+      "severity": "critical",
+      "category": "path-traversal",
+      "description": "使用用户输入构造文件路径未进行验证，攻击者使用../序列访问系统敏感文件(/etc/passwd、配置文件)。OWASP Top 10 A01:2021。",
+      "suggestion": "使用白名单验证文件名(仅允许字母数字和特定字符)；使用Path.getCanonicalPath()规范化路径并验证是否在允许目录内；避免直接使用用户输入构造路径；使用UUID作为文件名。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-142",
+      "name": "命令注入：系统命令执行",
+      "severity": "critical",
+      "category": "command-injection",
+      "description": "将用户输入拼接到系统命令(Runtime.exec、os.system、child_process.exec)中，攻击者可注入恶意命令执行任意操作。",
+      "suggestion": "避免使用系统命令，使用语言原生API替代；必须使用时使用数组形式传参(ProcessBuilder)避免Shell解析；对用户输入进行严格白名单验证；使用沙箱环境执行命令。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "SEC-163",
+      "name": "CWE-78：OS命令注入",
+      "severity": "critical",
+      "category": "command-injection",
+      "description": "应用程序构造系统命令时包含用户控制的数据，攻击者可注入命令分隔符执行任意系统命令。CWE Top 25第7位。",
+      "suggestion": "避免调用系统命令，使用语言API替代；必须时使用参数数组形式(不经过Shell)；严格验证用户输入(白名单)；使用沙箱和最小权限运行。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "SEC-174",
+      "name": "CWE-22：路径遍历",
+      "severity": "critical",
+      "category": "path-traversal",
+      "description": "使用用户输入构造文件路径未验证，攻击者使用../访问系统敏感文件或写入任意位置。CWE Top 25常见项。",
+      "suggestion": "规范化路径并验证在允许目录内；使用白名单验证文件名；避免直接使用用户输入构造路径；使用UUID作为文件名。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-183",
+      "name": "CWE-23：相对路径遍历",
+      "severity": "high",
+      "category": "path-traversal",
+      "description": "使用相对路径访问文件时未验证，攻击者使用../遍历到上级目录访问敏感文件。",
+      "suggestion": "规范化路径并验证在允许目录内；使用绝对路径并验证前缀；避免直接使用用户输入构造路径；使用chroot或容器限制文件系统访问。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-184",
+      "name": "CWE-36：绝对路径遍历",
+      "severity": "high",
+      "category": "path-traversal",
+      "description": "使用绝对路径访问文件时未验证路径合法性，攻击者指定任意绝对路径访问系统文件。",
+      "suggestion": "验证绝对路径在允许的根目录内；使用白名单验证路径前缀；避免直接使用用户输入构造绝对路径；使用符号链接安全处理。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    }
+  ]
+}

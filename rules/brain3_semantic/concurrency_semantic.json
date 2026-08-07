@@ -1,0 +1,113 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain3_semantic",
+    "generated": "2026-08",
+    "description": "并发语义规则，检查并发编程中的竞态条件、死锁、内存泄漏、同步缺陷等语义错误",
+    "total_rules": 10,
+    "standards_reference": [
+      "CWE-362: Concurrent Execution using Shared Resource",
+      "CWE-662: Improper Synchronization",
+      "CWE-833: Deadlock",
+      "Java Concurrency in Practice"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEM-CONC-001",
+      "name": "共享变量读写未加同步保护",
+      "severity": "high",
+      "category": "并发语义",
+      "description": "多个线程或协程对同一共享变量进行读写操作，但未使用互斥锁、原子变量或其他同步机制进行保护。这会导致数据竞争（data race），一个线程的写入可能被另一个线程部分可见，产生不确定值和难以复现的bug。在弱内存模型的语言（如C/C++）中甚至可能导致未定义行为。",
+      "suggestion": "1) 使用互斥锁（Mutex/Lock）保护共享变量的读写区域；2) 对于简单计数器使用原子变量（AtomicInteger/atomic<int>）；3) 使用线程安全的集合类替代普通集合；4) 考虑使用消息传递模型替代共享状态；5) 使用Thread Sanitizer等工具检测数据竞争。",
+      "applicable_files": ["*.java", "*.py", "*.js", "*.ts", "*.go", "*.cpp", "*.c", "*.cs", "*.rs"]
+    },
+    {
+      "id": "SEM-CONC-002",
+      "name": "回调中修改外部变量存在竞态",
+      "severity": "medium",
+      "category": "并发语义",
+      "description": "在异步回调函数中修改其外部作用域的变量，由于回调的执行时机不确定，多个回调可能并发修改同一变量，导致最终值不符合预期。这在事件驱动编程中尤为常见，如多个异步请求的回调同时更新同一个计数变量或状态对象。",
+      "suggestion": "1) 使用闭包内的局部变量替代外部变量；2) 使用Promise.all收集所有异步结果后统一处理；3) 使用原子操作或锁保护共享变量；4) 使用不可变数据结构，每次修改返回新对象；5) 在Node.js中利用async_hooks追踪异步上下文。",
+      "applicable_files": ["*.js", "*.ts", "*.py", "*.go", "*.java", "*.cs"]
+    },
+    {
+      "id": "SEM-CONC-003",
+      "name": "Promise.all中某项失败未处理其余项",
+      "severity": "medium",
+      "category": "并发语义",
+      "description": "使用Promise.all执行多个并发异步操作时，如果其中某个Promise被reject，Promise.all会立即reject，但其余仍在执行中的Promise不会被取消。这会导致：已完成的副作用操作无法回滚、资源（如网络连接、数据库事务）无法释放、以及部分成功状态不一致等问题。",
+      "suggestion": "1) 使用Promise.allSettled替代Promise.all，等待所有Promise完成后再统一处理成功和失败；2) 实现取消机制（AbortController），在某个Promise失败时主动取消其余操作；3) 对每个Promise单独添加catch处理，确保失败不影响其他操作；4) 设计幂等的副作用操作以便回滚。",
+      "applicable_files": ["*.js", "*.ts", "*.jsx", "*.tsx"]
+    },
+    {
+      "id": "SEM-CONC-004",
+      "name": "async/await在循环中串行执行可并行操作",
+      "severity": "high",
+      "category": "并发语义",
+      "description": "在for循环中使用await逐个等待异步操作完成，导致本可并行执行的操作变成串行。例如循环中对多个独立API的调用、批量数据库查询等。这会造成严重的性能问题，总耗时为所有操作耗时之和而非最慢单个操作的耗时。",
+      "suggestion": "1) 使用Promise.all或Promise.allSettled将循环中的异步操作并行化；2) 先收集所有Promise到数组，再统一await Promise.all(promises)；3) 如需限制并发数，使用p-limit、async Pool等并发控制工具；4) 评估是否真正需要循环，某些场景可用批量API替代循环调用。",
+      "applicable_files": ["*.js", "*.ts", "*.jsx", "*.tsx", "*.py", "*.dart"]
+    },
+    {
+      "id": "SEM-CONC-005",
+      "name": "事件监听器未移除导致内存泄漏",
+      "severity": "medium",
+      "category": "并发语义",
+      "description": "注册了事件监听器（addEventListener、EventEmitter.on、signal.on等）但在组件销毁、连接关闭或不再需要时未移除。这些监听器持续持有对外部变量的引用，阻止垃圾回收，导致内存持续增长。在长时间运行的服务端应用中，这个问题会随时间不断累积，最终引发OOM。",
+      "suggestion": "1) 在组件unmount/destroy/disconnect时调用removeListener/off/RemoveEventListener移除监听器；2) 使用once/addListenerOnce替代on，确保监听器只执行一次；3) 使用WeakRef或WeakMap关联监听器生命周期；4) 使用EventEmitter.setMaxListeners()检测异常数量的监听器；5) 在React中使用useEffect的cleanup函数移除监听器。",
+      "applicable_files": ["*.js", "*.ts", "*.jsx", "*.tsx", "*.vue", "*.java", "*.cs"]
+    },
+    {
+      "id": "SEM-CONC-006",
+      "name": "setTimeout/setInterval中引用已释放资源",
+      "severity": "medium",
+      "category": "并发语义",
+      "description": "在setTimeout或setInterval的回调函数中引用了已经关闭或释放的资源，如已关闭的数据库连接、已销毁的DOM元素、已断开的WebSocket连接等。由于定时器的回调在创建时注册，执行时可能上下文已变化，导致操作已失效的资源引发异常或静默失败。",
+      "suggestion": "1) 在资源释放时同时清除关联的定时器（clearTimeout/clearInterval）；2) 在回调执行前检查资源状态（如连接是否仍open、元素是否仍attached）；3) 使用资源生命周期绑定定时器，如组件销毁时统一清理；4) 使用AbortSignal替代setTimeout进行超时控制。",
+      "applicable_files": ["*.js", "*.ts", "*.jsx", "*.tsx", "*.java", "*.py"]
+    },
+    {
+      "id": "SEM-CONC-007",
+      "name": "条件变量等待缺少while循环保护",
+      "severity": "high",
+      "category": "并发语义",
+      "description": "使用条件变量（Condition/monitor.wait）时采用if判断而非while循环检查条件。由于虚假唤醒（spurious wakeup）的存在，线程可能在条件未满足时被唤醒，if判断会导致线程错误地继续执行。此外在notifyAll场景下，多个线程被唤醒但只有一个能获得资源，其余需要重新等待。",
+      "suggestion": "1) 始终使用while循环包裹条件等待：while(!condition) { wait(); }；2) 使用标准模式：synchronized(lock) { while(!condition) { lock.wait(); } }；3) 在Java中优先使用java.util.concurrent中的高级同步工具（如CountDownLatch、Semaphore）；4) 在C++中使用std::condition_variable时务必配合while循环。",
+      "applicable_files": ["*.java", "*.cpp", "*.c", "*.cs", "*.py", "*.go"]
+    },
+    {
+      "id": "SEM-CONC-008",
+      "name": "锁获取顺序不一致导致死锁",
+      "severity": "high",
+      "category": "并发语义",
+      "description": "多个线程以不同顺序获取多把锁，导致循环等待死锁。例如线程A先获取锁1再获取锁2，线程B先获取锁2再获取锁1，两者互相等待对方释放锁，程序永久阻塞。死锁是并发编程中最难排查的问题之一，因为它不总是必现，且表现为程序完全无响应。",
+      "suggestion": "1) 建立全局锁获取顺序，所有线程按相同顺序获取锁（如按地址或名称排序）；2) 使用tryLock配合超时时间，超时后释放已持有的锁并重试；3) 减少锁的粒度，用细粒度锁替代粗粒度锁；4) 使用锁排序检测工具（如Java的JStack分析线程dump）；5) 考虑使用无锁数据结构或消息传递模型。",
+      "applicable_files": ["*.java", "*.cpp", "*.c", "*.cs", "*.go", "*.py"]
+    },
+    {
+      "id": "SEM-CONC-009",
+      "name": "原子操作与非原子操作混用",
+      "severity": "medium",
+      "category": "并发语义",
+      "description": "在同一逻辑单元中混合使用原子操作和非原子操作访问同一个共享状态。部分操作使用了原子保证，但遗漏了某些访问路径使用普通读写，导致原子保护失效。例如使用AtomicInteger的incrementAndGet()但用普通getter读取值，可能导致读取到过期值。",
+      "suggestion": "1) 确保对同一共享变量的所有访问都通过原子操作；2) 将共享变量声明为private，仅通过原子操作方法暴露访问接口；3) 使用volatile/atomic关键字修饰共享变量；4) 审查所有访问路径，确保没有遗漏的直接字段访问；5) 使用封装模式隐藏并发控制细节。",
+      "applicable_files": ["*.java", "*.cpp", "*.c", "*.cs", "*.go", "*.rs"]
+    },
+    {
+      "id": "SEM-CONC-010",
+      "name": "双重检查锁定模式未使用volatile",
+      "severity": "high",
+      "category": "并发语义",
+      "description": "使用双重检查锁定（Double-Checked Locking）实现延迟初始化时，共享变量未声明为volatile。由于指令重排序优化，对象的构造可能分为三步：分配内存→初始化→赋值引用，但编译器可能将顺序调整为分配内存→赋值引用→初始化，导致另一个线程获取到未初始化的对象引用。",
+      "suggestion": "1) 将实例变量声明为volatile（Java）或使用atomic（C++）；2) Java中更推荐使用Holder模式（静态内部类）实现延迟初始化；3) 使用std::call_once（C++）或Lazy<T>（C#）替代手动双重检查锁定；4) Go中使用sync.Once确保只初始化一次。",
+      "applicable_files": ["*.java", "*.cpp", "*.c", "*.cs"]
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 5,
+    "medium": 5,
+    "low": 0
+  }
+}

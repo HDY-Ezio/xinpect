@@ -1,0 +1,319 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": 7,
+        "module": "architecture",
+        "description": "代码组织规则 - 目录结构、文件命名、单一职责、代码分层",
+        "standard_refs": [
+            "Clean Architecture",
+            "Conventional Commits",
+            "PEP 8",
+            "Project Structure Best Practices"
+        ],
+        "total_rules": 40
+    },
+    "rules": [
+        {
+            "id": "ARCH-ORG-001",
+            "name": "项目缺少标准分层目录结构",
+            "severity": "high",
+            "category": "directory_structure",
+            "description": "项目代码未按领域/功能分层组织，所有文件堆积在同一目录，难以维护和导航",
+            "suggestion": "按Clean Architecture分层：domain/application/infrastructure/presentation；或按feature模块划分",
+            "applicable_files": [
+                "*"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-ORG-002",
+            "name": "src目录结构过深(超过7层)",
+            "severity": "medium",
+            "category": "directory_structure",
+            "description": "源代码目录嵌套超过7层，导致import路径冗长，文件难以定位",
+            "suggestion": "控制目录深度在5层以内；使用路径别名简化引用；扁平化同级模块",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.py",
+                "*.go",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-ORG-003",
+            "name": "配置与环境文件散落各处",
+            "severity": "medium",
+            "category": "directory_structure",
+            "description": "配置文件分散在多个目录中，缺乏统一的配置管理，部署时容易遗漏",
+            "suggestion": "集中配置到config/目录；按环境分文件(config.dev/config.prod)；使用配置中心",
+            "applicable_files": [
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "*.toml",
+                "*.properties",
+                "*.xml",
+                "*.env"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-004",
+            "name": "组件文件使用小写开头",
+            "severity": "low",
+            "category": "file_naming",
+            "description": "React/Vue组件文件名以小写字母开头，与组件命名规范(首字母大写)不一致",
+            "suggestion": "组件文件使用PascalCase：UserProfile.tsx；普通工具文件使用camelCase或kebab-case",
+            "applicable_files": [
+                "*.tsx",
+                "*.jsx",
+                "*.vue"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-005",
+            "name": "文件名包含特殊字符",
+            "severity": "medium",
+            "category": "file_naming",
+            "description": "文件名包含空格、中文、特殊符号(如@#$)，在不同操作系统和构建工具中可能出错",
+            "suggestion": "文件名仅使用字母、数字、连字符(-)、下划线(_)；禁止空格和特殊字符",
+            "applicable_files": [
+                "*"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-006",
+            "name": "文件命名过长(超过50字符)",
+            "severity": "low",
+            "category": "file_naming",
+            "description": "文件名超过50个字符，难以在文件树中完整显示，影响开发效率",
+            "suggestion": "文件名控制在50字符以内；过长名称通过缩写或拆分文件解决",
+            "applicable_files": [
+                "*"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-007",
+            "name": "文件名未反映其内容职责",
+            "severity": "medium",
+            "category": "file_naming",
+            "description": "文件名如utils.ts、helper.js、data.ts过于笼统，无法从文件名了解其内容",
+            "suggestion": "文件名应描述其内容：dateUtils.ts、httpHelper.js、userProfileData.ts",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.tsx",
+                "*.jsx",
+                "*.java",
+                "*.py",
+                "*.go",
+                "*.cs"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-008",
+            "name": "index.ts/js滥用导致导航困难",
+            "severity": "low",
+            "category": "file_naming",
+            "description": "过度使用index.ts作为barrel file，导致编辑器中大量标签页都显示index.ts无法区分",
+            "suggestion": "限制barrel file的使用层级；考虑使用模块名命名(如users.ts)而非index.ts",
+            "applicable_files": [
+                "*.ts",
+                "*.tsx",
+                "*.js",
+                "*.jsx"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-009",
+            "name": "测试文件命名不规范",
+            "severity": "low",
+            "category": "file_naming",
+            "description": "测试文件命名不统一，有的用test后缀有的用spec后缀，或命名无法对应源文件",
+            "suggestion": "统一使用*.test.ts或*.spec.ts后缀；测试文件名与源文件名一致",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.py",
+                "*.go",
+                "*.cs"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-010",
+            "name": "单文件超过500行",
+            "severity": "medium",
+            "category": "single_responsibility",
+            "description": "单个源文件超过500行代码，暗示职责过多或抽象不足，难以理解和测试",
+            "suggestion": "拆分文件：按类/函数/职责拆分；每个文件聚焦单一职责；目标控制在200行以内",
+            "applicable_files": [
+                "*.ts",
+                "*.tsx",
+                "*.js",
+                "*.jsx",
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-011",
+            "name": "单文件定义超过3个类/组件",
+            "severity": "medium",
+            "category": "single_responsibility",
+            "description": "一个文件中定义了3个以上的类或组件，违反单一职责原则",
+            "suggestion": "一个文件一个类/组件；辅助类可以放在同一文件但主类必须单独文件",
+            "applicable_files": [
+                "*.ts",
+                "*.tsx",
+                "*.js",
+                "*.jsx",
+                "*.java",
+                "*.cs",
+                "*.py"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-012",
+            "name": "组件同时处理数据和展示",
+            "severity": "high",
+            "category": "single_responsibility",
+            "description": "React/Vue组件中同时包含数据获取逻辑和UI渲染，难以测试和复用",
+            "suggestion": "分离关注点：Container组件负责数据获取，Presentational组件负责渲染；或使用hooks",
+            "applicable_files": [
+                "*.tsx",
+                "*.jsx",
+                "*.vue"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-013",
+            "name": "工具函数文件职责混杂",
+            "severity": "medium",
+            "category": "single_responsibility",
+            "description": "单个utils文件包含多个不相关领域的工具函数(如日期+字符串+HTTP+加密)",
+            "suggestion": "按领域拆分工具文件：dateUtils.ts、stringUtils.ts、httpUtils.ts、cryptoUtils.ts",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.tsx",
+                "*.jsx",
+                "*.py",
+                "*.java"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-014",
+            "name": "Service类方法超过15个",
+            "severity": "medium",
+            "category": "single_responsibility",
+            "description": "单个Service类包含超过15个方法，暗示该类职责过多",
+            "suggestion": "按职责拆分Service：UserService(认证相关) + UserProfileService(资料相关)",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-015",
+            "name": "路由文件包含业务逻辑",
+            "severity": "high",
+            "category": "single_responsibility",
+            "description": "路由文件(route/controller)中直接编写业务逻辑代码而非委托给Service",
+            "suggestion": "路由文件只负责参数解析和响应格式化；业务逻辑委托给Service/UseCase",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-016",
+            "name": "Store/State管理文件过大",
+            "severity": "medium",
+            "category": "single_responsibility",
+            "description": "Redux/Pinia/Vuex的store文件超过300行，多个领域的state和action混在一起",
+            "suggestion": "按领域拆分store模块：userStore、orderStore、productStore；使用模块化store",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.tsx",
+                "*.jsx",
+                "*.vue"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-017",
+            "name": "Handler/Controller文件超过10个路由",
+            "severity": "medium",
+            "category": "single_responsibility",
+            "description": "单个Controller文件定义了超过10个路由端点，文件过大难以维护",
+            "suggestion": "按资源/领域拆分Controller：UserController、OrderController各管各的路由",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-018",
+            "name": "缺少明确的入口文件",
+            "severity": "medium",
+            "category": "code_layering",
+            "description": "项目缺少明确的入口文件(main.ts/index.ts/app.py)，启动方式不清晰",
+            "suggestion": "定义单一入口文件；入口文件只负责初始化和启动，不包含业务逻辑",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.py",
+                "*.go",
+                "*.cs"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-019",
+            "name": "缺少统一的错误码定义",
+            "severity": "medium",
+            "category": "code_layering",
+            "description": "错误码在代码中随意定义，不同模块使用相同数字表示不同含义",
+            "suggestion": "建立统一的错误码体系文件；按模块划分错误码段；使用enum类型约束",
+            "applicable_files": [
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go"
+            ]
+        },
+        {
+            "id": "ARCH-ORG-020",
+            "name": "缺少Feature Toggle管理",
+            "severity": "low",
+            "category": "code_layering",
+            "description": "功能开关逻辑散布在业务代码中，缺少统一的Feature Flag管理机制",
+            "suggestion": "使用Feature Flag服务或配置文件管理；代码中通过统一的FeatureService判断",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go"
+            ]
+        }
+    ]
+}

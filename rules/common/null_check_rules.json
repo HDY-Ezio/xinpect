@@ -1,0 +1,91 @@
+{
+  "rules": [
+    {
+      "id": "B1-10-R001",
+      "name": "未判空直接调用方法",
+      "severity": "high",
+      "category": "null-check",
+      "description": "对可能为null/undefined的对象直接调用方法或访问属性，未进行空值检查，运行时将抛出NullPointerException或TypeError。",
+      "suggestion": "在调用前添加空值检查；使用可选链操作符（?.）；使用Optional/Maybe类型包装可能为空的值。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B1-10-R002",
+      "name": "函数返回null但未文档化",
+      "severity": "medium",
+      "category": "null-check",
+      "description": "函数可能在某些路径下返回null，但调用方未被告知该风险，导致未判空就使用返回值。",
+      "suggestion": "在函数文档/类型标注中明确标注返回值可能为null；使用@Nullable注解或Optional<T>返回类型。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.ts",
+        "*.py",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B1-10-R003",
+      "name": "集合可能为null直接遍历",
+      "severity": "high",
+      "category": "null-check",
+      "description": "对可能为null的集合/数组直接进行for循环或forEach操作，null将导致空指针异常。",
+      "suggestion": "遍历前检查集合是否为null；返回空集合代替null；使用Collections.emptyList()作为默认值。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B1-10-R004",
+      "name": "三元表达式中null分支缺失",
+      "severity": "medium",
+      "category": "null-check",
+      "description": "三元运算符或nullish coalescing未正确处理null/undefined分支，导致后续使用可能为空的值。",
+      "suggestion": "为null情况提供合理的默认值；使用??运算符提供fallback值。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.py"
+      ]
+    },
+    {
+      "id": "B1-10-R005",
+      "name": "equals比较中变量可能为null",
+      "severity": "high",
+      "category": "null-check",
+      "description": "使用variable.equals(literal)形式比较，当variable为null时将抛出NPE。应反转为literal.equals(variable)。",
+      "suggestion": "将常量/字面量放在equals左侧；使用Objects.equals()；使用==null提前返回。",
+      "applicable_files": [
+        "*.java",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B1-10-R006",
+      "name": "解构赋值中未处理null",
+      "severity": "medium",
+      "category": "null-check",
+      "description": "对可能为null的对象进行解构赋值（如const {a, b} = obj），当obj为null/undefined时将抛出TypeError。",
+      "suggestion": "解构前检查对象是否为null；提供默认空对象：const {a, b} = obj || {}。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py"
+      ]
+    }
+  ]
+}

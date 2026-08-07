@@ -1,0 +1,63 @@
+{
+  "rules": [
+    {
+      "id": "CQ-GC-001",
+      "name": "上帝类/过大类",
+      "severity": "high",
+      "category": "god-class",
+      "description": "类的方法数量超过20个或代码行数超过500行，包含了过多职责，违反单一职责原则，任何修改都可能影响其他功能。",
+      "suggestion": "按职责拆分为多个小类；使用Extract Class重构；将相关方法分组到内部类或辅助类中。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-GC-002",
+      "name": "类的字段数量过多",
+      "severity": "medium",
+      "category": "god-class",
+      "description": "类定义了超过10个实例字段，通常表明类管理了过多的状态，不同字段组可能服务于不同的职责。",
+      "suggestion": "识别字段组（总是被同一组方法使用的字段），将每组提取为独立类；减少字段间的隐式耦合。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CQ-GC-003",
+      "name": "类的公共方法过多暴露内部细节",
+      "severity": "medium",
+      "category": "god-class",
+      "description": "类的公共方法过多（>15个），暴露了大量内部操作，外部调用者需要深入了解类的内部结构才能正确使用。",
+      "suggestion": "减少公共方法数量，隐藏内部实现细节；使用Facade模式提供简化的外部接口；将辅助方法改为private。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-GC-004",
+      "name": "工具类/Utils类方法过多",
+      "severity": "medium",
+      "category": "god-class",
+      "description": "Utils/Helper类积累了大量不相关的方法（StringUtils、DateUtils、CommonUtils等变成了垃圾桶），职责不明确。",
+      "suggestion": "按领域拆分工具类（如UserValidator、PaymentFormatter）；将方法移到其操作的对象上（面向对象）；定期清理不再使用的方法。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go"
+      ]
+    }
+  ]
+}

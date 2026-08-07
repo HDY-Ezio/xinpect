@@ -1,0 +1,67 @@
+{
+  "rules": [
+    {
+      "id": "B3-09-R001",
+      "name": "状态转移缺少合法校验",
+      "severity": "high",
+      "category": "state-machine",
+      "description": "状态变更时未校验当前状态是否允许转移到目标状态（如已完成的订单被标记为待支付），导致非法状态转换。",
+      "suggestion": "定义合法的状态转移矩阵（state transition table）；在变更前校验当前状态是否在允许的转移源状态集合中。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-09-R002",
+      "name": "状态枚举不完整",
+      "severity": "medium",
+      "category": "state-machine",
+      "description": "状态处理逻辑（switch/if-else链）未覆盖所有可能的状态值，新增状态后未更新处理逻辑导致静默忽略。",
+      "suggestion": "使用穷举检查（exhaustive check）确保所有状态都有处理；对未处理状态抛出异常而非静默忽略。",
+      "applicable_files": [
+        "*.java",
+        "*.ts",
+        "*.cs",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B3-09-R003",
+      "name": "状态初始化缺失",
+      "severity": "high",
+      "category": "state-machine",
+      "description": "对象/实体的状态字段未设置初始值，首次使用时处于未定义状态，可能导致空指针或错误逻辑分支。",
+      "suggestion": "在构造函数/初始化块中设置明确的初始状态；使用枚举类型约束状态值范围。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-09-R004",
+      "name": "并发状态更新冲突",
+      "severity": "high",
+      "category": "state-machine",
+      "description": "多个线程/请求并发更新同一实体的状态字段，缺少乐观锁/悲观锁保护，可能导致状态跳跃或丢失更新。",
+      "suggestion": "使用乐观锁（version字段+WHERE version=?）；使用CAS操作；使用状态机库保证原子转换。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "rules": [
+    {
+      "id": "SEC-BL-001",
+      "name": "业务逻辑：价格/数量未在服务端二次校验",
+      "severity": "high",
+      "category": "business-logic-security",
+      "description": "订单金额完全依赖前端传入的价格和数量计算，服务端未进行二次校验，攻击可篡改请求以极低价格下单。",
+      "suggestion": "服务端从数据库查询商品价格重新计算总价；数量与库存校验在服务端完成；不信任任何客户端传入的金额数据。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-BL-002",
+      "name": "业务逻辑：优惠券/折扣可重复使用",
+      "severity": "high",
+      "category": "business-logic-security",
+      "description": "优惠券/折扣码在核销后未标记为已使用，或并发请求可导致同一优惠券被多次核销。",
+      "suggestion": "使用数据库事务+行锁保证原子性核销；核销前检查使用状态；限制每个用户/设备的使用次数。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-BL-003",
+      "name": "业务逻辑：状态流转校验缺失",
+      "severity": "high",
+      "category": "business-logic-security",
+      "description": "业务状态变更未校验前置状态（如已取消的订单重新支付、已发货的订单再次发货），可能导致业务数据不一致。",
+      "suggestion": "在状态变更前校验当前状态是否允许该操作；使用状态机模式管理业务流程；添加状态转换白名单。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "SEC-BL-004",
+      "name": "业务逻辑：缺少幂等性保护",
+      "severity": "medium",
+      "category": "business-logic-security",
+      "description": "支付、转账等关键操作的API缺少幂等性保护，网络重试或恶意重放可能导致重复扣款。",
+      "suggestion": "使用唯一请求ID（Idempotency-Key）确保操作幂等；在数据库层面使用唯一约束；返回已处理结果而非重复执行。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "SEC-BL-005",
+      "name": "业务逻辑：库存扣减无并发保护",
+      "severity": "high",
+      "category": "business-logic-security",
+      "description": "库存扣减使用先查后改的非原子操作，并发场景下可能出现超卖（卖出超过实际库存的数量）。",
+      "suggestion": "使用数据库行锁（SELECT FOR UPDATE）；使用Redis原子递减；使用乐观锁版本号控制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    }
+  ]
+}

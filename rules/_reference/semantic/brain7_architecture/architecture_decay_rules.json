@@ -1,0 +1,51 @@
+{
+    "rules": [
+        {
+            "id": "ARCH-DECAY-001",
+            "name": "架构违规数量趋势增长",
+            "severity": "high",
+            "category": "architecture-decay",
+            "description": "架构违规检测数量随时间持续增长（如分层违规从10个增长到50个），表明架构约束未被遵守，架构正在腐化。",
+            "suggestion": "建立架构违规数量基线和阈值；每个sprint回顾违规趋势；新增违规必须在当前sprint修复；将架构合规纳入DoD。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DECAY-002",
+            "name": "新增架构违规检测",
+            "severity": "medium",
+            "category": "architecture-decay",
+            "description": "本次变更引入了新的架构违规（如新的跨层调用、新的循环依赖），这些违规如果不及时修复将加速架构腐化。",
+            "suggestion": "在CI中添加架构合规检查（ArchUnit/dependency-cruiser）；新增违规必须立即修复或记录例外。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.ts",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DECAY-003",
+            "name": "模块间耦合度持续增加",
+            "severity": "medium",
+            "category": "architecture-decay",
+            "description": "模块间的依赖关系数量和强度随时间持续增加，模块边界逐渐模糊，系统趋向单体化。",
+            "suggestion": "定期测量模块间耦合度指标；设定耦合度增长上限；对高耦合模块进行拆分或引入抽象层解耦。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.ts",
+                "*.go"
+            ]
+        }
+    ]
+}

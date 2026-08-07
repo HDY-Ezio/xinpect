@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "name": "Flutter安全专项规则集",
+    "version": "1.0.0",
+    "description": "基于Flutter/Dart安全最佳实践、OWASP Mobile Security标准的检查规则",
+    "total_rules": 15,
+    "references": ["Flutter Security", "OWASP MSTG", "Dart Security"]
+  },
+  "rules": [
+    {
+      "check_id": "FLT-SEC-001",
+      "name": "Platform Channel未做数据校验",
+      "severity": "high",
+      "category": "security",
+      "description": "通过Platform Channel（MethodChannel/EventChannel/BasicMessageChannel）传递数据时未对参数进行类型校验和白名单过滤，Dart侧和Native侧可互相发送恶意数据。",
+      "pattern": "MethodChannel\\s*\\(\\s*['\"][^'\"]+['\"]\\s*\\)\\.invokeMethod\\s*\\(|platform\\.invokeMethod\\s*\\(",
+      "file_pattern": "*.dart, *.kt, *.swift, *.java, *.m",
+      "suggestion": "1. Dart侧和Native侧均对channel消息进行参数类型校验; 2. 定义允许的method白名单; 3. 敏感操作需要额外鉴权",
+      "references": ["https://docs.flutter.dev/platform-integration/platform-channels", "https://api.flutter.dev/flutter/services/MethodChannel-class.html"]
+    },
+    {
+      "check_id": "FLT-SEC-002",
+      "name": "SharedPreferences明文存储敏感数据",
+      "severity": "high",
+      "category": "security",
+      "description": "使用shared_preferences存储token、密码等敏感数据，数据以XML明文存储在/data/data/<package>/shared_prefs/下，root后可直接读取。未使用flutter_secure_storage替代。",
+      "pattern": "SharedPreferences\\.getInstance\\s*\\(\\s*\\)\\s*\\.then\\s*\\(\\s*\\(\\s*prefs\\s*\\)\\s*=>\\s*prefs\\.set(?:String|Int|Bool)\\s*\\(\\s*['\"](?:token|password|secret|key|auth|credential)",
+      "file_pattern": "*.dart",
+      "suggestion": "使用flutter_secure_storage替代shared_preferences存储敏感数据，底层使用iOS Keychain和Android EncryptedSharedPreferences",
+      "references": ["https://pub.dev/packages/flutter_secure_storage", "https://pub.dev/packages/shared_preferences"]
+    },
+    {
+      "check_id": "FLT-SEC-003",
+      "name": "热更新机制缺少签名校验",
+      "severity": "high",
+      "category": "security",
+      "description": "使用第三方热更新方案（如shorebird、flutter_dynamic_widget等）时未校验更新包的代码签名和完整性，可能被注入恶意Dart代码。",
+      "pattern": "shorebird|flutter_dynamic|hot_update|dynamic_widget|remote_widget(?!.*verify|.*signature|.*checksum)",
+      "file_pattern": "*.dart, pubspec.yaml",
+      "suggestion": "1. 启用更新包的代码签名校验; 2. 验证更新包的完整性哈希; 3. 仅从可信的HTTPS服务器下载更新; 4. 使用shorebird等支持签名的方案",
+      "references": ["https://shorebird.dev/", "https://pub.dev/packages/shorebird_code_push"]
+    },
+    {
+      "check_id": "FLT-SEC-004",
+      "name": "HTTP请求未实现证书固定",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用dio/http包进行网络请求时未实现证书固定，仅依赖系统信任的CA证书。用户安装恶意证书后可解密HTTPS流量。",
+      "pattern": "Dio\\s*\\(\\s*\\)|http\\.get\\s*\\(|http\\.post\\s*\\(|HttpClient\\s*\\(\\s*\\)(?!.*SecurityContext|.*CertificatePinner|.*badCertificateCallback)",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 使用dio的HttpClientAdapter自定义SecurityContext校验证书; 2. 或使用flutter_ssl_pinning插件; 3. 固定服务器证书SHA-256指纹",
+      "references": ["https://pub.dev/packages/dio", "https://pub.dev/packages/flutter_ssl_pinning"]
+    },
+    {
+      "check_id": "FLT-SEC-005",
+      "name": "深度链接参数未校验",
+      "severity": "high",
+      "category": "security",
+      "description": "使用uni_links或go_router处理深度链接（App Links/Universal Links）时未校验URL参数和来源，恶意应用可构造deep link触发敏感操作。",
+      "pattern": "getLinksStream\\s*\\(\\s*\\)|getInitialLink\\s*\\(\\s*\\)|GoRouter\\s*\\(\\s*\\)(?!.*redirect|.*guard|.*verify)",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 使用GoRouter的redirect或guard功能校验路由参数; 2. 校验deep link的scheme和host白名单; 3. 对URL参数进行转义和校验",
+      "references": ["https://pub.dev/packages/uni_links", "https://pub.dev/packages/go_router"]
+    },
+    {
+      "check_id": "FLT-SEC-006",
+      "name": "权限请求缺少说明和时机控制",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "使用permission_handler请求权限时未在请求前向用户说明用途，或在应用启动时就请求所有权限而非在用户触发功能时请求。违反应用商店政策。",
+      "pattern": "Permission\\.(?:camera|microphone|location|photos|contacts|storage).request\\s*\\(\\s*\\)",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 在用户触发对应功能时请求权限; 2. 请求前通过对话框说明用途; 3. 处理权限被拒绝后的降级逻辑",
+      "references": ["https://pub.dev/packages/permission_handler", "https://developer.apple.com/app-store/review/guidelines/"]
+    },
+    {
+      "check_id": "FLT-SEC-007",
+      "name": "Release构建未启用混淆",
+      "severity": "medium",
+      "category": "security",
+      "description": "flutter build apk/ios未使用--obfuscate参数，Dart代码未进行混淆，反编译AOT产物后可获取完整的类名、方法名和业务逻辑。",
+      "pattern": "flutter\\s+build\\s+(?:apk|ios|appbundle)(?!.*--obfuscate)(?!.*--split-debug-info)",
+      "file_pattern": "*.yaml, *.sh, Makefile, CI配置文件",
+      "suggestion": "使用flutter build --obfuscate --split-debug-info=<path>构建，混淆Dart符号表。保留混淆映射文件用于错误堆栈还原",
+      "references": ["https://docs.flutter.dev/deployment/obfuscate", "https://docs.flutter.dev/release/breaking-changes/obfuscate"]
+    },
+    {
+      "check_id": "FLT-SEC-008",
+      "name": "敏感数据输出到debugPrint日志",
+      "severity": "high",
+      "category": "security",
+      "description": "使用print()或debugPrint()输出敏感信息（密码、token、密钥等），Release版本中这些日志可通过adb logcat（Android）或Console.app（iOS）查看。",
+      "pattern": "(?:print|debugPrint)\\s*\\(\\s*['\"]?(?:.*(?:token|password|secret|key|auth|credential|session|id_card|credit_card))",
+      "file_pattern": "*.dart",
+      "suggestion": "1. Release构建中使用--dart-define=ENV=production控制日志级别; 2. 使用logging包并配置Production级别过滤; 3. 禁止在日志中输出敏感数据",
+      "references": ["https://api.flutter.dev/flutter/foundation/debugPrint.html", "https://pub.dev/packages/logging"]
+    },
+    {
+      "check_id": "FLT-SEC-009",
+      "name": "WebView安全配置不足",
+      "severity": "high",
+      "category": "security",
+      "description": "使用webview_flutter加载Web内容时未禁用JavaScript文件访问、未限制导航目标、未设置JavaScriptMode，可能加载恶意页面或执行本地文件。",
+      "pattern": "WebView\\s*\\(\\s*initialUrl:(?!.*javascriptMode|.*navigationDelegate|.*onWebViewCreated)",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 设置javascriptMode: JavascriptMode.disabled（如不需要）; 2. 实现NavigationDelegate校验URL白名单; 3. 禁用文件访问和universalFileAccess",
+      "references": ["https://pub.dev/packages/webview_flutter", "https://pub.dev/documentation/webview_flutter/latest/"]
+    },
+    {
+      "check_id": "FLT-SEC-010",
+      "name": "硬编码加密密钥或API密钥",
+      "severity": "critical",
+      "category": "security",
+      "description": "在Dart代码中硬编码加密密钥、API密钥或Secret，Dart AOT编译后仍可被字符串提取工具获取。",
+      "pattern": "(?:final|const|var)\\s+(?:String\\s+)?\\w*(?:key|secret|apiKey|api_key|token|password)\\w*\\s*=\\s*['\"][A-Za-z0-9+/=]{8,}[\"']",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 使用--dart-define从构建环境注入密钥; 2. 或使用flutter_dotenv从加密的配置加载; 3. 敏感密钥存储在Native KeyStore中通过Platform Channel获取",
+      "references": ["https://docs.flutter.dev/deployment/obfuscate", "https://pub.dev/packages/flutter_dotenv"]
+    },
+    {
+      "check_id": "FLT-SEC-011",
+      "name": "应用截图包含敏感信息",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "应用进入后台时未模糊敏感界面，系统在任务管理器（App Switcher）中保存的截图可包含银行卡号、余额等敏感信息。",
+      "pattern": "WidgetsBindingObserver|didChangeAppLifecycleState\\s*\\(\\s*AppLifecycleState\\.(?!.*blur|.*overlay|.*hide)",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 实现WidgetsBindingObserver监听生命周期; 2. 在AppLifecycleState.paused/inactive时添加模糊覆盖层; 3. 使用RepaintBoundary截图替换",
+      "references": ["https://api.flutter.dev/flutter/widgets/WidgetsBindingObserver-class.html", "https://api.flutter.dev/flutter/dart-ui/AppLifecycleState.html"]
+    },
+    {
+      "check_id": "FLT-SEC-012",
+      "name": "第三方Dart包存在已知漏洞",
+      "severity": "medium",
+      "category": "security",
+      "description": "pubspec.yaml中依赖的第三方Dart包版本过旧，存在已知安全漏洞。Flutter生态中的包质量参差不齐，需定期审计。",
+      "pattern": "pubspec\\.yaml.*\\w+\\s*:\\s*\\^[0-1]\\.[0-9]\\.[0-9]",
+      "file_pattern": "pubspec.yaml, pubspec.lock",
+      "suggestion": "1. 使用dart pub outdated检查过期依赖; 2. 使用flutter analyze --fatal-infos; 3. 审查第三方包的源码安全性; 4. 关注pub.dev的安全公告",
+      "references": ["https://dart.dev/tools/pub/cmd/pub-outdated", "https://pub.dev/"]
+    },
+    {
+      "check_id": "FLT-SEC-013",
+      "name": "eval和动态代码执行",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用dart:mirrors或动态代码生成执行用户输入的代码，Flutter Release构建默认不支持mirrors但可通过其他途径实现代码注入。",
+      "pattern": "dart:mirrors|MirrorSystem|reflect\\s*\\(|ClassMirror\\.invoke",
+      "file_pattern": "*.dart",
+      "suggestion": "严禁在Flutter应用中使用dart:mirrors（Release构建不支持）。避免任何形式的动态代码执行，使用编译时确定逻辑",
+      "references": ["https://dart.dev/guides/libraries", "https://api.dart.dev/stable/dart-mirrors/dart-mirrors-library.html"]
+    },
+    {
+      "check_id": "FLT-SEC-014",
+      "name": "不安全随机数生成器",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用Random()（dart:math）生成安全敏感的随机数（如token、验证码、密钥），Random()是非加密安全的伪随机数生成器，输出可被预测。",
+      "pattern": "import\\s+['\"]dart:math['\"]\\s*;.*Random\\s*\\(\\s*\\)|Random\\(\\)\\.nextInt\\s*\\(|Random\\.secure\\(\\s*\\)(?!.*crypto)",
+      "file_pattern": "*.dart",
+      "suggestion": "使用dart:math的Random.secure()（加密安全）或crypto包的SHA256/HMAC生成安全随机数。避免使用Random()生成token或密钥",
+      "references": ["https://api.dart.dev/stable/dart-math/Random/Random.secure.html", "https://pub.dev/packages/crypto"]
+    },
+    {
+      "check_id": "FLT-SEC-015",
+      "name": "剪贴板包含敏感数据",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "将密码、token等敏感数据写入Clipboard，其他应用可读取剪贴板内容。Android 10+限制后台读取但前台应用仍可访问。",
+      "pattern": "Clipboard\\.setData\\s*\\(\\s*ClipboardData\\s*\\(\\s*text:\\s*[^)]*(?:password|token|secret|key|auth)",
+      "file_pattern": "*.dart",
+      "suggestion": "1. 避免将敏感数据复制到剪贴板; 2. 如必须使用，设置短暂过期时间; 3. Android使用ClipDescription.EXTRA_IS_SENSITIVE标记; 4. iOS设置UIPasteboard.expirationDate",
+      "references": ["https://api.flutter.dev/flutter/services/Clipboard-class.html", "https://developer.android.com/reference/android/content/ClipDescription#EXTRA_IS_SENSITIVE"]
+    }
+  ]
+}

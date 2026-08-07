@@ -1,0 +1,60 @@
+[
+  {
+    "check_id": "CONC-001",
+    "name": "共享资源缺少并发控制",
+    "description": "共享资源(库存、余额、计数器)的读写操作应有并发控制。检查 `inventory`、`stock`、`balance`、`count` 相关变量是否有 `Lock`、`Semaphore`、`SELECT FOR UPDATE`、`atomic` 保护",
+    "severity": "high",
+    "category": "concurrency",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "使用数据库行锁: SELECT ... FOR UPDATE 或 Redis分布式锁保护共享资源读写"
+  },
+  {
+    "check_id": "CONC-002",
+    "name": "数据库连接未池化",
+    "description": "频繁创建/销毁数据库连接会导致性能瓶颈。检查是否使用 `create_engine(pool_size=)` 或 `ConnectionPool` 或 `DBUtils` 等连接池",
+    "severity": "medium",
+    "category": "concurrency",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "使用连接池: SQLAlchemy create_engine(url, pool_size=10, max_overflow=20)"
+  },
+  {
+    "check_id": "CONC-003",
+    "name": "高并发场景使用同步阻塞IO",
+    "description": "在高并发场景(如秒杀、批量处理)中使用同步阻塞操作会导致线程阻塞和性能下降。检查是否在并发上下文中使用了 `time.sleep`、同步 `requests.get`、`open().read()` 大文件",
+    "severity": "medium",
+    "category": "concurrency",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts"
+    ],
+    "suggestion": "高并发场景使用异步IO: aiohttp替代requests，asyncio.sleep替代time.sleep"
+  },
+  {
+    "check_id": "CONC-004",
+    "name": "队列/消息缺少消费确认",
+    "description": "消息队列消费者应有ACK确认机制，防止消息丢失。检查 `consume`、`subscribe`、`on_message` 相关代码是否有 `ack`、`acknowledge`、`nack` 调用",
+    "severity": "medium",
+    "category": "concurrency",
+    "applicable_files": [
+      "*.py",
+      "*.js",
+      "*.ts",
+      "*.java",
+      "*.go"
+    ],
+    "suggestion": "消息消费后必须ACK: channel.basic_ack(delivery_tag) 确保消息不丢失"
+  }
+]

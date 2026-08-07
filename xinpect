@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+煋鉴 Xinpect 主入口脚本
+============================
+
+用法：
+  ./xinpect scan [path]       扫描项目
+  ./xinpect init [path]       生成配置文件
+  ./xinpect rules [keyword]   查看规则列表
+  ./xinpect config            查看/校验配置
+  ./xinpect version           输出版本号
+
+也可以通过模块方式调用：
+  python -m cli.cli scan .
+"""
+
+import os
+import sys
+
+# 确保脚本所在目录在 sys.path 中
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
+from cli.cli import main
+
+if __name__ == "__main__":
+    sys.exit(main())

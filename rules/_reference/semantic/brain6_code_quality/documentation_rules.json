@@ -1,0 +1,412 @@
+{
+  "rules": [
+    {
+      "id": "CQ-DOC-001",
+      "name": "公共API缺少文档",
+      "severity": "high",
+      "category": "documentation",
+      "description": "公共(public/protected)方法、类、接口缺少文档注释（Javadoc/docstring/jsdoc），外部使用者无法了解其用途和参数。",
+      "suggestion": "为所有公共API添加文档注释，至少包含功能描述、参数说明、返回值说明和可能的异常。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-DOC-002",
+      "name": "注释覆盖率过低",
+      "severity": "high",
+      "category": "documentation",
+      "description": "公共方法和类的文档注释覆盖率低于50%，大量公共接口缺少使用说明。",
+      "suggestion": "制定文档补全计划，优先覆盖核心公共API，目标覆盖率达到80%以上。使用文档生成工具检测覆盖率。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-DOC-004",
+      "name": "注释掉的代码未清理",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "存在大量被注释掉的代码块（连续5行以上），代码库被废弃代码污染。",
+      "suggestion": "删除注释掉的代码，通过版本控制系统(Git)追溯历史。注释掉的代码会干扰阅读且永远不会被启用。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-005",
+      "name": "TODO标记过多",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "文件中TODO标记超过5个，积压的待办事项过多，表明存在大量未完成的工作。",
+      "suggestion": "将TODO迁移到任务管理系统中跟踪，定期清理。长期未处理的TODO应转化为正式的开发任务。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-006",
+      "name": "FIXME标记未处理",
+      "severity": "high",
+      "category": "documentation",
+      "description": "代码中存在FIXME标记但长期未修复，表示已知的缺陷或问题被搁置。",
+      "suggestion": "FIXME应被视为待修复缺陷，创建对应的bug跟踪条目并设定修复时间线。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-007",
+      "name": "HACK标记风险",
+      "severity": "high",
+      "category": "documentation",
+      "description": "代码中存在HACK标记，表明使用了临时性的、不优雅的解决方案。",
+      "suggestion": "评估HACK的风险和影响范围，制定替换计划。如果必须保留，添加详细注释说明原因和限制条件。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-008",
+      "name": "文档缺少参数说明",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "函数文档注释缺少参数(@param)说明，调用者无法了解参数要求。",
+      "suggestion": "为每个参数添加类型、含义和约束说明。使用@param/@arg标签并描述参数的有效范围。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-DOC-009",
+      "name": "文档缺少返回值说明",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "有返回值的函数缺少@return说明，调用者无法了解返回值的含义和格式。",
+      "suggestion": "添加@return标签，说明返回值的类型、含义、以及在异常情况下的返回值。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-DOC-010",
+      "name": "文档缺少异常说明",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "可能抛出异常的函数缺少@throws/@raises说明，调用者无法预知和处理异常。",
+      "suggestion": "添加@throws标签，说明在什么条件下会抛出什么异常，帮助调用者正确进行错误处理。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-DOC-011",
+      "name": "注释无意义-代码翻译",
+      "severity": "low",
+      "category": "documentation",
+      "description": "注释只是重复了代码本身，如'i++; // i加1'或'// 获取用户  getUser()'，没有提供额外信息。",
+      "suggestion": "删除无意义的翻译式注释，代码本身应该自解释。如果代码不够清晰，重构代码而非添加翻译注释。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-012",
+      "name": "缺少模块/包级文档",
+      "severity": "low",
+      "category": "documentation",
+      "description": "模块/包文件缺少文件头部的说明文档，新开发者无法了解模块的整体用途和结构。",
+      "suggestion": "在模块文件头部添加说明文档，描述模块的职责、包含的主要功能、使用方法和依赖关系。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DOC-013",
+      "name": "README文件缺失或过时",
+      "severity": "high",
+      "category": "documentation",
+      "description": "项目根目录缺少README.md或README内容与项目实际不符。",
+      "suggestion": "维护README.md，包含项目简介、安装方法、使用示例、配置说明和贡献指南。定期更新保持准确。",
+      "applicable_files": [
+        "*.md"
+      ]
+    },
+    {
+      "id": "CQ-DOC-014",
+      "name": "API文档与实现不同步",
+      "severity": "high",
+      "category": "documentation",
+      "description": "外部API文档（如Swagger/OpenAPI）与代码实际实现不一致，文档描述的参数、返回值或端点与代码不匹配。",
+      "suggestion": "使用代码注解自动生成API文档（如OpenAPI注解），或建立文档同步检查机制。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DOC-015",
+      "name": "注释包含敏感信息",
+      "severity": "critical",
+      "category": "documentation",
+      "description": "注释中包含密码、API密钥、Token、内部URL等敏感信息，存在安全风险。",
+      "suggestion": "立即移除注释中的敏感信息，使用环境变量或密钥管理服务。对已泄露的凭证进行轮换。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-016",
+      "name": "缺少关键算法说明",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "包含复杂业务逻辑或算法的代码段缺少注释说明，其他开发者难以理解其设计意图。",
+      "suggestion": "在复杂算法前添加注释，说明算法思路、时间/空间复杂度、边界条件，必要时添加参考链接。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-017",
+      "name": "示例代码缺失",
+      "severity": "low",
+      "category": "documentation",
+      "description": "公共库/工具类的核心功能缺少使用示例，新用户上手困难。",
+      "suggestion": "为核心公共API添加使用示例代码，可以直接写在文档注释中（如JSDoc的@example），或提供独立的examples目录。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DOC-018",
+      "name": "版本变更日志缺失",
+      "severity": "low",
+      "category": "documentation",
+      "description": "库/框架缺少CHANGELOG.md，用户无法了解版本间的变更内容。",
+      "suggestion": "维护CHANGELOG.md，使用Keep a Changelog格式记录每次发布的Added/Changed/Deprecated/Removed/Fixed内容。",
+      "applicable_files": [
+        "*.md",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CQ-DOC-019",
+      "name": "注释格式不统一",
+      "severity": "info",
+      "category": "documentation",
+      "description": "项目中混用不同的注释格式风格（如有的用/** */有的用//，有的用JSDoc有的用纯文本）。",
+      "suggestion": "统一项目注释格式，使用语言标准的文档注释格式（JSDoc/Javadoc/docstring），配置lint规则强制检查。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-DOC-020",
+      "name": "Deprecated标记缺少迁移说明",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "标记为@deprecated的方法/类未说明替代方案或迁移路径，使用者不知道如何迁移。",
+      "suggestion": "@deprecated标记必须包含替代方案说明和计划移除版本，如：@deprecated since v2.0, use newMethod() instead. Will be removed in v3.0.",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-DOC-021",
+      "name": "行内注释过多",
+      "severity": "low",
+      "category": "documentation",
+      "description": "几乎每行代码都有行内注释，代码不够自解释，注释成了拐杖。",
+      "suggestion": "如果代码需要大量注释来解释，优先重构代码使其自解释。注释应解释'为什么'而非'做什么'。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-DOC-022",
+      "name": "缺少架构决策记录",
+      "severity": "medium",
+      "category": "documentation",
+      "description": "项目中重要的技术决策（如架构选型、设计模式使用、技术栈选择）缺少ADR记录。",
+      "suggestion": "使用Architecture Decision Record(ADR)记录关键决策，包含背景、决策、后果和替代方案。",
+      "applicable_files": [
+        "*.md",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-DOC-023",
+      "name": "接口契约不完整",
+      "severity": "high",
+      "category": "documentation",
+      "description": "API接口缺少前置条件(precondition)和后置条件(postcondition)说明，契约不明确。",
+      "suggestion": "在文档中明确说明接口的前置条件（参数要求、系统状态）、后置条件（返回保证、状态变更）和不变量。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    }
+  ]
+}

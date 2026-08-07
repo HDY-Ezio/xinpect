@@ -1,0 +1,110 @@
+{
+  "rules": [
+    {
+      "id": "SEC-CONT-001",
+      "name": "Docker容器以root运行",
+      "severity": "high",
+      "category": "container-runtime-security",
+      "description": "容器内进程以root用户（UID 0）身份运行，一旦容器被攻破，攻击者将获得容器内的root权限，大幅增加容器逃逸的风险。即使未发生容器逃逸，root权限也允许攻击者修改容器内任何文件、安装恶意软件、利用内核漏洞。在多租户环境中，root容器还可能影响同一主机上的其他容器。CIS Docker Benchmark明确要求避免以root运行容器。",
+      "suggestion": "1. 在Dockerfile中使用USER指令指定非root用户；2. 使用docker run --user参数指定运行用户；3. 在Kubernetes中设置runAsNonRoot: true的安全上下文；4. 使用只读文件系统减少攻击面；5. 使用rootless Docker模式运行守护进程。\n\n示例（Dockerfile）：\n```dockerfile\nFROM node:18-alpine\nRUN addgroup -g 1001 appgroup && \\\n    adduser -u 1001 -G appgroup -D appuser\nWORKDIR /app\nCOPY --chown=appuser:appgroup . .\nUSER appuser\nCMD [\"node\", \"server.js\"]\n```\n\n示例（docker-compose.yml）：\n```yaml\nservices:\n  app:\n    image: myapp:latest\n    user: '1001:1001'\n    read_only: true\n```",
+      "applicable_files": [
+        "Dockerfile",
+        "Dockerfile.*",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "*.yml",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-CONT-002",
+      "name": "Dockerfile使用最新标签而非固定版本",
+      "severity": "medium",
+      "category": "image-security",
+      "description": "Dockerfile中使用latest标签或不带版本号的基础镜像（如FROM node、FROM python:latest），导致每次构建可能拉取不同版本的镜像。这不仅破坏了构建的可重复性，还可能引入未经验证的新版本中的安全漏洞或破坏性变更。latest标签的镜像内容随时可能变化，今天通过的镜像扫描明天可能就不再安全。此外，不可复现的构建也违反了供应链安全原则。",
+      "suggestion": "1. 始终使用固定版本标签（如node:18.17-alpine、python:3.11.4-slim）；2. 生产环境使用镜像的SHA256摘要（digest）锁定版本；3. 定期更新基础镜像版本并重新构建；4. 使用镜像扫描工具（Trivy、Snyk）检测基础镜像漏洞；5. 建立基础镜像版本更新流程。\n\n示例（Dockerfile）：\n```dockerfile\n# 错误\nFROM node:latest\nFROM python\n\n# 正确：固定版本\nFROM node:18.17.1-alpine3.18\nFROM python:3.11.4-slim-bullseye\n\n# 最佳：使用digest锁定\nFROM node@sha256:abc123def456...\n```",
+      "applicable_files": [
+        "Dockerfile",
+        "Dockerfile.*",
+        "docker-compose.yml",
+        "docker-compose.yaml"
+      ]
+    },
+    {
+      "id": "SEC-CONT-003",
+      "name": "容器暴露不必要端口",
+      "severity": "medium",
+      "category": "container-network-security",
+      "description": "容器映射了不必要的端口到宿主机或网络，扩大了攻击面。常见的问题包括：暴露数据库端口（3306、5432、6379）到公网、暴露调试端口（9229、5005）、暴露内部管理服务端口（8080、9090）。每个暴露的端口都是潜在的攻击入口，不必要的端口暴露违反了最小暴露原则。特别是数据库端口和管理端口暴露到公网，是数据泄露的高风险因素。",
+      "suggestion": "1. 仅映射应用必需的端口；2. 使用内部网络（docker network）进行容器间通信，不暴露非必要端口到宿主机；3. 绑定端口到127.0.0.1而非0.0.0.0；4. 使用反向代理统一入口，后端服务不直接暴露；5. 使用防火墙规则限制端口访问来源。\n\n示例（docker-compose.yml）：\n```yaml\n# 错误：暴露所有端口\nservices:\n  db:\n    ports:\n      - '3306:3306'  # 数据库端口暴露到公网\n  redis:\n    ports:\n      - '6379:6379'\n\n# 正确：仅暴露必要端口，使用内部网络\nservices:\n  web:\n    ports:\n      - '80:80'\n      - '443:443'\n  db:\n    expose:\n      - '3306'  # 仅在内部网络可访问\n    networks:\n      - internal\n  redis:\n    expose:\n      - '6379'\n    networks:\n      - internal\nnetworks:\n  internal:\n    driver: bridge\n```",
+      "applicable_files": [
+        "Dockerfile",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "*.yml",
+        "*.yaml",
+        "*.tf"
+      ]
+    },
+    {
+      "id": "SEC-CONT-004",
+      "name": "容器未设置资源限制",
+      "severity": "medium",
+      "category": "container-resource-management",
+      "description": "容器运行时未设置CPU和内存使用限制，单个容器可能消耗宿主机所有资源，导致其他容器或宿主机本身的服务不可用。这可能由应用内存泄漏、死循环、异常流量或恶意攻击（如fork炸弹）触发。在共享宿主机环境中，一个无限制的容器可以直接导致拒绝服务（DoS）。此外，缺乏资源限制也使得异常行为难以被发现和定位。",
+      "suggestion": "1. 为所有容器设置CPU和内存限制（--memory、--cpus）；2. 设置内存soft limit和hard limit；3. 配置oom-kill-disable防止OOM killer；4. 在Kubernetes中使用ResourceQuotas和LimitRanges；5. 监控容器资源使用情况并设置告警。\n\n示例（docker-compose.yml）：\n```yaml\nservices:\n  app:\n    image: myapp:1.0\n    deploy:\n      resources:\n        limits:\n          cpus: '1.0'      # 限制1个CPU核心\n          memory: 512M      # 限制512MB内存\n        reservations:\n          cpus: '0.25'     # 预留0.25个CPU核心\n          memory: 128M      # 预留128MB内存\n    mem_swappiness: 0       # 禁用swap\n```",
+      "applicable_files": [
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "*.yml",
+        "*.yaml",
+        "*.tf"
+      ]
+    },
+    {
+      "id": "SEC-CONT-005",
+      "name": "容器镜像来自不可信源",
+      "severity": "high",
+      "category": "image-security",
+      "description": "使用来自不可信仓库或未经验证的容器镜像，可能引入被篡改的恶意镜像（供应链攻击）。攻击者可在公共镜像中植入后门、挖矿程序、数据窃取工具等。已知的攻击案例包括Docker Hub上的恶意镜像模仿官方镜像名称（typosquatting）、被攻破的官方镜像被注入恶意代码等。使用不可信镜像等于在系统中植入了一个潜在的远程控制通道。",
+      "suggestion": "1. 仅使用官方镜像或经过验证的镜像仓库；2. 使用镜像签名验证（Docker Content Trust / Notary）；3. 建立私有镜像仓库，所有镜像经过安全扫描后入库；4. 使用镜像摘要（digest）而非标签引用镜像；5. 定期扫描镜像漏洞并更新；6. 实施镜像白名单策略。\n\n示例：\n```bash\n# 启用Docker Content Trust（镜像签名验证）\nexport DOCKER_CONTENT_TRUST=1\n\n# 使用镜像digest而非tag\ndocker pull myregistry.com/myapp@sha256:abc123...\n\n# 扫描镜像漏洞\ntrivy image --severity HIGH,CRITICAL myapp:1.0\n\n# 私有仓库拉取策略\n# registry.yaml\nmirrors:\n  - host: registry.internal.com\n    security:\n      verify: true\n      allowed_repos:\n        - library/*\n        - company/*\n```",
+      "applicable_files": [
+        "Dockerfile",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "*.yml",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-CONT-006",
+      "name": "Docker-compose中使用privileged模式",
+      "severity": "critical",
+      "category": "container-runtime-security",
+      "description": "容器以privileged模式运行（privileged: true或--privileged），容器内的进程几乎拥有宿主机root的所有权限，可以访问宿主机所有设备、修改内核参数、加载内核模块。这实质上取消了容器的隔离保护，使得容器逃逸变得极其简单。攻击者一旦获得容器内权限，即可完全控制宿主机，进而控制同一宿主机上的所有容器。CIS Docker Benchmark将此列为最高风险项之一。",
+      "suggestion": "1. 严禁使用privileged模式，除非有不可替代的理由；2. 如需特殊权限，使用--cap-add按需添加最小权限的能力（capabilities）；3. 使用--device按需映射特定设备；4. 考虑使用rootless容器或gVisor等安全运行时；5. 对必须使用privileged的场景，实施额外的安全监控和审计。\n\n示例（docker-compose.yml）：\n```yaml\n# 错误：使用privileged\nservices:\n  app:\n    image: myapp\n    privileged: true  # 极度危险！\n\n# 正确：按需添加最小权限\nservices:\n  app:\n    image: myapp\n    cap_add:\n      - NET_ADMIN      # 仅添加需要的能力\n      - SYS_PTRACE     # 如确实需要调试\n    security_opt:\n      - no-new-privileges:true  # 禁止提权\n    # 使用seccomp和apparmor配置文件\n    security_opt:\n      - seccomp=./custom-seccomp.json\n```",
+      "applicable_files": [
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "*.yml",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-CONT-008",
+      "name": "容器健康检查未配置",
+      "severity": "low",
+      "category": "container-operations",
+      "description": "容器未配置健康检查（HEALTHCHECK），容器编排系统无法准确判断容器是否正常工作。一个进程仍在运行但应用已陷入死锁或无法响应请求的容器会持续占用资源却不提供有效服务。缺乏健康检查还导致故障恢复机制（如自动重启、滚动更新）无法正确触发，影响服务的可用性。虽然这不是直接的安全漏洞，但会降低系统的整体可靠性和可维护性。",
+      "suggestion": "1. 在Dockerfile中添加HEALTHCHECK指令；2. 健康检查应验证应用的实际功能而非仅检查进程存在；3. 合理设置检查间隔、超时时间和重试次数；4. 在Kubernetes中使用liveness、readiness和startup探针；5. 健康检查端点应返回应用依赖服务的状态。\n\n示例（Dockerfile）：\n```dockerfile\nFROM node:18-alpine\nWORKDIR /app\nCOPY . .\nRUN npm ci --production\nEXPOSE 3000\nHEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\\n    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1\nCMD [\"node\", \"server.js\"]\n```\n\n示例（docker-compose.yml）：\n```yaml\nservices:\n  web:\n    image: myapp:1.0\n    healthcheck:\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:3000/health\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 40s\n```",
+      "applicable_files": [
+        "Dockerfile",
+        "Dockerfile.*",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "*.yml",
+        "*.yaml"
+      ]
+    }
+  ]
+}

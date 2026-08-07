@@ -1,0 +1,492 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "认证授权安全规则集 - 覆盖认证绕过、权限提升、越权访问等",
+    "total_rules": 31,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-066",
+      "name": "认证：硬编码凭证",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "代码中硬编码用户名、密码、API Key等凭证，一旦代码泄露(如Git仓库公开)会导致系统被入侵。OWASP Top 10 A07:2021。",
+      "suggestion": "使用环境变量或配置中心(Vault、Consul)存储凭证；使用密钥管理服务(AWS KMS、Azure Key Vault)；从代码中移除所有硬编码凭证；使用.gitignore排除配置文件。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.env"
+      ]
+    },
+    {
+      "id": "SEC-067",
+      "name": "认证：明文存储密码",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "数据库中以明文或可逆加密方式存储用户密码，一旦数据库泄露会导致所有用户密码暴露。CWE-256。",
+      "suggestion": "使用强哈希算法存储密码(bcrypt、scrypt、Argon2)；为每个密码生成随机盐值；避免使用MD5、SHA1等快速哈希；设置合理的哈希迭代次数(cost factor)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-068",
+      "name": "认证：弱密码策略",
+      "severity": "high",
+      "category": "authentication",
+      "description": "允许用户设置弱密码(如长度过短、纯数字、常见密码)会降低账户安全性，容易被暴力破解或撞库攻击。",
+      "suggestion": "实施密码强度验证(长度≥12位、包含多种字符类型)；检查密码是否在常见密码黑名单中(如Have I Been Pwned API)；禁止使用用户名作为密码；提供密码强度提示。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-069",
+      "name": "认证：登录无频率限制",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "登录接口无频率限制，攻击者可进行暴力破解或撞库攻击，尝试大量用户名密码组合。",
+      "suggestion": "实施登录频率限制(如5次失败后锁定15分钟)；使用验证码(CAPTCHA)防止自动化攻击；对异常登录进行二次验证(短信、邮件)；记录登录失败日志并监控。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-070",
+      "name": "认证：会话固定攻击",
+      "severity": "high",
+      "category": "authentication",
+      "description": "登录前后使用同一Session ID，攻击者可在用户登录前设置已知的Session ID，登录后劫持该会话。",
+      "suggestion": "登录成功后重新生成Session ID(防止会话固定)；使用框架的会话管理功能(Spring Security的session fixation protection)；设置Cookie的HttpOnly和Secure标志。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-071",
+      "name": "认证：JWT使用不当",
+      "severity": "high",
+      "category": "authentication",
+      "description": "JWT实现中的常见问题：未验证签名、使用none算法、密钥过弱、未设置过期时间、敏感信息存储在payload中。",
+      "suggestion": "始终验证JWT签名；禁止使用none算法；使用强密钥(RSA 2048位以上或ES256)；设置合理的过期时间(exp)；避免在payload中存储敏感信息；实现JWT吊销机制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-072",
+      "name": "认证：权限提升漏洞",
+      "severity": "critical",
+      "category": "authorization",
+      "description": "垂直权限提升：普通用户通过修改请求参数(如role=admin)或API调用获得管理员权限。水平权限提升：访问其他用户的数据。",
+      "suggestion": "在服务端进行权限验证而非依赖客户端；使用基于角色的访问控制(RBAC)或基于属性的访问控制(ABAC)；对每个API调用验证用户权限；实现数据归属验证(只能访问自己的数据)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-073",
+      "name": "认证：不安全的直接对象引用(IDOR)",
+      "severity": "critical",
+      "category": "authorization",
+      "description": "通过修改URL参数(如/user/1改为/user/2)或API参数(如?user_id=1改为user_id=2)访问其他用户的资源。OWASP Top 10 A01:2021。",
+      "suggestion": "对资源访问进行权限验证(检查当前用户是否有权访问该资源)；使用不可预测的资源ID(UUID替代自增ID)；实现基于会话的资源访问控制；对API参数进行归属验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-074",
+      "name": "认证：多因素认证缺失",
+      "severity": "medium",
+      "category": "authentication",
+      "description": "仅依赖单因素认证(密码)对于高权限账户或敏感操作不够安全，容易被钓鱼、撞库等攻击突破。",
+      "suggestion": "对管理员账户强制启用MFA(多因素认证)；对敏感操作(修改密码、支付)要求二次验证；支持TOTP(基于时间的一次性密码)或硬件密钥(FIDO2/WebAuthn)；提供MFA恢复码。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-075",
+      "name": "认证：密码重置漏洞",
+      "severity": "high",
+      "category": "authentication",
+      "description": "密码重置功能的安全问题：重置Token可预测、未过期、可重用；通过修改邮箱参数重置他人密码；重置链接通过HTTP传输。",
+      "suggestion": "使用安全的随机Token(至少128位)；设置Token短有效期(如1小时)；Token使用后立即失效；重置链接通过HTTPS发送；验证重置请求的用户身份(如要求输入当前密码)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-076",
+      "name": "认证：会话管理不当",
+      "severity": "high",
+      "category": "authentication",
+      "description": "会话管理问题：Session ID在URL中暴露、会话未设置超时、并发会话未控制、会话未正确销毁。",
+      "suggestion": "Session ID仅通过Cookie传输(不在URL中)；设置会话超时时间(绝对超时+空闲超时)；实现并发会话控制(限制同一用户的活跃会话数)；登出时销毁服务端会话。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-077",
+      "name": "认证：OAuth重定向URI验证不当",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "OAuth授权服务器的重定向URI未严格验证，攻击者可使用恶意URI(如http://evil.com?code=xxx)劫持授权码。",
+      "suggestion": "严格验证重定向URI(精确匹配而非前缀匹配)；禁止使用开放重定向；使用白名单配置允许的重定向URI；对重定向URI进行编码和规范化处理。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-078",
+      "name": "认证：API Key管理不当",
+      "severity": "high",
+      "category": "authentication",
+      "description": "API Key管理问题：Key硬编码在前端、Key未设置权限范围、Key未定期轮换、Key泄露后未吊销。",
+      "suggestion": "API Key仅在服务端使用(不暴露给前端)；为API Key设置最小权限范围(scope)；实现API Key定期轮换机制；提供API Key吊销功能；记录API Key使用日志。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-079",
+      "name": "认证：认证绕过漏洞",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "认证逻辑漏洞导致绕过认证：条件竞争(同时发送多个登录请求)、认证检查被跳过(如特殊字符导致验证失败)、未验证认证中间件的返回。",
+      "suggestion": "确保所有受保护路由都应用认证中间件；对认证失败的情况统一处理(拒绝访问)；避免条件竞争(使用数据库事务或分布式锁)；定期审计认证逻辑。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-080",
+      "name": "认证：记住我功能的安全缺陷",
+      "severity": "medium",
+      "category": "authentication",
+      "description": "'记住我'功能如果使用可预测的Token、未设置过期时间、或Token包含用户信息，会导致安全风险。",
+      "suggestion": "使用安全的随机Token(至少128位)；设置'记住我'Token的有效期(如30天)；Token与服务端存储关联(非自包含)；实现'记住我'Token的吊销机制；使用Secure和HttpOnly标志。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-081",
+      "name": "授权：越权访问其他租户数据(多租户)",
+      "severity": "critical",
+      "category": "authorization",
+      "description": "多租户系统中，未正确实现租户隔离，攻击者可通过修改租户ID参数访问其他租户的数据。",
+      "suggestion": "在所有数据查询中强制添加租户过滤条件；使用租户上下文(TenantContext)自动注入租户过滤；对API参数中的租户ID进行验证(必须与当前用户租户一致)；使用数据库行级安全策略。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-082",
+      "name": "授权：API版本间的权限不一致",
+      "severity": "medium",
+      "category": "authorization",
+      "description": "API的旧版本可能未应用新版本的权限检查，攻击者使用旧版本API绕过权限控制。",
+      "suggestion": "对所有API版本统一应用权限检查；废弃旧版本API时同步关闭访问；使用API网关统一管理权限策略；定期审计所有API版本的权限配置。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-083",
+      "name": "授权：CORS配置过于宽松",
+      "severity": "high",
+      "category": "authorization",
+      "description": "CORS配置Access-Control-Allow-Origin: *或动态设置为请求的Origin，允许任意网站跨域访问API，可能导致数据泄露。",
+      "suggestion": "配置白名单允许的Origin(不使用*)；对需要携带凭证的请求禁止使用*；验证Origin头的合法性；对敏感API限制CORS访问；使用CORS中间件管理配置。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.nginx.conf"
+      ]
+    },
+    {
+      "id": "SEC-084",
+      "name": "授权：未验证资源所有者",
+      "severity": "high",
+      "category": "authorization",
+      "description": "修改或删除资源时未验证当前用户是否为资源所有者，导致任意用户可修改他人数据。",
+      "suggestion": "在所有修改/删除操作中验证资源归属(resource.owner_id == current_user.id)；使用基于资源的权限检查；对共享资源实现细粒度权限控制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-085",
+      "name": "授权：批量操作的权限验证缺失",
+      "severity": "medium",
+      "category": "authorization",
+      "description": "批量操作(批量删除、批量修改)未对每个资源进行权限验证，攻击者可通过批量操作修改无权访问的资源。",
+      "suggestion": "对批量操作中的每个资源进行权限验证；过滤掉无权访问的资源而非返回错误；记录批量操作的详细日志；限制批量操作的数量上限。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-086",
+      "name": "授权：功能级访问控制缺失",
+      "severity": "high",
+      "category": "authorization",
+      "description": "未实现功能级访问控制，用户可访问超出其权限的功能(如普通用户访问管理后台)。",
+      "suggestion": "实现基于角色的访问控制(RBAC)；对所有API端点进行权限检查；使用声明式权限注解(@PreAuthorize、@RequiresRoles)；前端隐藏无权限功能但服务端必须验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-087",
+      "name": "授权：文件上传的权限验证",
+      "severity": "medium",
+      "category": "authorization",
+      "description": "文件上传功能未验证用户权限或文件类型，导致未授权用户上传恶意文件或覆盖他人文件。",
+      "suggestion": "验证用户上传文件的权限；检查文件类型(MIME类型和扩展名白名单)；限制文件大小；将上传文件存储在非执行目录；对文件名进行清洗(移除路径遍历字符)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-088",
+      "name": "授权：API速率限制缺失",
+      "severity": "medium",
+      "category": "authorization",
+      "description": "API未实现速率限制，攻击者可进行API滥用、数据爬取或DoS攻击。",
+      "suggestion": "实现API速率限制(基于用户、IP、API Key)；使用令牌桶或滑动窗口算法；对不同类型的API设置不同的限制；提供429 Too Many Requests响应；使用Redis实现分布式限流。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-089",
+      "name": "授权：敏感操作的二次确认缺失",
+      "severity": "medium",
+      "category": "authorization",
+      "description": "敏感操作(删除账户、修改邮箱、转账)未要求二次确认，一旦会话被劫持或CSRF攻击成功，损失不可挽回。",
+      "suggestion": "对敏感操作要求重新输入密码或2FA验证码；使用短有效期的确认Token；实现操作确认页面显示操作详情；记录敏感操作的详细审计日志。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-090",
+      "name": "授权：数据级权限过滤不当",
+      "severity": "high",
+      "category": "authorization",
+      "description": "数据查询时未正确应用数据级权限过滤，返回用户无权访问的数据。常见于列表查询和搜索功能。",
+      "suggestion": "在查询构建时强制添加权限过滤条件；使用数据过滤框架自动注入权限条件；对查询结果进行二次权限验证；使用数据库视图或行级安全策略。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.sql"
+      ]
+    },
+    {
+      "id": "SEC-158",
+      "name": "越权：水平越权访问他人数据",
+      "severity": "critical",
+      "category": "authorization-bypass",
+      "description": "通过修改资源ID(user_id=1→user_id=2)访问其他用户的数据，未验证资源归属关系。CWE-639。",
+      "suggestion": "对所有资源访问验证当前用户的访问权限；实现数据归属验证(resource.owner == current_user)；使用不可预测的资源ID(UUID)；对API参数进行权限检查。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-166",
+      "name": "CWE-287：认证不当",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "认证机制存在缺陷：密码验证逻辑错误、会话管理不当、认证绕过漏洞，导致未授权访问。CWE Top 25长期在列。",
+      "suggestion": "实施强密码策略；使用安全的会话管理；对所有受保护资源进行认证检查；使用成熟的认证框架；实施账户锁定和MFA。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-167",
+      "name": "CWE-862：缺失授权",
+      "severity": "critical",
+      "category": "authorization",
+      "description": "未实现访问控制检查，任何认证用户(或未认证用户)可访问超出其权限的功能或数据。",
+      "suggestion": "对所有API端点实施权限检查；使用RBAC或ABAC模型；对数据访问验证归属关系；使用声明式权限注解；定期审计权限配置。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-168",
+      "name": "CWE-863：授权不正确",
+      "severity": "critical",
+      "category": "authorization",
+      "description": "授权检查实现不正确：仅检查客户端权限、权限验证逻辑错误、可被绕过(如修改参数)。",
+      "suggestion": "在服务端实施授权检查；避免仅依赖客户端隐藏；对授权逻辑进行全面测试；使用框架的授权功能；实施最小权限原则。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-171",
+      "name": "CWE-306：关键功能缺失认证",
+      "severity": "critical",
+      "category": "authentication",
+      "description": "关键功能(管理操作、敏感数据访问、支付)未实施认证检查，任何人可直接访问。",
+      "suggestion": "对所有关键功能实施认证；使用中间件统一处理认证；对敏感操作要求二次认证；定期审计功能权限。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-186",
+      "name": "CWE-284：访问控制不当",
+      "severity": "high",
+      "category": "access-control",
+      "description": "访问控制实现不完整或不正确，用户可访问超出权限的资源或功能。",
+      "suggestion": "实施完整的访问控制机制；对所有资源进行权限检查；使用RBAC或ABAC模型；定期审计访问控制策略；实施最小权限原则。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    }
+  ]
+}

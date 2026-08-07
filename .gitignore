@@ -1,0 +1,67 @@
+__pycache__/
+*.pyc
+
+# 煋鉴缓存目录（AI增强分析结果缓存）
+.xinpect/
+
+# 煋鉴v4.2增量扫描缓存目录
+.xinpect_cache/
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+.next/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Temporary files
+*.tmp
+*.bak
+output/*.bak*
+__pycache__/
+*.pyc
+.env
+*.log
+ci/
+lsp/
+.coverage
+.coveragerc
+.eslintrc.json
+.gitlab-ci.yml
+.qa_cache.json
+.qa_history/
+output/
+ci/
+lsp/
+.coveragerc
+.eslintrc.json
+.gitlab-ci.yml
+pre_release_check.sh

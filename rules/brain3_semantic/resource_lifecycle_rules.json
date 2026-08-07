@@ -1,0 +1,84 @@
+{
+  "rules": [
+    {
+      "id": "B3-07-R001",
+      "name": "复杂路径下的资源泄漏",
+      "severity": "high",
+      "category": "resource-lifecycle",
+      "description": "在包含多个条件分支、异常处理路径的复杂代码中，某些路径上资源（文件、连接、锁）未被关闭，容易遗漏。",
+      "suggestion": "使用语言提供的资源管理语法糖（try-with-resources/using/with/defer）；将资源获取和释放在同一作用域内管理。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.cs",
+        "*.go",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "B3-07-R002",
+      "name": "双重释放/关闭资源",
+      "severity": "medium",
+      "category": "resource-lifecycle",
+      "description": "同一资源在不同代码路径中被释放/关闭两次（如手动close后又触发defer close），可能导致panic或使用已释放资源。",
+      "suggestion": "确保每个资源只有一个释放点；使用标志位跟踪释放状态；优先使用自动资源管理语法。",
+      "applicable_files": [
+        "*.go",
+        "*.c",
+        "*.cpp",
+        "*.java",
+        "*.py"
+      ]
+    },
+    {
+      "id": "B3-07-R003",
+      "name": "使用已释放的资源（Use-After-Free）",
+      "severity": "critical",
+      "category": "resource-lifecycle",
+      "description": "资源（内存/文件/连接）被释放后仍被引用或使用，在C/C++中导致未定义行为，在其他语言中抛出异常。",
+      "suggestion": "释放后立即将引用设为null；使用智能指针（shared_ptr/unique_ptr）管理生命周期；使用Rust的所有权模型。",
+      "applicable_files": [
+        "*.c",
+        "*.cpp",
+        "*.rust",
+        "*.go",
+        "*.java"
+      ]
+    },
+    {
+      "id": "B3-07-R004",
+      "name": "锁未在异常路径释放",
+      "severity": "high",
+      "category": "resource-lifecycle",
+      "description": "获取锁后在try块中执行业务逻辑，但如果在获取锁之后、进入try之前或catch/finally中发生异常，锁可能永远不释放导致死锁。",
+      "suggestion": "使用try-finally确保锁释放；使用上下文管理器（with语句）；使用defer unlock；将锁的获取和使用紧密绑定。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs",
+        "*.js",
+        "*.ts",
+        "*.c",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "B3-07-R005",
+      "name": "连接池中的连接未正确归还",
+      "severity": "high",
+      "category": "resource-lifecycle",
+      "description": "从连接池获取的连接/会话在使用后未归还到池中（如异常退出时未释放），导致连接池耗尽。",
+      "suggestion": "始终在finally/defer中归还连接；使用连接池的context manager；设置连接超时自动回收。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

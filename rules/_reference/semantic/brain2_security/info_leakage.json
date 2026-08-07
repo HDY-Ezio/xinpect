@@ -1,0 +1,338 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "敏感信息泄露防护规则集 - 覆盖数据泄露、日志安全、错误信息处理",
+    "total_rules": 22,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-091",
+      "name": "信息泄露：错误信息暴露敏感细节",
+      "severity": "high",
+      "category": "info-leakage",
+      "description": "错误响应中暴露数据库表名、SQL语句、堆栈跟踪、系统路径等敏感信息，帮助攻击者了解系统架构和发起针对性攻击。",
+      "suggestion": "生产环境禁用详细错误信息；使用统一的错误响应格式(仅包含错误码和通用消息)；记录详细错误日志到服务端；对API使用错误码映射而非暴露异常堆栈。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-092",
+      "name": "信息泄露：调试接口暴露",
+      "severity": "critical",
+      "category": "info-leakage",
+      "description": "生产环境遗留调试接口(如/env、/actuator、/debug、/phpinfo)暴露系统配置、环境变量、内部状态等敏感信息。",
+      "suggestion": "生产环境禁用所有调试接口；使用环境变量或配置文件控制接口启用；对管理接口实施严格的访问控制(IP白名单、认证)；定期扫描暴露的调试接口。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.yaml",
+        "*.properties"
+      ]
+    },
+    {
+      "id": "SEC-093",
+      "name": "信息泄露：Source Map暴露",
+      "severity": "high",
+      "category": "info-leakage",
+      "description": "生产环境的Source Map文件暴露源代码，攻击者可查看完整的业务逻辑、注释和未编译的代码结构。",
+      "suggestion": "生产环境不部署Source Map文件；使用hidden-source-map生成但不引用；将Source Map上传到错误监控平台(Sentry)而非公开访问；使用webpack配置exclude source map。",
+      "applicable_files": [
+        "*.webpack.config.js",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-094",
+      "name": "信息泄露：HTTP响应头泄露",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "HTTP响应头暴露敏感的服务器信息：Server(服务器版本)、X-Powered-By(技术栈)、X-Debug等，帮助攻击者识别已知漏洞。",
+      "suggestion": "移除或隐藏Server、X-Powered-By、X-AspNet-Version等响应头；禁用调试响应头；使用通用的Server标识；配置Web服务器隐藏版本信息。",
+      "applicable_files": [
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.server.js",
+        "*.java",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-095",
+      "name": "信息泄露：日志中的敏感数据",
+      "severity": "high",
+      "category": "info-leakage",
+      "description": "日志中记录用户密码、信用卡号、Session ID、Token等敏感数据，一旦日志泄露会导致严重安全问题。",
+      "suggestion": "对日志中的敏感字段进行脱敏(密码→***, 信用卡→****1234)；使用结构化日志并定义敏感字段列表；避免记录完整的HTTP请求/响应体；定期审计日志内容。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-096",
+      "name": "信息泄露：Git仓库中的敏感信息",
+      "severity": "critical",
+      "category": "info-leakage",
+      "description": "代码仓库中包含密码、API Key、私钥、数据库连接串等敏感信息。即使后续删除，Git历史仍可恢复。",
+      "suggestion": "使用.gitignore排除配置文件(.env、config.json)；使用git-secrets或pre-commit hook检测敏感信息；对已提交的历史敏感信息使用BFG Repo-Cleaner清理；使用密钥管理服务。",
+      "applicable_files": [
+        "*.env",
+        "*.json",
+        "*.yaml",
+        "*.yml",
+        "*.properties"
+      ]
+    },
+    {
+      "id": "SEC-097",
+      "name": "信息泄露：堆栈跟踪暴露",
+      "severity": "high",
+      "category": "info-leakage",
+      "description": "异常堆栈跟踪暴露内部代码结构、类名、方法名、行号等信息，帮助攻击者了解系统架构和寻找漏洞。",
+      "suggestion": "生产环境捕获所有异常并返回通用错误信息；记录详细堆栈到服务端日志；对API使用统一的错误响应格式；使用全局异常处理器。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-098",
+      "name": "信息泄露：目录列表启用",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "Web服务器启用目录列表(Directory Listing)，暴露服务器文件结构和敏感文件(如配置文件、备份文件)。",
+      "suggestion": "禁用Web服务器的目录列表功能(Nginx: autoindex off; Apache: Options -Indexes)；为所有目录创建index文件；对敏感目录使用访问控制。",
+      "applicable_files": [
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-099",
+      "name": "信息泄露：备份文件暴露",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "服务器上的备份文件(.bak、.backup、.sql、.tar.gz、~结尾文件)被Web服务器直接访问，暴露源代码或数据库数据。",
+      "suggestion": "配置Web服务器拒绝访问备份文件类型；将备份文件存储在Web根目录外；使用.gitignore排除备份文件；定期清理服务器上的备份文件。",
+      "applicable_files": [
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-100",
+      "name": "信息泄露：版本号暴露",
+      "severity": "low",
+      "category": "info-leakage",
+      "description": "HTTP响应头、HTML注释、JavaScript文件中暴露框架和库的版本号，帮助攻击者查找已知漏洞。",
+      "suggestion": "移除响应头中的版本号(X-Powered-By: Express → 移除)；移除HTML注释中的版本信息；对前端资源进行混淆和压缩；定期更新依赖修复已知漏洞。",
+      "applicable_files": [
+        "*.html",
+        "*.js",
+        "*.nginx.conf",
+        "*.httpd.conf"
+      ]
+    },
+    {
+      "id": "SEC-101",
+      "name": "信息泄露：API文档公开访问",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "Swagger/OpenAPI文档、GraphQL Schema等API文档在生产环境公开访问，暴露所有API端点和数据结构。",
+      "suggestion": "生产环境禁用API文档(Swagger UI、GraphiQL)；使用环境变量控制文档启用；对API文档实施访问控制；仅公开必要的API文档。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-102",
+      "name": "信息泄露：敏感数据的客户端存储",
+      "severity": "high",
+      "category": "info-leakage",
+      "description": "在Cookie、localStorage、sessionStorage中存储敏感数据(密码、信用卡、SSN)，容易被XSS攻击窃取。",
+      "suggestion": "避免在客户端存储敏感数据；必须存储时使用加密；使用httpOnly Cookie存储认证信息；对localStorage数据进行加密；设置合理的存储过期时间。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEC-103",
+      "name": "信息泄露：URL参数中的敏感数据",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "在URL参数中传递敏感数据(如token、密码、session_id)，会被记录在浏览器历史、服务器日志、Referer头中。",
+      "suggestion": "使用POST请求体传递敏感数据；使用HTTP头传递Token(Authorization)；避免在URL中包含敏感参数；对已暴露的Token立即吊销。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-104",
+      "name": "信息泄露：缓存中的敏感数据",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "包含敏感数据的响应被浏览器或代理服务器缓存，其他用户可从缓存中获取敏感信息。",
+      "suggestion": "对敏感响应设置Cache-Control: no-store；使用Pragma: no-cache(兼容HTTP/1.0)；对API响应使用私有缓存(private)；避免缓存包含个人信息的数据。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.nginx.conf"
+      ]
+    },
+    {
+      "id": "SEC-105",
+      "name": "信息泄露：WebSocket消息的敏感数据",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "WebSocket传输的敏感数据(如实时聊天、股票数据)如果未加密或权限控制不当，可能被窃听或泄露。",
+      "suggestion": "WebSocket使用wss://协议(加密传输)；对WebSocket消息实施权限验证；避免在WebSocket中传输敏感数据(如密码)；对敏感消息进行端到端加密。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-106",
+      "name": "信息泄露：邮件和短信中的敏感信息",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "邮件和短信中包含明文密码、完整链接Token、敏感个人信息，容易被截获或泄露。",
+      "suggestion": "邮件中不包含明文密码；重置链接Token使用短有效期；避免在短信中发送敏感信息；对个人信息进行脱敏处理。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-107",
+      "name": "信息泄露：异常状态下的数据泄露",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "系统在异常状态(超时、错误、限流)下可能返回过多信息，如数据库连接字符串、内部IP地址、第三方服务配置。",
+      "suggestion": "统一异常处理，不暴露内部细节；对错误响应进行标准化；记录详细错误信息到服务端日志；定期测试异常场景的信息泄露。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-108",
+      "name": "信息泄露：第三方服务的信息泄露",
+      "severity": "medium",
+      "category": "info-leakage",
+      "description": "集成第三方服务(分析、广告、地图)时，可能通过URL参数或Cookie泄露用户敏感信息给第三方。",
+      "suggestion": "审查第三方服务的隐私政策；避免向第三方传递用户敏感信息；使用服务端代理隐藏API Key；对第三方脚本使用CSP限制权限。",
+      "applicable_files": [
+        "*.html",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-109",
+      "name": "信息泄露：元数据中的敏感信息",
+      "severity": "low",
+      "category": "info-leakage",
+      "description": "上传的文件(图片、文档)包含EXIF元数据(GPS位置、设备信息、作者)，暴露用户隐私。",
+      "suggestion": "上传时清除图片EXIF数据；对文档清除作者、创建时间等元数据；提供隐私提示告知用户文件元数据风险；使用服务端处理清除元数据。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-110",
+      "name": "信息泄露：DNS区域传输",
+      "severity": "high",
+      "category": "info-leakage",
+      "description": "DNS服务器允许区域传输(AXFR)，攻击者可获取所有DNS记录，了解内部网络结构和服务器信息。",
+      "suggestion": "限制DNS区域传输到授权的从服务器；使用TSIG密钥验证区域传输请求；对公开DNS服务器禁用区域传输；定期审计DNS配置。",
+      "applicable_files": [
+        "*.conf",
+        "*.zone",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-152",
+      "name": "日志注入：未清洗的日志输入",
+      "severity": "medium",
+      "category": "log-injection",
+      "description": "将用户输入直接写入日志，攻击者注入\\r\\n伪造日志条目，或注入ANSI转义序列混淆日志，甚至触发日志框架漏洞。",
+      "suggestion": "对日志中的用户输入进行清洗(移除\\r\\n、控制字符)；使用结构化日志(JSON格式)避免注入；对日志输入进行长度限制；使用日志框架的编码功能。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-155",
+      "name": "敏感数据暴露：API返回过多信息",
+      "severity": "medium",
+      "category": "data-exposure",
+      "description": "API返回完整的对象模型(包括密码哈希、内部ID、审计字段等)，暴露不必要的敏感信息和内部结构。",
+      "suggestion": "使用DTO(Data Transfer Object)仅返回必要字段；对敏感字段进行脱敏；使用视图模型(View Model)控制返回数据；实施字段级权限控制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "rules": [
+    {
+      "id": "B3-16-R001",
+      "name": "正则表达式语法错误",
+      "severity": "high",
+      "category": "regex-correctness",
+      "description": "正则表达式包含语法错误：未转义的特殊字符、未闭合的括号/方括号、无效的量词组合（如**或+?）等，运行时抛出异常。",
+      "suggestion": "使用正则表达式测试工具验证语法；对特殊字符进行转义；使用RegExp.escape或等效方法处理动态输入。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.cs",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "B3-16-R002",
+      "name": "贪婪匹配导致意外捕获",
+      "severity": "medium",
+      "category": "regex-correctness",
+      "description": "使用贪婪量词（.*或.+）匹配HTML标签、引号内容等嵌套结构，导致匹配范围远超预期（如匹配整个文件而非单个标签）。",
+      "suggestion": "使用非贪婪量词（.*?或.+?）；使用否定字符集（[^\"]*匹配引号内容）；对HTML/XML使用专用解析器而非正则。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.cs",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "B3-16-R003",
+      "name": "捕获组引用错误",
+      "severity": "medium",
+      "category": "regex-correctness",
+      "description": "正则中使用反向引用\\1但实际捕获组数量不匹配，或在替换字符串中使用$1但组不存在，导致运行时错误或替换结果异常。",
+      "suggestion": "确认捕获组编号与引用一致；使用命名捕获组（(?P<name>...)）提高可读性和正确性。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.cs",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "B3-16-R004",
+      "name": "Unicode/多字节字符处理不当",
+      "severity": "medium",
+      "category": "regex-correctness",
+      "description": "使用.匹配字符时未启用Unicode标志（u/s），无法正确匹配emoji、 surrogate pairs等多字节字符；或使用\\w无法匹配中文等Unicode字符。",
+      "suggestion": "处理Unicode文本时启用u标志（JavaScript）或re.UNICODE（Python）；使用\\p{L}匹配Unicode字母。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "B3-16-R005",
+      "name": "字符集范围定义错误",
+      "severity": "medium",
+      "category": "regex-correctness",
+      "description": "字符集中范围写反（如[z-a]）导致匹配空集或抛出错误；或范围过大（如[0-z]包含了不期望的特殊字符）。",
+      "suggestion": "检查字符集范围的起止顺序；避免使用过宽的字符范围；明确列出需要的字符而非使用宽范围。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.cs",
+        "*.rb"
+      ]
+    }
+  ]
+}

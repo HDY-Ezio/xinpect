@@ -1,0 +1,396 @@
+{
+  "rules": [
+    {
+      "id": "CQ-NAM-001",
+      "name": "类名不符合规范",
+      "severity": "medium",
+      "category": "naming",
+      "description": "类名未使用PascalCase（大驼峰）命名，或类名不以名词/名词短语开头。",
+      "suggestion": "类名使用PascalCase命名，以名词命名（如UserService、OrderProcessor），避免动词开头。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-NAM-002",
+      "name": "函数名不符合规范",
+      "severity": "medium",
+      "category": "naming",
+      "description": "函数名不符合语言的命名约定，如Python/Ruby应使用snake_case，Java/JS/TS应使用camelCase。",
+      "suggestion": "遵循目标语言的命名约定：Python用snake_case（如calculate_total），Java/JS用camelCase（如calculateTotal）。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-NAM-004",
+      "name": "变量名含义不明",
+      "severity": "medium",
+      "category": "naming",
+      "description": "变量名使用data、info、temp、result、obj等过于通用的名称，无法区分具体含义。",
+      "suggestion": "使用具体的业务名称，如userData改为用户信息、result改为processedOrder，让名称自解释。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-NAM-005",
+      "name": "布尔变量命名不当",
+      "severity": "low",
+      "category": "naming",
+      "description": "布尔类型变量未使用is/has/can/should等前缀，从名称无法识别为布尔值。",
+      "suggestion": "布尔变量使用is/has/can/should/need等前缀，如isActive、hasPermission、canRetry。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-NAM-006",
+      "name": "常量命名不规范",
+      "severity": "low",
+      "category": "naming",
+      "description": "常量未使用全大写加下划线（UPPER_SNAKE_CASE）命名，或使用硬编码字面量代替常量。",
+      "suggestion": "常量使用UPPER_SNAKE_CASE命名（如MAX_RETRY_COUNT），语义明确且与变量区分。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-NAM-007",
+      "name": "过度使用缩写",
+      "severity": "medium",
+      "category": "naming",
+      "description": "标识符中使用非标准的缩写（如usr、mgr、ctx、cfg等），降低了代码可读性。",
+      "suggestion": "使用完整单词命名，除非缩写是业界通用且无歧义的（如id、url、api）。缩写应团队统一约定。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-NAM-008",
+      "name": "命名语言混用",
+      "severity": "medium",
+      "category": "naming",
+      "description": "同一文件中混用中文拼音和英文命名，或同一项目中使用不同语言的命名风格。",
+      "suggestion": "统一使用英文命名，保持项目命名语言一致性。特殊业务术语可使用统一的拼音缩写并添加注释。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-NAM-009",
+      "name": "命名一致性差",
+      "severity": "medium",
+      "category": "naming",
+      "description": "相似概念使用不同的命名方式，如有的用getUser、有的用fetchUser、有的用queryUser。",
+      "suggestion": "建立项目命名规范文档，统一相同操作的命名前缀（获取用get、创建用create、删除用delete等）。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-NAM-010",
+      "name": "否定式命名",
+      "severity": "low",
+      "category": "naming",
+      "description": "使用否定式命名（如isNotValid、disableFeature），增加理解时的认知负担。",
+      "suggestion": "优先使用肯定式命名，如isValid代替isNotValid、enableFeature代替disableFeature的取反。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-NAM-011",
+      "name": "接口/抽象类命名不当",
+      "severity": "low",
+      "category": "naming",
+      "description": "接口命名使用I前缀（如IUserService）或不带描述性后缀，不利于区分接口和实现。",
+      "suggestion": "根据语言约定命名：Java/C#可用I前缀或直接命名，Go使用描述性名称，避免在所有语言中统一使用I前缀。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.ts",
+        "*.py"
+      ]
+    },
+    {
+      "id": "CQ-NAM-012",
+      "name": "枚举值命名不规范",
+      "severity": "low",
+      "category": "naming",
+      "description": "枚举值命名不统一，有的全大写有的camelCase，或含义不清晰。",
+      "suggestion": "枚举值使用UPPER_SNAKE_CASE命名，枚举类名使用PascalCase，确保枚举值语义明确且一致。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-NAM-013",
+      "name": "文件名与内容不匹配",
+      "severity": "low",
+      "category": "naming",
+      "description": "文件名无法反映文件的主要内容或职责，如utils.py包含业务逻辑。",
+      "suggestion": "文件名应准确描述文件内容，遵循语言的文件命名约定。业务文件按业务概念命名，避免过度使用utils/helpers。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-NAM-014",
+      "name": "事件/回调命名不当",
+      "severity": "low",
+      "category": "naming",
+      "description": "事件处理器或回调函数命名未表达触发时机和处理内容。",
+      "suggestion": "事件处理器使用on+事件名（如onClick、onDataReceived），回调使用动词+名词（如handleError、processResult）。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "CQ-NAM-015",
+      "name": "数据库表/列命名不规范",
+      "severity": "medium",
+      "category": "naming",
+      "description": "数据库表名或列名未遵循统一命名约定（如混用单复数、混用下划线和驼峰）。",
+      "suggestion": "表名使用统一复数/单数snake_case（如users、orders），列名使用snake_case，外键以_id结尾。",
+      "applicable_files": [
+        "*.sql",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-NAM-016",
+      "name": "测试方法命名不规范",
+      "severity": "low",
+      "category": "naming",
+      "description": "测试方法名无法表达测试意图，如test1、test2或使用纯数字编号。",
+      "suggestion": "测试方法名应描述测试场景和期望结果，使用should_格式或given_when_then格式（如should_return_error_when_input_is_null）。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php"
+      ]
+    },
+    {
+      "id": "CQ-NAM-017",
+      "name": "异常类命名不当",
+      "severity": "low",
+      "category": "naming",
+      "description": "自定义异常类名未以Error/Exception结尾，或命名过于笼统（如MyException）。",
+      "suggestion": "异常类名应以Exception/Error结尾，并使用具体描述命名（如UserNotFoundException、InvalidConfigException）。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-NAM-018",
+      "name": "集合变量未使用复数",
+      "severity": "info",
+      "category": "naming",
+      "description": "列表/数组/集合类型的变量使用单数名称（如list、array），未体现集合语义。",
+      "suggestion": "集合变量使用复数形式（如users、orderItems）或带Collection/List后缀（如userList），让类型和含义一目了然。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-NAM-019",
+      "name": "方法名未体现副作用",
+      "severity": "medium",
+      "category": "naming",
+      "description": "方法名暗示纯查询（get/find）但实际上修改了状态，或方法名暗示修改（update/set）但实际是查询。",
+      "suggestion": "方法名应准确反映其行为：查询用get/find/is/can，修改用set/update/save/delete，确保名实相符。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "CQ-NAM-020",
+      "name": "命名空间/包名不规范",
+      "severity": "low",
+      "category": "naming",
+      "description": "包名/命名空间使用大写、驼峰或含义不明的名称。",
+      "suggestion": "包名使用全小写、无分隔符（Java）或短横线（npm），遵循语言约定和反向域名约定。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "CQ-NAM-021",
+      "name": "类型别名/泛型参数命名",
+      "severity": "info",
+      "category": "naming",
+      "description": "泛型参数使用不明确的单字母（如T），或使用非传统的泛型字母。",
+      "suggestion": "简单泛型用T/E/K/V，复杂泛型使用描述性名称加T后缀（如TResult、TEntity），保持团队一致性。",
+      "applicable_files": [
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.cpp",
+        "*.go",
+        "*.py"
+      ]
+    },
+    {
+      "id": "CQ-NAM-022",
+      "name": "单例/静态类命名不当",
+      "severity": "info",
+      "category": "naming",
+      "description": "单例或静态工具类以Helper/Util/Manager等模糊后缀命名，职责不明确。",
+      "suggestion": "用具体功能命名（如PasswordHasher、ImageResizer），避免过于宽泛的后缀。如确实需要工具类，添加模块前缀（如StringUtils）。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.rb",
+        "*.php",
+        "*.cpp"
+      ]
+    }
+  ]
+}

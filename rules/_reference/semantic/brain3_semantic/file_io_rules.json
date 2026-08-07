@@ -1,0 +1,69 @@
+{
+  "rules": [
+    {
+      "id": "B3-15-R001",
+      "name": "文件打开模式错误",
+      "severity": "high",
+      "category": "file-io",
+      "description": "以只读模式打开文件后尝试写入、以文本模式读写二进制数据、或未指定编码导致乱码。",
+      "suggestion": "根据操作目的选择正确的模式（r/w/a/rb/wb）；文本文件显式指定编码（UTF-8）；二进制文件使用二进制模式。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-15-R002",
+      "name": "路径拼接不安全",
+      "severity": "high",
+      "category": "file-io",
+      "description": "使用字符串拼接构造文件路径（如dir + '/' + filename），在不同操作系统上可能失败，且容易引入路径遍历漏洞。",
+      "suggestion": "使用path.join（Node.js）、os.path.join/pathlib（Python）、Paths.get（Java）、filepath.Join（Go）等路径API。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-15-R003",
+      "name": "文件读写未处理大文件",
+      "severity": "medium",
+      "category": "file-io",
+      "description": "使用readAllBytes/readFileSync等方法一次性将大文件读入内存，可能导致OOM（Out of Memory）。",
+      "suggestion": "使用流式读取（Stream/Reader/BufferedReader）逐块处理；对大文件使用mmap或分块读取。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B3-15-R004",
+      "name": "文件存在性检查与操作非原子（TOCTOU）",
+      "severity": "medium",
+      "category": "file-io",
+      "description": "先检查文件是否存在（if exists）再打开操作，在检查和操作之间文件可能被其他进程删除或替换（竞态条件）。",
+      "suggestion": "使用原子操作（如O_CREAT|O_EXCL）；使用try-catch处理文件不存在异常而非预先检查；使用文件锁。",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.java",
+        "*.go",
+        "*.cs",
+        "*.c",
+        "*.cpp"
+      ]
+    }
+  ]
+}

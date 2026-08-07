@@ -1,0 +1,62 @@
+{
+  "rules": [
+    {
+      "id": "SEC-153",
+      "name": "CORS配置错误：Allow-Credentials与通配符",
+      "severity": "high",
+      "category": "cors-misconfiguration",
+      "description": "Access-Control-Allow-Origin设置为*的同时Allow-Credentials为true(某些浏览器允许)，或动态设置Origin导致任意网站可携带凭证跨域访问。",
+      "suggestion": "不使用*作为Allow-Origin(使用白名单)；对需要凭证的请求明确指定允许的Origin；验证Origin头的合法性；避免动态设置Allow-Origin为请求的Origin。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.nginx.conf"
+      ]
+    },
+    {
+      "id": "SEC-154",
+      "name": "Clickjacking：缺少X-Frame-Options",
+      "severity": "medium",
+      "category": "clickjacking",
+      "description": "页面未设置X-Frame-Options或Content-Security-Policy的frame-ancestors，可被嵌入iframe进行点击劫持攻击。",
+      "suggestion": "设置X-Frame-Options: DENY或SAMEORIGIN；使用CSP的frame-ancestors指令(更灵活)；对敏感页面实施帧破坏(frame busting)脚本；使用X-Frame-Options和CSP双重防护。",
+      "applicable_files": [
+        "*.html",
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.java",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEC-156",
+      "name": "缺乏安全头部：HTTP安全头部缺失",
+      "severity": "medium",
+      "category": "security-headers",
+      "description": "HTTP响应缺少安全头部(X-Content-Type-Options、X-Frame-Options、Strict-Transport-Security、Content-Security-Policy)，降低攻击难度。",
+      "suggestion": "添加安全响应头：X-Content-Type-Options: nosniff；X-Frame-Options: DENY；Strict-Transport-Security: max-age=31536000；Content-Security-Policy限制资源来源；Referrer-Policy控制Referer泄露。",
+      "applicable_files": [
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.server.js",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-199",
+      "name": "CWE-1021：iframe嵌入限制不当",
+      "severity": "medium",
+      "category": "clickjacking",
+      "description": "应用可被任意网站通过iframe嵌入，攻击者可创建透明覆盖层诱导用户点击(点击劫持)。",
+      "suggestion": "设置X-Frame-Options: DENY或SAMEORIGIN；使用CSP frame-ancestors指令限制可嵌入的来源；对敏感页面实施帧破坏脚本。",
+      "applicable_files": [
+        "*.html",
+        "*.nginx.conf",
+        "*.httpd.conf"
+      ]
+    }
+  ]
+}

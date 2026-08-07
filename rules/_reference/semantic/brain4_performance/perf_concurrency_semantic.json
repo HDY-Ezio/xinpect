@@ -1,0 +1,172 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": "brain4_performance",
+        "generated": "2026-08",
+        "description": "性能与并发语义分析规则，检测事务边界、数据访问模式、批量处理、IO模型、连接池、定时任务、消息队列等语义层面的性能问题",
+        "total_rules": 8,
+        "standards_reference": [
+            "High Performance MySQL",
+            "Java Concurrency in Practice",
+            "Release It! - Michael Nygard"
+        ]
+    },
+    "rules": [
+        {
+            "id": "PERF-CSEM-001",
+            "name": "数据库事务中包含外部HTTP调用",
+            "severity": "high",
+            "category": "transaction_boundary",
+            "description": "数据库事务中执行了外部HTTP调用（如REST API请求、RPC调用），会导致长事务持锁，严重影响数据库并发性能和可用性。外部调用的网络延迟不可控，一旦超时或失败，事务长时间持有行锁/表锁，可能引发死锁或连接池耗尽，进而导致级联故障。",
+            "suggestion": "将外部HTTP调用移出事务边界。先在事务内完成数据库操作并提交，再进行外部调用。若需保证一致性，使用本地事件表+异步消费的模式（Outbox Pattern）。\n\n// 错误示例\n@Transactional\npublic void createOrder(OrderDTO dto) {\n    orderRepo.save(dto);\n    httpClient.post(\"http://payment-service/pay\", payload); // 事务内HTTP调用\n}\n\n// 正确示例\n@Transactional\npublic void createOrder(OrderDTO dto) {\n    orderRepo.save(dto);\n    outboxRepo.save(new OutboxEvent(\"ORDER_CREATED\", dto));\n}\n\n@Async\npublic void processOutbox() {\n    List<OutboxEvent> events = outboxRepo.findPending();\n    for (OutboxEvent e : events) {\n        httpClient.post(e.getUrl(), e.getPayload());\n        e.markProcessed();\n    }\n}",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-002",
+            "name": "循环内执行数据库查询（N+1问题）",
+            "severity": "high",
+            "category": "data_access_pattern",
+            "description": "在循环体内执行数据库查询，导致N+1查询问题。例如先查询主表得到N条记录，再循环逐条查询关联表，产生N+1次数据库访问。在数据量大时会导致严重的性能问题，数据库连接被长时间占用，响应时间线性增长。",
+            "suggestion": "使用批量查询或JOIN替代循环查询。对于ORM框架，使用预加载（Eager Loading）或批量IN查询。\n\n// 错误示例 - N+1\nList<Order> orders = orderRepo.findAll();\nfor (Order o : orders) {\n    List<Item> items = itemRepo.findByOrderId(o.getId()); // 每次循环查询\n}\n\n// 正确示例 - 批量查询\nList<Order> orders = orderRepo.findAll();\nList<Long> orderIds = orders.stream().map(Order::getId).collect(Collectors.toList());\nMap<Long, List<Item>> itemsMap = itemRepo.findByOrderIdIn(orderIds)\n    .stream().collect(Collectors.groupingBy(Item::getOrderId));",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs",
+                "*.rb",
+                "*.php"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-003",
+            "name": "大列表在内存中排序或过滤",
+            "severity": "medium",
+            "category": "data_access_pattern",
+            "description": "将大量数据从数据库加载到内存后再进行排序、过滤或分页操作，浪费内存和CPU资源，且随着数据量增长会导致OOM。数据库本身具有索引优化的排序和过滤能力，应充分利用。",
+            "suggestion": "将排序和过滤条件下推到SQL层，利用数据库索引。分页使用LIMIT/OFFSET或游标分页。\n\n// 错误示例\nList<User> allUsers = userRepo.findAll(); // 加载全部数据\nList<User> filtered = allUsers.stream()\n    .filter(u -> u.getStatus().equals(\"ACTIVE\"))\n    .sorted(Comparator.comparing(User::getCreatedAt).reversed())\n    .skip(page * size).limit(size)\n    .collect(Collectors.toList());\n\n// 正确示例\nPage<User> users = userRepo.findByStatusOrderByCreatedAtDesc(\n    \"ACTIVE\", PageRequest.of(page, size));",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs",
+                "*.rb",
+                "*.php"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-004",
+            "name": "批量操作未分批处理",
+            "severity": "medium",
+            "category": "batch_processing",
+            "description": "批量插入、更新或删除操作未进行分批处理，单次提交超过1000条记录。大批量操作会导致：数据库事务日志膨胀、锁持有时间过长、内存消耗激增、可能触发数据库超时。某些数据库（如MySQL InnoDB）对大事务有性能惩罚。",
+            "suggestion": "将大批量操作按固定批次（建议500-1000条）分批提交。使用JDBC batch或ORM的批量操作API。\n\n// 错误示例\nList<Entity> entities = ... // 10万条\nentityRepo.saveAll(entities); // 单次提交\n\n// 正确示例\nint BATCH_SIZE = 500;\nfor (int i = 0; i < entities.size(); i += BATCH_SIZE) {\n    List<Entity> batch = entities.subList(i, \n        Math.min(i + BATCH_SIZE, entities.size()));\n    entityRepo.saveAll(batch);\n    entityManager.flush();\n    entityManager.clear();\n}",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-005",
+            "name": "同步IO操作在异步处理中",
+            "severity": "high",
+            "category": "io_model_mismatch",
+            "description": "在异步处理链路（如异步方法、消息监听器、响应式流）中使用了同步阻塞的IO操作（如同步HTTP调用、同步文件读写、JDBC查询），会阻塞异步线程池中的线程，导致异步模型退化为同步，吞吐量大幅下降。在响应式编程中尤其危险，可能阻塞整个事件循环。",
+            "suggestion": "在异步上下文中使用非阻塞IO。对于Java可使用WebClient替代RestTemplate、R2DBC替代JDBC、异步文件API。对于Node.js确保使用异步版本的API。\n\n// 错误示例 - 异步方法中使用同步JDBC\n@Async\npublic CompletableFuture<Result> processData() {\n    List<Data> data = jdbcTemplate.query(\"SELECT ...\", mapper); // 同步阻塞\n    return CompletableFuture.completedFuture(result);\n}\n\n// 正确示例 - 使用非阻塞方式\npublic Mono<Result> processData() {\n    return r2dbcTemplate.query(\"SELECT ...\") // 非阻塞\n        .map(mapper)\n        .flatMap(this::enrichData);\n}",
+            "applicable_files": [
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.kt",
+                "*.py",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-006",
+            "name": "连接池未配置或配置过小",
+            "severity": "medium",
+            "category": "connection_pool",
+            "description": "数据库连接池、HTTP连接池、Redis连接池未显式配置，使用默认值（通常过小），或配置的连接数不足以支撑业务并发量。连接池过小会导致请求排队等待连接，响应时间飙升；未配置连接池则每次操作都新建连接，开销巨大。",
+            "suggestion": "根据业务并发量合理配置连接池参数。推荐公式：连接数 = (核心数 * 2) + 有效磁盘数。同时配置连接超时、空闲回收、最大生命周期等参数。\n\n# HikariCP 配置示例\nspring.datasource.hikari.maximum-pool-size=20\nspring.datasource.hikari.minimum-idle=5\nspring.datasource.hikari.connection-timeout=30000\nspring.datasource.hikari.idle-timeout=600000\nspring.datasource.hikari.max-lifetime=1800000\n\n# HTTP连接池配置（Apache HttpClient）\nPoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();\ncm.setMaxTotal(200);\ncm.setDefaultMaxPerRoute(50);",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.yaml",
+                "*.yml",
+                "*.properties",
+                "*.xml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-007",
+            "name": "定时任务执行时间超过调度间隔",
+            "severity": "medium",
+            "category": "scheduling",
+            "description": "定时任务的实际执行时间超过了调度间隔，会导致任务堆积、并发执行、资源竞争。例如每5分钟调度一次但执行需要8分钟，则会出现多个实例同时运行，可能导致数据重复处理、数据库负载激增。",
+            "suggestion": "1) 监控定时任务执行耗时，确保执行时间 < 调度间隔的70%；2) 添加分布式锁防止并发执行；3) 若任务耗时不可控，改用事件驱动或手动触发。\n\n// 错误示例\n@Scheduled(fixedRate = 300000) // 每5分钟\npublic void syncData() {\n    // 可能执行超过5分钟，导致下次触发时仍在运行\n    List<Data> all = externalApi.fetchAll();\n    for (Data d : all) { process(d); }\n}\n\n// 正确示例 - 添加防重入\n@Scheduled(fixedDelay = 300000) // 使用fixedDelay\npublic void syncData() {\n    if (!lockService.tryLock(\"syncData\", 5, TimeUnit.MINUTES)) {\n        log.warn(\"Previous sync still running, skip\");\n        return;\n    }\n    try { /* 业务逻辑 */ } finally { lockService.unlock(\"syncData\"); }\n}",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-CSEM-008",
+            "name": "消息队列消费者未设置并发限制",
+            "severity": "medium",
+            "category": "message_queue",
+            "description": "消息队列消费者未设置并发消费数量（prefetch/concurrency），默认可能只有一个消费者线程或并发度过高。并发度过低导致消费吞吐不足，过高则可能导致消费者内存溢出、下游系统被打垮。同时未设置死信队列时，消费失败的消息可能无限重试。",
+            "suggestion": "根据消息处理速度和下游承载能力合理设置消费者并发数和prefetch。配置重试策略和死信队列。\n\n# RabbitMQ 配置示例\nspring.rabbitmq.listener.simple.concurrency=5\nspring.rabbitmq.listener.simple.max-concurrency=20\nspring.rabbitmq.listener.simple.prefetch=10\nspring.rabbitmq.listener.simple.retry.max-attempts=3\nspring.rabbitmq.listener.simple.retry.enabled=true\n\n// Kafka 消费者配置\nprops.put(\"max.poll.records\", 100);\nprops.put(\"fetch.min.bytes\", 1024);\n@KafkaListener(topics = \"order\", concurrency = \"3\")",
+            "applicable_files": [
+                "*.java",
+                "*.go",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.yaml",
+                "*.yml",
+                "*.properties"
+            ],
+            "pattern": ""
+        }
+    ],
+    "summary": {
+        "critical": 0,
+        "high": 3,
+        "medium": 5,
+        "low": 0
+    }
+}

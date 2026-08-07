@@ -1,0 +1,112 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain1_rule_engine",
+    "generated": "2026-08",
+    "description": "Ruby/Rails 语言专项静态分析规则集，覆盖SQL注入、动态代码执行、反序列化、Mass Assignment、路径遍历等Web安全问题",
+    "total_rules": 8,
+    "standards_reference": [
+      "OWASP Ruby on Rails Cheat Sheet",
+      "Ruby Security Best Practices",
+      "Rails Security Guide"
+    ]
+  },
+  "rules": [
+    {
+      "id": "RUBY-001",
+      "name": "SQL拼接使用字符串插值",
+      "severity": "critical",
+      "category": "security_injection",
+      "description": "在ActiveRecord查询中使用字符串插值或拼接构造SQL语句，用户输入未经转义直接进入SQL，导致SQL注入漏洞。攻击者可借此窃取数据、绕过认证或执行管理操作。",
+      "suggestion": "使用ActiveRecord的参数化查询：\n```ruby\n# 危险 - SQL注入\nUser.where(\"name = '#{params[:name]}'\")\nUser.find_by_sql(\"SELECT * FROM users WHERE name = '#{params[:name]}'\")\n\n# 安全 - 参数化查询\nUser.where(name: params[:name])\nUser.where(\"name = ?\", params[:name])\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    },
+    {
+      "id": "RUBY-002",
+      "name": "eval/string作为方法调用用户输入",
+      "severity": "critical",
+      "category": "code_injection",
+      "description": "eval将字符串作为Ruby代码执行，send/public_send使用用户输入调用方法，如果输入可控则会导致任意代码执行。攻击者可以利用此漏洞获取服务器完整控制权。",
+      "suggestion": "避免使用eval和动态方法调用，使用白名单或映射：\n```ruby\n# 危险\neval(params[:code])\nsend(params[:method])\n\"#{params[:class]}\".constantize\n\n# 安全 - 白名单映射\nactions = { 'list' => :list_action, 'show' => :show_action }\nmethod = actions[params[:action]] || :default_action\nsend(method)\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    },
+    {
+      "id": "RUBY-003",
+      "name": "YAML.load未使用safe_load（反序列化漏洞）",
+      "severity": "high",
+      "category": "deserialization",
+      "description": "YAML.load可以实例化任意Ruby对象，如果反序列化的数据来自用户输入或不可信源，攻击者可以构造恶意YAML触发对象实例化，利用 gadget chain 实现远程代码执行。",
+      "suggestion": "使用YAML.safe_load替代：\n```ruby\n# 危险\ndata = YAML.load(user_input) # 可实例化任意对象\n\n# 安全\ndata = YAML.safe_load(user_input, permitted_classes: [], permitted_symbols: [], aliases: false)\n\n# 或使用Psych（YAML底层库）的安全模式\ndata = YAML.safe_load(user_input, aliases: true)\n```",
+      "applicable_files": [
+        "*.rb",
+        "*.yml",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "RUBY-004",
+      "name": "符号转字符串导致内存泄漏（Symbol DoS）",
+      "severity": "medium",
+      "category": "memory_management",
+      "description": "Ruby中Symbol对象不会被GC回收（Ruby 2.2之前），将用户输入通过to_sym转为符号会导致符号表无限增长，最终耗尽内存造成拒绝服务（DoS）。即使在Ruby 2.2+中部分符号可被回收，大量符号仍会造成显著内存压力。",
+      "suggestion": "避免将用户输入转为Symbol，使用String比较：\n```ruby\n# 危险 - 用户输入转符号\nkey = params[:key].to_sym # 内存泄漏！\nconfig[key]\n\n# 安全 - 使用字符串键\nkey = params[:key]\nconfig[key]\n\n# 或使用HashWithIndifferentAccess\nconfig = HashWithIndifferentAccess.new(config)\nconfig[params[:key]] # 字符串和符号等价访问\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    },
+    {
+      "id": "RUBY-005",
+      "name": "Rails mass assignment未限制可赋值字段",
+      "severity": "high",
+      "category": "mass_assignment",
+      "description": "Rails的mass assignment允许通过Hash批量赋值模型属性，如果未限制可赋值字段（attr_accessible/strong parameters），攻击者可以通过构造请求参数修改受保护字段（如admin、role、is_active），实现权限提升。",
+      "suggestion": "使用strong parameters限制可赋值字段：\n```ruby\n# 危险 - 直接permit all\nUser.create(params[:user]) # 攻击者可设置admin=true\n\n# 安全 - strong parameters\nprivate\ndef user_params\n  params.require(:user).permit(:name, :email, :password) # 仅允许安全字段\nend\n\nUser.create(user_params)\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    },
+    {
+      "id": "RUBY-006",
+      "name": "render直接使用用户参数（路径遍历）",
+      "severity": "high",
+      "category": "path_traversal",
+      "description": "将用户参数直接传给render方法指定模板，攻击者可以通过路径遍历（../../）读取服务器上的任意文件，包括配置文件、源代码、密钥文件等敏感内容。",
+      "suggestion": "使用白名单验证模板名称：\n```ruby\n# 危险\nrender template: params[:page]\nrender file: params[:file]\n\n# 安全 - 白名单\ntemplates = %w[home about contact]\npage = templates.include?(params[:page]) ? params[:page] : 'home'\nrender template: page\n\n# 或使用固定前缀 + basename\nrender template: \"pages/#{File.basename(params[:page])}\"\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    },
+    {
+      "id": "RUBY-007",
+      "name": "未使用强参数（permit/require）",
+      "severity": "medium",
+      "category": "parameter_handling",
+      "description": "在Controller中直接使用params而不通过require和permit过滤，所有请求参数都可以直接传递给模型层。这不仅违反了strong parameters安全实践，还可能导致意外的数据修改和权限提升。",
+      "suggestion": "始终使用strong parameters：\n```ruby\n# 危险 - 未过滤\n@user = User.new(params[:user])\n\n# 安全 - strong parameters\n@user = User.new(user_params)\n\nprivate\ndef user_params\n  params.require(:user).permit(:name, :email)\nend\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    },
+    {
+      "id": "RUBY-008",
+      "name": "回调中执行数据库操作导致N+1",
+      "severity": "medium",
+      "category": "performance",
+      "description": "在ActiveRecord回调（after_create、after_save、after_commit等）中执行关联查询或遍历集合，当批量操作时会产生N+1查询问题。例如创建100条记录，每条记录的回调又查询关联数据，导致数百次数据库访问。",
+      "suggestion": "避免在回调中做复杂查询，使用批量操作或延迟队列：\n```ruby\n# 危险 - 回调中查询\nclass Order < ApplicationRecord\n  after_create :notify_seller\n  \n  def notify_seller\n    seller = Seller.find(seller_id) # 每条记录触发一次查询\n    SellerMailer.notify(seller, self).deliver_later\n  end\nend\n\n# 安全 - 使用Sidekiq等异步队列\nclass Order < ApplicationRecord\n  after_create :enqueue_notification\n  \n  def enqueue_notification\n    OrderNotificationJob.perform_later(id)\n  end\nend\n```",
+      "applicable_files": [
+        "*.rb"
+      ]
+    }
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 3,
+    "medium": 3,
+    "low": 0
+  }
+}

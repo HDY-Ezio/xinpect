@@ -1,0 +1,355 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": 7,
+        "module": "architecture",
+        "description": "设计模式规则 - 反模式检测、SOLID原则、DRY原则",
+        "standard_refs": [
+            "Design Patterns(GoF)",
+            "Clean Code",
+            "Refactoring(Martin Fowler)",
+            "SOLID Principles"
+        ],
+        "total_rules": 30
+    },
+    "rules": [
+        {
+            "id": "ARCH-DP-001",
+            "name": "Shotgun Surgery/散弹式修改",
+            "severity": "high",
+            "category": "anti_pattern",
+            "description": "一个变更需要修改多个类中的多个方法，说明相关行为没有集中在一起",
+            "suggestion": "将相关行为集中到单一类中；使用内联合并(Inline Class)减少分散",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DP-002",
+            "name": "Speculative Generality/过度泛化",
+            "severity": "medium",
+            "category": "anti_pattern",
+            "description": "创建了抽象类、接口或泛型代码，但当前只有一个实现，且未来可能永远只有一个",
+            "suggestion": "YAGNI原则：移除未使用的抽象；需要时再引入泛化；遵循Rule of Three",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DP-003",
+            "name": "Service Locator反模式",
+            "severity": "high",
+            "category": "anti_pattern",
+            "description": "使用Service Locator全局注册表获取依赖，隐藏了类的真实依赖，难以测试和推理",
+            "suggestion": "使用构造函数注入显式声明依赖；避免Service Locator和全局DI容器直接访问",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-004",
+            "name": "Singleton滥用",
+            "severity": "high",
+            "category": "anti_pattern",
+            "description": "过度使用Singleton模式管理全局状态，导致隐式耦合、测试困难、并发问题",
+            "suggestion": "使用依赖注入替代Singleton；如确需全局状态，使用显式的状态容器",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.js"
+            ]
+        },
+        {
+            "id": "ARCH-DP-005",
+            "name": "Golden Hammer/金锤模式",
+            "severity": "medium",
+            "category": "anti_pattern",
+            "description": "对所有问题都使用同一种解决方案(如所有操作都用Redis/所有问题都用微服务)，不考虑适用性",
+            "suggestion": "根据问题选择最合适的方案；评估复杂度、性能、成本等因素",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.js",
+                "*.yaml",
+                "*.yml"
+            ]
+        },
+        {
+            "id": "ARCH-DP-006",
+            "name": "Boat Anchor/船锚模式",
+            "severity": "high",
+            "category": "anti_pattern",
+            "description": "引入不需要的重量级框架或库来解决简单问题，增加系统复杂度和维护成本",
+            "suggestion": "评估需求复杂度；优先使用轻量级方案；必要时才引入重量级框架",
+            "applicable_files": [
+                "*.json",
+                "*.yaml",
+                "*.yml",
+                "*.toml"
+            ]
+        },
+        {
+            "id": "ARCH-DP-007",
+            "name": "SRP违反 - 类有多个变更原因",
+            "severity": "high",
+            "category": "solid_principle",
+            "description": "一个类因为多个原因需要修改(如业务逻辑变化+数据库变化+UI变化)，违反单一职责原则",
+            "suggestion": "将不同变更原因拆分到不同的类；每个类只有一个变更理由",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-008",
+            "name": "OCP违反 - 修改而非扩展",
+            "severity": "high",
+            "category": "solid_principle",
+            "description": "添加新功能需要修改现有类的核心逻辑，而非通过扩展实现，违反开闭原则",
+            "suggestion": "使用策略模式、模板方法模式或插件架构；通过抽象和接口支持扩展",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-009",
+            "name": "LSP违反 - 子类无法替换父类",
+            "severity": "critical",
+            "category": "solid_principle",
+            "description": "子类重写方法后行为与父类契约不一致(如抛出父类不抛出的异常、弱化前置条件)，违反里氏替换原则",
+            "suggestion": "子类必须遵守父类的契约(前置条件不强化、后置条件不弱化)；重新审视继承关系",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-010",
+            "name": "ISP违反 - 接口过大",
+            "severity": "high",
+            "category": "solid_principle",
+            "description": "接口定义的方法过多，实现类被迫实现不需要的方法(只能throw NotImplementedException)，违反接口隔离原则",
+            "suggestion": "将大接口拆分为多个小接口；实现类只实现需要的接口；使用组合替代",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-011",
+            "name": "DIP违反 - 依赖具体实现",
+            "severity": "high",
+            "category": "solid_principle",
+            "description": "高层模块直接依赖低层模块的具体类(如Service直接new Repository)，而非依赖抽象接口，违反依赖倒置原则",
+            "suggestion": "定义抽象接口；高层和低层都依赖接口；使用依赖注入提供实现",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-012",
+            "name": "违反组合优于继承",
+            "severity": "medium",
+            "category": "solid_principle",
+            "description": "使用深层继承链(超过3层)实现功能复用，导致类爆炸和脆弱基类问题",
+            "suggestion": "使用组合+委托替代继承；提取公共行为到可组合的组件/模块",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-013",
+            "name": "违反Tell Don't Ask",
+            "severity": "medium",
+            "category": "solid_pattern",
+            "description": "代码先get对象的多个属性做判断，再set回去，暴露了对象的内部状态",
+            "suggestion": "将操作封装为对象的方法：user.deactivate() 而非 if(user.isActive()) user.setStatus(false)",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-014",
+            "name": "违反Law of Demeter/得墨忒耳法则",
+            "severity": "medium",
+            "category": "solid_pattern",
+            "description": "代码链式调用多层对象：order.getUser().getAddress().getCity()，过度暴露对象导航结构",
+            "suggestion": "遵循只与直接朋友交谈；提取方法到中间对象或当前对象",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-015",
+            "name": "违反Don't Repeat Yourself(DRY)",
+            "severity": "high",
+            "category": "solid_pattern",
+            "description": "相同业务规则在多处重复实现(如订单金额计算在下单、退款、统计中各写一遍)",
+            "suggestion": "提取共享逻辑到Domain Service或工具方法；确保单一真相源(Single Source of Truth)",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.js"
+            ]
+        },
+        {
+            "id": "ARCH-DP-016",
+            "name": "违反Separation of Concerns",
+            "severity": "high",
+            "category": "solid_pattern",
+            "description": "一个模块同时处理多个关注点(如认证+日志+业务逻辑+缓存混在一起)",
+            "suggestion": "使用AOP或中间件分离横切关注点；核心逻辑只包含业务规则",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.js"
+            ]
+        },
+        {
+            "id": "ARCH-DP-017",
+            "name": "缺少Factory处理复杂对象创建",
+            "severity": "medium",
+            "category": "design_pattern",
+            "description": "复杂对象的创建逻辑散布在多处(new XxxService + set各种属性)，重复且容易遗漏",
+            "suggestion": "使用工厂方法或Builder模式封装对象创建逻辑",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-018",
+            "name": "缺少Observer处理事件通知",
+            "severity": "medium",
+            "category": "design_pattern",
+            "description": "多个模块需要响应同一事件，但通过硬编码调用实现，新增监听者需要修改发布者",
+            "suggestion": "使用观察者模式或事件总线(EventBus)解耦发布和订阅",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts",
+                "*.js"
+            ]
+        },
+        {
+            "id": "ARCH-DP-019",
+            "name": "缺少Strategy处理多变算法",
+            "severity": "medium",
+            "category": "design_pattern",
+            "description": "业务中存在大量if/else或switch分支处理不同的算法变体(如不同支付方式、不同折扣规则)",
+            "suggestion": "使用策略模式：定义Strategy接口，每种变体实现一个Strategy类",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-020",
+            "name": "缺少Repository抽象数据访问",
+            "severity": "high",
+            "category": "design_pattern",
+            "description": "业务代码直接使用SQL或ORM API，数据访问逻辑与业务逻辑耦合",
+            "suggestion": "使用Repository模式封装数据访问；业务层通过Repository接口操作数据",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-021",
+            "name": "缺少Decorator增强功能",
+            "severity": "low",
+            "category": "design_pattern",
+            "description": "需要动态添加功能(如日志、缓存、鉴权)到现有类，但通过修改原始类实现",
+            "suggestion": "使用装饰器模式或中间件链；动态组合功能而非修改原始类",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        },
+        {
+            "id": "ARCH-DP-022",
+            "name": "缺少Adapter适配不兼容接口",
+            "severity": "medium",
+            "category": "design_pattern",
+            "description": "集成第三方服务时直接修改业务代码适配其接口，或到处做格式转换",
+            "suggestion": "使用适配器模式(Adapter)封装第三方接口；业务代码只依赖内部标准接口",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.ts"
+            ]
+        }
+    ]
+}

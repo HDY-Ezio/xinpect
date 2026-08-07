@@ -1,0 +1,206 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain3_semantic",
+    "generated": "2026-08",
+    "description": "数值精度与金融计算安全规则集，覆盖浮点数精度、金融金额计算、精度丢失、舍入策略、货币类型统一等涉及数值计算正确性的语义风险",
+    "total_rules": 10,
+    "standards_reference": [
+      "IEEE 754 Floating-Point Standard",
+      "OWASP Financial Security Guidelines",
+      "CWE-682 (Incorrect Calculation)",
+      "CWE-190 (Integer Overflow)",
+      "GAAP Accounting Standards"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEM-NUM-001",
+      "name": "金融金额使用float类型",
+      "severity": "critical",
+      "category": "numeric-precision",
+      "description": "使用float或double类型存储金融金额。IEEE 754浮点数无法精确表示大部分十进制小数（如0.1在float中实际存储为0.1000000024...），导致金额存储本身就存在误差。在金融场景中，即使是微小的精度偏差也可能在大量交易中累积为可观的金额差异。例如，0.1 + 0.2在JavaScript中等于0.30000000000000004而非0.3。这可能导致账目不平、客户投诉、监管合规问题甚至法律责任。",
+      "suggestion": "1. 使用Decimal/BigDecimal类型存储金额；2. 以最小货币单位（分/角）存储整数金额；3. 数据库使用DECIMAL(p,s)类型而非FLOAT/DOUBLE；4. 在API接口中，金额以字符串格式传输避免JSON解析精度丢失。\n\n示例（Java）：\n```java\n// 错误\nfloat price = 19.99f;  // 实际值可能是19.98999977...\ndouble amount = 0.1 + 0.2;  // 0.30000000000000004\n\n// 正确\nBigDecimal price = new BigDecimal(\"19.99\");\nBigDecimal total = new BigDecimal(\"0.1\").add(new BigDecimal(\"0.2\"));  // 精确0.3\n\n// 以分为单位存储\nlong priceInCents = 1999L;  // 19.99元\n```\n\n示例（Python）：\n```python\nfrom decimal import Decimal\n\n# 错误\nprice = 19.99  # float，不精确\n\n# 正确\nprice = Decimal('19.99')\ntotal = Decimal('0.1') + Decimal('0.2')  # 精确的Decimal('0.3')\n```\n\n示例（SQL）：\n```sql\n-- 错误\nCREATE TABLE orders (amount FLOAT);\n\n-- 正确\nCREATE TABLE orders (amount DECIMAL(18,2));\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.sql",
+        "*.kt",
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SEM-NUM-002",
+      "name": "金额计算使用浮点运算",
+      "severity": "critical",
+      "category": "numeric-precision",
+      "description": "在金额相关的计算（加减乘除、求和、平均值、折扣计算等）中使用浮点运算而非精确运算。浮点运算的精度问题在单次计算中可能微小，但在迭代计算（如利息计算、分期还款、聚合统计）中会逐步累积。特别是在除法运算中（如税率计算、折扣率、比例分配），浮点精度丢失更加严重。例如，将100元分3份，每份33.33元，总和99.99元，丢失0.01元。",
+      "suggestion": "1. 所有金额计算使用Decimal/BigDecimal类型；2. 除法运算明确指定精度和舍入模式；3. 对分配计算（如分成、分账）使用余数分配法确保总额一致；4. 计算结果在存储前进行四舍五入到目标精度；5. 在关键计算路径上增加金额平衡校验（如借贷平衡检查）。\n\n示例（Java）：\n```java\n// 错误\nfloat subtotal = price * quantity;  // 浮点乘法\nfloat tax = subtotal * 0.13f;  // 浮点税率计算\nfloat total = subtotal + tax;\n\n// 正确\nBigDecimal subtotal = price.multiply(quantity);\nBigDecimal tax = subtotal.multiply(new BigDecimal(\"0.13\"))\n    .setScale(2, RoundingMode.HALF_UP);  // 明确精度和舍入\nBigDecimal total = subtotal.add(tax);\n```\n\n示例（Python）：\n```python\nfrom decimal import Decimal, ROUND_HALF_UP\n\n# 金额分配计算\namount = Decimal('100.00')\nparts = 3\nshare = (amount / parts).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)\nremainder = amount - share * parts  # 余数\n# 将余数分配给最后一个\nshares = [share] * (parts - 1) + [share + remainder]\nassert sum(shares) == amount  # 确保总额一致\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.kt",
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SEM-NUM-003",
+      "name": "金额比较使用==而非容差",
+      "severity": "high",
+      "category": "numeric-precision",
+      "description": "使用==操作符直接比较浮点数金额是否相等。由于浮点数的精度问题，两个理论上相等的金额在浮点表示中可能不完全相同，导致比较结果为false。例如：0.1 + 0.2 == 0.3在大多数编程语言中返回false。这在支付状态判断、余额校验、对账等场景中可能导致错误的业务逻辑（如误判支付失败、错误标记异常交易）。",
+      "suggestion": "1. 使用BigDecimal/Decimal类型进行比较（支持精确相等判断）；2. 如果必须使用浮点数，使用容差比较（epsilon比较）；3. 对金额比较统一使用compareTo方法而非==；4. 在业务逻辑中使用整数最小单位比较。\n\n示例（JavaScript）：\n```javascript\n// 错误\nif (amount === 0.3) { ... }  // 0.1 + 0.2 !== 0.3\n\n// 正确：使用容差比较\nconst EPSILON = 0.001;\nif (Math.abs(amount - 0.3) < EPSILON) { ... }\n\n// 最佳：使用整数分进行比较\nif (amountInCents === 30) { ... }\n```\n\n示例（Java）：\n```java\n// 错误\nif (amount.doubleValue() == 100.00) { ... }\n\n// 正确：使用compareTo\nif (amount.compareTo(new BigDecimal(\"100.00\")) == 0) { ... }\n```\n\n示例（Python）：\n```python\n# 错误\nif amount == 0.3:  # 可能失败\n\n# 正确\nfrom decimal import Decimal\nif amount == Decimal('0.3'):  # Decimal精确比较\n\n# 或数学近似比较\nimport math\nif math.isclose(amount, 0.3, abs_tol=1e-9):  # 浮点容差比较\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.kt",
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SEM-NUM-004",
+      "name": "金额字段未指定精度",
+      "severity": "high",
+      "category": "numeric-precision",
+      "description": "数据库或代码中的金额/货币字段未明确指定精度和小数位数。这可能导致：1) 数据库存储时精度不确定，不同数据库引擎的默认精度不同；2) 超大金额超出字段范围导致溢出或截断；3) 小数位数不一致导致计算和对账异常；4) 在数据迁移时丢失精度。例如，某些数据库的FLOAT默认精度为7位有效数字，1000000.01可能存储为1000000.0。",
+      "suggestion": "1. 数据库金额字段始终指定DECIMAL(p, s)，如DECIMAL(18, 2)；2. 根据业务需求选择合适的精度（通常金额2位、汇率4-6位）；3. 在代码中使用固定精度的类型；4. 在API Schema中明确定义数值精度。\n\n示例（SQL）：\n```sql\n-- 错误\nCREATE TABLE products (\n    price FLOAT,  -- 精度不确定\n    cost REAL     -- 精度不确定\n);\n\n-- 正确\nCREATE TABLE products (\n    price DECIMAL(18,2),     -- 商品金额，2位小数\n    cost DECIMAL(18,2),\n    exchange_rate DECIMAL(10,6)  -- 汇率，6位小数\n);\n```\n\n示例（Java）：\n```java\n// 定义金额类型别名\npublic class Money {\n    private final BigDecimal amount;\n    private final int scale;  // 明确精度\n    \n    public Money(String amount) {\n        this.amount = new BigDecimal(amount).setScale(2, RoundingMode.HALF_UP);\n        this.scale = 2;\n    }\n}\n```",
+      "applicable_files": [
+        "*.sql",
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.kt"
+      ]
+    },
+    {
+      "id": "SEM-NUM-005",
+      "name": "汇率转换未处理精度丢失",
+      "severity": "high",
+      "category": "numeric-precision",
+      "description": "在进行货币汇率转换时，未正确处理中间计算的精度。汇率通常是4-6位小数，转换过程中如果过早四舍五入或精度截断，会导致最终金额偏差。特别是在多次连续转换（如CNY->USD->EUR）中，每次转换的精度损失会累积。此外，不同货币的最小单位不同（日元无小数、巴林第纳尔3位小数），统一处理可能导致精度问题。",
+      "suggestion": "1. 中间计算保持高精度，仅在最终结果时四舍五入到目标货币精度；2. 使用足够精度的汇率（至少6位小数）；3. 记录每次转换使用的汇率和时间戳，支持对账和审计；4. 对连续转换场景，考虑使用基准货币中转；5. 处理不同货币的小数位数差异。\n\n示例（Python）：\n```python\nfrom decimal import Decimal, getcontext\n\n# 设置足够高的计算精度\ngetcontext().prec = 28\n\ndef convert_currency(amount: Decimal, rate: Decimal, \n                     target_currency_decimals: int) -> Decimal:\n    # 中间计算保持高精度\n    converted = amount * rate\n    # 仅在最终结果时四舍五入\n    return converted.quantize(\n        Decimal(10) ** -target_currency_decimals,\n        rounding=ROUND_HALF_UP\n    )\n\n# 日元转换（0位小数）\namount_cny = Decimal('1000.00')\nrate_cny_jpy = Decimal('20.3456')\namount_jpy = convert_currency(amount_cny, rate_cny_jpy, 0)  # 20346\n```\n\n示例（Java）：\n```java\npublic BigDecimal convertCurrency(BigDecimal amount, BigDecimal rate,\n                                   int targetScale) {\n    // 使用MathContext保持中间计算精度\n    MathContext mc = new MathContext(20, RoundingMode.HALF_UP);\n    BigDecimal converted = amount.multiply(rate, mc);\n    return converted.setScale(targetScale, RoundingMode.HALF_UP);\n}\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.kt"
+      ]
+    },
+    {
+      "id": "SEM-NUM-006",
+      "name": "百分比计算分母未校验零值",
+      "severity": "high",
+      "category": "calculation-safety",
+      "description": "在计算百分比、比例、增长率等涉及除法的场景中，未对分母进行零值校验。当分母为零时，可能导致除零异常（程序崩溃）、返回Infinity或NaN（后续计算异常）、或在某些语言中返回0（静默错误）。这在业务报表、数据统计、进度计算等场景中很常见。例如，计算完成率=已完成/总数，当总数为0时触发除零；计算同比增长率=(今年-去年)/去年，去年数据为0时出错。",
+      "suggestion": "1. 所有除法运算前必须校验分母非零；2. 分母为零时根据业务语义返回合适的默认值（0、null、或特定标记值）；3. 使用Optional/Maybe模式处理可能为零的场景；4. 对统计计算增加数据有效性前置检查。\n\n示例（Java）：\n```java\n// 错误\npublic double calculateCompletionRate(int completed, int total) {\n    return (double) completed / total;  // total为0时异常\n}\n\n// 正确\npublic Optional<Double> calculateCompletionRate(int completed, int total) {\n    if (total == 0) {\n        return Optional.empty();  // 或根据业务返回0.0\n    }\n    return Optional.of((double) completed / total * 100);\n}\n\n// 或使用BigDecimal\npublic BigDecimal calculatePercentage(BigDecimal numerator, BigDecimal denominator) {\n    if (denominator.compareTo(BigDecimal.ZERO) == 0) {\n        throw new BusinessException(\"分母不能为零\");\n    }\n    return numerator.divide(denominator, 4, RoundingMode.HALF_UP)\n                    .multiply(new BigDecimal(\"100\"));\n}\n```\n\n示例（Python）：\n```python\nfrom decimal import Decimal, DivisionByZero\n\ndef safe_percentage(numerator, denominator, default=Decimal('0')):\n    if denominator == 0:\n        return default  # 业务默认值\n    return (numerator / denominator * 100).quantize(Decimal('0.01'))\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.kt",
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SEM-NUM-007",
+      "name": "大数值未使用bigint/decimal",
+      "severity": "medium",
+      "category": "numeric-precision",
+      "description": "处理可能超出标准整数范围的数值时使用了int/Int32类型。32位整数的最大值为2,147,483,647（约21亿），在以下场景可能溢出：金额以分为单位存储时超过2147万元、用户ID/订单号等自增序列超过21亿、大规模统计数据（累计用户数、交易量）。溢出后数值会变为负数或截断，导致数据错误。即使使用64位int，对于极大数值（如国家GDP以元为单位）也可能不足。",
+      "suggestion": "1. 对于可能超过21亿的数值，使用long/Int64类型；2. 数据库使用BIGINT替代INT；3. 对超大数值使用BigInteger或Decimal类型；4. 自增ID考虑使用雪花算法等分布式ID方案；5. 对关键数值字段增加范围校验。\n\n示例（SQL）：\n```sql\n-- 错误：INT可能溢出\nCREATE TABLE orders (\n    id INT AUTO_INCREMENT,  -- 最大21亿\n    amount_in_cents INT,     -- 最大约2147万元\n    total_users INT          -- 超过21亿时溢出\n);\n\n-- 正确\nCREATE TABLE orders (\n    id BIGINT AUTO_INCREMENT,\n    amount_in_cents BIGINT,\n    total_users BIGINT\n);\n```\n\n示例（Java）：\n```java\n// 使用long替代int\nlong userId = 3_000_000_000L;  // 超过int范围\nlong amountInCents = 100_000_000_000L;  // 10亿元=1000亿分\n\n// 超大数值使用BigInteger\nBigInteger totalGDP = new BigInteger(\"121020000000000\"); // 121万亿\n```\n\n示例（JavaScript）：\n```javascript\n// JavaScript中Number安全整数范围为±2^53-1\n// 超过此范围使用BigInt\nconst bigId = 9007199254740993n;  // BigInt\nconst result = bigId + 1n;  // 9007199254740994n\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.sql",
+        "*.kt"
+      ]
+    },
+    {
+      "id": "SEM-NUM-008",
+      "name": "四舍五入策略不一致",
+      "severity": "medium",
+      "category": "numeric-precision",
+      "description": "项目中不同模块或函数使用了不同的舍入策略（如有的使用ROUND_HALF_UP四舍五入，有的使用ROUND_HALF_EVEN银行家舍入，有的使用截断），导致相同计算在不同位置产生不同结果。这在财务报表中会导致数据不一致、对账困难。例如，银行家舍入（ROUND_HALF_EVEN）在.5时会舍入到偶数方向（2.5→2, 3.5→4），而传统四舍五入（ROUND_HALF_UP）总是向上舍入（2.5→3, 3.5→4）。",
+      "suggestion": "1. 在项目中统一舍入策略，通过全局配置或常量定义；2. 封装统一的金额计算工具类，所有金额操作通过该类进行；3. 在文档中明确业务采用的舍入规则；4. 对金融计算，明确遵循相关会计准则的舍入要求。\n\n示例（Java）：\n```java\n// 统一的金额工具类\npublic class MoneyUtils {\n    // 全局舍入模式 - 统一配置\n    public static final RoundingMode DEFAULT_ROUNDING = RoundingMode.HALF_UP;\n    public static final int DEFAULT_SCALE = 2;\n    \n    public static BigDecimal round(BigDecimal value) {\n        return value.setScale(DEFAULT_SCALE, DEFAULT_ROUNDING);\n    }\n    \n    public static BigDecimal divide(BigDecimal a, BigDecimal b) {\n        return a.divide(b, DEFAULT_SCALE + 4, RoundingMode.HALF_UP)  // 中间高精度\n                .setScale(DEFAULT_SCALE, DEFAULT_ROUNDING);           // 最终舍入\n    }\n    \n    public static BigDecimal add(BigDecimal... values) {\n        BigDecimal sum = BigDecimal.ZERO;\n        for (BigDecimal v : values) {\n            sum = sum.add(v);\n        }\n        return round(sum);\n    }\n}\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.kt"
+      ]
+    },
+    {
+      "id": "SEM-NUM-009",
+      "name": "货币类型未统一（CNY/USD混用）",
+      "severity": "medium",
+      "category": "currency-handling",
+      "description": "在存储或计算过程中未区分货币类型，导致不同货币的金额被直接混合计算或比较。例如，将100元人民币和100美元直接相加得到'200'，或将CNY价格与USD价格直接比较。在国际化业务中，数据库中的金额字段可能缺少货币类型标识，导致读取时无法确定货币单位。这类问题在跨境电商、多币种结算、国际汇款等场景中尤为常见，可能导致严重的财务错误。",
+      "suggestion": "1. 金额存储时始终关联货币类型（使用Currency字段或Money类型）；2. 使用JSR-354 Money and Currency API或类似库；3. 在数据库中增加currency_code字段（ISO 4217）；4. 禁止不同货币的直接算术运算；5. 明确转换时机和汇率来源。\n\n示例（Java - 使用Money类型）：\n```java\n// 使用javax.money API\n MonetaryAmount cnyAmount = Monetary.getDefaultAmountFactory()\n    .setCurrency(Monetary.getCurrency(\"CNY\"))\n    .setNumber(new BigDecimal(\"100.00\"))\n    .create();\n\nMonetaryAmount usdAmount = Monetary.getDefaultAmountFactory()\n    .setCurrency(Monetary.getCurrency(\"USD\"))\n    .setNumber(new BigDecimal(\"100.00\"))\n    .create();\n\n// 不同货币不能直接相加 - 会抛出异常！\n// cnyAmount.add(usdAmount);  // MonetaryException!\n\n// 必须先转换\nCurrencyConversion conversion = MonetaryConversions\n    .getConversion(\"USD\");\nMonetaryAmount cnyInUsd = cnyAmount.with(conversion);\nMonetaryAmount total = cnyInUsd.add(usdAmount);  // 现在可以相加\n```\n\n示例（SQL）：\n```sql\n-- 错误：金额字段无货币标识\nCREATE TABLE orders (amount DECIMAL(18,2));\n\n-- 正确：包含货币代码\nCREATE TABLE orders (\n    amount DECIMAL(18,2),\n    currency_code CHAR(3) DEFAULT 'CNY',  -- ISO 4217\n    CHECK (currency_code IN ('CNY', 'USD', 'EUR', 'GBP', 'JPY'))\n);\n```",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.sql",
+        "*.kt"
+      ]
+    },
+    {
+      "id": "SEM-NUM-010",
+      "name": "金额展示未格式化（缺少千分位/单位）",
+      "severity": "low",
+      "category": "display-formatting",
+      "description": "金额在前端展示时直接显示原始数值，未进行适当的格式化。问题包括：缺少千分位分隔符（显示1000000而非1,000,000）、缺少货币符号或单位、小数位数不一致（有时显示100元，有时显示100.00元）、科学计数法展示（如1e+6）。不良的金额展示影响用户理解和信任，可能导致用户输错金额或在关键交易中产生困惑。在国际化场景中，不同地区的数字格式差异（千分位用逗号还是句号）也需要正确处理。",
+      "suggestion": "1. 使用国际化（i18n）格式化工具展示金额；2. 统一小数位数（通常2位）；3. 添加适当的货币符号和千分位分隔符；4. 根据用户地区设置使用本地化格式；5. 对大金额提供简写展示（如1.5万、100万）。\n\n示例（JavaScript）：\n```javascript\n// 错误\nconst display = amount;  // 直接显示1000000\n\n// 正确：使用Intl.NumberFormat\nconst formatCurrency = (amount, currency = 'CNY', locale = 'zh-CN') => {\n    return new Intl.NumberFormat(locale, {\n        style: 'currency',\n        currency: currency,\n        minimumFractionDigits: 2,\n        maximumFractionDigits: 2\n    }).format(amount);\n};\n\nformatCurrency(1234567.89);  // ¥1,234,567.89\nformatCurrency(1234567.89, 'USD', 'en-US');  // $1,234,567.89\n```\n\n示例（Java）：\n```java\n// 使用NumberFormat\nNumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CHINA);\ncurrencyFormat.format(1234567.89);  // ¥1,234,567.89\n\n// 或使用DecimalFormat自定义\nDecimalFormat df = new DecimalFormat(\"#,##0.00\");\ndf.format(1234567.89);  // 1,234,567.89\n```\n\n示例（Python）：\n```python\nimport locale\n# 设置中文环境\nlocale.setlocale(locale.LC_ALL, 'zh_CN.UTF-8')\nlocale.currency(1234567.89, symbol=True, grouping=True)  # ¥1,234,567.89\n```",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html",
+        "*.java",
+        "*.py",
+        "*.cs",
+        "*.swift",
+        "*.kt"
+      ]
+    }
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 4,
+    "medium": 3,
+    "low": 1
+  }
+}

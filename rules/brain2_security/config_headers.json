@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "id": "SEC-159",
+      "name": "配置错误：默认凭证未修改",
+      "severity": "critical",
+      "category": "misconfiguration",
+      "description": "使用默认用户名密码(admin/admin、root/root)或测试账户未删除，攻击者可轻松获取系统访问权限。OWASP Top 10 A05:2021。",
+      "suggestion": "首次登录强制修改默认密码；删除所有测试账户和默认账户；使用强密码策略；对管理账户启用MFA；定期审计账户列表。",
+      "applicable_files": [
+        "*.yaml",
+        "*.json",
+        "*.properties",
+        "*.env",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "SEC-160",
+      "name": "配置错误：调试模式启用",
+      "severity": "high",
+      "category": "misconfiguration",
+      "description": "生产环境启用调试模式(Django DEBUG=True、Flask debug=True、Spring Boot actuator暴露)暴露敏感信息和堆栈跟踪。",
+      "suggestion": "生产环境禁用调试模式；使用环境变量控制调试开关；移除调试中间件和工具；对调试接口实施严格的访问控制。",
+      "applicable_files": [
+        "*.py",
+        "*.yaml",
+        "*.properties",
+        "*.env",
+        "*.java"
+      ]
+    }
+  ]
+}

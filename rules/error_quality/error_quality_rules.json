@@ -1,0 +1,271 @@
+{
+  "metadata": {
+    "platform": "error_quality",
+    "version": "1.0",
+    "author": "煋旺智能"
+  },
+  "rules": [
+    {
+      "check_id": "EQ-001",
+      "name": "catch块仅打印日志未处理异常",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "catch/except块中只有print/log语句，异常被吞没后程序继续执行，可能产生错误数据",
+      "pattern": "except\\s+\\w+\\s+as\\s+\\w+\\s*:",
+      "file_pattern": "*.py",
+      "suggestion": "在记录日志后应重新抛出异常或返回明确的错误响应，而非让程序继续执行",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/390.html",
+        "https://cwe.mitre.org/data/definitions/396.html"
+      ]
+    },
+    {
+      "check_id": "EQ-002",
+      "name": "错误消息中泄露文件路径",
+      "severity": "high",
+      "category": "security",
+      "description": "错误响应或日志中包含服务器文件路径信息，攻击者可利用路径信息发起路径遍历攻击",
+      "pattern": "(?:raise|return|Response)\\s*\\(?.*?(?:/home/|/var/|/etc/|/opt/|/usr/)",
+      "file_pattern": "*",
+      "suggestion": "错误消息中不要暴露服务器内部路径，使用通用错误描述替代",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/05-Review_Webpage_Content_for_Information_Leakage"
+      ]
+    },
+    {
+      "check_id": "EQ-003",
+      "name": "错误消息中泄露堆栈信息",
+      "severity": "high",
+      "category": "security",
+      "description": "将完整的异常堆栈信息返回给客户端，暴露内部实现细节和代码结构",
+      "pattern": "(?:return|Response|res\\.(?:send|json))\\s*\\(?.*?(?:traceback|stack_trace|stackTrace|\\.stack)",
+      "file_pattern": "*",
+      "suggestion": "向客户端返回通用错误消息，完整堆栈仅记录到内部日志系统",
+      "references": [
+        "https://owasp.org/www-community/attacks/Full_Error_Disclosure"
+      ]
+    },
+    {
+      "check_id": "EQ-004",
+      "name": "错误消息中泄露SQL语句",
+      "severity": "critical",
+      "category": "security",
+      "description": "数据库错误信息（含SQL语句）直接返回给用户，暴露数据库结构便于SQL注入攻击",
+      "pattern": "(?:return|Response|res\\.(?:send|json))\\s*\\(?.*?(?:\\bSQL\\b|\\bquery\\b|\\bSELECT\\b|\\bINSERT\\b|\\bUPDATE\\b|\\bDELETE\\b)",
+      "file_pattern": "*",
+      "suggestion": "捕获数据库异常后返回通用错误信息，SQL错误详情仅记录到内部日志",
+      "references": [
+        "https://owasp.org/www-community/attacks/Full_Error_Disclosure",
+        "https://cwe.mitre.org/data/definitions/209.html"
+      ]
+    },
+    {
+      "check_id": "EQ-005",
+      "name": "无退避策略的重试循环",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "重试逻辑使用固定间隔或无间隔循环重试，可能对下游服务造成DDoS效果",
+      "pattern": "while\\s+True\\s*:",
+      "file_pattern": "*.py",
+      "suggestion": "实现指数退避策略（如tenacity库），设置最大重试次数和退避时间上限",
+      "references": [
+        "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/"
+      ]
+    },
+    {
+      "check_id": "EQ-006",
+      "name": "catch Exception过于宽泛",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "使用except Exception捕获所有异常，可能掩盖编程错误（如TypeError、NameError）",
+      "pattern": "except\\s+(?:Exception|BaseException)\\s*(?:as\\s+\\w+)?\\s*:",
+      "file_pattern": "*.py",
+      "suggestion": "仅捕获预期的具体异常类型，或在宽泛catch中重新抛出非预期异常",
+      "references": [
+        "https://docs.python.org/3/tutorial/errors.html"
+      ]
+    },
+    {
+      "check_id": "EQ-007",
+      "name": "catch all (JS中捕获所有错误)",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "全局捕获所有错误后静默处理，掩盖了程序中的真实问题",
+      "pattern": "catch\\s*\\(\\s*\\w*\\s*\\)\\s*\\{\\s*\\}",
+      "file_pattern": "*.js",
+      "suggestion": "在catch块中至少记录错误日志，或只捕获预期的错误类型",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch"
+      ]
+    },
+    {
+      "check_id": "EQ-008",
+      "name": "空的catch块",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "catch/except块完全为空，异常被完全吞没，问题无法被感知和排查",
+      "pattern": "except\\s+\\w+\\s*:\\s*\\n\\s*pass",
+      "file_pattern": "*.py",
+      "suggestion": "至少在catch块中记录错误日志，明确注释说明为何忽略该异常",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/390.html"
+      ]
+    },
+    {
+      "check_id": "EQ-009",
+      "name": "错误码命名不规范",
+      "severity": "low",
+      "category": "error_handling",
+      "description": "使用魔数（magic number）作为错误码，缺乏可读性和可维护性",
+      "pattern": "(?:return|raise|error_code|errcode)\\s*[=:(]\\s*-?\\d{3,}",
+      "file_pattern": "*",
+      "suggestion": "使用枚举或常量定义错误码，配合错误描述字典提供可读的错误信息",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/758.html"
+      ]
+    },
+    {
+      "check_id": "EQ-010",
+      "name": "异常处理后未恢复或退出",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "异常处理后既未恢复状态也未退出流程，程序可能在不一致状态下继续运行",
+      "pattern": "except\\s+\\w+.*:\\s*\\n\\s*(?:print|logging\\.\\w+|log\\.\\w+)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "异常处理后应明确决策：重试、降级返回默认值、或向上层抛出",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/390.html"
+      ]
+    },
+    {
+      "check_id": "EQ-011",
+      "name": "finally块中使用return语句",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "finally块中的return会覆盖try/except块中的return值和异常传播，导致异常被吞没",
+      "pattern": "finally\\s*:\\s*\\n\\s*return\\b",
+      "file_pattern": "*.py",
+      "suggestion": "移除finally块中的return语句，将返回值放在try块中",
+      "references": [
+        "https://docs.python.org/3/reference/compound_stmts.html#the-try-statement"
+      ]
+    },
+    {
+      "check_id": "EQ-012",
+      "name": "重试无最大次数限制",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "重试逻辑缺少最大重试次数限制，在服务持续不可用时将无限重试",
+      "pattern": "while\\s+True\\s*:\\s*\\n\\s*try\\s*:",
+      "file_pattern": "*.py",
+      "suggestion": "设置最大重试次数变量，达到上限后抛出异常或返回错误",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/400.html"
+      ]
+    },
+    {
+      "check_id": "EQ-013",
+      "name": "错误信息硬编码暴露内部系统名",
+      "severity": "medium",
+      "category": "security",
+      "description": "错误消息中包含内部系统名称、服务名或IP地址等敏感信息",
+      "pattern": "(?:error|exception|err|msg)\\s*[=:]\\s*['\"].*?(?:192\\.168\\.|10\\.\\d+\\.\\d+\\.\\d+|172\\.(?:1[6-9]|2\\d|3[01])\\.)",
+      "file_pattern": "*",
+      "suggestion": "使用通用错误码和描述，内部系统信息仅记录到内部监控系统",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/209.html"
+      ]
+    },
+    {
+      "check_id": "EQ-014",
+      "name": "Promise.catch返回非Promise值",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "Promise.catch()回调返回非Promise值，改变了Promise链的语义，后续.then()收到的不是错误恢复后的值",
+      "pattern": "\\.catch\\s*\\(",
+      "file_pattern": "*.js",
+      "suggestion": "在.catch()中明确返回恢复值或重新throw，保持Promise链语义清晰",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/catch"
+      ]
+    },
+    {
+      "check_id": "EQ-015",
+      "name": "使用print代替logging进行错误输出",
+      "severity": "low",
+      "category": "error_handling",
+      "description": "使用print输出错误信息，无法配置日志级别、无法输出到文件、无法接入日志系统",
+      "pattern": "print\\s*\\(\\s*['\"](?:[Ee]rror|[Ff]ail|[Ee]xception)",
+      "file_pattern": "*.py",
+      "suggestion": "使用logging模块替代print，配置合适的日志级别和输出格式",
+      "references": [
+        "https://docs.python.org/3/library/logging.html"
+      ]
+    },
+    {
+      "check_id": "EQ-016",
+      "name": "错误处理中使用了用户不可理解的术语",
+      "severity": "low",
+      "category": "error_handling",
+      "description": "面向用户的错误消息使用了技术术语（如NullPointer、Segmentation），用户无法理解",
+      "pattern": "(?:(?:message|msg|error_msg)\\s*[=:]\\s*['\"]|alert\\s*\\(\\s*['\"])(?:NullPointer|Segmentation|StackOverflow|SIGKILL|ENOMEM)",
+      "file_pattern": "*",
+      "suggestion": "面向用户的错误消息应使用通俗语言，技术细节仅记录到内部日志",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/209.html"
+      ]
+    },
+    {
+      "check_id": "EQ-017",
+      "name": "异常消息拼接中存在格式化注入风险",
+      "severity": "medium",
+      "category": "security",
+      "description": "异常消息中使用用户输入进行字符串格式化，可能导致日志注入或信息泄露",
+      "pattern": "(?:raise|logging\\.\\w+)\\s*\\(?.*?%\\s*(?:request|user_input|params|args|body)",
+      "file_pattern": "*.py",
+      "suggestion": "对用户输入进行转义和截断后再拼接到异常消息中",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/117.html"
+      ]
+    },
+    {
+      "check_id": "EQ-018",
+      "name": "HTTP错误状态码使用不当",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "所有错误都返回500或200状态码，前端无法区分错误类型",
+      "pattern": "status_code\\s*=\\s*200",
+      "file_pattern": "*.py",
+      "suggestion": "根据错误类型返回合适的HTTP状态码（400/401/403/404/500）",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status"
+      ]
+    },
+    {
+      "check_id": "EQ-019",
+      "name": "吞没异步操作的错误",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "异步操作（fetch/async调用）的错误未被捕获，可能导致未处理的Promise rejection",
+      "pattern": "fetch\\s*\\(",
+      "file_pattern": "*.js",
+      "suggestion": "为异步请求添加.catch()或使用async/await配合try-catch",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+      ]
+    },
+    {
+      "check_id": "EQ-020",
+      "name": "bare except（裸异常捕获）",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "使用bare except（不指定异常类型）会捕获所有异常包括SystemExit和KeyboardInterrupt，导致程序无法正常退出",
+      "pattern": "except\\s*:",
+      "file_pattern": "*.py",
+      "suggestion": "至少使用except Exception:，推荐指定具体的异常类型",
+      "references": [
+        "https://docs.python.org/3/tutorial/errors.html"
+      ]
+    }
+  ]
+}

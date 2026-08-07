@@ -1,0 +1,374 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "XSS攻击防护规则集 - 覆盖DOM型/存储型/反射型XSS及防护",
+    "total_rules": 26,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-026",
+      "name": "XSS：innerHTML直接插入用户输入",
+      "severity": "critical",
+      "category": "xss",
+      "description": "将用户输入直接赋值给innerHTML会导致DOM型XSS攻击，攻击者可注入<script>、<img onerror>等恶意代码执行任意操作。OWASP Top 10 A03:2021。",
+      "suggestion": "使用textContent或innerText替代innerHTML；必须使用innerHTML时用DOMPurify.sanitize()清洗；使用框架的安全API(React的JSX自动转义、Vue的{{}})；对用户输入进行HTML实体编码。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-027",
+      "name": "XSS：document.write使用动态内容",
+      "severity": "critical",
+      "category": "xss",
+      "description": "document.write会将参数作为HTML解析执行，传入未经验证的动态内容(如location.hash、URL参数)会导致XSS。",
+      "suggestion": "避免使用document.write；使用DOM API创建元素(document.createElement)并设置textContent；使用现代框架的模板系统；对必须使用document.write的场景严格验证输入。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-028",
+      "name": "XSS：eval和Function构造器执行动态代码",
+      "severity": "critical",
+      "category": "xss",
+      "description": "eval()和new Function()会执行传入的字符串作为JavaScript代码，如果字符串包含用户输入，攻击者可注入任意JS代码。CWE-95。",
+      "suggestion": "避免使用eval和new Function；使用JSON.parse解析JSON数据；使用安全的模板引擎替代字符串拼接；对必须执行动态代码的场景使用沙箱(如VM2)。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-029",
+      "name": "XSS：setTimeout/setInterval的字符串参数",
+      "severity": "high",
+      "category": "xss",
+      "description": "setTimeout和setInterval如果第一个参数是字符串，会像eval一样执行该字符串。传入包含用户输入的字符串会导致XSS。",
+      "suggestion": "使用函数作为setTimeout/setInterval的第一个参数而非字符串；使用箭头函数包裹需要延迟执行的代码；避免将用户输入拼接到定时代码中。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-030",
+      "name": "XSS：URL属性中的JavaScript伪协议",
+      "severity": "high",
+      "category": "xss",
+      "description": "href、src等URL属性如果使用javascript:伪协议，会在点击或加载时执行代码。攻击者可在用户可控的链接中注入javascript:alert(1)。",
+      "suggestion": "对URL属性进行白名单验证(仅允许http/https/mailto)；移除javascript:、vbscript:、data:text/html等危险协议；使用rel='noopener noreferrer'；对用户生成的链接进行清洗。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-031",
+      "name": "XSS：事件处理器属性的动态绑定",
+      "severity": "high",
+      "category": "xss",
+      "description": "onclick、onload、onerror等事件处理器属性如果动态设置为包含用户输入的字符串，会导致XSS。如<img onerror='malicious_code'>。",
+      "suggestion": "使用addEventListener绑定事件而非HTML属性；对用户输入进行严格验证和转义；使用CSP(Content Security Policy)禁止内联脚本；使用框架的安全事件绑定机制。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-032",
+      "name": "XSS：iframe的srcdoc属性注入",
+      "severity": "high",
+      "category": "xss",
+      "description": "iframe的srcdoc属性接受HTML字符串，如果包含用户输入会导致XSS。即使设置了sandbox，某些场景仍可能逃逸。",
+      "suggestion": "避免使用srcdoc属性加载用户内容；必须使用时使用sandbox属性限制权限(sandbox='allow-same-origin'需谨慎)；对srcdoc内容进行HTML清洗；使用postMessage通信替代直接嵌入。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-033",
+      "name": "XSS：React的dangerouslySetInnerHTML未清洗",
+      "severity": "critical",
+      "category": "xss",
+      "description": "React的dangerouslySetInnerHTML等同于innerHTML，直接传入用户数据造成XSS。属性名已明确警告危险性但开发者可能忽略。",
+      "suggestion": "使用DOMPurify.sanitize()清洗后传入；避免对用户生成内容使用dangerouslySetInnerHTML；使用Markdown渲染库(如react-markdown)替代(默认安全)；对富文本编辑器输出进行服务端清洗。",
+      "applicable_files": [
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEC-034",
+      "name": "XSS：Vue的v-html未清洗",
+      "severity": "critical",
+      "category": "xss",
+      "description": "Vue的v-html指令等同于innerHTML，直接渲染用户输入造成存储型/DOM型XSS。Vue文档明确警告此风险。",
+      "suggestion": "使用DOMPurify或isomorphic-dompurify清洗v-html的内容；避免对用户生成内容使用v-html；使用v-text或{{}}替代(自动转义)；对富文本内容在服务端清洗。",
+      "applicable_files": [
+        "*.vue"
+      ]
+    },
+    {
+      "id": "SEC-035",
+      "name": "XSS：服务端渲染的未转义输出",
+      "severity": "critical",
+      "category": "xss",
+      "description": "服务端模板引擎(如EJS、Pug、Jinja2、Thymeleaf)的未转义输出语法(如<%= %>、{!! !!}、|safe)会将用户输入直接渲染为HTML，导致存储型XSS。",
+      "suggestion": "使用模板引擎的自动转义语法(如EJS的<%: %>、Jinja2的{{ }}默认转义)；明确禁用自动转义时确保内容已清洗；对富文本使用HTML清洗库(sanitize-html、bleach)；启用CSP。",
+      "applicable_files": [
+        "*.ejs",
+        "*.pug",
+        "*.jinja2",
+        "*.html",
+        "*.java",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEC-036",
+      "name": "XSS：JSON注入导致的XSS",
+      "severity": "high",
+      "category": "xss",
+      "description": "将JSON数据直接嵌入<script>标签中(如var data = <%= json_data %>)，如果JSON中包含</script>会导致XSS。",
+      "suggestion": "使用JSON.stringify后HTML转义(将<转为\\u003c)；使用data-属性传递数据而非内嵌JSON；使用<script type='application/json'>配合JSON.parse；对JSON数据进行严格转义。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.html",
+        "*.ejs",
+        "*.jinja2"
+      ]
+    },
+    {
+      "id": "SEC-037",
+      "name": "XSS：Angular的bypassSecurityTrust系列方法",
+      "severity": "high",
+      "category": "xss",
+      "description": "Angular的bypassSecurityTrustHtml、bypassSecurityTrustScript等方法会跳过Angular的内置安全检查，直接使用未清洗内容导致XSS。",
+      "suggestion": "避免使用bypassSecurityTrust系列方法；必须使用时确保内容已经过严格清洗；使用DomSanitizer.sanitize()进行清洗；对动态内容进行类型验证。",
+      "applicable_files": [
+        "*.ts",
+        "*.js"
+      ]
+    },
+    {
+      "id": "SEC-038",
+      "name": "XSS：PostMessage的source和origin未验证",
+      "severity": "high",
+      "category": "xss",
+      "description": "监听message事件时未验证event.source和event.origin，可能接收来自恶意源的跨域消息并执行其中的代码。",
+      "suggestion": "验证event.origin是否在白名单中；验证event.source是否为预期的window引用；避免对postMessage数据使用eval或innerHTML；使用structuredClone或JSON解析数据。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-039",
+      "name": "XSS：jQuery的$().html()和append()未清洗",
+      "severity": "high",
+      "category": "xss",
+      "description": "jQuery的.html()、.append()、.after()等方法接受HTML字符串，如果参数包含用户输入会导致XSS。",
+      "suggestion": "使用.text()替代.html()；使用jQuery的DOM创建语法$('<div>').text(userInput)；对必须使用.html()的场景进行输入清洗；升级到jQuery 3.5+(默认清洗某些不安全操作)。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-040",
+      "name": "XSS：CSS表达式和behavior属性注入",
+      "severity": "medium",
+      "category": "xss",
+      "description": "旧版IE的CSS表达式(expression())和behavior属性可执行JavaScript。现代浏览器已弃用但仍需注意兼容性。",
+      "suggestion": "避免用户可控的CSS内容；对CSS使用白名单验证(仅允许安全属性)；移除expression()、behavior、-moz-binding等危险属性；使用CSS变量替代动态计算。",
+      "applicable_files": [
+        "*.css",
+        "*.js",
+        "*.ts",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-041",
+      "name": "XSS：SVG文件中的脚本执行",
+      "severity": "high",
+      "category": "xss",
+      "description": "SVG文件可以包含<script>标签和事件处理器，上传的SVG文件如果被直接渲染会导致XSS。",
+      "suggestion": "对上传的SVG文件进行清洗(移除<script>、on*属性、<foreignObject>等)；使用<img>标签渲染SVG(不执行脚本)；将SVG作为静态资源而非内联HTML；使用DOMPurify清洗SVG。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-042",
+      "name": "XSS：模板字面量和字符串拼接注入",
+      "severity": "high",
+      "category": "xss",
+      "description": "使用模板字面量(``)或+拼接HTML字符串时，如果包含用户输入会导致XSS。即使看起来只是插入文本也可能注入。",
+      "suggestion": "使用框架的模板系统(自动转义)；使用DOM API创建元素而非字符串拼接；对用户输入进行HTML实体编码(& → &amp;, < → &lt;)；使用TextEncoder处理特殊字符。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.vue"
+      ]
+    },
+    {
+      "id": "SEC-043",
+      "name": "XSS：第三方库的XSS漏洞",
+      "severity": "medium",
+      "category": "xss",
+      "description": "某些第三方库(如marked、sanitize-html的旧版本)存在已知的XSS漏洞。未及时更新依赖会导致应用暴露。",
+      "suggestion": "定期更新第三方库到最新版本；使用npm audit或Snyk检测依赖漏洞；对富文本渲染库使用最新版本并配置安全的sanitize选项；监控安全公告。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.package.json"
+      ]
+    },
+    {
+      "id": "SEC-044",
+      "name": "XSS：LocalStorage和SessionStorage的XSS读取",
+      "severity": "medium",
+      "category": "xss",
+      "description": "存储在localStorage/sessionStorage中的敏感数据(如token)如果页面存在XSS漏洞，会被攻击者读取并窃取。",
+      "suggestion": "避免在localStorage中存储敏感信息(token、密码)；使用httpOnly cookie存储认证token；对存储在localStorage的数据进行加密；使用CSP限制脚本来源。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-045",
+      "name": "XSS：WebSocket消息的XSS",
+      "severity": "medium",
+      "category": "xss",
+      "description": "WebSocket接收的消息如果直接渲染到页面(innerHTML或类似方法)，会导致XSS。WebSocket消息通常不经过服务端的XSS清洗。",
+      "suggestion": "对WebSocket接收的消息进行HTML转义后再渲染；使用textContent替代innerHTML；对WebSocket消息进行类型验证和结构验证；在服务端对WebSocket发送的数据进行清洗。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-046",
+      "name": "XSS：Canvas和WebGL的DOM型XSS",
+      "severity": "low",
+      "category": "xss",
+      "description": "在Canvas上绘制用户提供的文本或图像时，如果使用fillText绘制恶意内容并通过toDataURL导出，可能在某些场景下导致XSS。",
+      "suggestion": "对Canvas绘制的文本进行长度和内容验证；避免将用户输入直接用于createObjectURL；对导出的图像数据进行验证；使用CSP限制canvas的数据导出。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-047",
+      "name": "XSS：Shadow DOM中的XSS",
+      "severity": "low",
+      "category": "xss",
+      "description": "Shadow DOM提供了样式隔离但不提供安全隔离。在Shadow DOM中使用innerHTML插入用户输入仍会导致XSS。",
+      "suggestion": "Shadow DOM中同样需要对用户输入进行清洗和转义；使用textContent或DOM API创建元素；不要依赖Shadow DOM作为安全边界；对Shadow DOM内容进行CSP检查。",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-048",
+      "name": "XSS：PDF和Office文档中的XSS",
+      "severity": "medium",
+      "category": "xss",
+      "description": "某些PDF阅读器或Office应用程序会执行嵌入的JavaScript。用户上传的恶意PDF/Office文件如果被在线预览，可能导致XSS。",
+      "suggestion": "对上传的文档进行病毒扫描和内容清洗；使用安全的文档转换服务(如LibreOffice转换为PDF)；禁用PDF中的JavaScript执行；使用sandbox环境预览用户上传的文档。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-049",
+      "name": "XSS：Markdown渲染的XSS",
+      "severity": "high",
+      "category": "xss",
+      "description": "Markdown渲染库如果未正确清洗，会允许HTML标签(如<script>)或危险链接(javascript:)通过，导致XSS。",
+      "suggestion": "使用安全的Markdown渲染库(marked配合sanitize、markdown-it配合sanitize)；启用严格模式禁用HTML标签；对链接进行协议白名单验证；使用DOMPurify作为二次清洗。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEC-050",
+      "name": "XSS：CSP配置不当导致防护失效",
+      "severity": "high",
+      "category": "xss",
+      "description": "Content Security Policy配置不当(如unsafe-inline、unsafe-eval、过宽的白名单)会导致CSP无法有效防护XSS。",
+      "suggestion": "避免使用unsafe-inline和unsafe-eval；使用nonce或hash允许特定内联脚本；限制script-src到可信来源；使用report-uri或report-to接收违规报告；定期审计CSP策略。",
+      "applicable_files": [
+        "*.html",
+        "*.js",
+        "*.nginx.conf",
+        "*.httpd.conf"
+      ]
+    },
+    {
+      "id": "SEC-161",
+      "name": "CWE-79：跨站脚本(XSS)存储型",
+      "severity": "critical",
+      "category": "xss",
+      "description": "用户输入被永久存储(数据库、文件)并在后续请求中未转义输出，导致其他用户执行恶意脚本。影响范围广且持久。",
+      "suggestion": "对存储的用户输入在输出时进行HTML转义；使用框架的自动转义功能；对富文本内容使用HTML清洗库；实施CSP限制脚本执行。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.html"
+      ]
+    }
+  ]
+}

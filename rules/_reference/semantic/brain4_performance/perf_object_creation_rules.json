@@ -1,0 +1,79 @@
+{
+    "rules": [
+        {
+            "id": "PERF-OBJ-001",
+            "name": "循环内创建不必要的临时对象",
+            "severity": "medium",
+            "category": "object-creation-performance",
+            "description": "在循环体内反复创建可复用的对象（如DateFormat、Random、Pattern、StringBuilder等），造成大量短生命周期对象，增加GC压力。",
+            "suggestion": "将可复用对象提升到循环外部；使用对象池复用高频创建的对象；使用ThreadLocal管理非线程安全对象。",
+            "applicable_files": [
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-OBJ-002",
+            "name": "自动装箱/拆箱产生多余对象",
+            "severity": "low",
+            "category": "object-creation-performance",
+            "description": "在循环中频繁使用Integer/Long等包装类型进行算术运算，每次运算触发自动装箱创建新对象。",
+            "suggestion": "使用基本类型（int/long/double）进行密集计算；使用原始类型集合（如TIntList、Eclipse Collections）。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.kt"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-OBJ-003",
+            "name": "函数调用时创建不必要的配置对象",
+            "severity": "low",
+            "category": "object-creation-performance",
+            "description": "每次函数调用都创建新的配置/选项对象，但配置值在多次调用间不变。",
+            "suggestion": "将不变配置提取为常量/模块级变量；使用默认参数替代配置对象；使用对象冻结（Object.freeze）复用。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-OBJ-004",
+            "name": "过度使用深拷贝",
+            "severity": "medium",
+            "category": "object-creation-performance",
+            "description": "使用JSON.parse(JSON.stringify(obj))或lodash.cloneDeep进行深拷贝，但实际只需要浅拷贝或只读访问。",
+            "suggestion": "评估是否真正需要深拷贝；使用Object.assign/展开运算符进行浅拷贝；使用Object.freeze使对象只读避免意外修改。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py"
+            ]
+        },
+        {
+            "id": "PERF-OBJ-005",
+            "name": "日志/调试语句中创建不必要的字符串",
+            "severity": "low",
+            "category": "object-creation-performance",
+            "description": "在日志语句中使用字符串拼接/模板字符串（如log.debug('data: ' + JSON.stringify(obj))），即使日志级别不满足也会创建字符串。",
+            "suggestion": "使用延迟求值的日志API（如log.debug(() -> 'data: ' + obj)）；先检查日志级别再构造消息。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,54 @@
+{
+  "rules": [
+    {
+      "id": "CQ-BS-EXT-001",
+      "name": "散弹式修改：一个变更需修改多个类的多处代码",
+      "severity": "high",
+      "category": "code-smell-extra",
+      "description": "每次需求变更都需要修改多个不同类中的多个方法（如添加新字段需修改Model、DTO、Controller、Service中各一处），代码组织不利于维护。",
+      "suggestion": "将分散的相关行为集中到一个类中（Inline Class）；使用策略模式或模板方法减少分散修改；考虑是否可以使用配置驱动。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-BS-EXT-002",
+      "name": "数据泥团：相同的数据项在多处结伴出现",
+      "severity": "medium",
+      "category": "code-smell-extra",
+      "description": "相同的3个或以上数据项（如firstName/lastName/phone、x/y/z坐标）总是同时出现在多个函数参数、类字段中，表明缺少对应的值对象。",
+      "suggestion": "将数据泥团提取为值对象（Value Object）或记录类型（Record/struct）；如Address(name, phone, city)替代三个独立参数。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts",
+        "*.go",
+        "*.c"
+      ]
+    },
+    {
+      "id": "CQ-BS-EXT-003",
+      "name": "过长方法（超过50行）",
+      "severity": "medium",
+      "category": "code-smell-extra",
+      "description": "方法体超过50行代码，通常包含多个逻辑步骤混在一起，难以理解、测试和维护。",
+      "suggestion": "将方法按逻辑步骤拆分为多个小方法；每个方法只做一件事；方法名应清晰表达其意图。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go",
+        "*.c",
+        "*.cpp",
+        "*.rb"
+      ]
+    }
+  ]
+}

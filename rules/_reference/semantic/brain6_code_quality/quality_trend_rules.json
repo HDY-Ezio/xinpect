@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "id": "CQ-QT-001",
+      "name": "代码质量指标趋势跟踪",
+      "severity": "low",
+      "category": "quality-trend",
+      "description": "跟踪代码质量关键指标（复杂度均值、重复率、测试覆盖率、问题密度）的时间序列变化，识别质量改善或退化趋势。",
+      "suggestion": "每周/每个sprint生成质量趋势报告；设定质量基线和改善目标；对持续退化的模块及时干预。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-QT-002",
+      "name": "新引入vs存量问题区分",
+      "severity": "medium",
+      "category": "quality-trend",
+      "description": "区分本次变更新引入的质量问题和历史存量问题，帮助团队聚焦于防止质量退化而非被存量问题淹没。",
+      "suggestion": "使用Leak Period（如SonarQube的New Code概念）只统计新增代码的问题；存量问题制定专项清理计划。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "CQ-QT-003",
+      "name": "质量债务增长率告警",
+      "severity": "medium",
+      "category": "quality-trend",
+      "description": "当代码质量债务的增长速度超过修复速度时发出告警，表明技术债务正在失控累积。",
+      "suggestion": "设定技术债务增长率阈值（如每月新增>修复的150%时告警）；将债务控制纳入Definition of Done。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ]
+    }
+  ]
+}

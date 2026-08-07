@@ -1,0 +1,38 @@
+{
+  "rules": [
+    {
+      "id": "CQ-PARAM-002",
+      "name": "多个连续的同类型参数",
+      "severity": "medium",
+      "category": "parameter-list",
+      "description": "函数有多个连续的同类型参数（如3个string、4个number），调用时极易混淆参数顺序。",
+      "suggestion": "使用对象/字典传参替代位置参数；或使用命名参数（Python kwargs、Kotlin命名参数）。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ],
+      "pattern": ""
+    },
+    {
+      "id": "CQ-PARAM-003",
+      "name": "布尔参数控制函数行为分支",
+      "severity": "medium",
+      "category": "parameter-list",
+      "description": "函数接收布尔参数来决定执行不同的逻辑分支（如process(flag ? 'a' : 'b')），表明函数实际承担了两个职责。",
+      "suggestion": "将布尔分支拆为两个独立的函数（如processA()和processB()）；或使用策略模式。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.cs",
+        "*.go"
+      ],
+      "pattern": ""
+    }
+  ]
+}

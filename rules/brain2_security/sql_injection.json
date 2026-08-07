@@ -1,0 +1,430 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "SQL注入防护规则集 - 覆盖各类SQL注入攻击场景与防护",
+    "total_rules": 26,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-001",
+      "name": "SQL注入：字符串拼接构造SQL查询",
+      "severity": "critical",
+      "category": "sql-injection",
+      "description": "直接使用字符串拼接或格式化将用户输入嵌入SQL语句，攻击者可注入恶意SQL代码，实现数据窃取、篡改或删除。OWASP Top 10 A03:2021 Injection。",
+      "suggestion": "使用参数化查询(Parameterized Query)或预编译语句(PreparedStatement)；使用ORM框架的查询构建器；对所有用户输入进行严格的白名单验证；使用存储过程并确保内部也使用参数化。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.php",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "name": "SQL注入：ORM框架的原生查询注入",
+      "severity": "critical",
+      "category": "sql-injection",
+      "description": "ORM框架(Hibernate、SQLAlchemy、Sequelize等)的原生SQL查询接口如果直接拼接用户输入，同样存在注入风险。开发者可能误以为使用ORM就安全。",
+      "suggestion": "ORM原生查询也使用参数绑定(SQLAlchemy的text().bindparams()、Hibernate的NativeQuery.setParameter()、Sequelize的replacements)；避免使用.format()或+拼接SQL字符串；对动态ORDER BY使用白名单验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-003",
+      "name": "SQL注入：动态表名和列名未验证",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "参数化查询无法用于表名和列名(只能参数化值)，动态拼接表名/列名时如果未严格验证用户输入，会导致注入漏洞。",
+      "suggestion": "对表名和列名使用严格的白名单验证(仅允许预定义的合法名称)；使用正则表达式限制标识符格式(^[a-zA-Z_][a-zA-Z0-9_]*$)；避免从用户输入直接获取表名/列名。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-004",
+      "name": "SQL注入：LIKE语句的转义不当",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "LIKE语句中的通配符(%和_)如果未正确转义，攻击者可通过输入%或_改变查询语义，导致数据泄露或DoS(全表扫描)。",
+      "suggestion": "对LIKE语句的特殊字符进行转义(%→\\%, _→\\_)；使用数据库提供的转义函数(如MySQL的ESCAPE子句)；对搜索输入限制长度和字符集。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.sql"
+      ]
+    },
+    {
+      "id": "SEC-005",
+      "name": "SQL注入：ORDER BY注入",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "ORDER BY子句不能使用参数化查询，直接从用户输入获取排序字段会导致注入。攻击者可利用此提取数据或进行DoS攻击。",
+      "suggestion": "对排序字段使用白名单验证(仅允许预定义的合法列名)；对排序方向仅允许ASC/DESC；使用映射字典将用户输入转换为合法的列名。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-006",
+      "name": "SQL注入：存储过程中的动态SQL",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "存储过程中使用EXEC或EXECUTE动态执行拼接的SQL字符串，如果拼接了未验证的输入参数，同样存在注入风险。",
+      "suggestion": "存储过程中使用sp_executesql并传递参数(而非拼接字符串)；对所有输入参数进行验证和转义；避免在存储过程中使用动态SQL，改用静态查询。",
+      "applicable_files": [
+        "*.sql",
+        "*.java",
+        "*.py",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEC-007",
+      "name": "SQL注入：JSON/XML查询语言的注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "MongoDB等NoSQL数据库的查询语言(JSON查询)或XML数据库的XPath/XQuery，如果直接嵌入用户输入，也存在注入风险。",
+      "suggestion": "MongoDB使用$eq、$ne等操作符而非直接嵌入$操作符；对JSON查询的key使用白名单验证；使用参数化的查询构建器；对XML查询使用XPath注入防护库。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "SEC-008",
+      "name": "SQL注入：批量操作中的注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "批量INSERT或UPDATE操作中，如果对数组中的每个元素拼接SQL而未参数化，会导致批量注入漏洞。",
+      "suggestion": "批量操作使用参数化的批量插入(BATCH INSERT)；对数组元素进行验证和转义；使用ORM的批量操作方法(如Sequelize的bulkCreate)；限制批量操作的数量。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-009",
+      "name": "SQL注入：注释符导致的查询截断",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "攻击者使用注释符(--)或#截断原SQL语句的后续部分(如密码验证的AND条件)，绕过安全校验。",
+      "suggestion": "使用参数化查询避免SQL结构被改变；对输入长度进行限制；移除或转义SQL注释符；在应用层进行完整的业务逻辑校验而非依赖SQL条件。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-010",
+      "name": "SQL注入：UNION注入提取数据",
+      "severity": "critical",
+      "category": "sql-injection",
+      "description": "攻击者使用UNION SELECT合并额外查询结果，从其他表中提取敏感数据(如用户密码、系统配置)。这是最直接的數據竊取方式。",
+      "suggestion": "使用参数化查询防止SQL结构被修改；限制数据库账户权限(禁止访问敏感表)；使用Web应用防火墙(WAF)检测UNION关键字；对查询结果列数进行验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-011",
+      "name": "SQL注入：布尔盲注和时序盲注",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "当页面不显示查询结果时，攻击者通过布尔条件(AND 1=1/AND 1=2)或时间延迟(SLEEP、BENCHMARK)逐位推断数据内容。",
+      "suggestion": "使用参数化查询；统一错误处理，不暴露SQL错误信息；限制响应时间(超时断开)；对输入中的SQL关键字和函数进行过滤；使用WAF检测时序攻击特征。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-012",
+      "name": "SQL注入：堆叠查询(Stacked Queries)执行",
+      "severity": "critical",
+      "category": "sql-injection",
+      "description": "某些数据库(MySQL、SQL Server)支持使用分号分隔执行多条SQL语句。攻击者可注入DROP TABLE、INSERT等危险操作。",
+      "suggestion": "禁用多语句执行(MySQL: 不使用CLIENT_MULTI_STATEMENTS标志)；使用参数化查询；限制数据库账户权限(禁止DROP、ALTER等DDL权限)；使用WAF检测分号。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-013",
+      "name": "SQL注入：二级注入(存储型)",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "恶意数据先被存储到数据库(注册时)，后续查询时从数据库读取并再次拼接到SQL中触发注入。比反射型更隐蔽，难以发现。",
+      "suggestion": "所有从数据库读取的数据在再次使用时仍需参数化处理；对存储的数据进行验证和清洗；使用参数化查询而非依赖'数据已存储所以安全'的假设。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-014",
+      "name": "SQL注入：动态WHERE条件拼接",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "根据可选筛选条件动态拼接WHERE子句时，如果直接拼接用户输入的筛选值，会导致注入。",
+      "suggestion": "使用Query Builder动态构建查询(自动参数化)；对动态条件使用字典映射而非字符串拼接；使用Specification模式(Java)或Filter对象封装查询条件。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-015",
+      "name": "SQL注入：IN子句的参数化",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "IN (value1, value2, ...)子句中的值如果通过字符串拼接生成，会导致注入。某些ORM的IN方法需要特殊处理。",
+      "suggestion": "使用ORM的参数化IN方法(如SQLAlchemy的.in_()、Sequelize的Op.in)；对数组参数生成正确数量的占位符(?, ?, ?)；验证数组元素的类型和长度。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-016",
+      "name": "SQL注入：LIMIT和OFFSET注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "LIMIT和OFFSET通常接受数字参数，但某些数据库允许注入表达式。即使只接受数字，未验证也可能导致DoS(极大OFFSET)。",
+      "suggestion": "对LIMIT和OFFSET强制转换为整数；设置合理的最大值(如LIMIT最大1000)；使用参数化查询传入分页参数；对OFFSET使用游标分页替代。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-017",
+      "name": "SQL注入：数据库函数调用注入",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "在SQL中调用数据库函数(如CONCAT、SUBSTRING、DATE_FORMAT)时，如果函数参数来自用户输入且未参数化，可能导致注入或信息泄露。",
+      "suggestion": "函数参数使用参数化查询；避免在SQL中调用复杂函数处理用户输入；在应用层处理数据转换而非SQL层；对函数名使用白名单验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.sql"
+      ]
+    },
+    {
+      "id": "SEC-018",
+      "name": "SQL注入：触发器和管理事件的注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "某些数据库操作(INSERT/UPDATE/DELETE)会触发触发器或审计日志，如果这些操作将数据拼接到其他SQL中(如日志表INSERT)，会导致二次注入。",
+      "suggestion": "触发器和存储过程中使用参数化；对审计日志的写入使用参数化INSERT；对所有数据库操作(包括触发器)统一应用注入防护。",
+      "applicable_files": [
+        "*.sql",
+        "*.java",
+        "*.py",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEC-019",
+      "name": "SQL注入：全文搜索注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "全文搜索(MATCH AGAINST、CONTAINS、tsvector)的查询语法如果直接嵌入用户输入，可能被利用改变搜索逻辑或提取数据。",
+      "suggestion": "对全文搜索的查询字符串进行转义和验证；使用数据库提供的全文搜索参数化API；限制搜索查询的长度和复杂度；对搜索结果进行权限过滤。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.sql"
+      ]
+    },
+    {
+      "id": "SEC-020",
+      "name": "SQL注入：正则表达式注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "MySQL的REGEXP、PostgreSQL的~操作符接受正则表达式，如果用户输入直接用于正则匹配，可能导致ReDoS或数据泄露。",
+      "suggestion": "对用户输入的正则表达式进行验证和转义；限制正则表达式的复杂度(长度、嵌套深度)；设置正则匹配超时；避免用户自定义正则表达式，使用预定义模式。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.sql"
+      ]
+    },
+    {
+      "id": "SEC-021",
+      "name": "SQL注入：BULK INSERT的列名注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "批量导入数据时，如果列名来自CSV头部或用户输入，直接拼接到INSERT语句中会导致注入。",
+      "suggestion": "对导入的列名使用白名单验证(仅允许预定义的列)；使用CSV解析库的安全模式；在应用层映射列名而非直接使用；对导入数据进行类型检查。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-022",
+      "name": "SQL注入：GraphQL查询注入",
+      "severity": "high",
+      "category": "sql-injection",
+      "description": "GraphQL查询如果直接转换为SQL(如使用SQL DataLoader)，未对GraphQL参数进行SQL注入防护，会导致注入漏洞。",
+      "suggestion": "GraphQL resolver中使用参数化查询；对GraphQL参数进行类型验证和清洗；使用DataLoader的缓存机制避免重复查询；对GraphQL查询深度和复杂度进行限制。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-023",
+      "name": "SQL注入：动态分区和分表查询注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "分库分表场景下，根据用户输入动态确定查询的表名或分片键，如果未验证会导致注入或跨分片数据泄露。",
+      "suggestion": "对分片键使用严格的类型验证；表名使用映射字典而非直接拼接；使用分库分表中间件的安全API；对跨分片查询进行权限控制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-024",
+      "name": "SQL注入：临时表和变量注入",
+      "severity": "medium",
+      "category": "sql-injection",
+      "description": "动态创建临时表或使用会话变量时，如果表名或变量名来自用户输入，可能导致注入或数据污染。",
+      "suggestion": "临时表名使用固定命名或安全的随机字符串；会话变量名使用白名单验证；避免从用户输入获取表名和变量名；对临时表操作限制权限。",
+      "applicable_files": [
+        "*.sql",
+        "*.java",
+        "*.py",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEC-025",
+      "name": "SQL注入：权限提升和权限绕过",
+      "severity": "critical",
+      "category": "sql-injection",
+      "description": "SQL注入可用于修改用户角色、提升权限或绕过访问控制检查(如UPDATE users SET role='admin' WHERE id=1)。",
+      "suggestion": "使用参数化查询防止UPDATE语句被注入；对权限修改操作进行严格的权限验证(仅超级管理员)；使用数据库审计日志监控权限变更；对敏感表使用行级安全策略。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-162",
+      "name": "CWE-89：SQL注入",
+      "severity": "critical",
+      "category": "sql-injection",
+      "description": "用户输入未正确参数化直接拼接到SQL查询中，攻击者可修改查询逻辑，读取、修改或删除数据。CWE Top 25第3位。",
+      "suggestion": "使用参数化查询或预编译语句；使用ORM的查询构建器；对所有用户输入进行类型验证；使用最小权限的数据库账户。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.sql"
+      ]
+    }
+  ]
+}

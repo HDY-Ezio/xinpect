@@ -1,0 +1,53 @@
+{
+  "rules": [
+    {
+      "id": "SEC-MA-001",
+      "name": "批量赋值：未限制可更新字段",
+      "severity": "high",
+      "category": "mass-assignment",
+      "description": "将用户提交的JSON/表单数据直接绑定到模型对象进行创建/更新，攻击者可提交额外字段（如is_admin=true、role=admin）提升权限。",
+      "suggestion": "使用白名单指定允许更新的字段（如Rails的strong parameters、Django的fields参数、Spring的@InitBinder）；创建专门的DTO对象。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "SEC-MA-002",
+      "name": "批量赋值：敏感字段未从序列化中排除",
+      "severity": "high",
+      "category": "mass-assignment",
+      "description": "模型/实体类中包含不应由用户设置的字段（如password_hash、role、balance），但未通过注解或配置排除这些字段。",
+      "suggestion": "使用@JsonIgnore（Jackson）、@Expose(serialize=false)等注解排除敏感字段；使用视图模型（ViewModel）分离输入输出。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-MA-003",
+      "name": "批量赋值：PATCH请求未过滤字段",
+      "severity": "high",
+      "category": "mass-assignment",
+      "description": "PATCH/PUT接口将请求体全量映射到更新逻辑，允许攻击者修改不应变更的字段（如created_at、owner_id）。",
+      "suggestion": "在更新前过滤请求字段，仅保留白名单中的字段；使用专门的Update DTO限制可修改属性。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php"
+      ]
+    }
+  ]
+}

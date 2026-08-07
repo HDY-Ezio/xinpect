@@ -1,0 +1,110 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain1_rule_engine",
+    "generated": "2026-08",
+    "description": "Rust 语言专项静态分析规则集，覆盖unsafe使用、panic处理、性能优化、并发安全、错误处理等最佳实践",
+    "total_rules": 8,
+    "standards_reference": [
+      "Rust API Guidelines",
+      "Rust Clippy Lints",
+      "Rust Secure Coding Guidelines"
+    ]
+  },
+  "rules": [
+    {
+      "id": "RUST-001",
+      "name": "unsafe块未说明安全不变量",
+      "severity": "high",
+      "category": "safety",
+      "description": "unsafe块绕过了Rust编译器的安全检查，允许执行指针操作、调用FFI、修改可变静态变量等危险操作。如果unsafe块没有通过注释说明其依赖的安全不变量（safety invariants），后续维护者可能在不破坏显式约束的情况下引入内存安全问题。",
+      "suggestion": "每个unsafe块必须用// SAFETY注释说明安全条件：\n```rust\n// 错误 - 无说明\nunsafe {\n    let ptr = data.as_ptr();\n    *ptr.add(offset) = value;\n}\n\n// 正确 - 说明安全不变量\n// SAFETY: offset 调用前已验证在 data.len() 范围内，\n// data 不会在unsafe块期间被其他引用修改（独占借用保证）。\nunsafe {\n    let ptr = data.as_ptr();\n    *ptr.add(offset) = value;\n}\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-002",
+      "name": "unwrap在非测试代码中使用",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "unwrap()在值为None或Err时会导致线程panic并崩溃。在非测试代码中使用unwrap意味着程序将因为未预期的错误情况直接终止，在服务器程序中会导致请求失败，在CLI工具中会导致用户体验差且无法恢复。",
+      "suggestion": "使用?传播错误或提供合理的默认值：\n```rust\n// 危险\nlet user = get_user(id).unwrap(); // panic!\n\n// 正确 - 使用?传播错误\nlet user = get_user(id)?;\n\n// 正确 - 使用match处理\nlet user = match get_user(id) {\n    Ok(u) => u,\n    Err(e) => {\n        eprintln!(\"获取用户失败: {}\", e);\n        return;\n    }\n};\n\n// 正确 - 使用unwrap_or提供默认值\nlet name = user.name().unwrap_or(\"Anonymous\");\n\n// 测试代码中可以使用unwrap\n#[cfg(test)]\nlet user = get_user(id).unwrap();\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-003",
+      "name": "clone过度使用导致性能问题",
+      "severity": "medium",
+      "category": "performance",
+      "description": "过度使用clone()来绕过借用检查器会导致不必要的深拷贝，尤其是对于Vec、String、HashMap等堆分配类型。每次clone涉及堆内存分配和数据复制，在循环或高频路径中会造成显著性能开销和内存压力。",
+      "suggestion": "优先使用引用和生命周期，减少不必要的clone：\n```rust\n// 低效 - 过度clone\nfn process(data: Vec<String>) {\n    let copy1 = data.clone(); // 不必要的深拷贝\n    let copy2 = data.clone(); // 又一次深拷贝\n}\n\n// 高效 - 使用引用\nfn process(data: &[String]) {\n    let first = &data[0]; // 借用，零成本\n    let second = &data[1];\n}\n\n// 必要时使用 Rc/Arc 共享所有权\nuse std::rc::Rc;\nlet shared = Rc::new(expensive_data);\nlet clone1 = Rc::clone(&shared); // 仅增加引用计数，不复制数据\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-004",
+      "name": "字符串切片越界panic",
+      "severity": "medium",
+      "category": "panic_prevention",
+      "description": "Rust的字符串切片s[index1..index2]要求索引必须在UTF-8字符边界上，否则会导致panic。由于UTF-8是变长编码（1-4字节），简单的字节偏移可能落在多字节字符中间，导致运行时崩溃。",
+      "suggestion": "使用chars()迭代器或get方法安全切片：\n```rust\n// 危险 - 可能panic\nlet s = \"你好世界\";\nlet slice = &s[0..3]; // panic! 3不在字符边界\n\n// 安全方式1 - 使用get（返回Option）\nlet slice = s.get(0..3).unwrap_or(\"\");\n\n// 安全方式2 - 使用chars按字符操作\nlet first_two: String = s.chars().take(2).collect(); // \"你好\"\n\n// 安全方式3 - 使用char_indices找到正确边界\nlet boundaries: Vec<usize> = s.char_indices().map(|(i, _)| i).collect();\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-005",
+      "name": "生命周期标注不正确导致编译失败",
+      "severity": "medium",
+      "category": "lifetime_safety",
+      "description": "生命周期标注错误或缺失是Rust新手最常见的编译错误来源。错误的生命周期标注不仅导致代码无法编译，更危险的是使用'lifetime elision'时编译器推断的生命周期可能不符合程序员意图，导致引用超出实际数据存活期。",
+      "suggestion": "明确标注生命周期，确保引用不超过数据存活期：\n```rust\n// 错误 - 返回的引用可能比输入生命周期更长\nfn first_word(s: &String) -> &str {\n    // 编译器可能推断错误\n}\n\n// 正确 - 明确标注\nfn first_word<'a>(s: &'a String) -> &'a str {\n    &s[..s.find(' ').unwrap_or(s.len())]\n}\n\n// 避免过度复杂的生命周期 - 考虑使用所有权\n// 如果不需要共享数据，直接返回拥有所有权的类型\nfn first_word(s: &str) -> String {\n    s.split_whitespace().next().unwrap_or(\"\").to_string()\n}\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-006",
+      "name": "Box<dyn Trait>未指定Send+Sync导致线程不安全",
+      "severity": "high",
+      "category": "concurrency",
+      "description": "在多线程环境中使用Box<dyn Trait>对象时，如果Trait未标注Send和Sync，该对象无法在线程间传递或共享。这在异步编程（Tokio）和线程池中尤为常见，编译错误往往不够直观，难以定位问题。",
+      "suggestion": "为Trait对象添加Send+Sync约束：\n```rust\n// 编译错误 - 无法跨线程\ntrait Handler {\n    fn handle(&self);\n}\nasync fn run(handler: Box<dyn Handler>) { } // 编译失败\n\n// 正确 - 添加线程安全约束\ntrait Handler: Send + Sync {\n    fn handle(&self);\n}\nasync fn run(handler: Box<dyn Handler>) { } // OK\n\n// 异步上下文常见模式\nfn spawn_task(handler: Box<dyn Handler + Send + 'static>) {\n    tokio::spawn(async move {\n        handler.handle();\n    });\n}\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-007",
+      "name": "Vec预分配未使用with_capacity",
+      "severity": "low",
+      "category": "performance",
+      "description": "当已知Vec将要存储的元素数量时，不使用with_capacity预分配会导致Vec在push过程中多次重新分配和复制数据。每次扩容容量翻倍，涉及堆内存分配和旧数据复制，对大集合影响显著。",
+      "suggestion": "已知大小时使用Vec::with_capacity预分配：\n```rust\n// 低效 - 多次重新分配\nlet mut v = Vec::new();\nfor i in 0..10000 {\n    v.push(compute(i)); // 多次扩容，每次分配+复制\n}\n\n// 高效 - 预分配\nlet mut v = Vec::with_capacity(10000);\nfor i in 0..10000 {\n    v.push(compute(i)); // 一次分配\n}\n\n// 或使用collect时的size_hint\nlet v: Vec<_> = iter.collect(); // iter如果有准确size_hint则自动预分配\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    },
+    {
+      "id": "RUST-008",
+      "name": "错误处理使用expect而非传播",
+      "severity": "medium",
+      "category": "error_handling",
+      "description": "expect()类似于unwrap()，在错误时会导致panic，但它允许附带自定义错误信息。在库代码或生产代码中大量使用expect会使错误无法被上层优雅处理，降低程序的健壮性和可调试性。",
+      "suggestion": "库代码使用?传播错误，应用代码顶层统一处理：\n```rust\n// 不推荐 - 库代码中expect\nfn read_config(path: &str) -> Config {\n    let content = std::fs::read_to_string(path)\n        .expect(\"读取配置文件失败\"); // panic\n    toml::from_str(&content).expect(\"解析配置失败\")\n}\n\n// 推荐 - 返回Result\nfn read_config(path: &str) -> Result<Config, ConfigError> {\n    let content = std::fs::read_to_string(path)\n        .map_err(|e| ConfigError::Io(e))?;\n    toml::from_str(&content)\n        .map_err(|e| ConfigError::Parse(e))\n}\n\n// 仅在main或测试中可以使用expect\nfn main() {\n    let config = read_config(\"config.toml\").expect(\"启动失败\");\n}\n```",
+      "applicable_files": [
+        "*.rs"
+      ]
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 3,
+    "medium": 4,
+    "low": 1
+  }
+}

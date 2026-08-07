@@ -1,0 +1,175 @@
+{
+  "metadata": {
+    "platform": "ci_cd",
+    "brain": "brain7",
+    "version": "1.0",
+    "author": "煋旺智能"
+  },
+  "rules": [
+    {
+      "check_id": "CICD-001",
+      "name": "GitHub Actions使用非固定版本引用（@main/@master）",
+      "severity": "high",
+      "category": "security",
+      "description": "GitHub Actions workflow中使用@main、@master等分支引用而非固定版本号（如@v4）。分支引用可被上游仓库随时更改，注入恶意代码到CI管道中",
+      "pattern": "uses:\\s*[\\w.-]+/[\\w.-]+@(?:main|master|develop|dev)",
+      "file_pattern": "*.yml",
+      "suggestion": "将actions引用固定到具体版本标签如uses: actions/checkout@v4，或固定到完整commit SHA如uses: actions/checkout@<commit-sha>。使用Dependabot自动更新action版本",
+      "references": ["https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions"]
+    },
+    {
+      "check_id": "CICD-002",
+      "name": "CI/CD脚本中硬编码密钥或Token",
+      "severity": "critical",
+      "category": "security",
+      "description": "CI/CD配置文件中硬编码了API密钥、Token、密码等敏感凭证。这些凭证会被提交到版本控制中，任何有仓库访问权限的人都能获取",
+      "pattern": "(?:API_KEY|SECRET_KEY|TOKEN|PASSWORD|AWS_ACCESS_KEY|GITHUB_TOKEN|NPM_TOKEN|DOCKER_PASSWORD)\\s*[=:]\\s*['\"]?[A-Za-z0-9+/=]{16,}['\"]?",
+      "file_pattern": "*.yml",
+      "suggestion": "使用CI/CD平台提供的Secrets管理功能（如GitHub Actions的${{ secrets.MY_SECRET }}）。将敏感凭证从代码中移除，存入加密的secret存储",
+      "references": ["https://docs.github.com/en/actions/security-guides/encrypted-secrets"]
+    },
+    {
+      "check_id": "CICD-003",
+      "name": "部署脚本使用sudo root权限过大",
+      "severity": "high",
+      "category": "security",
+      "description": "部署脚本中使用sudo执行命令或以root用户运行。过度权限会扩大攻击面：一旦CI环境被入侵，攻击者将获得系统级权限",
+      "pattern": "^\\s*sudo\\s+(?:apt-get|yum|pip|npm|docker|chmod\\s+777|chown|rm\\s+-rf|systemctl)",
+      "file_pattern": "*.sh",
+      "suggestion": "遵循最小权限原则。使用专用部署用户替代root/sudo。如必须sudo，限定到具体命令（sudoers白名单）。Docker操作使用docker group替代sudo",
+      "references": ["https://owasp.org/www-community/attacks/Privilege_Escalation"]
+    },
+    {
+      "check_id": "CICD-004",
+      "name": "Docker构建中拉取latest标签（版本不可复现）",
+      "severity": "high",
+      "category": "security",
+      "description": "Dockerfile中使用FROM image:latest或不带标签的基础镜像。latest标签指向可变内容，不同时间构建可能得到不同版本，无法复现构建且可能引入未知漏洞",
+      "pattern": "^FROM\\s+[\\w./-]+(?::latest)?\\s*(?:AS\\s+\\w+)?\\s*$",
+      "file_pattern": "Dockerfile*",
+      "suggestion": "使用精确版本标签如FROM node:20.11-alpine或固定到镜像digest如FROM node@sha256:abc123。避免使用latest或无标签镜像",
+      "references": ["https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#from"]
+    },
+    {
+      "check_id": "CICD-005",
+      "name": "CI中未做依赖完整性校验（使用npm install而非npm ci）",
+      "severity": "medium",
+      "category": "security",
+      "description": "CI/CD脚本中使用npm install而非npm ci，或使用pip install而非pip install --require-hashes。不进行完整性校验可能导致安装了被篡改的包版本",
+      "pattern": "^\\s*(?:run:)?\\s*npm\\s+install\\s+(?!ci)",
+      "file_pattern": "*.yml",
+      "suggestion": "CI环境中使用npm ci替代npm install（严格按lockfile安装）。Python使用pip install --require-hashes -r requirements.txt。确保lock文件已提交到版本控制",
+      "references": ["https://docs.npmjs.com/cli/v10/commands/npm-ci"]
+    },
+    {
+      "check_id": "CICD-006",
+      "name": "CI中通过curl pipe to shell安装工具（远程代码执行风险）",
+      "severity": "critical",
+      "category": "security",
+      "description": "CI/CD中使用curl|sh或wget|bash模式安装工具。远程脚本可能在传输中被劫持篡改，或源站被入侵后分发恶意代码",
+      "pattern": "(?:curl|wget)\\s+[^\"]*\\|\\s*(?:sudo\\s+)?(?:ba)?sh",
+      "file_pattern": "*.yml",
+      "suggestion": "避免curl|sh模式。先下载脚本，校验SHA256摘要，再执行。或使用包管理器（apt/brew/choco）安装。如必须远程安装，固定到带完整hash的URL",
+      "references": ["https://serverfault.com/questions/548837/is-there-a-safe-alternative-to-curl-pipe-to-bash"]
+    },
+    {
+      "check_id": "CICD-007",
+      "name": "缺少代码签名/校验步骤的构建产物发布",
+      "severity": "medium",
+      "category": "security",
+      "description": "CI/CD流水线在构建后直接发布产物（npm publish/docker push）而未包含签名或完整性校验步骤。未签名的构建产物可能被篡改后分发给用户",
+      "pattern": "(?:npm\\s+publish|docker\\s+push|mvn\\s+deploy|pip\\s+upload|twine\\s+upload|gh\\s+release\\s+upload)(?!.*(?:sign|cosign|gpg|sha256|integrity))",
+      "file_pattern": "*.yml",
+      "suggestion": "在发布前添加签名步骤：Docker使用cosign签名，npm使用provenance attestation，Python包使用sigstore。发布后验证签名完整性",
+      "references": ["https://slsa.dev/spec/v1.0/levels"]
+    },
+    {
+      "check_id": "CICD-008",
+      "name": "CI缓存使用过于宽泛的路径（缓存投毒风险）",
+      "severity": "medium",
+      "category": "security",
+      "description": "CI/CD缓存配置使用了过于宽泛的路径（如整个node_modules或/），可能导致缓存投毒攻击。攻击者通过污染缓存内容影响后续构建",
+      "pattern": "path:\\s*(?:node_modules/?\\s*$|/\\s*$|/home\\s*$|/tmp/?\\s*$|\\./\\s*$)",
+      "file_pattern": "*.yml",
+      "suggestion": "使用精确的缓存路径和hash key。如cache: {path: node_modules, key: npm-${{ hashFiles('package-lock.json') }}}。限制缓存写入范围，定期清理",
+      "references": ["https://github.com/actions/cache#best-practices-for-cache"]
+    },
+    {
+      "check_id": "CICD-009",
+      "name": "CI缓存Key使用静态值（缓存投毒风险）",
+      "severity": "medium",
+      "category": "security",
+      "description": "CI缓存key使用固定字符串而非基于文件hash的动态值。静态key会导致所有构建共享同一缓存，增加缓存投毒攻击风险",
+      "pattern": "key:\\s*['\"]?[a-zA-Z0-9_-]+['\"]?\\s*$",
+      "file_pattern": "*.yml",
+      "suggestion": "使用hashFiles()生成动态缓存key：key: npm-${{ hashFiles('**/package-lock.json') }}。结合restore-keys提供降级匹配",
+      "references": ["https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows"]
+    },
+    {
+      "check_id": "CICD-010",
+      "name": "部署脚本缺少回滚机制",
+      "severity": "medium",
+      "category": "security",
+      "description": "部署脚本中未包含回滚/回退逻辑。当新版本出现问题时无法快速恢复到上一稳定版本，可能导致长时间服务中断",
+      "pattern": "^(?:deploy|release|publish)(?!.*(?:rollback|revert|backup|previous|restore))",
+      "file_pattern": "*.sh",
+      "suggestion": "在部署脚本中添加回滚逻辑：部署前备份当前版本/镜像标签，部署失败时自动切换到备份版本。使用蓝绿部署或金丝雀发布降低风险",
+      "references": ["https://sre.google/workbook/canarying-releases/"]
+    },
+    {
+      "check_id": "CICD-011",
+      "name": "GitLab CI中使用未固定版本的外部镜像",
+      "severity": "medium",
+      "category": "security",
+      "description": "GitLab CI配置中使用latest标签或未指定标签的Docker镜像。版本不可复现，可能引入不兼容变更或安全漏洞",
+      "pattern": "image:\\s*[\\w./-]+(?::latest)?\\s*$",
+      "file_pattern": ".gitlab-ci.yml",
+      "suggestion": "使用精确版本标签如image: python:3.12-slim或固定到digest如image: python@sha256:abc123",
+      "references": ["https://docs.gitlab.com/ee/ci/yaml/#image"]
+    },
+    {
+      "check_id": "CICD-012",
+      "name": "CI/CD中禁用TLS证书验证",
+      "severity": "critical",
+      "category": "security",
+      "description": "CI/CD脚本中通过环境变量或参数禁用了TLS/SSL证书验证。禁用验证使CI环境暴露于中间人攻击，可被劫持下载恶意依赖",
+      "pattern": "(?:NODE_TLS_REJECT_UNAUTHORIZED|CURL_SSL_NO_VERIFY|GIT_SSL_NO_VERIFY|PYTHONHTTPSVERIFY)\\s*=\\s*(?:0|false|no|off)",
+      "file_pattern": "*",
+      "suggestion": "严禁禁用TLS证书验证。如遇自签名证书问题，使用NODE_EXTRA_CA_CERTS或配置可信CA证书链。修复证书配置而非禁用验证",
+      "references": ["https://owasp.org/www-community/attacks/Man-in-the-middle_attack"]
+    },
+    {
+      "check_id": "CICD-013",
+      "name": "CI/CD中pull_request触发包含write权限",
+      "severity": "high",
+      "category": "security",
+      "description": "GitHub Actions workflow在pull_request触发时授予write权限。外部PR可能执行恶意代码获得仓库写入权限，篡改代码或窃取secrets",
+      "pattern": "on:\\s*\\n\\s*pull_request(?:_target)?:[\\s\\S]{0,200}?permissions:\\s*\\n[\\s\\S]{0,100}?write",
+      "file_pattern": "*.yml",
+      "suggestion": "对pull_request触发的workflow使用permissions: read-all或最小必要权限。仅在push到主分支时才授予write权限。使用pull_request_target时格外小心",
+      "references": ["https://securitylab.github.com/research/github-actions-preventing-pwn-requests/"]
+    },
+    {
+      "check_id": "CICD-014",
+      "name": "部署脚本中使用明文密码连接远程服务器",
+      "severity": "critical",
+      "category": "security",
+      "description": "部署脚本中直接在命令行传递密码（如sshpass、mysql -p）。明文密码会出现在进程列表和CI日志中，任何人都可查看",
+      "pattern": "(?:sshpass\\s+-p|mysql\\s+.*-p\\S+|psql\\s+.*password=|curl\\s+-u\\s+\\w+:\\S+)",
+      "file_pattern": "*.sh",
+      "suggestion": "使用SSH密钥认证替代密码。数据库连接使用环境变量或secret manager。CI中使用${{ secrets.DB_PASSWORD }}而非硬编码密码",
+      "references": ["https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password"]
+    },
+    {
+      "check_id": "CICD-015",
+      "name": "CI/CD workflow中未配置超时时间",
+      "severity": "low",
+      "category": "security",
+      "description": "GitHub Actions或GitLab CI job未设置超时限制（timeout-minutes/timeout）。无超时可能导致被恶意利用进行加密挖矿等长时间占用资源的行为",
+      "pattern": "(?:jobs|stages):\\s*\\n[\\s\\S]{0,500}?steps:(?!.*timeout)",
+      "file_pattern": "*.yml",
+      "suggestion": "为每个job设置合理的超时时间：jobs.<job_id>.timeout-minutes: 30。防止异常job长时间运行占用CI资源",
+      "references": ["https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idtimeout-minutes"]
+    }
+  ]
+}

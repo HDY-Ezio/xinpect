@@ -1,0 +1,410 @@
+{
+  "metadata": {
+    "name": "错误处理规范",
+    "total_rules": 30
+  },
+  "rules": [
+    {
+      "id": "EH-001",
+      "name": "禁止空catch块",
+      "severity": "S1",
+      "category": "error-handling",
+      "description": "catch块中没有任何处理逻辑，异常被静默吞掉，导致问题难以排查",
+      "suggestion": "在catch块中至少记录错误日志或重新抛出异常，确保异常不会被忽略",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-002",
+      "name": "禁止吞没Promise rejection",
+      "severity": "S1",
+      "category": "error-handling",
+      "description": "Promise链缺少.catch()处理，未捕获的rejection可能导致程序状态不一致",
+      "suggestion": "为每个Promise链添加.catch()错误处理，或使用async/await时包裹在try-catch中",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "EH-003",
+      "name": "async函数必须使用try-catch",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "async函数内部可能抛出异常的代码未包裹在try-catch中",
+      "suggestion": "将await调用包裹在try-catch中，确保异步错误被正确处理",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "EH-004",
+      "name": "catch中禁止仅console.log",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "catch块中只输出console.log而不上报错误追踪系统，生产环境中无法追踪问题",
+      "suggestion": "catch中除了日志输出，还应调用错误上报接口（如Sentry），或在生产环境中移除console输出",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-005",
+      "name": "错误边界组件缺失",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "React组件树缺少ErrorBoundary，子组件渲染错误会导致整个应用白屏",
+      "suggestion": "在组件树的关键节点添加ErrorBoundary组件，捕获并优雅降级子组件的渲染错误",
+      "applicable_files": [
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "EH-006",
+      "name": "未处理的rejection全局监听缺失",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "缺少对unhandledrejection事件的全局监听，遗漏的Promise错误无法被发现",
+      "suggestion": "添加window.addEventListener('unhandledrejection', handler)或process.on('unhandledRejection', handler)",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-007",
+      "name": "finally中使用return语句",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "在finally块中使用return会覆盖try/catch中的return值和异常，造成意外行为",
+      "suggestion": "移除finally块中的return语句，finally仅用于清理资源",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-008",
+      "name": "异常消息暴露敏感信息",
+      "severity": "S1",
+      "category": "error-handling",
+      "description": "错误消息中包含数据库连接串、密钥、内部路径等敏感信息返回给前端",
+      "suggestion": "对错误消息进行过滤和脱敏，生产环境返回通用错误提示而非原始异常信息",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-009",
+      "name": "重试机制缺少最大次数限制",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "网络请求或操作重试没有设置最大次数，可能导致无限重试消耗资源",
+      "suggestion": "设置合理的最大重试次数（如3次），并采用指数退避策略",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-010",
+      "name": "缺少全局异常处理器",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "应用没有配置全局异常/错误处理器，未捕获的异常可能导致进程崩溃",
+      "suggestion": "配置全局异常处理器（如Python的sys.excepthook、Node的process.on('uncaughtException')）",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-011",
+      "name": "catch中重新抛异常丢失原始堆栈",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "catch块中throw new Error()会丢失原始异常的堆栈信息，不利于问题排查",
+      "suggestion": "使用throw e保留原始异常，或使用throw new Error(msg, { cause: e })保留异常链",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-012",
+      "name": "超时控制缺失",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "网络请求或耗时操作没有设置超时时间，可能永久阻塞",
+      "suggestion": "为所有网络请求和外部调用设置合理的超时时间",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-013",
+      "name": "Promise.all未处理部分失败",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "使用Promise.all时，一个Promise失败会导致所有结果丢失",
+      "suggestion": "根据业务需求选择Promise.allSettled处理部分失败场景，或对每个Promise单独添加catch",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-014",
+      "name": "Python裸except捕获",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "使用except:或except Exception:捕获所有异常包括SystemExit和KeyboardInterrupt",
+      "suggestion": "使用具体的异常类型捕获，避免使用裸except；如确需捕获所有异常，使用except BaseException并记录",
+      "applicable_files": [
+        "*.py"
+      ]
+    },
+    {
+      "id": "EH-015",
+      "name": "错误回调未传递error参数",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "Node.js回调函数的第一个参数err未检查直接使用后续参数",
+      "suggestion": "始终检查回调的第一个error参数，存在错误时提前返回",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-016",
+      "name": "资源未在finally中释放",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "文件句柄、数据库连接、网络连接等资源在非finally块中释放，异常时可能泄漏",
+      "suggestion": "使用try-finally确保资源释放，或使用上下文管理器（with语句）/defer机制",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.java",
+        "*.go"
+      ]
+    },
+    {
+      "id": "EH-017",
+      "name": "fallback降级策略缺失",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "关键业务功能在非核心依赖不可用时直接报错，缺少降级方案",
+      "suggestion": "为关键路径设计fallback机制，如缓存降级、默认值、功能降级等",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-018",
+      "name": "错误码使用不规范",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "使用魔术数字作为错误码，没有统一的错误码定义和映射文档",
+      "suggestion": "建立统一的错误码规范，使用枚举或常量定义错误码，附带错误码说明文档",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-019",
+      "name": "断言在生产环境使用",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "使用assert进行业务逻辑校验，生产环境优化后assert可能被移除导致校验失效",
+      "suggestion": "生产代码中使用显式的条件判断和异常抛出，不依赖assert做业务校验",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-020",
+      "name": "异常类型过于宽泛",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "catch块捕获Exception/Throwable等顶层异常类型，无法区分不同的错误场景",
+      "suggestion": "根据业务需要捕获具体的异常类型，不同异常类型采用不同的处理策略",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-021",
+      "name": "循环中的异常未处理",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "循环体内执行可能失败的操作但没有try-catch，一次失败导致整个循环中断",
+      "suggestion": "在循环体内添加try-catch处理单个元素的异常，确保循环可以继续处理其他元素",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-022",
+      "name": "错误日志缺少上下文信息",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "错误日志中缺少请求ID、用户ID、操作参数等上下文信息，难以定位问题",
+      "suggestion": "在错误日志中包含关键上下文：请求ID、用户标识、输入参数摘要、时间戳",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-023",
+      "name": "取消操作未清理副作用",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "请求被取消或超时时，已执行的部分操作没有回滚或清理",
+      "suggestion": "在取消回调中执行必要的清理逻辑，如AbortController取消后续请求、清除临时状态",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-024",
+      "name": "递归缺少终止条件保护",
+      "severity": "S1",
+      "category": "error-handling",
+      "description": "递归函数没有深度限制或终止条件不可靠，可能导致栈溢出",
+      "suggestion": "添加递归深度限制参数，设置合理的最大递归深度",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-025",
+      "name": "错误响应缺少HTTP状态码映射",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "API错误响应统一返回200状态码，前端无法通过状态码区分错误类型",
+      "suggestion": "根据错误类型返回合适的HTTP状态码（400/401/403/404/500等）",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-026",
+      "name": "多语言错误信息硬编码",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "错误提示信息硬编码在代码中，不支持多语言国际化",
+      "suggestion": "将错误信息提取到国际化配置文件中，使用错误码关联多语言文本",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "EH-027",
+      "name": "并发异常未处理",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "并发操作缺少竞态条件处理，如重复提交、重复点击等",
+      "suggestion": "添加防重复提交机制（如loading状态锁、请求去重、幂等性设计）",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "EH-028",
+      "name": "异常堆栈信息打印到客户端",
+      "severity": "S1",
+      "category": "error-handling",
+      "description": "异常堆栈信息直接返回给客户端，暴露内部实现细节",
+      "suggestion": "生产环境中只返回简短错误信息，堆栈信息仅在服务端日志中记录",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "EH-029",
+      "name": "错误上报缺少去重机制",
+      "severity": "S3",
+      "category": "error-handling",
+      "description": "相同错误频繁上报导致错误追踪系统过载，关键错误被淹没",
+      "suggestion": "对错误进行去重和聚合，相同错误在一定时间窗口内只上报一次",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py"
+      ]
+    },
+    {
+      "id": "EH-030",
+      "name": "缺少健康检查和熔断机制",
+      "severity": "S2",
+      "category": "error-handling",
+      "description": "外部服务调用没有熔断机制，当依赖服务不可用时拖垮自身服务",
+      "suggestion": "集成熔断器模式（如使用Hystrix/Sentinel/Polly），设置合理的熔断阈值和恢复策略",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

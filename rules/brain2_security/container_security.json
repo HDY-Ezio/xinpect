@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {
+      "id": "SEC-CONT-007",
+      "name": "容器内存储敏感信息未加密",
+      "severity": "high",
+      "category": "sensitive-data-management",
+      "description": "在容器内部的文件系统、环境变量或配置文件中明文存储敏感信息（数据库密码、API密钥、TLS私钥等）。容器镜像层中的文件可被任何有镜像访问权限的人提取；环境变量可通过/proc文件系统或docker inspect命令查看。即使容器被删除，如果镜像仍存在于仓库中，敏感信息也不会被清除。在容器编排环境中，敏感信息可能通过日志、监控等渠道进一步泄露。",
+      "suggestion": "1. 使用密钥管理服务（Vault、AWS Secrets Manager、K8s Secrets加密）注入敏感信息；2. 使用Docker Secrets（Swarm模式）或外部密钥存储；3. 运行时通过环境变量注入，避免写入文件；4. 使用加密的卷存储必要的敏感文件；5. 实施敏感信息轮转机制；6. 确保日志中不输出敏感信息。\n\n示例（docker-compose.yml + Vault）：\n```yaml\n# 使用Docker Secrets\nservices:\n  app:\n    image: myapp:1.0\n    secrets:\n      - db_password\n      - api_key\n    environment:\n      - DB_HOST=db\n      # 不在此处设置密码\n\nsecrets:\n  db_password:\n    external: true\n  api_key:\n    external: true\n```\n\n示例（Vault集成）：\n```python\nimport hvac\nclient = hvac.Client(url='https://vault:8200')\nclient.token = os.environ['VAULT_TOKEN']\nsecret = client.secrets.kv.read_secret_version(path='db')\ndb_password = secret['data']['data']['password']\n```",
+      "applicable_files": [
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "Dockerfile",
+        "*.yml",
+        "*.yaml",
+        "*.env"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "metadata": {
+    "name": "Android安全专项规则集",
+    "version": "1.0.0",
+    "description": "基于Android安全最佳实践、OWASP MSTG、Google Play安全政策的检查规则",
+    "total_rules": 20,
+    "references": ["Android Security Best Practices", "OWASP MSTG", "Google Play Security"]
+  },
+  "rules": [
+    {
+      "check_id": "AND-SEC-001",
+      "name": "AndroidManifest权限过度声明",
+      "severity": "high",
+      "category": "security",
+      "description": "声明了应用实际不使用的危险权限（如READ_CONTACTS、SEND_SMS、CAMERA），违反最小权限原则，用户权限拒绝率升高，Google Play可能标记为风险。",
+      "pattern": "<uses-permission\\s+android:name=[\"']android\\.permission\\.(?:READ_CONTACTS|SEND_SMS|WRITE_CONTACTS|CALL_PHONE|READ_CALL_LOG|WRITE_CALL_LOG|PROCESS_OUTGOING_CALLS|ANSWER_PHONE_CALLS)[\"']",
+      "file_pattern": "AndroidManifest.xml",
+      "suggestion": "1. 仅声明实际使用的权限; 2. 使用lint检查未使用的权限声明; 3. 危险权限必须在运行时请求并说明用途",
+      "references": ["https://developer.android.com/training/permissions/declaring", "https://developer.android.com/guide/topics/permissions/overview"]
+    },
+    {
+      "check_id": "AND-SEC-002",
+      "name": "Activity导出且未限制Intent来源",
+      "severity": "critical",
+      "category": "security",
+      "description": "Activity设置了android:exported=true或包含intent-filter但未限制调用方权限（android:permission），任何应用可启动该Activity，可能导致未授权操作。",
+      "pattern": "<activity[^>]*android:exported=[\"']true[\"'][^>]*>|<activity[^>]*<intent-filter",
+      "file_pattern": "AndroidManifest.xml",
+      "suggestion": "1. 非必要不导出Activity; 2. 导出的Activity添加android:permission限制调用方; 3. 在onCreate中校验Intent来源; 4. Android 12+必须显式声明exported属性",
+      "references": ["https://developer.android.com/guide/topics/manifest/activity-element#exported", "https://owasp.org/www-community/attacks/Android_Intent_Injection"]
+    },
+    {
+      "check_id": "AND-SEC-003",
+      "name": "Content Provider导出暴露数据",
+      "severity": "critical",
+      "category": "security",
+      "description": "Content Provider设置了android:exported=true且未配置读写权限，其他应用可直接读取/修改应用数据，可能导致数据泄露或篡改。",
+      "pattern": "<provider[^>]*android:exported=[\"']true[\"'][^>]*>(?!.*android:readPermission|.*android:writePermission|.*android:permission)",
+      "file_pattern": "AndroidManifest.xml",
+      "suggestion": "1. 设置android:exported=false; 2. 如必须导出，添加android:permission限制访问; 3. 在query/insert中校验调用方UID和签名",
+      "references": ["https://developer.android.com/guide/topics/providers/content-provider-basics", "https://owasp.org/www-community/attacks/Android_Content_Provider_Injection"]
+    },
+    {
+      "check_id": "AND-SEC-004",
+      "name": "敏感数据使用SharedPreferences明文存储",
+      "severity": "high",
+      "category": "security",
+      "description": "使用SharedPreferences存储密码、token、密钥等敏感数据，数据以XML明文形式存储在/data/data/<package>/shared_prefs/目录下，root后可直接读取。",
+      "pattern": "(?:getSharedPreferences|PreferenceManager\\.getDefaultSharedPreferences)\\s*\\([^)]*\\)\\s*\\.edit\\s*\\(\\s*\\)\\s*\\.(?:putString|putInt)\\s*\\(\\s*\\\"(?:password|token|secret|key|auth|credential|session)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "使用EncryptedSharedPreferences（AndroidX Security库）加密存储敏感数据，基于Tink库实现AES-GCM加密",
+      "references": ["https://developer.android.com/topic/security/data", "https://developer.android.com/reference/androidx/security/crypto/EncryptedSharedPreferences"]
+    },
+    {
+      "check_id": "AND-SEC-005",
+      "name": "WebView安全配置不足",
+      "severity": "critical",
+      "category": "security",
+      "description": "WebView启用了setJavaScriptEnabled且允许文件访问（setAllowFileAccess/setAllowFileAccessFromFileURLs），或未禁用setAllowUniversalAccessFromFileURLs，可能导致XSS或本地文件泄露。",
+      "pattern": "setJavaScriptEnabled\\s*\\(\\s*true\\s*\\)|setAllowFileAccess\\s*\\(\\s*true\\s*\\)|setAllowFileAccessFromFileURLs\\s*\\(\\s*true\\s*\\)|setAllowUniversalAccessFromFileURLs\\s*\\(\\s*true\\s*\\)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. setAllowFileAccessFromFileURLs(false); 2. setAllowUniversalAccessFromFileURLs(false); 3. 仅加载HTTPS内容; 4. 使用addJavascriptBridge时校验来源",
+      "references": ["https://developer.android.com/reference/android/webkit/WebSettings", "https://owasp.org/www-chapter-london/2016/04/14/Android_Webview_Security.html"]
+    },
+    {
+      "check_id": "AND-SEC-006",
+      "name": "隐式Intent未校验接收方",
+      "severity": "high",
+      "category": "security",
+      "description": "使用隐式Intent（未指定ComponentName）发送敏感数据，任何匹配该Intent Filter的应用可接收数据，存在数据泄露和Intent劫持风险。",
+      "pattern": "Intent\\s*\\(\\s*Intent\\.(?:ACTION_SEND|ACTION_VIEW|ACTION_PICK)|startActivity\\s*\\(\\s*Intent\\s*\\(\\s*[^,)]*\\)\\s*\\)\\s*(?!.*setComponent|.*setPackage|.*setClassName)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 敏感数据使用显式Intent（指定ComponentName或Package）; 2. 隐式Intent使用前通过PackageManager.queryIntentActivities校验接收方; 3. 验证目标应用的签名",
+      "references": ["https://developer.android.com/guide/components/intents-filters", "https://owasp.org/www-community/attacks/Android_Intent_Injection"]
+    },
+    {
+      "check_id": "AND-SEC-007",
+      "name": "深度链接（App Links）未验证域名所有权",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用App Links但未在域名上部署assetlinks.json或文件配置错误，系统无法验证域名所有权，深度链接降级为浏览器打开，可能被恶意应用拦截。",
+      "pattern": "<intent-filter[^>]*android:autoVerify=[\"']true[\"'][^>]*>(?!.*<data[^>]*android:scheme=[\"']https[\"'])",
+      "file_pattern": "AndroidManifest.xml",
+      "suggestion": "1. 确保assetlinks.json部署在https://域名/.well-known/路径; 2. JSON包含正确的SHA256指纹和包名; 3. 使用Android 12+的Statement Statement List",
+      "references": ["https://developer.android.com/training/app-links/verify-applinks", "https://developer.android.com/training/app-links"]
+    },
+    {
+      "check_id": "AND-SEC-008",
+      "name": "未实现证书固定",
+      "severity": "medium",
+      "category": "security",
+      "description": "OkHttp/HttpsURLConnection未配置CertificatePinner，仅依赖系统信任的CA证书。用户安装恶意证书（如企业WiFi代理）后可解密HTTPS流量。",
+      "pattern": "OkHttpClient\\.Builder\\s*\\(\\s*\\)(?!.*CertificatePinner)|HttpsURLConnection(?!.*CertificatePinner)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "使用OkHttp的CertificatePinner固定服务器证书SHA-256指纹: CertificatePinner.Builder().add(hostname, \"sha256/xxxx\").build()",
+      "references": ["https://square.github.io/okhttp/4.x/okhttp/okhttp3/-certificate-pinner/", "https://owasp.org/www-community/controls/Certificate_and_Public_Key_Pinning"]
+    },
+    {
+      "check_id": "AND-SEC-009",
+      "name": "FCM推送Token安全传输缺失",
+      "severity": "medium",
+      "category": "security",
+      "description": "Firebase Cloud Messaging的推送Token通过HTTP明文传输或未与服务端用户身份绑定，攻击者可截获token后冒充用户接收推送或发送恶意通知。",
+      "pattern": "FirebaseMessaging\\.getInstance\\(\\)\\.token\\s*(?!.*https|.*encrypt)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 通过HTTPS上传FCM Token; 2. 将Token与用户身份绑定; 3. 在用户登出时通知服务端注销Token",
+      "references": ["https://firebase.google.com/docs/cloud-messaging/android/client", "https://firebase.google.com/docs/cloud-messaging/concept-options"]
+    },
+    {
+      "check_id": "AND-SEC-010",
+      "name": "BroadcastReceiver未校验发送方",
+      "severity": "high",
+      "category": "security",
+      "description": "注册BroadcastReceiver接收广播时未校验发送方权限或来源，恶意应用可发送伪造广播触发应用逻辑。",
+      "pattern": "registerReceiver\\s*\\([^,]+,\\s*IntentFilter\\s*\\(\\s*[^)]*\\)\\s*\\)\\s*(?!.*permission|.*MY_PERMISSION)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 使用registerReceiver的permission参数限制发送方权限; 2. 在onReceive中校验发送方包名和签名; 3. 优先使用LocalBroadcastManager进行应用内通信",
+      "references": ["https://developer.android.com/reference/android/content/BroadcastReceiver", "https://developer.android.com/reference/androidx/localbroadcastmanager/content/LocalBroadcastManager"]
+    },
+    {
+      "check_id": "AND-SEC-011",
+      "name": "Service导出且未限制访问",
+      "severity": "high",
+      "category": "security",
+      "description": "Service设置了android:exported=true且未声明android:permission，任何应用可启动/绑定该Service，可能被恶意调用执行敏感操作。",
+      "pattern": "<service[^>]*android:exported=[\"']true[\"'][^>]*>(?!.*android:permission)",
+      "file_pattern": "AndroidManifest.xml",
+      "suggestion": "1. 设置android:exported=false; 2. 如必须导出，添加android:permission限制访问; 3. 在onBind/onStartCommand中校验调用方身份",
+      "references": ["https://developer.android.com/guide/components/services", "https://developer.android.com/guide/topics/manifest/service-element"]
+    },
+    {
+      "check_id": "AND-SEC-012",
+      "name": "ProGuard/R8混淆未启用",
+      "severity": "medium",
+      "category": "security",
+      "description": "Release构建未启用代码混淆（minifyEnabled false），APK中的类名、方法名、字符串等资源完全暴露，便于逆向分析和代码提取。",
+      "pattern": "minifyEnabled\\s+false|buildTypes\\s*\\{\\s*release\\s*\\{\\s*minifyEnabled\\s+false",
+      "file_pattern": "build.gradle, build.gradle.kts",
+      "suggestion": "1. Release构建设置minifyEnabled true; 2. 设置shrinkResources true移除未使用资源; 3. 配置ProGuard规则保护关键类",
+      "references": ["https://developer.android.com/studio/build/shrink-code", "https://developer.android.com/studio/write/proguard-rules"]
+    },
+    {
+      "check_id": "AND-SEC-013",
+      "name": "未实现Root检测",
+      "severity": "medium",
+      "category": "security",
+      "description": "应用未检测运行设备是否为Root设备，Root设备上应用沙箱被破坏，所有应用数据可被直接访问，安全机制可能被绕过。",
+      "pattern": "(?!.*isRooted|.*RootBeer|.*SafetyNet|.*rootBeer|.*checkRoot|.*su binary|.*/system/xbin/su)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 使用SafetyNet/Play Integrity API检测设备完整性; 2. 检测su二进制文件和常见Root路径; 3. Root设备上可降低功能或增强数据加密",
+      "references": ["https://developer.android.com/google/play/integrity", "https://owasp.org/www-community/controls/Jailbreak_Detection"]
+    },
+    {
+      "check_id": "AND-SEC-014",
+      "name": "日志输出敏感信息",
+      "severity": "high",
+      "category": "security",
+      "description": "使用Log.d/Log.i/Log.v等输出敏感信息（密码、token、密钥等），在Release版本中未移除。任何应用可通过logcat读取这些日志。",
+      "pattern": "Log\\.(?:d|i|v|w|e)\\s*\\(\\s*TAG\\s*,\\s*\\\".*(?:password|token|secret|key|auth|credential|session|credit_card|ssn)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 使用条件编译或日志级别控制: if(BuildConfig.DEBUG) Log.d(...); 2. 使用Timber等日志库，Release版本中种植空Tree; 3. 禁止在日志中输出敏感数据",
+      "references": ["https://developer.android.com/reference/android/util/Log", "https://jakewharton.github.io/timber/"]
+    },
+    {
+      "check_id": "AND-SEC-015",
+      "name": "应用签名校验缺失",
+      "severity": "medium",
+      "category": "security",
+      "description": "应用未校验自身签名证书，被重打包（resign）后可能篡改代码逻辑。常见于破解版和去广告版本。",
+      "pattern": "(?!.*PackageInfo\\.signatures|.*PackageManager\\.GET_SIGNATURES|.*Signature\\.toByteArray|.*signingCert)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "在应用启动时获取自身签名证书的SHA-256指纹，与预期的硬编码值比对，不一致则退出或限制功能",
+      "references": ["https://developer.android.com/reference/android/content/pm/PackageManager#getPackageInfo(java.lang.String,%20int)", "https://owasp.org/www-community/controls/Android_Anti-Tampering"]
+    },
+    {
+      "check_id": "AND-SEC-016",
+      "name": "外部存储使用不安全",
+      "severity": "medium",
+      "category": "security",
+      "description": "将敏感文件存储在外部存储（Environment.getExternalStorageDirectory），任何应用可通过READ_EXTERNAL_STORAGE权限读取，且Android 10+ Scoped Storage限制访问。",
+      "pattern": "Environment\\.getExternalStorageDirectory|getExternalFilesDir\\s*\\(\\s*null\\s*\\)\\s*(?!.*encrypt)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 敏感数据使用应用内部存储(getFilesDir/getCacheDir); 2. 必须使用外部存储时使用EncryptedFile; 3. Android 10+使用MediaStore API",
+      "references": ["https://developer.android.com/training/data-storage", "https://developer.android.com/training/data-storage/app-specific"]
+    },
+    {
+      "check_id": "AND-SEC-017",
+      "name": "Clipboard数据未清除",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "将敏感数据（密码、token）复制到Clipboard且未设置过期时间或未清除，其他应用可通过ClipboardManager读取（Android 10+限制但低版本可读取）。",
+      "pattern": "(?:ClipboardManager|clipboardManager)\\s*\\.(?:setPrimaryClip|setText)\\s*\\([^)]*(?:password|token|secret|key)",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 避免将敏感数据复制到剪贴板; 2. 使用ClipData.newPlainText后立即设置过期; 3. Android 13+使用setSensitiveClip标记",
+      "references": ["https://developer.android.com/reference/android/content/ClipboardManager", "https://developer.android.com/about/versions/10/privacy/changes#clipboard-data"]
+    },
+    {
+      "check_id": "AND-SEC-018",
+      "name": "SSL证书校验被禁用",
+      "severity": "critical",
+      "category": "security",
+      "description": "自定义SSLSocketFactory或TrustManager实现中onCheckServerTrusted方法为空（接受所有证书）或实现了X509TrustManager.checkServerTrusted不做校验，导致HTTPS形同虚设。",
+      "pattern": "class\\s+\\w*TrustManager[^{]*\\{[^}]*checkServerTrusted[^}]*\\{\\s*\\}|X509TrustManager\\s*\\(\\s*\\)\\s*\\{[^}]*\\}",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "严禁禁用证书校验。使用系统默认的TrustManager，或实现严格的证书校验逻辑（校验证书链、有效期、域名匹配）",
+      "references": ["https://developer.android.com/training/articles/security-ssl", "https://owasp.org/www-community/vulnerabilities/Insecure_Transport"]
+    },
+    {
+      "check_id": "AND-SEC-019",
+      "name": "debuggable属性在生产版本中启用",
+      "severity": "critical",
+      "category": "security",
+      "description": "AndroidManifest.xml或build.gradle中release构建配置了android:debuggable=true，允许ADB附加调试器，攻击者可dump内存、注入代码。",
+      "pattern": "android:debuggable=[\"']true[\"']|debuggable\\s+true",
+      "file_pattern": "AndroidManifest.xml, build.gradle, build.gradle.kts",
+      "suggestion": "确保Release构建中android:debuggable为false（默认值）。在build.gradle的buildTypes.release中不设置debuggable",
+      "references": ["https://developer.android.com/guide/topics/manifest/application-element#debug", "https://owasp.org/www-chapter-london/2016/04/14/Android_Debugging.html"]
+    },
+    {
+      "check_id": "AND-SEC-020",
+      "name": "硬编码加密密钥",
+      "severity": "critical",
+      "category": "security",
+      "description": "在代码中硬编码加密密钥（AES key、IV、Secret Key），反编译APK后可直接提取密钥，所有加密数据可被解密。",
+      "pattern": "(?:private|val|const)\\s+(?:val|var|final)?\\s*\\w*(?:key|secret|iv|password)\\w*\\s*=\\s*[\"'][A-Za-z0-9+/=]{16,}[\"']|SecretKeySpec\\s*\\(\\s*[\"'][^\"']+[\"']",
+      "file_pattern": "*.kt, *.java",
+      "suggestion": "1. 使用AndroidKeyStore生成和存储密钥; 2. 密钥不存储在代码中; 3. 使用KeyGenParameterSpec配置密钥用途和有效期",
+      "references": ["https://developer.android.com/training/articles/keystore", "https://owasp.org/www-community/controls/Android_KeyStore"]
+    }
+  ]
+}

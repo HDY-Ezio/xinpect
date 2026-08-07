@@ -1,0 +1,103 @@
+{
+  "rules": [
+    {
+      "id": "SEC-DES-001",
+      "name": "缺少业务逻辑校验：金额可为负数",
+      "severity": "high",
+      "category": "insecure-design",
+      "description": "交易/支付接口允许传入负数金额，攻击者可通过负数金额反向获利（如退款-100元变为获得100元）。",
+      "suggestion": "在服务端严格校验金额必须为正数；使用白名单校验所有数值输入；对金额计算使用Decimal类型。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "SEC-DES-002",
+      "name": "缺少速率限制导致暴力破解",
+      "severity": "high",
+      "category": "insecure-design",
+      "description": "登录、验证码发送、密码重置等敏感接口缺少请求速率限制，攻击者可无限次尝试暴力破解。",
+      "suggestion": "实施IP级别和用户级别的速率限制；登录失败后递增延迟；验证码使用图形验证；5次失败后锁定账户。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-DES-003",
+      "name": "信任边界不清晰：客户端数据直接用于安全决策",
+      "severity": "high",
+      "category": "insecure-design",
+      "description": "将客户端传递的数据（如用户角色、权限级别、价格）直接用于安全决策，攻击者可篡改这些数据绕过安全检查。",
+      "suggestion": "所有安全决策必须基于服务端状态；权限信息从session/token中获取而非客户端传递；价格从数据库查询而非前端传入。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-DES-004",
+      "name": "缺少并发竞态保护（TOCTOU）",
+      "severity": "high",
+      "category": "insecure-design",
+      "description": "先检查后执行（Time-of-Check-Time-of-Use）存在竞态条件，如检查余额>金额后再扣款，并发请求可能导致超额消费。",
+      "suggestion": "使用数据库事务+行级锁（SELECT FOR UPDATE）；使用乐观锁（version字段）；使用分布式锁保护关键操作。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.go",
+        "*.cs",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-DES-005",
+      "name": "密码重置流程设计缺陷",
+      "severity": "high",
+      "category": "insecure-design",
+      "description": "密码重置使用可预测的token（如用户ID的hash）、token不过期、重置后旧token仍有效、或重置链接通过HTTP传输。",
+      "suggestion": "使用CSPRNG生成重置token；设置短有效期（15分钟）；重置后立即使token失效；强制HTTPS传输。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-DES-006",
+      "name": "缺少多因素认证(MFA)的高敏感操作",
+      "severity": "medium",
+      "category": "insecure-design",
+      "description": "高敏感操作（如大额转账、管理员权限变更、API密钥生成）仅依赖单因素认证，缺少二次验证。",
+      "suggestion": "为高敏感操作添加MFA验证（如短信验证码、TOTP、硬件密钥）；实现分级别的认证要求。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.cs"
+      ]
+    }
+  ]
+}

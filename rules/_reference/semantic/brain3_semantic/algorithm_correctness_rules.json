@@ -1,0 +1,90 @@
+{
+  "rules": [
+    {
+      "id": "B3-08-R001",
+      "name": "排序比较函数不满足全序关系",
+      "severity": "high",
+      "category": "algorithm-correctness",
+      "description": "自定义排序比较函数不满足传递性、反对称性或完全性（如compare(a,b)>0且compare(b,c)>0但compare(a,c)<=0），导致排序结果不确定或崩溃。",
+      "suggestion": "确保比较函数满足全序关系：自反性(a==a)、反对称性、传递性；使用标准库排序而非自实现。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "B3-08-R002",
+      "name": "二分查找边界条件错误",
+      "severity": "high",
+      "category": "algorithm-correctness",
+      "description": "二分查找中left/right初始化、循环条件（<vs<=）、中间值计算（溢出风险）或边界更新（left=mid vs left=mid+1）存在错误。",
+      "suggestion": "使用left<=right标准模板；mid用left+(right-left)/2防溢出；仔细确认边界更新方向。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "B3-08-R003",
+      "name": "递归缺少终止条件导致栈溢出",
+      "severity": "critical",
+      "category": "algorithm-correctness",
+      "description": "递归函数缺少正确的基准条件（base case）或基准条件永远无法满足，导致无限递归最终StackOverflow。",
+      "suggestion": "确保每个递归都有明确的终止条件；添加递归深度限制；考虑使用迭代+栈替代深递归。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.cpp",
+        "*.c"
+      ]
+    },
+    {
+      "id": "B3-08-R004",
+      "name": "哈希表/Map的键类型使用不当",
+      "severity": "medium",
+      "category": "algorithm-correctness",
+      "description": "使用浮点数、数组、对象等作为哈希键，由于浮点精度或引用比较语义导致查找失败；或使用可变对象作键，修改后无法检索。",
+      "suggestion": "使用不可变类型作为哈希键；浮点数键使用整数化或字符串化；对象键使用JSON序列化或自定义hashCode。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.cs",
+        "*.go"
+      ]
+    },
+    {
+      "id": "B3-08-R005",
+      "name": "滑动窗口/双指针边界遗漏",
+      "severity": "medium",
+      "category": "algorithm-correctness",
+      "description": "滑动窗口或双指针算法中，窗口边界更新条件不正确导致遗漏有效窗口或产生无效窗口（如空数组、单元素、全相同元素）。",
+      "suggestion": "显式处理边界情况（空输入、单元素）；用测试用例验证窗口收缩/扩张条件；注意off-by-one错误。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.cs",
+        "*.go",
+        "*.cpp"
+      ]
+    }
+  ]
+}

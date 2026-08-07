@@ -1,0 +1,83 @@
+{
+  "rules": [
+    {
+      "id": "SEC-151",
+      "name": "不安全的随机数：安全场景使用弱随机",
+      "severity": "high",
+      "category": "weak-randomness",
+      "description": "使用Math.random()、java.util.Random、rand()等非密码学安全的随机数生成器生成安全敏感数据(Token、Session ID、验证码)，可被预测。",
+      "suggestion": "使用密码学安全的随机数生成器(crypto.getRandomValues、SecureRandom、os.urandom、random_bytes)；避免使用Math.random生成安全Token；对安全场景使用硬件随机数源。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-170",
+      "name": "CWE-798：使用硬编码凭证",
+      "severity": "critical",
+      "category": "hardcoded-credentials",
+      "description": "代码中硬编码密码、API Key、加密密钥等凭证，代码泄露后凭证暴露。CWE Top 25常见项。",
+      "suggestion": "使用环境变量或密钥管理服务存储凭证；从代码库中移除所有硬编码凭证；使用pre-commit hook检测凭证；实施凭证轮换机制。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.env"
+      ]
+    },
+    {
+      "id": "SEC-187",
+      "name": "CWE-522：信息凭证传输不安全",
+      "severity": "critical",
+      "category": "credential-transmission",
+      "description": "认证凭证(用户名密码、Token)通过未加密连接传输，容易被中间人窃听。",
+      "suggestion": "强制使用HTTPS传输所有认证数据；使用HSTS强制浏览器使用HTTPS；避免在URL参数中传递凭证；使用安全的认证协议(OAuth 2.0、OpenID Connect)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.nginx.conf"
+      ]
+    },
+    {
+      "id": "SEC-193",
+      "name": "CWE-330：使用不充分的随机数",
+      "severity": "high",
+      "category": "randomness",
+      "description": "使用可预测的随机数生成器(Math.random、rand)生成安全敏感数据(Token、Session ID、密钥)，可被预测。",
+      "suggestion": "使用密码学安全的随机数生成器(crypto.getRandomValues、SecureRandom、os.urandom)；避免使用Math.random生成安全Token；使用硬件随机数源(如果可用)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-195",
+      "name": "CWE-94：代码注入",
+      "severity": "critical",
+      "category": "code-injection",
+      "description": "将用户输入作为代码执行(eval、Function构造器、动态require)，攻击者可注入并执行任意代码。",
+      "suggestion": "避免使用eval和动态代码执行；使用JSON.parse替代eval；使用安全的模板引擎；对必须执行动态代码的场景使用沙箱。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.php",
+        "*.ruby"
+      ]
+    }
+  ]
+}

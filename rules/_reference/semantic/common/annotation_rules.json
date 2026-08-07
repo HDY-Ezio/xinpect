@@ -1,0 +1,78 @@
+{
+  "rules": [
+    {
+      "id": "B1-09-R001",
+      "name": "Deprecated标记的函数仍被调用",
+      "severity": "medium",
+      "category": "annotation-convention",
+      "description": "调用了已标记为@Deprecated的函数/方法，应使用推荐的新接口替代。",
+      "suggestion": "替换为@Deprecated注解推荐的替代方案；如无替代方案，评估是否需要继续使用。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.ts",
+        "*.js",
+        "*.py",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B1-09-R002",
+      "name": "Override注解缺失",
+      "severity": "low",
+      "category": "annotation-convention",
+      "description": "重写父类方法时未添加@Override注解，可能导致签名不匹配时无法被编译器检测到。",
+      "suggestion": "所有重写父类方法的地方都添加@Override注解。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.ts",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B1-09-R003",
+      "name": "注解参数使用不当",
+      "severity": "medium",
+      "category": "annotation-convention",
+      "description": "注解使用了错误的参数值或在不适用的上下文中使用了注解（如@Test注解用在非测试方法上）。",
+      "suggestion": "检查注解的适用范围和参数值是否正确；参考框架文档确认注解用法。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.ts",
+        "*.py",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B1-09-R004",
+      "name": "缺少必要的框架注解",
+      "severity": "medium",
+      "category": "annotation-convention",
+      "description": "使用了框架（Spring/Flask/Django等）但未添加必要注解，如@Service、@Component、@RequestMapping等缺失。",
+      "suggestion": "根据框架要求添加对应注解；确保组件能被正确扫描和注入。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.py",
+        "*.ts",
+        "*.cs"
+      ]
+    },
+    {
+      "id": "B1-09-R005",
+      "name": "SuppressWarnings滥用",
+      "severity": "medium",
+      "category": "annotation-convention",
+      "description": "使用@SuppressWarnings压制了大量编译器警告，可能掩盖真实问题。",
+      "suggestion": "逐一审查被压制的警告，修复根本问题；仅对确实无法修复的第三方库兼容问题使用压制。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.ts",
+        "*.cs"
+      ]
+    }
+  ]
+}

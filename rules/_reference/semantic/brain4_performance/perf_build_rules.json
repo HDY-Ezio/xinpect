@@ -1,0 +1,285 @@
+{
+    "metadata": {
+        "name": "性能-构建与打包优化规则",
+        "total_rules": 20
+    },
+    "rules": [
+        {
+            "id": "PERF-BUILD-001",
+            "name": "打包产物未启用Tree Shaking导致无用代码残留",
+            "severity": "S2",
+            "category": "build",
+            "description": "打包工具未配置Tree Shaking（或依赖使用CommonJS格式无法shake），未使用的导出函数/组件被打包进最终产物，增大包体积",
+            "suggestion": "确保使用ES Module格式（import/export）；Webpack配置sideEffects: false；使用支持Tree Shaking的库（如lodash-es替代lodash）",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.json",
+                "webpack.config.*",
+                "vite.config.*",
+                "rollup.config.*"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-BUILD-002",
+            "name": "未启用代码分割(Code Splitting)导致首屏加载慢",
+            "severity": "S2",
+            "category": "build",
+            "description": "所有代码打包为单个JS文件（可能数MB），用户必须下载并解析完整JS才能使用页面，首屏加载时间极长",
+            "suggestion": "使用动态import()实现路由级代码分割；Webpack配置splitChunks分离vendor和业务代码；使用React.lazy/Suspense按需加载组件",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "webpack.config.*",
+                "vite.config.*"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-BUILD-003",
+            "name": "打包体积超过500KB未做优化",
+            "severity": "S1",
+            "category": "build",
+            "description": "主包（main bundle）JS体积超过500KB（gzip后>150KB），首次加载解析执行时间长，Lighthouse性能评分低",
+            "suggestion": "使用webpack-bundle-analyzer分析包体积组成；移除不必要的依赖；使用按需引入替代全量引入；对大依赖使用CDN external",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                "webpack.config.*",
+                "vite.config.*",
+                "package.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-004",
+            "name": "依赖库全量引入而非按需引入",
+            "severity": "S2",
+            "category": "build",
+            "description": "全量引入大型UI库（如import { Button } from 'antd'引入整个antd）、工具库（import _ from 'lodash'引入完整lodash），实际只用到少量模块",
+            "suggestion": "使用按需引入：antd使用babel-plugin-import；lodash使用lodash-es的命名导入；moment.js替换为dayjs（体积减少97%）",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.jsx",
+                "*.tsx",
+                ".babelrc*",
+                "babel.config.*"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-005",
+            "name": "生产构建未移除console.log和debugger",
+            "severity": "S2",
+            "category": "build",
+            "description": "生产环境打包保留了console.log/debugger等调试语句，不仅增大包体积还可能泄露调试信息影响安全性",
+            "suggestion": "配置Terser/DropConsole插件在生产构建时移除console.*和debugger；使用条件编译（#ifdef DEBUG）控制调试代码",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "rollup.config.*",
+                ".babelrc*",
+                "babel.config.*"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-006",
+            "name": "未使用持久化缓存(内容hash)导致缓存失效",
+            "severity": "S2",
+            "category": "build",
+            "description": "打包输出文件名不含内容hash（如bundle.js），文件内容变化但文件名不变导致浏览器使用旧缓存；或文件名含随机值每次变化导致缓存永远失效",
+            "suggestion": "输出文件名使用内容hash（[contenthash].js），内容不变文件名不变利用强缓存；Webpack 5使用moduleIds: 'deterministic'保证chunk hash稳定",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "rollup.config.*"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-007",
+            "name": "Source Map在生产环境未禁用或配置不当",
+            "severity": "S2",
+            "category": "build",
+            "description": "生产环境生成完整的source map文件（如source-map模式）并上传到CDN，不仅暴露源码还增加构建时间和部署体积",
+            "suggestion": "生产环境使用hidden-source-map（生成但不引用）或nosources-source-map；或将source map上传到错误监控平台（Sentry）而非CDN",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "rollup.config.*",
+                "tsconfig.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-008",
+            "name": "图片资源未压缩和优化直接打包",
+            "severity": "S2",
+            "category": "build",
+            "description": "原始图片（PNG/JPEG）未经压缩优化直接打包到产物中，图片体积占打包总体积的60%以上，严重影响加载性能",
+            "suggestion": "使用image-minimizer-webpack-plugin或vite-plugin-imagemin自动压缩图片；小图标转为SVG或icon font；大图片使用CDN+WebP格式",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "rollup.config.*"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-009",
+            "name": "Webpack构建速度过慢未优化",
+            "severity": "S3",
+            "category": "build",
+            "description": "开发环境Webpack全量编译耗时超过30秒，代码修改后热更新等待时间长，严重影响开发效率",
+            "suggestion": "使用esbuild/swc替代babel加速编译；配置cache（Webpack 5持久化缓存）；缩小loader处理范围（include/exclude）；使用Module Federation拆分大项目",
+            "applicable_files": [
+                "webpack.config.*",
+                "package.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-010",
+            "name": "重复依赖打包导致产物体积膨胀",
+            "severity": "S2",
+            "category": "build",
+            "description": "多个依赖包各自引入了同一个库的不同版本（如moment.js、lodash被多个包各自打包一份），导致同一库代码在产物中出现多次",
+            "suggestion": "使用npm dedupe或resolutions字段统一依赖版本；Webpack配置resolve.alias强制使用同一版本；使用bundlephobia检查依赖体积",
+            "applicable_files": [
+                "package.json",
+                "webpack.config.*",
+                "pnpm-lock.yaml"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-011",
+            "name": "CSS未提取为独立文件导致JS阻塞渲染",
+            "severity": "S2",
+            "category": "build",
+            "description": "CSS通过JS动态注入（style-loader）而非独立CSS文件，页面渲染需等待JS下载执行完成后才能获取样式，导致FOUC（Flash of Unstyled Content）",
+            "suggestion": "使用mini-css-extract-plugin（Webpack）或内置CSS提取（Vite）将CSS打包为独立文件，与JS并行下载，CSS可被浏览器缓存",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "rollup.config.*"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-012",
+            "name": "polyfill未按需引入导致体积膨胀",
+            "severity": "S2",
+            "category": "build",
+            "description": "引入完整polyfill包（如core-js全量引入、@babel/polyfill）或babel配置useBuiltIns未设置，所有polyfill（包括不需要的）都被打包",
+            "suggestion": "使用@babel/preset-env配置useBuiltIns: 'usage'自动按需引入polyfill；配合browserslist指定目标浏览器仅引入缺失的polyfill",
+            "applicable_files": [
+                "babel.config.*",
+                ".babelrc*",
+                "browserslist"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-013",
+            "name": "打包产物未启用Brotli/gzip预压缩",
+            "severity": "S3",
+            "category": "build",
+            "description": "服务端实时压缩静态资源消耗CPU且压缩效果不如预压缩，未使用compression-webpack-plugin生成预压缩文件",
+            "suggestion": "使用compression-webpack-plugin生成.gz和.br预压缩文件；Nginx配置gzip_static on和brotli_static on直接返回预压缩文件",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "*.conf",
+                "*.nginx"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-014",
+            "name": "Monorepo未配置增量构建导致全量编译",
+            "severity": "S2",
+            "category": "build",
+            "description": "Monorepo项目中任何代码变更都触发全部子包/模块的重新构建，构建时间与项目总规模成正比而非变更规模",
+            "suggestion": "使用Turborepo/Nx等工具配置增量构建，仅构建受影响的包；利用远程缓存（Remote Cache）复用未变更包的构建产物",
+            "applicable_files": [
+                "turbo.json",
+                "nx.json",
+                "package.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-015",
+            "name": "Node_modules未正确缓存导致CI构建慢",
+            "severity": "S3",
+            "category": "build",
+            "description": "CI/CD每次构建都重新执行npm install/cnpm install全量安装依赖，网络不稳定时安装时间超过10分钟",
+            "suggestion": "CI配置依赖缓存（GitHub Actions cache、GitLab CI cache）缓存node_modules或包管理器缓存目录；使用lockfile确保确定性安装；考虑使用pnpm加速",
+            "applicable_files": [
+                ".github/workflows/*.yml",
+                ".gitlab-ci.yml",
+                "Dockerfile",
+                "Jenkinsfile"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-016",
+            "name": "Webpack未使用DllPlugin或Module Federation预编译不变的依赖",
+            "severity": "S3",
+            "category": "build",
+            "description": "每次构建都重新编译大型第三方依赖（React、Antd等），而这些库很少更新，重复编译浪费构建时间",
+            "suggestion": "使用Webpack DllPlugin预编译不变的依赖生成vendor dll；或升级Webpack 5使用Module Federation/持久化缓存替代",
+            "applicable_files": [
+                "webpack.config.*",
+                "webpack.dll.config.*"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-017",
+            "name": "构建工具未利用多核CPU并行处理",
+            "severity": "S3",
+            "category": "build",
+            "description": "构建工具默认单线程运行（如Webpack默认单线程编译），无法利用现代多核CPU的并行计算能力",
+            "suggestion": "使用thread-loader（Webpack）开多线程并行处理loader；使用esbuild（Go实现的多线程编译）替代babel；Vite默认使用esbuild多核编译",
+            "applicable_files": [
+                "webpack.config.*",
+                "vite.config.*",
+                "package.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-018",
+            "name": "未配置构建产物体积预算(Budget)告警",
+            "severity": "S3",
+            "category": "build",
+            "description": "项目无构建产物体积限制和监控，包体积随迭代逐步膨胀无人察觉，直到性能问题严重影响用户体验才被发现",
+            "suggestion": "Webpack配置performance hints（maxAssetSize/maxEntrypointSize）超限时告警；Angular CLI配置budgets；CI集成size-limit自动检查",
+            "applicable_files": [
+                "webpack.config.*",
+                "angular.json",
+                "package.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-019",
+            "name": "TypeScript编译未开启增量编译导致重复类型检查",
+            "severity": "S3",
+            "category": "build",
+            "description": "TypeScript项目每次构建都进行全量类型检查和编译，大型项目类型检查耗时超过30秒，严重影响构建和开发效率",
+            "suggestion": "tsconfig.json开启incremental: true和composite: true启用增量编译，只重新检查变更文件；使用Project References拆分大项目",
+            "applicable_files": [
+                "tsconfig.json",
+                "tsconfig.*.json"
+            ]
+        },
+        {
+            "id": "PERF-BUILD-020",
+            "name": "未使用现代打包工具(Vite/esbuild)替代Webpack",
+            "severity": "S3",
+            "category": "build",
+            "description": "大型项目使用Webpack 4或更旧版本，开发启动时间超过60秒、HMR更新缓慢，严重影响开发体验和效率",
+            "suggestion": "新项目使用Vite（基于esbuild预构建+Rollup打包）；存量Webpack项目可渐进迁移至Vite或使用Rspack（Webpack兼容的Rust编译器）",
+            "applicable_files": [
+                "package.json",
+                "webpack.config.*",
+                "vite.config.*"
+            ]
+        }
+    ]
+}

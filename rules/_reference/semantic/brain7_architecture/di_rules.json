@@ -1,0 +1,49 @@
+{
+    "rules": [
+        {
+            "id": "ARCH-DI-001",
+            "name": "使用Service Locator反模式替代依赖注入",
+            "severity": "medium",
+            "category": "dependency-injection",
+            "description": "类内部直接通过全局注册表/服务定位器（如ApplicationContext.getBean()、Injector.get()）获取依赖，而非通过构造函数/方法注入。",
+            "suggestion": "使用构造函数注入替代Service Locator；依赖应通过参数传入而非内部查找；使依赖关系显式化。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DI-002",
+            "name": "直接new依赖对象而非注入",
+            "severity": "medium",
+            "category": "dependency-injection",
+            "description": "类中直接使用new关键字创建依赖对象（如new UserService()、new DatabaseConnection()），而非通过依赖注入获取，导致无法替换/mock。",
+            "suggestion": "使用构造函数注入依赖；使用工厂模式创建复杂对象；使用DI框架管理生命周期。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.py",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-DI-003",
+            "name": "依赖注入的作用域不当",
+            "severity": "medium",
+            "category": "dependency-injection",
+            "description": "将短生命周期组件注入到长生命周期组件中（如将Request-scoped的Bean注入到Singleton中），可能导致状态泄漏或过期引用。",
+            "suggestion": "确保注入的依赖生命周期≥宿主组件；使用Provider/Lazy injection延迟获取；检查DI框架的作用域配置。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts"
+            ],
+            "pattern": ""
+        }
+    ]
+}

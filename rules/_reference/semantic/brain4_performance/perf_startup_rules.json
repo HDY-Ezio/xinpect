@@ -1,0 +1,175 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": "brain4_performance",
+        "generated": "2026-08",
+        "description": "应用启动性能规则，检查启动阶段的阻塞操作、资源预热、模块加载等影响冷启动速度的问题",
+        "total_rules": 8,
+        "standards_reference": [
+            "Web Vitals - FCP/LCP",
+            "Spring Boot Startup Optimization",
+            "Node.js Performance Best Practices"
+        ]
+    },
+    "rules": [
+        {
+            "id": "PERF-START-001",
+            "name": "应用启动时同步加载大量配置",
+            "severity": "high",
+            "category": "启动性能",
+            "description": "在应用启动阶段通过同步I/O操作加载大量配置文件（如读取数百个YAML/JSON/XML文件、遍历配置目录），阻塞主线程导致启动时间显著延长。特别是在云原生环境中，冷启动时间直接影响自动伸缩响应速度和容器调度效率。同步配置加载还可能因为配置文件不存在或格式错误导致启动直接失败，缺乏容错能力。",
+            "suggestion": "1) 将配置文件合并为少量大文件或使用配置中心；2) 使用异步加载配合await机制，非关键配置延迟加载；3) 使用缓存机制减少重复文件读取；4) 对配置进行预编译（如将YAML解析结果序列化为二进制缓存）；5) 区分启动必需配置和运行时配置，仅加载必需项。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.yml",
+                "*.json",
+                "*.xml",
+                "*.properties"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-002",
+            "name": "数据库连接在启动时全量建立",
+            "severity": "medium",
+            "category": "启动性能",
+            "description": "应用启动时立即创建数据库连接池的全部连接（如初始化50个MySQL连接），导致启动时间增加数秒。数据库连接建立涉及TCP三次握手、SSL协商、认证等网络往返操作，每个连接可能需要50-200ms。在微服务架构中，多个服务同时全量初始化连接池会给数据库带来瞬时连接风暴。",
+            "suggestion": "1) 使用连接池的懒初始化模式，启动时仅创建最小连接数（如2-5个），按需扩展；2) 配置HikariCP的minimumIdle和maximumPoolSize合理比例；3) 使用连接预热但异步执行（如Spring Boot的DataSource初始化后触发异步预热）；4) 在K8s中使用readinessProbe延迟就绪检查。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.yml",
+                "*.properties",
+                "*.xml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-003",
+            "name": "启动时执行大量数据预热阻塞主线程",
+            "severity": "high",
+            "category": "启动性能",
+            "description": "在应用启动过程中执行大量数据预热操作（如加载全量缓存、构建索引、预热机器学习模型、加载字典数据等），且这些操作在主线程同步执行。这会导致应用启动时间从秒级延长到分钟级，在容器编排中可能触发健康检查超时导致Pod被反复重启。",
+            "suggestion": "1) 将数据预热操作移至后台线程异步执行，应用先启动再预热；2) 实现分级预热策略：先加载热点数据（LRU Top N%），再逐步加载冷数据；3) 使用预热进度接口，让健康检查考虑预热状态；4) 使用本地缓存（如Caffeine）的异步加载模式；5) 将预热结果持久化到磁盘，重启时直接加载。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.cs",
+                "*.rs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-004",
+            "name": "模块导入存在循环依赖拖慢启动",
+            "severity": "medium",
+            "category": "启动性能",
+            "description": "模块之间存在循环导入/引用关系（如A导入B，B导入A），导致模块加载器需要多次尝试解析依赖关系，延长启动时间。在某些运行时中，循环依赖会导致模块在未完全初始化时就被引用，产生undefined引用或空值异常。Python的循环导入更是直接导致ImportError。",
+            "suggestion": "1) 使用依赖注入或事件机制解除循环依赖；2) 提取公共模块为独立包，被循环引用的模块共同依赖；3) 使用动态导入（lazy import）延迟加载；4) 使用madge/circular-dependency-plugin等工具检测循环依赖；5) 重构代码结构使依赖方向单向化。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.go",
+                "*.cs"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-005",
+            "name": "启动脚本包含不必要的初始化操作",
+            "severity": "low",
+            "category": "启动性能",
+            "description": "启动脚本（如Dockerfile的ENTRYPOINT、systemd service、shell启动脚本）中包含与核心业务无关的初始化操作，如执行数据库migration、清理临时文件、发送通知等。这些操作虽不是错误，但增加了不必要的启动时间，违反了单一职责原则。",
+            "suggestion": "1) 将非核心初始化操作移至异步任务或sidecar容器；2) 使用init容器处理前置任务（K8s initContainers）；3) 采用entrypoint脚本分层设计，核心启动与辅助操作分离；4) 使用条件判断跳过不必要的初始化（如检查是否已完成migration）。",
+            "applicable_files": [
+                "Dockerfile",
+                "Dockerfile.*",
+                "*.sh",
+                "*.bash",
+                "*.yaml",
+                "*.yml",
+                "docker-compose.yml",
+                "docker-compose.yaml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-006",
+            "name": "懒加载配置使用同步读取",
+            "severity": "medium",
+            "category": "启动性能",
+            "description": "本应懒加载（按需加载）的配置项却使用了同步I/O读取，导致首次访问该配置时请求被阻塞。虽然懒加载策略本身是合理的（避免启动时加载所有配置），但同步读取方式会在关键请求路径上引入延迟尖刺，影响用户体验和系统响应时间。",
+            "suggestion": "1) 使用异步配置加载，返回Promise/Future，首次访问时触发加载；2) 使用预读机制：在低峰期提前加载可能需要的配置；3) 配置本地缓存TTL，减少远程配置中心调用频率；4) 使用嵌入式缓存（如Redis本地缓存）加速配置读取。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.yml",
+                "*.properties"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-007",
+            "name": "启动时DNS解析阻塞",
+            "severity": "high",
+            "category": "启动性能",
+            "description": "应用启动时进行DNS解析操作（如连接数据库、消息队列、配置中心等外部服务），DNS查询可能因为网络问题、DNS服务器响应慢或DNS缓存未命中而耗时数秒。在容器环境中，首次DNS查询通常比物理机慢2-5倍，且DNS超时可能导致启动失败。",
+            "suggestion": "1) 使用IP地址或本地hosts文件缓存关键服务的地址；2) 配置DNS预解析（prefetch）和较长的TTL；3) 在K8s中使用Service的ClusterIP替代域名连接；4) 实现启动重试机制，DNS解析失败时指数退避重试；5) 使用连接池保持长连接减少DNS查询频率。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.go",
+                "*.yaml",
+                "*.yml",
+                "Dockerfile",
+                "docker-compose.yml",
+                "docker-compose.yaml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-START-008",
+            "name": "冷启动未做快照/预编译优化",
+            "severity": "low",
+            "category": "启动性能",
+            "description": "运行在云函数（Serverless）或容器环境中的应用未做冷启动优化，每次冷启动都需要完整执行类加载、JIT编译、框架初始化等操作。对于Java/Spring应用，冷启动可能超过10秒；对于Node.js应用，大量模块的解析和编译也需要数百毫秒。",
+            "suggestion": "1) Java应用使用CDS（Class Data Sharing）或GraalVM Native Image预编译；2) Node.js使用V8 snapshot或--build-snapshot预生成堆快照；3) Serverless函数使用Provisioned Concurrency保持预热实例；4) 减少启动时的反射和动态代理操作；5) 使用轻量级框架替代重量级框架（如Quarkus替代Spring Boot）。",
+            "applicable_files": [
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.py",
+                "Dockerfile",
+                "serverless.yml",
+                "template.yaml"
+            ],
+            "pattern": ""
+        }
+    ],
+    "summary": {
+        "critical": 0,
+        "high": 3,
+        "medium": 3,
+        "low": 2
+    }
+}

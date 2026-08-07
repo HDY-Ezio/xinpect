@@ -1,0 +1,511 @@
+{
+  "metadata": {
+    "name": "代码审查通用规则",
+    "total_rules": 35
+  },
+  "rules": [
+    {
+      "id": "CR-001",
+      "name": "函数参数超过5个",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "函数参数数量超过5个，增加了函数复杂度和调用难度",
+      "suggestion": "将相关参数封装为对象/结构体传入，或使用Builder模式",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-002",
+      "name": "函数体超过80行",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "单个函数体超过80行代码，职责不单一，难以理解和测试",
+      "suggestion": "将长函数拆分为多个职责单一的小函数，每个函数不超过50行",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-003",
+      "name": "嵌套层级超过4层",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "条件判断或循环嵌套超过4层，代码难以阅读和维护",
+      "suggestion": "使用早返回（guard clause）减少嵌套，提取子函数降低层级",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-004",
+      "name": "使用缩写命名变量",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "变量名使用不清晰的缩写（如usr、mgr、cnt），降低代码可读性",
+      "suggestion": "使用完整、有意义的名称（如user、manager、count），遵循项目命名规范",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-005",
+      "name": "TODO/FIXME未关联Issue",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "代码中包含TODO/FIXME注释但没有关联Issue编号或负责人",
+      "suggestion": "TODO/FIXME注释需包含：负责人、Issue编号、预期解决时间",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-006",
+      "name": "缺少必要的代码注释",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "复杂的业务逻辑或算法没有注释说明，其他开发者难以理解意图",
+      "suggestion": "为复杂逻辑添加注释说明：为什么这样做（Why）而非做了什么（What）",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-007",
+      "name": "单个文件超过500行",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "单个源文件超过500行代码，职责可能不单一，维护困难",
+      "suggestion": "将大文件拆分为多个职责明确的模块，每个文件聚焦单一领域",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-008",
+      "name": "魔法数字未定义为常量",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "代码中直接使用未解释的数字（如if(status === 3)），含义不明确",
+      "suggestion": "将魔法数字提取为有明确含义的常量或枚举（如STATUS_COMPLETED = 3）",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-009",
+      "name": "布尔函数命名不以is/has/can开头",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "返回布尔值的函数没有使用is/has/can/should等前缀，语义不清晰",
+      "suggestion": "布尔函数使用is/has/can/should前缀：isValid()、hasPermission()、canEdit()",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-010",
+      "name": "注释掉的代码未删除",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "代码中保留了大段注释掉的旧代码，增加噪音且可能误导",
+      "suggestion": "删除注释掉的代码，需要时可通过Git历史找回",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-011",
+      "name": "import语句未按规范排序",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "import语句没有按标准库、第三方库、本地模块的顺序分组排列",
+      "suggestion": "import按组排列：内置模块 > 第三方库 > 本地模块，每组内按字母排序",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-012",
+      "name": "缺少单元测试的关键路径",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "核心业务逻辑缺少单元测试覆盖，变更时容易出现回归Bug",
+      "suggestion": "核心业务路径必须有单元测试，覆盖率目标不低于80%",
+      "applicable_files": [
+        "*.test.js",
+        "*.test.ts",
+        "*.spec.js",
+        "*.spec.ts",
+        "*_test.py",
+        "*Test.java"
+      ]
+    },
+    {
+      "id": "CR-013",
+      "name": "类的方法超过20个",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "单个类包含超过20个方法，可能违反单一职责原则",
+      "suggestion": "考虑将类拆分为多个更小的类，每个类聚焦单一职责",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-014",
+      "name": "使用any类型（TypeScript）",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "TypeScript代码中使用any类型，失去类型检查的优势",
+      "suggestion": "用具体类型或泛型替代any，必要时使用unknown并做类型守卫",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-015",
+      "name": "三元表达式嵌套",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "三元表达式中嵌套三元表达式（a ? b ? c : d : e），降低可读性",
+      "suggestion": "使用if-else或switch替代嵌套三元表达式，或提取为独立函数",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-016",
+      "name": "缺少TypeScript严格模式",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "tsconfig.json中未启用strict模式，类型检查不够严格",
+      "suggestion": "启用strict: true，包含strictNullChecks、noImplicitAny等严格检查",
+      "applicable_files": [
+        "tsconfig.json"
+      ]
+    },
+    {
+      "id": "CR-017",
+      "name": "组件Props超过10个",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "组件接收的props超过10个，接口过于复杂",
+      "suggestion": "将相关props组合为对象类型，或将组件拆分为更小的子组件",
+      "applicable_files": [
+        "*.jsx",
+        "*.tsx",
+        "*.vue"
+      ]
+    },
+    {
+      "id": "CR-018",
+      "name": "使用console进行调试",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "代码中残留console.log等调试语句，不应出现在生产代码中",
+      "suggestion": "移除所有调试用的console语句，使用调试工具或日志框架",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-019",
+      "name": "代码中存在重复逻辑",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "多处出现相同或高度相似的代码片段，违反DRY原则",
+      "suggestion": "提取重复代码为公共函数或Hook，减少重复",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-020",
+      "name": "命名与实现不一致",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "函数名或变量名与其实际功能不一致，误导开发者",
+      "suggestion": "确保命名准确反映其用途，如getName()应只返回名字而非整个对象",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-021",
+      "name": "缺少输入参数的类型校验",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "公开函数未对输入参数进行类型和有效性校验",
+      "suggestion": "在函数入口对关键参数进行类型和范围校验，无效输入抛出明确错误",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-022",
+      "name": "异步操作缺少超时处理",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "异步操作（网络请求、文件IO）没有设置超时时间",
+      "suggestion": "为所有异步操作设置合理的超时时间，超时后进行降级或报错处理",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-023",
+      "name": "缺少边界条件处理",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "代码未处理空数组、空字符串、null/undefined等边界情况",
+      "suggestion": "显式处理边界条件：空值检查、空数组处理、默认值兜底",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-024",
+      "name": "使用过时的API或方法",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "代码中使用了已标记为deprecated的API或方法",
+      "suggestion": "查阅文档找到推荐的替代API，逐步替换过时方法",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-025",
+      "name": "公共函数缺少JSDoc/docstring",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "公共/导出的函数没有文档注释，其他开发者不了解参数和返回值",
+      "suggestion": "为所有公共函数添加JSDoc/docstring，说明功能、参数、返回值和异常",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-026",
+      "name": "硬编码的业务常量",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "业务相关的常量（如折扣率、状态码）直接硬编码在逻辑代码中",
+      "suggestion": "将业务常量提取到独立的常量文件或配置中，便于维护和修改",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CR-027",
+      "name": "副作用未明确标注",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "函数有副作用（修改全局状态、发送网络请求）但函数名没有体现",
+      "suggestion": "函数命名应体现副作用（如saveAndNotify），或将副作用分离到独立函数",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-028",
+      "name": "缺少变更的CHANGELOG记录",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "重大变更（Breaking Change）没有记录在CHANGELOG中",
+      "suggestion": "所有重大变更必须记录在CHANGELOG.md中，遵循Keep a Changelog规范",
+      "applicable_files": [
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "CR-029",
+      "name": "提交信息不规范",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "Git提交信息过于简单（如'fix'、'update'），无法了解变更内容",
+      "suggestion": "遵循Conventional Commits规范：type(scope): description，如feat(auth): add OAuth2 support",
+      "applicable_files": [
+        "*.md"
+      ]
+    },
+    {
+      "id": "CR-030",
+      "name": "缺少PR/MR描述模板",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "Pull Request没有使用描述模板，缺少变更说明、测试情况等信息",
+      "suggestion": "配置PR模板，包含：变更说明、影响范围、测试方式、截图（UI变更）",
+      "applicable_files": [
+        "*.md"
+      ]
+    },
+    {
+      "id": "CR-031",
+      "name": "循环依赖未解决",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "模块之间存在循环依赖（A导入B，B导入A），可能导致初始化问题",
+      "suggestion": "重新设计模块结构，提取公共部分到独立模块，打破循环依赖",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-032",
+      "name": "未使用Lint工具",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "项目没有配置ESLint/Prettier/Black等代码格式化和质量检查工具",
+      "suggestion": "配置并启用代码规范工具，在CI中集成lint检查，pre-commit hook自动格式化",
+      "applicable_files": [
+        "*.json",
+        "*.yaml",
+        "*.yml"
+      ]
+    },
+    {
+      "id": "CR-033",
+      "name": "常量命名使用小写",
+      "severity": "S3",
+      "category": "code-review",
+      "description": "常量使用小写命名（如const maxRetry = 3），与变量难以区分",
+      "suggestion": "常量使用全大写下划线分隔：const MAX_RETRY_COUNT = 3",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CR-034",
+      "name": "回调地狱超过3层",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "回调函数嵌套超过3层，代码呈现金字塔形难以维护",
+      "suggestion": "使用async/await或Promise链替代回调嵌套，保持代码扁平化",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CR-035",
+      "name": "缺少错误边界处理（React）",
+      "severity": "S2",
+      "category": "code-review",
+      "description": "React应用的关键页面缺少ErrorBoundary组件包裹",
+      "suggestion": "在路由级别和关键组件外层添加ErrorBoundary，提供友好的降级UI",
+      "applicable_files": [
+        "*.jsx",
+        "*.tsx"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain6_code_quality",
+    "generated": "2026-08",
+    "description": "测试质量扩展规则，检查测试用例设计、断言有效性、测试隔离性、覆盖率准确性等影响测试可信度的问题",
+    "total_rules": 10,
+    "standards_reference": [
+      "Testing Anti-Patterns",
+      "xUnit Test Patterns",
+      "ISTQB Testing Standards"
+    ]
+  },
+  "rules": [
+    {
+      "id": "QUAL-TEST-001",
+      "name": "测试用例无断言（空测试/仅执行不验证）",
+      "severity": "high",
+      "category": "测试质量",
+      "description": "测试用例中没有任何断言（assert/expect/should），仅执行了被测方法但未验证结果。这类测试永远通过，给人一种有测试覆盖的假象，实际上无法检测任何缺陷。这是最常见的测试反模式之一，在代码覆盖率报告中会显示为已覆盖，但实际测试效力为零。",
+      "suggestion": "1) 为每个测试用例添加至少一个有意义的断言验证预期行为；2) 配置测试框架的空断言检测（如Jest的--detectOpenHandles，JUnit的assertion检查插件）；3) 使用lint规则禁止无断言测试（如eslint-plugin-jest的expect-expect规则）；4) 审查测试代码时将无断言测试标记为TODO。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*.spec.js", "*.spec.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs", "*_test.rs"]
+    },
+    {
+      "id": "QUAL-TEST-002",
+      "name": "测试依赖外部服务未mock",
+      "severity": "medium",
+      "category": "测试质量",
+      "description": "测试用例直接依赖外部服务（如真实数据库、第三方API、消息队列、文件系统等），未使用mock或stub替代。这导致测试不稳定（外部服务不可用时测试失败）、速度慢（网络往返延迟）、难以复现（依赖外部数据状态），且可能在CI/CD环境中因网络隔离而无法运行。",
+      "suggestion": "1) 使用mock框架（Mockito/Jest Mock/testify）替代外部服务调用；2) 使用嵌入式数据库（H2/SQLite）替代真实数据库；3) 使用WireMock/MockServer模拟外部API；4) 使用TestContainers在测试中启动隔离的Docker容器；5) 通过依赖注入使外部服务可替换。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    },
+    {
+      "id": "QUAL-TEST-003",
+      "name": "测试用例之间存在执行顺序依赖",
+      "severity": "high",
+      "category": "测试质量",
+      "description": "测试用例之间隐式依赖执行顺序，如前面的测试修改了共享状态（全局变量、数据库记录、文件系统等），后面的测试依赖这些修改才能通过。当测试框架以不同顺序执行测试（如随机化、并行化）时，测试会间歇性失败，极难排查。",
+      "suggestion": "1) 每个测试用例独立设置和清理测试数据（使用setUp/tearDown、beforeEach/afterEach）；2) 避免使用静态/全局变量存储测试状态；3) 使用数据库事务回滚或事务隔离确保数据独立；4) 配置测试随机执行顺序验证独立性；5) 使用测试隔离工具检测状态泄漏。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    },
+    {
+      "id": "QUAL-TEST-004",
+      "name": "测试数据硬编码无法覆盖边界条件",
+      "severity": "medium",
+      "category": "测试质量",
+      "description": "测试用例中使用的测试数据全部为硬编码的固定值，且只覆盖了正常路径，未覆盖边界条件（如空值、零值、最大值、负数、特殊字符、超长字符串等）。这使得边界情况下的bug无法被测试发现。当业务逻辑变更时，硬编码数据也需要手动修改，维护成本高。",
+      "suggestion": "1) 使用参数化测试（Parameterized Test / test.each / @ParameterizedTest）覆盖多种输入；2) 使用属性测试/模糊测试（Property-based testing）如fast-check/hypothesis自动生成边界数据；3) 使用测试数据生成器（Faker/factory）创建多样化测试数据；4) 为每个边界条件编写专门的测试用例。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    },
+    {
+      "id": "QUAL-TEST-005",
+      "name": "mock过度导致测试不反映真实行为",
+      "severity": "medium",
+      "category": "测试质量",
+      "description": "测试中对几乎所有依赖都进行了mock，包括被测对象的内部方法和简单的值对象。过度mock会导致测试只验证了mock的调用关系而非真实逻辑，即使被测代码存在bug，只要mock配置正确测试就会通过。这种测试被称为'只测mock不测代码'，给团队虚假的信心。",
+      "suggestion": "1) 遵循'只mock外部依赖'原则，不mock值对象、工具方法、内部逻辑；2) 使用集成测试替代过度单元测试来验证协作逻辑；3) 使用spy而非mock验证方法调用（spy允许真实执行同时验证调用）；4) 定期审查mock数量，单个测试中mock超过5个应警惕；5) 考虑使用状态验证而非行为验证。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    },
+    {
+      "id": "QUAL-TEST-006",
+      "name": "测试覆盖率工具未配置排除规则",
+      "severity": "low",
+      "category": "测试质量",
+      "description": "代码覆盖率工具未排除无需测试的文件（如配置文件、类型定义、常量文件、自动生成的代码、第三方库代码等），导致覆盖率统计失真。这些文件不需要被测试覆盖，但会被计入分母，拉低整体覆盖率数值，可能触发不必要的告警或导致团队忽视真正需要测试的低覆盖文件。",
+      "suggestion": "1) 在覆盖率配置中排除以下类型文件：*.d.ts类型定义、*.config.js配置、generated/生成代码、constants/常量文件、migrations/迁移脚本；2) 使用coverage.pathIgnore（Jest）或coverage.excludes（Istanbul/c8）配置排除模式；3) 区分语句覆盖率、分支覆盖率、函数覆盖率分别设置目标。",
+      "applicable_files": ["jest.config.*", ".nycrc", "nyc.config.*", ".coveragerc", "coverage.xml", "*.config.js", "*.config.ts"]
+    },
+    {
+      "id": "QUAL-TEST-007",
+      "name": "集成测试未清理测试数据",
+      "severity": "medium",
+      "category": "测试质量",
+      "description": "集成测试在数据库中创建了测试数据但未在测试结束后清理。残留数据会影响后续测试执行结果（可能恰好匹配或冲突），导致测试结果不可靠。在共享测试环境中，残留数据还会污染其他开发者的测试环境，造成跨环境污染。",
+      "suggestion": "1) 使用事务包裹测试，测试结束后回滚；2) 在afterEach/afterAll中清理测试创建的数据；3) 使用唯一的测试前缀（如test_前缀+UUID）标识测试数据便于清理；4) 使用专用的测试数据库schema，每次测试前truncate；5) 在CI中使用临时数据库实例，测试后销毁。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs", "*.spec.js", "*.spec.ts"]
+    },
+    {
+      "id": "QUAL-TEST-008",
+      "name": "单元测试包含sleep/wait等时间依赖",
+      "severity": "high",
+      "category": "测试质量",
+      "description": "单元测试中使用Thread.sleep()、setTimeout()、waitFor()等时间等待机制来控制测试流程。这导致测试执行时间不可预测（等待时间可能不足导致间歇失败，等待过长则拖慢整体测试速度），且时间依赖的测试在CI负载高时更容易失败（因为CPU调度不确定）。",
+      "suggestion": "1) 使用条件等待替代固定时间等待（如waitUntil(predicate)带超时）；2) 使用mock控制时间（Jest的jest.useFakeTimers()、Java的Clock接口）；3) 使用异步断言库（如waitFor/awaitility）替代sleep；4) 重构被测代码，通过回调/Promise通知状态变化而非轮询等待。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    },
+    {
+      "id": "QUAL-TEST-009",
+      "name": "测试用例名称无法表达测试意图",
+      "severity": "low",
+      "category": "测试质量",
+      "description": "测试用例使用了无意义的命名（如test1、test2、testCase、testItWorks），无法从名称判断测试验证了什么行为、在什么条件下、期望什么结果。当测试失败时，开发者无法快速理解失败的含义，需要阅读测试代码才能理解，降低了测试文档的价值和调试效率。",
+      "suggestion": "1) 使用描述性命名遵循格式：should_[expectedBehavior]_when_[condition]；2) 使用BDD风格命名：given/when/then或describe/it组合；3) 示例：should_throwValidationException_when_emailFormatIsInvalid；4) 配置lint规则检查测试命名规范；5) 审查测试时关注命名的清晰度和准确性。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    },
+    {
+      "id": "QUAL-TEST-010",
+      "name": "异常测试使用try-catch而非expected",
+      "severity": "medium",
+      "category": "测试质量",
+      "description": "测试异常场景时使用手动try-catch加fail()的方式验证异常，而非使用框架提供的异常断言机制（如JUnit的assertThrows、Jest的rejects.toThrow、pytest的raises）。try-catch方式代码冗长，且如果异常发生在catch块之外（如setup阶段），测试可能错误地通过。",
+      "suggestion": "1) 使用框架原生异常断言：JUnit 5使用assertThrows()；Jest使用expect(fn).toThrow()或await expect(promise).rejects.toThrow()；pytest使用pytest.raises()；Go使用if err == nil { t.Fatal() }；2) 在异常断言中同时验证异常类型和消息内容；3) 避免在测试中捕获异常（catch），让框架处理。",
+      "applicable_files": ["*.test.js", "*.test.ts", "*Test.java", "*_test.go", "test_*.py", "*Tests.cs"]
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 3,
+    "medium": 5,
+    "low": 2
+  }
+}

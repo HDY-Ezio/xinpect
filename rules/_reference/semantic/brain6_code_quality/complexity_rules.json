@@ -1,0 +1,490 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": "brain6_code_quality",
+        "description": "代码复杂度规则集",
+        "total_rules": 40
+    },
+    "rules": [
+        {
+            "id": "CQ-CMX-001",
+            "name": "圈复杂度过高",
+            "severity": "critical",
+            "category": "complexity",
+            "description": "函数/方法的圈复杂度（Cyclomatic Complexity）超过阈值（默认30），表示代码中存在过多的分支路径，难以测试和理解。",
+            "suggestion": "将复杂函数拆分为多个小的、职责单一的子函数，减少if/else/switch/if-else链式结构，使用早返回（early return）模式降低嵌套。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-002",
+            "name": "认知复杂度过高",
+            "severity": "critical",
+            "category": "complexity",
+            "description": "函数的认知复杂度（Cognitive Complexity）超过25。认知复杂度衡量代码对人类理解的非线性增长，比圈复杂度更能反映代码的可读性问题。",
+            "suggestion": "重构函数，将嵌套逻辑提取为独立函数，减少逻辑与(&&)和逻辑或(||)的链式使用，使用卫语句(guard clause)替代嵌套。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-003",
+            "name": "函数行数过多",
+            "severity": "high",
+            "category": "complexity",
+            "description": "单个函数/方法体超过80行（不含空行和注释），函数职责可能过多。",
+            "suggestion": "将函数按职责拆分为多个小函数，每个函数只做一件事，函数名应能准确描述其功能。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-004",
+            "name": "类文件行数过多",
+            "severity": "high",
+            "category": "complexity",
+            "description": "单个类/模块文件超过500行，类可能承担了过多职责。",
+            "suggestion": "按职责将类拆分为多个更小的类，遵循单一职责原则(SRP)，提取公共逻辑到工具类或基类。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-005",
+            "name": "文件总行数过多",
+            "severity": "high",
+            "category": "complexity",
+            "description": "单个源文件超过1000行，文件过大不利于导航和维护。",
+            "suggestion": "将文件按功能模块拆分为多个小文件，每个文件聚焦于一个明确的功能领域。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-006",
+            "name": "嵌套层级过深",
+            "severity": "critical",
+            "category": "complexity",
+            "description": "代码嵌套层级超过5层（if/for/while/try等），严重影响可读性。",
+            "suggestion": "使用卫语句(early return)减少嵌套，将内层逻辑提取为独立函数，使用多态或策略模式替代条件嵌套。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-007",
+            "name": "函数参数过多",
+            "severity": "high",
+            "category": "complexity",
+            "description": "函数参数数量超过6个，增加了函数调用的理解成本和出错概率。",
+            "suggestion": "将相关参数封装为对象/结构体，或使用构建器模式(Builder Pattern)来组织参数。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-008",
+            "name": "布尔参数过多",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "函数包含3个及以上布尔类型参数，通常意味着函数承担了多种职责。",
+            "suggestion": "使用枚举或策略模式替代多个布尔参数，或将函数拆分为多个专注于特定行为的函数。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-009",
+            "name": "链式方法调用过长",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "链式方法调用超过5层，调试困难且错误定位复杂。",
+            "suggestion": "将长链式调用拆分为多行中间变量，每步赋予有意义的变量名，便于调试和理解。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-010",
+            "name": "正则表达式过于复杂",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "正则表达式长度超过100字符或包含过多特殊语法组合，难以理解和维护。",
+            "suggestion": "使用命名捕获组提高可读性，将复杂正则拆分为多个简单正则的组合，添加注释说明每部分的含义。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-011",
+            "name": "Lambda/箭头函数体过长",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "Lambda或箭头函数体超过10行，违背了匿名函数应简洁的原则。",
+            "suggestion": "将长Lambda提取为具名函数，具名函数更容易理解、测试和复用。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-012",
+            "name": "switch/case分支过多",
+            "severity": "high",
+            "category": "complexity",
+            "description": "switch/case或match语句超过15个分支，难以维护和扩展。",
+            "suggestion": "使用多态、字典映射或策略模式替代大量case分支，遵循开闭原则。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ]
+        },
+        {
+            "id": "CQ-CMX-013",
+            "name": "单个方法内变量过多",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "单个函数/方法内定义的局部变量超过15个，增加了认知负担。",
+            "suggestion": "将相关变量封装为对象，或将函数的某段逻辑提取为子函数以缩小变量作用域。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-015",
+            "name": "逻辑运算符链过长",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "单个条件表达式中逻辑运算符(&&,||,and,or)超过4个，条件逻辑难以理解。",
+            "suggestion": "将复杂条件拆分为多个具名布尔变量或函数，使条件的语义自解释。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-016",
+            "name": "深层属性访问链",
+            "severity": "low",
+            "category": "complexity",
+            "description": "对象属性访问链超过5层（如a.b.c.d.e.f），存在空值风险且难以调试。",
+            "suggestion": "使用可选链操作符(?.)、中间变量、或引入数据模型层来扁平化属性访问。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.py",
+                "*.go",
+                "*.rb"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-017",
+            "name": "文件导入过多",
+            "severity": "low",
+            "category": "complexity",
+            "description": "单个文件的import/require语句超过20个，可能意味着文件职责过多。",
+            "suggestion": "审视是否所有导入都被使用，移除未使用的导入；如果确实需要大量导入，考虑文件是否应该拆分。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php"
+            ]
+        },
+        {
+            "id": "CQ-CMX-018",
+            "name": "单行代码过长",
+            "severity": "low",
+            "category": "complexity",
+            "description": "单行代码超过120个字符，需要水平滚动才能查看完整。",
+            "suggestion": "将长行拆分为多行，使用适当的换行和缩进保持代码可读性。大多数团队约定80-120字符的行宽限制。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-019",
+            "name": "条件表达式过于复杂",
+            "severity": "high",
+            "category": "complexity",
+            "description": "单个if/while条件中包含超过3个逻辑组合（AND/OR混用），容易引发逻辑错误。",
+            "suggestion": "将复合条件提取为语义化的布尔变量或函数，每个变量名描述条件含义而非实现。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-020",
+            "name": "循环体过于复杂",
+            "severity": "high",
+            "category": "complexity",
+            "description": "for/while循环体内部包含多层嵌套的条件判断和异常处理，循环逻辑难以理解。",
+            "suggestion": "将循环体内的逻辑提取为独立函数，使用continue/guard clause简化循环结构。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-021",
+            "name": "类方法数量过多",
+            "severity": "high",
+            "category": "complexity",
+            "description": "单个类包含超过25个公共方法，类可能过于庞大。",
+            "suggestion": "按职责将类拆分为多个更小的类，或使用接口隔离原则(ISP)将接口拆分。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-022",
+            "name": "模块导出过多",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "单个模块/文件导出超过20个函数/类/变量，模块职责可能过宽。",
+            "suggestion": "将模块按功能域拆分为多个子模块，每个子模块导出数量合理，并提供清晰的模块入口。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.rb"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-023",
+            "name": "递归深度风险",
+            "severity": "high",
+            "category": "complexity",
+            "description": "递归函数没有明确的终止条件检查或深度限制，可能导致栈溢出。",
+            "suggestion": "添加递归深度参数和最大深度检查，考虑改用迭代方式实现，或在支持的环境中使用尾递归优化。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp",
+                "*.c"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-024",
+            "name": "过度使用继承层次",
+            "severity": "medium",
+            "category": "complexity",
+            "description": "类的继承层次超过4层，深层继承使代码理解和调试困难。",
+            "suggestion": "优先使用组合代替继承，扁平化继承层次，使用接口/协议来定义行为契约。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.php",
+                "*.cpp"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-CMX-025",
+            "name": "异常处理嵌套过深",
+            "severity": "high",
+            "category": "complexity",
+            "description": "try-catch块内部又嵌套try-catch块，形成多层异常处理嵌套。",
+            "suggestion": "将内层异常处理提取为独立函数，使用全局异常处理中间件，或统一异常转换层处理嵌套异常。",
+            "applicable_files": [
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.rb",
+                "*.php",
+                "*.cpp"
+            ],
+            "pattern": ""
+        }
+    ]
+}

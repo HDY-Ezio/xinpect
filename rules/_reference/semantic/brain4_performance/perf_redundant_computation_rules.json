@@ -1,0 +1,91 @@
+{
+    "rules": [
+        {
+            "id": "PERF-RED-001",
+            "name": "循环内重复计算不变表达式",
+            "severity": "medium",
+            "category": "redundant-computation",
+            "description": "在循环体内计算不依赖循环变量的表达式（如Math.sqrt(constant)、数组长度arr.length、配置查询等），每次迭代重复计算。",
+            "suggestion": "将循环不变量提升到循环外部（hoisting）；预先计算并缓存结果。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go",
+                "*.c",
+                "*.cpp"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-RED-002",
+            "name": "可缓存的纯函数被反复调用",
+            "severity": "medium",
+            "category": "redundant-computation",
+            "description": "相同的纯函数（相同输入总是相同输出）被反复调用，如数据转换、格式化处理等，每次重新计算。",
+            "suggestion": "使用Memoization缓存纯函数结果；React中使用useMemo/useCallback；后端使用本地缓存（Map/LRU Cache）。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-RED-003",
+            "name": "重复的数据库/API查询",
+            "severity": "high",
+            "category": "redundant-computation",
+            "description": "在同一请求处理链路中多次查询相同的数据（如用户信息、配置数据），未使用请求级缓存。",
+            "suggestion": "使用请求级缓存（Request-scoped Cache）；使用DataLoader批量加载；将共享数据注入上下文对象。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-RED-004",
+            "name": "条件分支中计算未使用的结果",
+            "severity": "low",
+            "category": "redundant-computation",
+            "description": "在if-else分支中两侧都计算了相同的值，或计算了某个值但在条件不满足时该值未被使用。",
+            "suggestion": "将计算移入实际使用它的条件分支中；提前返回避免不必要的计算。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-RED-005",
+            "name": "对同一数据反复排序",
+            "severity": "medium",
+            "category": "redundant-computation",
+            "description": "对同一数据集在多处反复排序，或排序后未缓存结果，后续又需要相同排序顺序的数据。",
+            "suggestion": "排序一次并缓存结果；使用预排序的数据结构（如TreeSet/SortedMap）；维护排序后的索引。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        }
+    ]
+}

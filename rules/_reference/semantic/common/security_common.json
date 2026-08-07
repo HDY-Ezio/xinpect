@@ -1,0 +1,571 @@
+{
+  "metadata": {
+    "name": "通用安全规则",
+    "total_rules": 40
+  },
+  "rules": [
+    {
+      "id": "SEC-C-001",
+      "name": "SQL语句使用字符串拼接",
+      "severity": "S1",
+      "category": "security",
+      "description": "使用字符串拼接（+或f-string）构建SQL语句，存在SQL注入风险",
+      "suggestion": "使用参数化查询或ORM框架，禁止拼接SQL语句：cursor.execute('SELECT * FROM t WHERE id=?', (id,))",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-002",
+      "name": "用户输入未经转义直接渲染",
+      "severity": "S1",
+      "category": "security",
+      "description": "用户输入未经HTML转义直接插入页面，存在XSS攻击风险",
+      "suggestion": "对用户输入进行HTML实体转义，使用框架自带的自动转义机制（如React JSX、Vue模板）",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-C-003",
+      "name": "CSRF Token缺失",
+      "severity": "S1",
+      "category": "security",
+      "description": "表单提交接口缺少CSRF Token验证，可能被跨站请求伪造攻击",
+      "suggestion": "为所有状态变更接口添加CSRF Token验证，前端表单携带CSRF Token",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-C-004",
+      "name": "密码使用MD5/SHA1存储",
+      "severity": "S1",
+      "category": "security",
+      "description": "使用MD5或SHA1等弱哈希算法存储密码，容易被暴力破解",
+      "suggestion": "使用bcrypt、scrypt或Argon2等密码专用哈希算法，并添加随机盐值",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-005",
+      "name": "API接口缺少速率限制",
+      "severity": "S2",
+      "category": "security",
+      "description": "API接口没有速率限制（Rate Limiting），易被暴力破解或DDoS攻击",
+      "suggestion": "实施速率限制策略（如100次/分钟/IP），使用Redis等中间件实现分布式限流",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-006",
+      "name": "CORS配置过于宽松",
+      "severity": "S2",
+      "category": "security",
+      "description": "CORS配置允许所有来源（Access-Control-Allow-Origin: *），任何网站都可以调用API",
+      "suggestion": "明确指定允许的域名列表，不使用通配符*，且配置允许的HTTP方法和请求头",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-007",
+      "name": "文件上传未校验类型",
+      "severity": "S1",
+      "category": "security",
+      "description": "文件上传功能未校验文件类型和扩展名，可能上传恶意文件",
+      "suggestion": "使用白名单校验文件类型（MIME类型+扩展名），限制文件大小，存储时使用随机文件名",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-008",
+      "name": "JWT未验证签名",
+      "severity": "S1",
+      "category": "security",
+      "description": "接收JWT时未验证签名或使用了不安全的算法（如none），可被伪造",
+      "suggestion": "严格验证JWT签名，禁止使用none算法，使用HS256或RS256等安全算法",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-009",
+      "name": "Session ID暴露在URL中",
+      "severity": "S2",
+      "category": "security",
+      "description": "Session ID或Token作为URL参数传递，会被记录在浏览器历史和服务器日志中",
+      "suggestion": "使用Cookie（HttpOnly + Secure + SameSite）传递Session ID，不通过URL传参",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-010",
+      "name": "缺少Content-Security-Policy头",
+      "severity": "S2",
+      "category": "security",
+      "description": "HTTP响应缺少CSP头，无法防止XSS和数据注入攻击",
+      "suggestion": "配置严格的CSP策略，限制脚本、样式、图片等资源的加载来源",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-C-011",
+      "name": "敏感Cookie未设置HttpOnly",
+      "severity": "S2",
+      "category": "security",
+      "description": "认证相关的Cookie未设置HttpOnly标志，JavaScript可以读取，存在XSS窃取风险",
+      "suggestion": "为Session Cookie设置HttpOnly、Secure、SameSite=Strict属性",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-012",
+      "name": "使用不安全的反序列化",
+      "severity": "S1",
+      "category": "security",
+      "description": "对用户输入的数据进行反序列化（如pickle.loads、JSON.parse of eval），可能执行恶意代码",
+      "suggestion": "避免对不可信数据进行反序列化，使用安全的数据格式（如JSON），并对输入进行校验",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js"
+      ]
+    },
+    {
+      "id": "SEC-C-013",
+      "name": "路径遍历未防护",
+      "severity": "S1",
+      "category": "security",
+      "description": "文件操作中使用用户输入的路径而未校验，可能导致读取系统任意文件（如../../../etc/passwd）",
+      "suggestion": "对用户输入的路径进行规范化并验证是否在允许的目录范围内，禁止..路径穿越",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-014",
+      "name": "敏感操作缺少二次确认",
+      "severity": "S2",
+      "category": "security",
+      "description": "删除账户、修改密码、大额转账等敏感操作缺少二次身份验证",
+      "suggestion": "敏感操作需要二次确认（如短信验证码、密码重输），并记录操作审计日志",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEC-C-015",
+      "name": "HTTP响应缺少安全头",
+      "severity": "S2",
+      "category": "security",
+      "description": "HTTP响应缺少X-Content-Type-Options、X-Frame-Options等安全头",
+      "suggestion": "添加安全响应头：X-Content-Type-Options: nosniff、X-Frame-Options: DENY、Strict-Transport-Security",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-016",
+      "name": "正则表达式存在ReDoS风险",
+      "severity": "S2",
+      "category": "security",
+      "description": "正则表达式包含嵌套量词（如(a+)+），恶意输入可导致指数级回溯造成DoS",
+      "suggestion": "避免嵌套量词，使用原子组或占有量词，对用户输入长度进行限制",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-017",
+      "name": "接口缺少身份认证",
+      "severity": "S1",
+      "category": "security",
+      "description": "API接口没有身份认证机制，任何人都可以访问需要登录才能使用的功能",
+      "suggestion": "所有需要认证的接口必须验证身份Token，使用中间件统一处理认证逻辑",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-018",
+      "name": "密码策略过于简单",
+      "severity": "S2",
+      "category": "security",
+      "description": "系统没有密码复杂度要求，允许用户设置简单密码（如123456）",
+      "suggestion": "实施密码策略：最少8位、包含大小写字母和数字、禁止常见弱密码",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-019",
+      "name": "接口缺少权限校验",
+      "severity": "S1",
+      "category": "security",
+      "description": "API接口只验证了身份但没有验证权限，用户可以访问其他用户的数据",
+      "suggestion": "实施细粒度权限控制（RBAC/ABAC），确保用户只能访问其有权限的资源",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-020",
+      "name": "敏感数据未加密传输",
+      "severity": "S1",
+      "category": "security",
+      "description": "敏感数据（密码、个人信息）通过HTTP而非HTTPS传输",
+      "suggestion": "全站启用HTTPS，敏感数据传输使用TLS 1.2+，禁用不安全的加密套件",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-C-021",
+      "name": "输入长度未限制",
+      "severity": "S2",
+      "category": "security",
+      "description": "用户输入没有长度限制，超长输入可能导致缓冲区溢出或数据库存储异常",
+      "suggestion": "对所有用户输入设置合理的长度限制，服务端和前端同时校验",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "SEC-C-022",
+      "name": "错误信息泄露系统信息",
+      "severity": "S2",
+      "category": "security",
+      "description": "错误响应中泄露了数据库类型、框架版本、服务器路径等系统信息",
+      "suggestion": "生产环境返回通用错误消息，技术细节仅记录在服务端日志中",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-023",
+      "name": "文件下载未校验权限",
+      "severity": "S2",
+      "category": "security",
+      "description": "文件下载接口没有验证用户对目标文件的访问权限",
+      "suggestion": "文件下载前验证用户是否有权限访问该文件，使用间接引用（文件ID）而非直接路径",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-024",
+      "name": "缺少请求签名验证",
+      "severity": "S2",
+      "category": "security",
+      "description": "API接口缺少请求签名机制，请求可能被篡改或重放",
+      "suggestion": "实施请求签名机制（如HMAC），包含timestamp防重放，nonce防重复提交",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-025",
+      "name": "使用已知的不安全函数",
+      "severity": "S1",
+      "category": "security",
+      "description": "使用已知的不安全函数（如eval、exec、system、popen）处理用户输入",
+      "suggestion": "避免使用exec/eval/system等危险函数，使用安全的替代方案（如JSON.parse、参数化命令）",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-026",
+      "name": "验证码缺少防绕过机制",
+      "severity": "S2",
+      "category": "security",
+      "description": "验证码验证后未销毁，可以被重复使用；或缺少验证码导致可被自动化攻击",
+      "suggestion": "验证码使用后立即失效，设置合理的过期时间，关键操作必须验证验证码",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-027",
+      "name": "敏感数据缓存在客户端",
+      "severity": "S2",
+      "category": "security",
+      "description": "敏感数据（如用户信息、支付信息）缓存在localStorage中，XSS攻击可窃取",
+      "suggestion": "敏感数据不缓存在localStorage，使用sessionStorage或内存存储，或加密后存储",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-028",
+      "name": "批量操作缺少数量限制",
+      "severity": "S2",
+      "category": "security",
+      "description": "批量删除、批量导出等操作没有数量限制，可能导致大量数据被一次性操作",
+      "suggestion": "设置批量操作的最大数量限制，大批量操作需要额外权限确认",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-029",
+      "name": "依赖包存在已知漏洞",
+      "severity": "S2",
+      "category": "security",
+      "description": "项目依赖的第三方包存在已知的安全漏洞（CVE），未及时更新",
+      "suggestion": "定期运行安全扫描（npm audit / pip audit / safety check），及时修复高危漏洞",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt",
+        "pom.xml",
+        "go.mod"
+      ]
+    },
+    {
+      "id": "SEC-C-030",
+      "name": "临时文件未安全处理",
+      "severity": "S2",
+      "category": "security",
+      "description": "创建临时文件使用可预测的文件名，存在竞态条件攻击（symlink attack）风险",
+      "suggestion": "使用系统API创建临时文件（如mkstemp），使用后立即删除，设置在临时目录中",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js"
+      ]
+    },
+    {
+      "id": "SEC-C-031",
+      "name": "日志注入风险",
+      "severity": "S2",
+      "category": "security",
+      "description": "用户输入直接写入日志，可能注入伪造的日志条目干扰分析",
+      "suggestion": "对用户输入进行日志转义，移除换行符和特殊控制字符后再写入日志",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-032",
+      "name": "Webhook回调未验签",
+      "severity": "S1",
+      "category": "security",
+      "description": "接收第三方Webhook回调时未验证请求签名，可能被伪造请求欺骗",
+      "suggestion": "验证Webhook请求的签名（如HMAC），校验时间戳防止重放攻击",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-033",
+      "name": "API响应包含内部ID信息",
+      "severity": "S3",
+      "category": "security",
+      "description": "API响应中暴露了数据库自增ID等内部标识，可能被用来推测数据量或枚举资源",
+      "suggestion": "使用UUID或不可预测的ID替代自增ID，或在API响应中隐藏内部ID",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-034",
+      "name": "缺少安全请求头Strict-Transport-Security",
+      "severity": "S2",
+      "category": "security",
+      "description": "响应头缺少HSTS配置，浏览器可能通过HTTP访问而被中间人攻击",
+      "suggestion": "添加Strict-Transport-Security头并设置合理的max-age（如31536000）",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-035",
+      "name": "OAuth回调URL未校验",
+      "severity": "S1",
+      "category": "security",
+      "description": "OAuth2.0授权回调URL未严格校验，可能被重定向到恶意站点",
+      "suggestion": "严格校验redirect_uri是否在预配置的白名单中，禁止开放重定向",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-036",
+      "name": "加密使用了不安全的算法",
+      "severity": "S1",
+      "category": "security",
+      "description": "使用DES、3DES、RC4等已知不安全的加密算法",
+      "suggestion": "使用AES-256-GCM、ChaCha20-Poly1305等现代安全加密算法",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-037",
+      "name": "随机数使用Math.random生成",
+      "severity": "S2",
+      "category": "security",
+      "description": "使用Math.random()生成安全相关的随机数（如Token、验证码），该函数不是密码学安全的",
+      "suggestion": "安全场景使用密码学安全的随机数生成器（如crypto.randomBytes、secrets模块）",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEC-C-038",
+      "name": "敏感接口缺少幂等性设计",
+      "severity": "S2",
+      "category": "security",
+      "description": "支付、转账等敏感接口缺少幂等性保护，网络重试可能导致重复操作",
+      "suggestion": "敏感接口实施幂等性设计，使用唯一请求ID去重，确保重复请求不产生副作用",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-039",
+      "name": "用户会话未设置过期时间",
+      "severity": "S2",
+      "category": "security",
+      "description": "用户登录会话没有设置过期时间，Token永久有效，被盗后无法自动失效",
+      "suggestion": "设置合理的会话过期时间（如2小时），并实现Token刷新和主动失效机制",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEC-C-040",
+      "name": "缺少IP黑白名单机制",
+      "severity": "S3",
+      "category": "security",
+      "description": "管理后台等敏感入口缺少IP访问控制，任何网络位置都可以访问",
+      "suggestion": "管理后台等敏感入口配置IP白名单，对已知恶意IP实施黑名单拦截",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

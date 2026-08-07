@@ -1,0 +1,81 @@
+{
+  "rules": [
+    {
+      "id": "SWIFT-001",
+      "name": "force unwrap(!)在非断言场景使用",
+      "severity": "high",
+      "category": "crash_prevention",
+      "description": "使用!强制解包Optional值时，如果值为nil会导致运行时crash。在UI代码、网络回调、用户输入处理等场景中使用force unwrap，会将一个可以优雅处理的边界情况变成程序崩溃，严重影响用户体验和App稳定性。",
+      "suggestion": "使用可选绑定或可选链安全处理：\n```swift\n// 危险\nlet name = user.name!  // nil时crash\nlet image = UIImage(named: \"icon\")!\n\n// 安全 - 可选绑定\nif let name = user.name {\n    print(name)\n}\n\n// 安全 - guard let提前退出\nguard let name = user.name else { return }\n\n// 安全 - nil合并\nlet name = user.name ?? \"Unknown\"\n\n// 仅在以下场景使用!：\n// IBOutlet（Storyboard保证非nil）\n// fatalError场景\n// 单元测试中的precondition\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SWIFT-002",
+      "name": "隐式解包可选类型滥用",
+      "severity": "medium",
+      "category": "crash_prevention",
+      "description": "隐式解包可选类型（IUO，如var name: String!）在访问时自动解包，如果值为nil会crash但没有任何编译警告。滥用IUO相当于在每个访问点埋下了force unwrap，使代码的可预测性和安全性大幅下降。",
+      "suggestion": "优先使用普通Optional或确保初始化：\n```swift\n// 不推荐 - IUO滥用\nvar userName: String!\nvar dataSource: [Item]!\n\n// 推荐 - 明确可选或提供默认值\nvar userName: String?        // 明确可选\nvar dataSource: [Item] = []   // 确保初始化\n\n// 仅在合理场景使用IUO：\n// @IBOutlet var label: UILabel!  // IB保证连接后非nil\n// weak var delegate: Protocol!   // 明确的弱引用生命周期\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SWIFT-004",
+      "name": "闭包循环引用未使用[weak self]",
+      "severity": "high",
+      "category": "memory_management",
+      "description": "当闭包捕获self时形成强引用循环：self持有闭包（通过属性如completionHandler），闭包又持有self。这导致ViewController无法被释放，内存持续泄漏。在导航栈push/pop多次后内存会不断增长，最终导致OOM。",
+      "suggestion": "在闭包中使用[weak self]打破循环引用：\n```swift\n// 危险 - 循环引用\nclass ViewController: UIViewController {\n    var timer: Timer?\n    \n    func startTimer() {\n        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in\n            self.updateLabel() // self被闭包强引用 -> 循环引用\n        }\n    }\n}\n\n// 正确 - weak self\nclass ViewController: UIViewController {\n    func startTimer() {\n        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in\n            self?.updateLabel() // weak不增加引用计数\n        }\n    }\n}\n\n// URLSession类似处理\nURLSession.shared.dataTask(with: url) { [weak self] data, _, _ in\n    guard let self = self else { return }\n    DispatchQueue.main.async {\n        self.label.text = String(data: data!, encoding: .utf8)\n    }\n}.resume()\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SWIFT-005",
+      "name": "UserDefaults存储敏感数据",
+      "severity": "medium",
+      "category": "security",
+      "description": "UserDefaults以plist明文存储在设备上，即使设备加密，备份或越狱设备仍可读取。将密码、Token、密钥等敏感信息存入UserDefaults存在数据泄露风险，不符合安全合规要求。",
+      "suggestion": "使用Keychain存储敏感数据：\n```swift\n// 危险 - 明文存储\nUserDefaults.standard.set(token, forKey: \"auth_token\")\nUserDefaults.standard.set(password, forKey: \"password\")\n\n// 安全 - 使用Keychain\nimport Security\n\nfunc saveToKeychain(key: String, data: Data) -> OSStatus {\n    let query: [String: Any] = [\n        kSecClass as String: kSecClassGenericPassword,\n        kSecAttrAccount as String: key,\n        kSecValueData as String: data\n    ]\n    SecItemDelete(query as CFDictionary)\n    return SecItemAdd(query as CFDictionary, nil)\n}\n\n// 或使用第三方库\n// KeychainAccess\nlet keychain = Keychain()\ntry? keychain.set(token, key: \"auth_token\")\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SWIFT-006",
+      "name": "URLSession未校验HTTPS证书",
+      "severity": "high",
+      "category": "network_security",
+      "description": "在URLSessionDelegate的didReceive challenge回调中无条件信任服务器证书（直接调用completionHandler(.useCredential)），会禁用SSL/TLS证书校验，使App容易受到中间人攻击（MITM），攻击者可以在WiFi热点等场景截获所有通信数据。",
+      "suggestion": "实现证书校验或至少校验证书指纹：\n```swift\n// 危险 - 信任所有证书\nfunc urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,\n    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {\n    completionHandler(.useCredential, URLCredential(trust: challenge.protectionSpace.serverTrust!))\n}\n\n// 安全 - 证书固定（Certificate Pinning）\nfunc urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,\n    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {\n    guard let trust = challenge.protectionSpace.serverTrust,\n          let certificate = SecTrustGetCertificateAtIndex(trust, 0) else {\n        completionHandler(.cancelAuthenticationChallenge, nil)\n        return\n    }\n    \n    let remoteCertData = SecCertificateCopyData(certificate) as Data\n    let pinnedCertData = Bundle.main.url(forResource: \"cert\", withExtension: \"der\")\n        .flatMap { try? Data(contentsOf: $0) }\n    \n    if remoteCertData == pinnedCertData {\n        completionHandler(.useCredential, URLCredential(trust: trust))\n    } else {\n        completionHandler(.cancelAuthenticationChallenge, nil)\n    }\n}\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SWIFT-007",
+      "name": "CoreData操作未在正确context",
+      "severity": "medium",
+      "category": "data_management",
+      "description": "CoreData的NSManagedObjectContext不是线程安全的，在错误的线程使用context会导致数据损坏和crash。特别是在后台线程直接操作mainQueue的context，或使用已过时的confinement concurrency模式，容易产生难以复现的并发问题。",
+      "suggestion": "使用perform/performAndWait确保线程安全：\n```swift\n// 危险 - 后台线程操作main context\ndispatchQueue.global().async {\n    let objects = try mainContext.fetch(request) // 错误线程！\n}\n\n// 安全 - 使用perform\nmainContext.perform {\n    let objects = try? mainContext.fetch(request)\n}\n\n// 更推荐 - 为后台操作创建独立context\nlet backgroundContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)\nbackgroundContext.parent = mainContext\n\nbackgroundContext.perform {\n    // 后台安全操作\n    let objects = try? backgroundContext.fetch(request)\n    try? backgroundContext.save() // 保存到parent\n    \n    mainContext.perform {\n        // 在主context中处理更新\n    }\n}\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    },
+    {
+      "id": "SWIFT-008",
+      "name": "未处理App生命周期事件",
+      "severity": "low",
+      "category": "app_lifecycle",
+      "description": "未响应App生命周期事件（进入后台、即将终止、低内存警告等）会导致：后台任务超时被系统杀死、未保存的用户数据丢失、内存警告时未及时释放缓存导致OOM。iOS对后台执行时间有严格限制，需要正确声明和处理。",
+      "suggestion": "正确实现UIApplicationDelegate生命周期方法：\n```swift\n// 在AppDelegate或SceneDelegate中实现\nclass AppDelegate: UIResponder, UIApplicationDelegate {\n    func applicationDidEnterBackground(_ application: UIApplication) {\n        // 保存用户数据、暂停任务\n        saveUnsavedData()\n        \n        // 需要更多后台时间时\n        var bgTask = UIBackgroundTaskIdentifier.invalid\n        bgTask = application.beginBackgroundTask { \n            application.endBackgroundTask(bgTask)\n        }\n        DispatchQueue.global().async {\n            performCleanup()\n            application.endBackgroundTask(bgTask)\n        }\n    }\n    \n    func applicationWillTerminate(_ application: UIApplication) {\n        // 最终保存\n        saveUnsavedData()\n    }\n    \n    func didReceiveMemoryWarning() {\n        // 释放缓存\n        imageCache.removeAll()\n    }\n}\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,365 @@
+{
+  "rules": [
+    {
+      "id": "SEC-143",
+      "name": "LDAP注入：LDAP查询拼接",
+      "severity": "high",
+      "category": "ldap-injection",
+      "description": "将用户输入直接拼接到LDAP查询中，攻击者可注入LDAP操作符修改查询逻辑，访问未授权数据或绕过认证。",
+      "suggestion": "对LDAP查询参数进行转义(转义特殊字符：* ( ) \\ NUL)；使用LDAP参数化查询API；对用户输入进行白名单验证；限制LDAP账户的查询权限。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.go",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEC-145",
+      "name": "XML注入：XML数据未验证",
+      "severity": "medium",
+      "category": "xml-injection",
+      "description": "将用户输入直接嵌入XML文档，攻击者可注入XML标签改变文档结构，或注入CDATA改变数据语义。",
+      "suggestion": "对XML中的用户输入进行转义(< → &lt;, > → &gt;, & → &amp;)；使用DOM API创建XML元素而非字符串拼接；使用JSON替代XML传递数据；对XML Schema进行严格验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-146",
+      "name": "Header注入：HTTP头拼接",
+      "severity": "medium",
+      "category": "header-injection",
+      "description": "将用户输入嵌入HTTP响应头(Location、Set-Cookie等)，攻击者注入\\r\\n创建新的HTTP头或响应体，实现响应拆分攻击。",
+      "suggestion": "对HTTP头值进行验证(移除\\r\\n字符)；使用框架提供的API设置HTTP头而非直接拼接；对重定向URL进行白名单验证；使用编码处理特殊字符。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-149",
+      "name": "正则表达式DoS(ReDoS)",
+      "severity": "high",
+      "category": "redos",
+      "description": "使用存在灾难性回溯的正则表达式(如嵌套量词(a+)+、交替重叠(a|a)* )，攻击者构造特殊输入导致CPU耗尽。CWE-1333。",
+      "suggestion": "避免嵌套量词和重叠交替；使用原子组(?>)和占有量词(++)防止回溯；使用正则表达式分析工具检测ReDoS风险；设置正则匹配超时；对复杂匹配使用专门的解析器。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-150",
+      "name": "开放重定向：未验证的重定向目标",
+      "severity": "medium",
+      "category": "open-redirect",
+      "description": "重定向URL来自用户输入且未验证，攻击者构造恶意URL(如redirect=http://evil.com)进行钓鱼攻击。",
+      "suggestion": "使用白名单验证重定向目标(仅允许相对路径或可信域名)；对重定向URL进行规范化处理(防止绕过)；避免从URL参数获取重定向目标；使用相对路径而非绝对URL。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-157",
+      "name": "不安全的反序列化：Cookie篡改",
+      "severity": "high",
+      "category": "cookie-security",
+      "description": "Cookie存储敏感数据(用户ID、角色)且未签名或加密，攻击者可篡改Cookie值提升权限或冒充其他用户。",
+      "suggestion": "对Cookie进行签名(HMAC)或加密；使用服务端Session存储敏感数据；设置Cookie的HttpOnly、Secure、SameSite属性；对Cookie值进行完整性验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-172",
+      "name": "CWE-476：空指针解引用",
+      "severity": "medium",
+      "category": "null-pointer",
+      "description": "未检查对象是否为null直接调用方法或访问属性，导致应用崩溃(DoS)或信息泄露。在某些语言中可能导致安全问题。",
+      "suggestion": "在访问对象前检查null；使用Optional(Mono)模式；对API返回值进行null检查；使用静态分析工具检测潜在空指针。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEC-175",
+      "name": "CWE-150：规范化/规范化/转义逻辑错误",
+      "severity": "medium",
+      "category": "input-validation",
+      "description": "输入验证和转义逻辑不正确，如仅转义部分特殊字符、验证逻辑可被绕过(大小写、编码绕过)，导致注入攻击。",
+      "suggestion": "使用成熟的转义库而非手动转义；对所有输入进行规范化后再验证；使用白名单而非黑名单验证；在多个层次(客户端+服务端)验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-176",
+      "name": "CWE-799：会话交互频率控制不当",
+      "severity": "high",
+      "category": "session-management",
+      "description": "未对登录、密码重置、验证码等敏感操作实施频率限制，攻击者可进行暴力破解或资源耗尽攻击。",
+      "suggestion": "实施频率限制(登录5次失败后锁定)；使用验证码防止自动化攻击；对敏感操作实施延迟响应；记录并监控异常行为。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-177",
+      "name": "CWE-807：依赖不可信的访客数据",
+      "severity": "medium",
+      "category": "input-validation",
+      "description": "应用依赖客户端数据(Cookie、隐藏表单字段、HTTP头)进行安全决策(如用户角色、权限)，这些数据可被篡改。",
+      "suggestion": "在服务端存储和验证敏感数据；不信任客户端传递的安全相关数据；对Cookie数据进行签名验证；使用服务端Session存储权限信息。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-178",
+      "name": "CWE-908：使用未初始化的资源",
+      "severity": "medium",
+      "category": "uninitialized-resource",
+      "description": "使用未初始化的变量、对象或资源，可能导致不可预测行为、信息泄露(读取内存残留数据)或崩溃。",
+      "suggestion": "确保所有变量和资源在使用前初始化；使用静态分析检测未初始化变量；对对象属性设置默认值；使用构造函数初始化。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.c",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "SEC-179",
+      "name": "CWE-125：越界读取",
+      "severity": "high",
+      "category": "memory-safety",
+      "description": "读取操作超出缓冲区边界，可能读取敏感数据(信息泄露)或导致崩溃。在C/C++中尤其危险。",
+      "suggestion": "验证数组索引在有效范围内；使用安全的字符串函数(strlcpy替代strcpy)；使用边界检查的容器(std::vector、std::array)；使用AddressSanitizer检测。",
+      "applicable_files": [
+        "*.c",
+        "*.cpp",
+        "*.go",
+        "*.rust"
+      ]
+    },
+    {
+      "id": "SEC-180",
+      "name": "CWE-787：越界写入",
+      "severity": "critical",
+      "category": "memory-safety",
+      "description": "写入操作超出缓冲区边界，覆盖相邻内存，可能导致崩溃、数据损坏或执行任意代码(缓冲区溢出攻击)。CWE Top 25第2位。",
+      "suggestion": "使用边界检查的写入操作；使用安全函数(snprintf替代sprintf)；启用栈保护(Canary)和ASLR；使用现代语言(Rust、Go)避免手动内存管理。",
+      "applicable_files": [
+        "*.c",
+        "*.cpp",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-181",
+      "name": "CWE-416：释放后使用",
+      "severity": "critical",
+      "category": "memory-safety",
+      "description": "释放内存后仍访问该内存，可能读取到其他数据(信息泄露)或导致崩溃。在某些场景下可被利用执行任意代码。",
+      "suggestion": "释放指针后立即设置为NULL；使用智能指针(unique_ptr、shared_ptr)自动管理生命周期；使用Rust的所有权模型避免此类问题；使用ASan检测。",
+      "applicable_files": [
+        "*.c",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "SEC-182",
+      "name": "CWE-190：整数溢出或环绕",
+      "severity": "high",
+      "category": "integer-overflow",
+      "description": "整数运算结果超出类型范围导致溢出或环绕，可能造成缓冲区大小计算错误、无限循环或安全逻辑绕过。",
+      "suggestion": "对整数运算检查结果溢出；使用安全整数运算库；对缓冲区大小计算使用size_t类型；使用Rust的checked算术操作。",
+      "applicable_files": [
+        "*.c",
+        "*.cpp",
+        "*.java",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-185",
+      "name": "CWE-276：默认权限不正确",
+      "severity": "high",
+      "category": "permission",
+      "description": "新创建的文件、目录或资源使用过于宽松的默认权限(如world-writable)，导致未授权访问或修改。",
+      "suggestion": "使用最小权限原则设置默认权限(文件644、目录755)；使用umask限制默认权限；对敏感文件使用更严格权限(600)；定期审计文件权限。",
+      "applicable_files": [
+        "*.sh",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "SEC-188",
+      "name": "CWE-319：敏感信息明文传输",
+      "severity": "critical",
+      "category": "data-transmission",
+      "description": "敏感数据(个人信息、金融数据、医疗记录)通过明文HTTP传输，容易被窃听和篡改。",
+      "suggestion": "对所有敏感数据传输使用TLS加密；实施HSTS强制HTTPS；对API使用端到端加密；避免在URL中传递敏感数据。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.nginx.conf"
+      ]
+    },
+    {
+      "id": "SEC-189",
+      "name": "CWE-759：无盐值密码哈希",
+      "severity": "high",
+      "category": "password-hashing",
+      "description": "密码哈希不使用盐值，相同密码生成相同哈希，容易受到彩虹表攻击和批量破解。",
+      "suggestion": "为每个密码生成唯一随机盐值；使用bcrypt、scrypt或Argon2自动处理盐值；确保盐值与哈希一起存储；使用足够的盐值长度(至少128位)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-190",
+      "name": "CWE-916：密码哈希强度不足",
+      "severity": "high",
+      "category": "password-hashing",
+      "description": "使用快速哈希算法(MD5、SHA1、SHA256)进行密码哈希，容易被暴力破解。密码哈希应使用慢速算法增加破解成本。",
+      "suggestion": "使用bcrypt、scrypt或Argon2进行密码哈希；设置合理的成本参数(bcrypt cost≥10)；避免使用MD5、SHA1、SHA256等快速哈希；定期更新哈希算法。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-194",
+      "name": "CWE-611：XML外部实体引用不当(XXE)",
+      "severity": "critical",
+      "category": "xxe",
+      "description": "XML解析器处理外部实体引用，攻击者可读取本地文件、执行SSRF或发起DoS攻击。OWASP Top 10 A05:2021。",
+      "suggestion": "禁用XML外部实体和DTD处理；使用安全的XML解析库(defusedxml)；使用JSON替代XML；对必须解析的XML禁用外部实体。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-196",
+      "name": "CWE-400：未控制的资源消耗",
+      "severity": "medium",
+      "category": "dos",
+      "description": "应用未限制资源使用(CPU、内存、网络、数据库连接)，攻击者可通过大量请求或大请求耗尽资源导致DoS。",
+      "suggestion": "实施资源使用限制(超时、最大请求大小、连接池限制)；使用速率限制防止滥用；对大请求实施分页；使用资源监控和告警。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-197",
+      "name": "CWE-494：下载代码时完整性验证缺失",
+      "severity": "high",
+      "category": "integrity",
+      "description": "从网络下载代码或依赖时未验证完整性，可能被中间人替换为恶意版本(供应链攻击)。",
+      "suggestion": "使用包管理器的完整性验证(npm shrinkwrap、pip hash检查)；使用lock文件锁定依赖版本；验证下载的校验和(SHA256)；使用私有的包仓库。",
+      "applicable_files": [
+        "*.package.json",
+        "*.lock",
+        "*.requirements.txt"
+      ]
+    },
+    {
+      "id": "SEC-198",
+      "name": "CWE-829：包含不可信来源的功能",
+      "severity": "critical",
+      "category": "supply-chain",
+      "description": "从不可信来源(未验证的CDN、第三方脚本、外部库)加载和执行代码，可能被注入恶意代码。",
+      "suggestion": "使用SRI(Subresource Integrity)验证CDN资源完整性；仅从可信来源加载脚本；对第三方脚本使用CSP限制权限；定期审计依赖安全性。",
+      "applicable_files": [
+        "*.html",
+        "*.js",
+        "*.ts",
+        "*.package.json"
+      ]
+    },
+    {
+      "id": "SEC-200",
+      "name": "CWE-778：日志配置不当",
+      "severity": "medium",
+      "category": "logging",
+      "description": "日志记录不完整或不正确，安全事件未被记录、日志被攻击者篡改或删除、日志包含敏感信息。",
+      "suggestion": "实施完整的审计日志(记录认证、授权、数据访问)；保护日志不被篡改(写入后立即追加、远程收集)；对日志中的敏感信息脱敏；定期审查日志。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.xml",
+        "*.yaml"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "rules": [
+    {
+      "id": "DEP-LIC-OB-001",
+      "name": "GPL许可证义务未履行（需开源）",
+      "severity": "critical",
+      "category": "dependency_license_obligation",
+      "description": "项目使用了GPL许可证的依赖并以二进制形式分发，但未将项目源码以GPL许可证开放，违反GPL的传染性条款。",
+      "suggestion": "评估是否可以将项目开源为GPL；如不可以，替换GPL依赖为LGPL/MIT/Apache等许可的替代包；或采用SaaS模式（AGPL需注意网络交互）。",
+      "applicable_files": [
+        "package.json",
+        "pom.xml",
+        "go.mod",
+        "requirements.txt",
+        "LICENSE"
+      ]
+    },
+    {
+      "id": "DEP-LIC-OB-002",
+      "name": "Apache 2.0/MIT许可证的署名义务未满足",
+      "severity": "medium",
+      "category": "dependency_license_obligation",
+      "description": "使用了Apache 2.0或MIT许可证的依赖，但在分发时未包含原始版权声明和许可证文本，违反许可证要求。",
+      "suggestion": "在产品通知文件（NOTICES）中包含所有依赖的许可证文本和版权声明；使用license-checker工具自动生成。",
+      "applicable_files": [
+        "NOTICE",
+        "LICENSE",
+        "package.json",
+        "pom.xml"
+      ]
+    },
+    {
+      "id": "DEP-LIC-OB-003",
+      "name": "专利声明义务未追踪",
+      "severity": "low",
+      "category": "dependency_license_obligation",
+      "description": "Apache 2.0许可证要求明确标注专利授权范围，但未追踪哪些依赖包含专利条款，可能影响专利纠纷中的权益。",
+      "suggestion": "维护依赖的专利声明清单；评估依赖是否包含专利授权条款；咨询法务确认专利风险。",
+      "applicable_files": [
+        "package.json",
+        "pom.xml",
+        "go.mod",
+        "NOTICE"
+      ]
+    }
+  ]
+}

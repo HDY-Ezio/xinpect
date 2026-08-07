@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "name": "React Native安全专项规则集",
+    "version": "1.0.0",
+    "description": "基于React Native安全最佳实践、OWASP Mobile Security标准的检查规则",
+    "total_rules": 15,
+    "references": ["React Native Security", "OWASP MSTG", "Native Module Security"]
+  },
+  "rules": [
+    {
+      "check_id": "RN-SEC-001",
+      "name": "Bridge通信未做数据校验",
+      "severity": "high",
+      "category": "security",
+      "description": "通过React Native Bridge传递数据时未对来源和类型进行校验，JS侧和Native侧可通过伪造消息执行未授权操作。Bridge是异步队列，所有消息均可被拦截。",
+      "pattern": "@ReactMethod|RCT_EXPORT_METHOD\\s*\\(|NativeModules\\.\\w+\\.\\w+\\s*\\(",
+      "file_pattern": "*.java, *.kt, *.m, *.swift, *.js, *.ts",
+      "suggestion": "1. Native模块中对所有输入参数进行类型校验和白名单过滤; 2. JS侧调用Native模块前校验模块是否存在; 3. 避免在Bridge上传输敏感数据",
+      "references": ["https://reactnative.dev/docs/native-modules-intro", "https://reactnative.dev/docs/security"]
+    },
+    {
+      "check_id": "RN-SEC-002",
+      "name": "原生模块暴露过多权限方法",
+      "severity": "high",
+      "category": "security",
+      "description": "原生模块通过@ReactMethod暴露了过多方法（如文件系统操作、命令执行、数据库访问）给JS层，JS代码被篡改或注入时可调用这些方法执行敏感操作。",
+      "pattern": "@ReactMethod|RCT_EXPORT_METHOD\\s*\\([^)]*(?:exec|eval|spawn|writeFile|unlink|delete|rm|mkdir|query|execute)",
+      "file_pattern": "*.java, *.kt, *.m, *.swift",
+      "suggestion": "1. 最小权限原则：仅暴露必要的方法; 2. 对方法参数进行严格校验; 3. 敏感操作需要二次鉴权（如require用户确认）",
+      "references": ["https://reactnative.dev/docs/native-modules-android", "https://reactnative.dev/docs/native-modules-ios"]
+    },
+    {
+      "check_id": "RN-SEC-003",
+      "name": "AsyncStorage存储敏感数据",
+      "severity": "high",
+      "category": "security",
+      "description": "使用AsyncStorage存储token、密码、个人信息等敏感数据，AsyncStorage底层在iOS使用MMKV/JSON文件、Android使用SQLite，均为明文存储，设备root/越狱后可直接读取。",
+      "pattern": "AsyncStorage\\.setItem\\s*\\(\\s*['\"](?:token|password|secret|key|auth|credential|session|id_card)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "使用react-native-keychain（iOS Keychain/Android Keystore）或react-native-encrypted-storage存储敏感数据，底层使用平台安全存储",
+      "references": ["https://reactnative.dev/docs/asyncstorage", "https://github.com/react-native-async-storage/async-storage"]
+    },
+    {
+      "check_id": "RN-SEC-004",
+      "name": "深层链接参数未校验",
+      "severity": "high",
+      "category": "security",
+      "description": "处理Deep Linking（deeplink/universal link）时未校验URL参数和来源应用，恶意应用可构造恶意deep link打开应用并传入恶意参数。",
+      "pattern": "Linking\\.addEventListener\\s*\\(\\s*['\"]url['\"]|Linking\\.getInitialURL\\s*\\(\\s*\\)(?!.*validate|.*whitelist|.*verify)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "1. 校验deep link的scheme和host是否在白名单内; 2. 对URL参数进行转义和校验; 3. 验证来源应用的签名（Android: getInstallerPackageName）",
+      "references": ["https://reactnative.dev/docs/linking", "https://developer.android.com/training/app-links"]
+    },
+    {
+      "check_id": "RN-SEC-005",
+      "name": "CodePush热更新缺少签名校验",
+      "severity": "high",
+      "category": "security",
+      "description": "使用CodePush进行JS Bundle热更新时未启用代码签名校验，更新内容可被中间人攻击篡改，注入恶意JS代码。",
+      "pattern": "codePush\\.sync\\s*\\(|codePush\\s*\\((?!.*rollback|.*signature|.*publicKey)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "1. 启用CodePush的代码签名功能; 2. 配置公钥校验更新包签名; 3. 使用HTTPS下载更新包; 4. 校验更新包的完整性哈希",
+      "references": ["https://github.com/microsoft/code-push", "https://microsoft.github.io/code-push/docs/cli.html"]
+    },
+    {
+      "check_id": "RN-SEC-006",
+      "name": "权限请求缺少用途说明",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "使用react-native-permissions请求权限时未配置权限用途描述（Info.plist的NSxxxUsageDescription或Android manifest说明），权限被拒绝率高且违反应用商店政策。",
+      "pattern": "PermissionsAndroid\\.request\\s*\\(|request\\s*\\(\\s*PERMISSIONS\\.\\w+\\.\\w+|check\\s*\\(\\s*PERMISSIONS\\.",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "1. iOS: 在Info.plist中为每个权限添加NSxxxUsageDescription; 2. Android: 运行时请求权限前向用户说明用途; 3. 仅在用户触发功能时请求权限",
+      "references": ["https://github.com/zoontek/react-native-permissions", "https://developer.android.com/training/permissions/requesting"]
+    },
+    {
+      "check_id": "RN-SEC-007",
+      "name": "未实现证书固定",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用fetch/Axios进行网络请求时未实现证书固定，仅依赖系统信任的CA。用户安装恶意证书后可解密HTTPS流量。React Native底层使用NSURLSession/OkHttp。",
+      "pattern": "fetch\\s*\\(|axios\\.(?:get|post|put|delete)\\s*\\(|Axios\\.create\\s*\\((?!.*sslPinning|.*certificate|.*pinner)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "使用react-native-ssl-pinning或react-native-pinned-cert库实现证书固定，或在Native层配置OkHttp CertificatePinner/NSURLSession delegate",
+      "references": ["https://github.com/maxtoyber/react-native-ssl-pinning", "https://owasp.org/www-community/controls/Certificate_and_Public_Key_Pinning"]
+    },
+    {
+      "check_id": "RN-SEC-008",
+      "name": "调试模式在生产环境中启用",
+      "severity": "high",
+      "category": "security",
+      "description": "Release版本中__DEV__变量未正确设置为false，或使用了console.log输出调试信息。调试模式下JS Bundle可通过Chrome DevTools调试，暴露应用逻辑。",
+      "pattern": "console\\.(?:log|debug|info|warn)\\s*\\(|__DEV__\\s*===?\\s*true|Debug\\.show\\s*\\(",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "1. 使用babel-plugin-transform-remove-console在构建时移除console语句; 2. 确保Release构建中__DEV__为false; 3. 使用日志级别控制调试输出",
+      "references": ["https://reactnative.dev/docs/debugging", "https://github.com/terser/terser"]
+    },
+    {
+      "check_id": "RN-SEC-009",
+      "name": "第三方原生库版本过期存在漏洞",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用的第三方React Native原生模块（native module）版本过旧，已知存在安全漏洞（如旧版react-native-webview存在XSS风险）。",
+      "pattern": "\"react-native-\\w+\"\\s*:\\s*\"[0-3]\\.[0-9]\\.[0-9]\"",
+      "file_pattern": "package.json",
+      "suggestion": "1. 定期使用npm audit/yarn audit检查依赖漏洞; 2. 使用dependabot或renovate自动更新; 3. 关注React Native社区的安全公告",
+      "references": ["https://docs.npmjs.com/cli/v10/commands/npm-audit", "https://github.com/advisories"]
+    },
+    {
+      "check_id": "RN-SEC-010",
+      "name": "JSI/Hermes安全配置不当",
+      "severity": "medium",
+      "category": "security",
+      "description": "使用Hermes引擎但未启用字节码加密，或JSI模块暴露了不安全的Native函数给JS层。Hermes的预编译字节码可被反编译获取业务逻辑。",
+      "pattern": "hermes\\s*:\\s*true|enableHermes\\s*=\\s*true|jsi::Runtime",
+      "file_pattern": "*.gradle, *.json, Podfile, *.js, *.ts",
+      "suggestion": "1. 启用Hermes字节码加密（HBC encryption）; 2. JSI模块严格限制暴露的Native函数; 3. 对关键逻辑使用Native模块而非纯JS",
+      "references": ["https://reactnative.dev/docs/hermes", "https://github.com/facebook/hermes"]
+    },
+    {
+      "check_id": "RN-SEC-011",
+      "name": "WebView组件安全配置不足",
+      "severity": "high",
+      "category": "security",
+      "description": "使用react-native-webview时未禁用JavaScript文件访问、未限制导航目标、未配置origin白名单，可加载恶意页面或泄露本地文件。",
+      "pattern": "WebView[^>]*(?:source=|originWhitelist=)(?!.*allowFileAccess={false}|.*originWhitelist=\\[\\s*['\"]https://)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "1. 设置originWhitelist=['https://*']; 2. 禁用allowFileAccess; 3. 实现onShouldStartLoadWithRequest校验URL; 4. 禁止injectedJavaScript注入不可信内容",
+      "references": ["https://github.com/react-native-webview/react-native-webview/blob/master/docs/Reference.md", "https://reactnative.dev/docs/security"]
+    },
+    {
+      "check_id": "RN-SEC-012",
+      "name": "eval和动态代码执行",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用eval()、new Function()、setTimeout(string)等方式动态执行代码，如果参数来源于外部（如服务端返回），可导致代码注入攻击。",
+      "pattern": "\\beval\\s*\\(|new\\s+Function\\s*\\(|setTimeout\\s*\\(\\s*[\"'][^\"']*[\"']\\s*,|setInterval\\s*\\(\\s*[\"']",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "严禁在生产代码中使用eval和动态代码执行。使用JSON.parse解析JSON数据，使用函数引用而非字符串调用定时器",
+      "references": ["https://cwe.mitre.org/data/definitions/95.html", "https://reactnative.dev/docs/security"]
+    },
+    {
+      "check_id": "RN-SEC-013",
+      "name": "敏感信息通过URL参数传递",
+      "severity": "high",
+      "category": "security",
+      "description": "将token、密码等敏感信息通过导航参数（深链接或路由参数）传递，URL可被系统日志、浏览器历史记录、其他应用截获。",
+      "pattern": "navigation\\.navigate\\s*\\([^)]*(?:token|password|secret|key|auth)\\s*[:=]|Linking\\.openURL\\s*\\(\\s*[\"'][^\"']*[?&](?:token|password|secret)=",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "敏感数据应通过安全存储（Keychain/Keystore）传递，或使用全局状态管理。避免在URL参数中包含敏感信息",
+      "references": ["https://reactnative.dev/docs/linking", "https://owasp.org/www-community/attacks/Information_exposure_through_query_strings_in_url"]
+    },
+    {
+      "check_id": "RN-SEC-014",
+      "name": "键盘缓存和密码输入框安全",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "密码输入框未设置secureTextEntry={true}或autoCorrect={false}，系统键盘可能学习并记录输入的密码，iOS的自动纠错功能可能上传输入内容。",
+      "pattern": "<TextInput[^>]*(?:placeholder=[\"'].*(?:password|密码)|name=[\"']password[\"'])[^>]*>(?!.*secureTextEntry)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "密码输入框设置secureTextEntry={true}、autoCorrect={false}、autoComplete='off'、textContentType='none'，禁用键盘学习",
+      "references": ["https://reactnative.dev/docs/textinput", "https://developer.apple.com/documentation/uikit/uitextinputtraits"]
+    },
+    {
+      "check_id": "RN-SEC-015",
+      "name": "应用截图包含敏感信息",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "应用进入后台时未模糊敏感界面（银行卡号、余额等），系统在App Switcher中保存的截图可能包含敏感信息。",
+      "pattern": "AppState\\.addEventListener\\s*\\(\\s*['\"]change['\"](?!.*blur|.*overlay|.*blurView|.*hide)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "监听AppState变化，当appState变为background/inactive时添加模糊覆盖层，在active时移除覆盖层",
+      "references": ["https://reactnative.dev/docs/appstate", "https://developer.android.com/training/enterprise/app-restrictions"]
+    }
+  ]
+}

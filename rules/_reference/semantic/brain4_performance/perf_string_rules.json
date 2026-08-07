@@ -1,0 +1,95 @@
+{
+    "rules": [
+        {
+            "id": "PERF-STR-001",
+            "name": "循环中使用+拼接字符串",
+            "severity": "medium",
+            "category": "string-performance",
+            "description": "在循环中使用+=拼接字符串，每次拼接创建新的String对象，时间复杂度为O(n²)。Java/Python中尤其严重。",
+            "suggestion": "Java使用StringBuilder；Python使用''.join(list)；JavaScript使用数组push后join；Go使用strings.Builder。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-STR-002",
+            "name": "频繁创建正则表达式对象",
+            "severity": "medium",
+            "category": "string-performance",
+            "description": "在函数内部或循环中重复创建相同模式的RegExp/Pattern对象，正则编译开销被重复执行。",
+            "suggestion": "将正则表达式提升为模块级常量（const REGEX = /pattern/）；使用Pattern.compile缓存（Java）；复用已编译的正则对象。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "PERF-STR-003",
+            "name": "大字符串使用substring反复切割",
+            "severity": "medium",
+            "category": "string-performance",
+            "description": "对大字符串反复使用substring/slice进行切割处理，每次切割都创建新字符串副本，内存和时间开销大。",
+            "suggestion": "使用split一次性分割；使用正则的matchAll迭代匹配；使用StringReader/BufferedReader流式处理。",
+            "applicable_files": [
+                "*.java",
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.cs",
+                "*.go"
+            ]
+        },
+        {
+            "id": "PERF-STR-004",
+            "name": "不必要的字符串编解码转换",
+            "severity": "low",
+            "category": "string-performance",
+            "description": "在数据处理链路中反复进行字符串与Buffer/Bytes的转换（如string→Buffer→string→Buffer），每次转换都涉及内存分配和拷贝。",
+            "suggestion": "统一数据格式，减少不必要的编解码；在流处理中保持Buffer形式直到最终需要字符串时再转换。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.go",
+                "*.java"
+            ]
+        },
+        {
+            "id": "PERF-STR-005",
+            "name": "模板字符串在循环中反复编译",
+            "severity": "low",
+            "category": "string-performance",
+            "description": "使用模板引擎（Handlebars/EJS/Jinja2）在循环中反复编译同一模板字符串，模板解析开销被重复。",
+            "suggestion": "预编译模板为函数，循环中只执行渲染；使用模板缓存机制。",
+            "applicable_files": [
+                "*.js",
+                "*.ts",
+                "*.py",
+                "*.java"
+            ]
+        },
+        {
+            "id": "PERF-STR-006",
+            "name": "使用indexOf替代includes/includes的性能差异",
+            "severity": "low",
+            "category": "string-performance",
+            "description": "在仅需判断存在性的场景使用indexOf !== -1而非includes，虽然功能等价但includes语义更清晰且在现代引擎中有优化。",
+            "suggestion": "使用includes/some进行存在性判断；使用startsWith/endsWith替代substring比较。",
+            "applicable_files": [
+                "*.js",
+                "*.ts"
+            ]
+        }
+    ]
+}

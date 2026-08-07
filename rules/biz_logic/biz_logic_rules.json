@@ -1,0 +1,277 @@
+{
+  "metadata": {
+    "platform": "biz_logic",
+    "version": "1.0",
+    "author": "煋旺智能"
+  },
+  "rules": [
+    {
+      "check_id": "BIZ-001",
+      "name": "浮点数用于金额计算",
+      "severity": "critical",
+      "category": "business_logic",
+      "description": "使用float类型进行金额/价格计算会产生精度误差（如0.1+0.2!=0.3），可能导致财务错误",
+      "pattern": "(?:price|amount|total|cost|balance|fee|money)\\s*(?::\\s*float|\\s*=\\s*float\\s*\\()",
+      "file_pattern": "*",
+      "suggestion": "使用Decimal类型处理金额计算，或存储为整数分（乘以100）",
+      "references": [
+        "https://docs.python.org/3/library/decimal.html",
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    },
+    {
+      "check_id": "BIZ-002",
+      "name": "权限装饰器顺序错误",
+      "severity": "high",
+      "category": "security",
+      "description": "多个装饰器叠加时顺序错误，可能导致权限检查被其他装饰器绕过",
+      "pattern": "@login_required",
+      "file_pattern": "*.py",
+      "suggestion": "确保权限/认证装饰器位于最内层（最靠近函数定义），先认证后鉴权",
+      "references": [
+        "https://docs.djangoproject.com/en/stable/topics/auth/default/#the-login-required-decorator"
+      ]
+    },
+    {
+      "check_id": "BIZ-003",
+      "name": "支付/订单接口缺少幂等性保护",
+      "severity": "critical",
+      "category": "business_logic",
+      "description": "支付/扣款/订单创建接口未做幂等性检查，网络重试可能导致重复扣款或重复下单",
+      "pattern": "(?:def|async\\s+def)\\s+(?:pay|charge|deduct|create_order|submit_order|transfer)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "实现幂等性key机制：客户端传递唯一请求ID，服务端检查是否已处理过该请求",
+      "references": [
+        "https://stripe.com/docs/api/idempotent_requests",
+        "https://cwe.mitre.org/data/definitions/362.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-004",
+      "name": "验证码/Token未设置过期时间",
+      "severity": "critical",
+      "category": "security",
+      "description": "验证码、重置密码Token、邮箱验证Token等创建后未设置过期时间，可被永久使用",
+      "pattern": "(?:verification|reset|confirm|activate)\\w*(?:_code|_token|_key)\\s*=",
+      "file_pattern": "*.py",
+      "suggestion": "为所有验证码和Token设置合理的过期时间（如验证码5分钟，重置Token 1小时）",
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/Session_Fixation"
+      ]
+    },
+    {
+      "check_id": "BIZ-005",
+      "name": "直接通过ID查询对象（IDOR风险）",
+      "severity": "critical",
+      "category": "security",
+      "description": "通过URL参数中的ID直接查询数据库对象，未校验当前用户是否有权访问该对象，存在越权访问风险",
+      "pattern": "(?:get_object_or_404|\\.get|\\.find)\\s*\\(\\s*\\w+\\s*=\\s*(?:request\\.(?:GET|POST|params)|req\\.(?:query|params))",
+      "file_pattern": "*.py",
+      "suggestion": "查询时加上当前用户条件过滤（如user=request.user），或调用通用的权限校验方法",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-006",
+      "name": "批量操作无数量限制",
+      "severity": "high",
+      "category": "business_logic",
+      "description": "批量删除/导出/更新接口未限制操作数量，恶意用户可一次操作全部数据导致服务不可用",
+      "pattern": "(?:def|async\\s+def)\\s+(?:batch|bulk|mass)\\w*(?:delete|remove|update|export|import)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "为批量操作设置最大数量限制，并在前端和后端同时校验",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/770.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-007",
+      "name": "竞态条件: 先检查余额再扣款",
+      "severity": "critical",
+      "category": "business_logic",
+      "description": "先查询余额/库存再执行扣款/扣库存操作，并发场景下可能超卖或透支",
+      "pattern": "if\\s+\\w+(?:balance|stock|inventory|amount)\\s*[><=]+",
+      "file_pattern": "*.py",
+      "suggestion": "使用数据库行锁（SELECT FOR UPDATE）或乐观锁（版本号机制）保证原子性",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/362.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-008",
+      "name": "接口缺少频率限制",
+      "severity": "high",
+      "category": "security",
+      "description": "短信发送、密码重置等敏感接口未做频率限制，可被滥用进行短信轰炸或暴力破解",
+      "pattern": "(?:def|async\\s+def)\\s+(?:send_sms|send_code|reset_password|send_email|verify_code)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "为敏感接口添加频率限制（如每分钟1次、每天10次），使用Redis计数器实现",
+      "references": [
+        "https://owasp.org/www-community/controls/Blocking_Brute_Force_Attacks"
+      ]
+    },
+    {
+      "check_id": "BIZ-009",
+      "name": "用户输入未做XSS过滤",
+      "severity": "high",
+      "category": "security",
+      "description": "用户提交的内容（评论、昵称等）直接存储和展示，未做XSS过滤可能导致存储型XSS攻击",
+      "pattern": "request\\.(?:POST|body)\\s*\\[\\s*['\"](?:comment|content|name|title|nickname|bio|description|message)['\"]\\s*\\]",
+      "file_pattern": "*.py",
+      "suggestion": "对用户输入进行HTML转义或白名单过滤，展示时使用模板引擎的自动转义",
+      "references": [
+        "https://owasp.org/www-community/xss-filter-evasion-cheatsheet",
+        "https://cwe.mitre.org/data/definitions/79.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-010",
+      "name": "缺少CSRF保护",
+      "severity": "critical",
+      "category": "security",
+      "description": "POST/PUT/DELETE等修改状态的接口未做CSRF防护，攻击者可构造恶意页面诱导用户操作",
+      "pattern": "@(?:app|router)\\.(?:post|put|delete|patch)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "为所有修改状态的接口添加CSRF Token验证",
+      "references": [
+        "https://owasp.org/www-community/attacks/csrf",
+        "https://cwe.mitre.org/data/definitions/352.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-011",
+      "name": "文件上传未校验文件类型",
+      "severity": "critical",
+      "category": "security",
+      "description": "文件上传仅检查扩展名未校验MIME类型和文件内容，攻击者可上传伪装成图片的恶意脚本",
+      "pattern": "(?:def|async\\s+def)\\s+\\w*(?:upload|file_upload|avatar)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "同时校验文件扩展名、MIME类型和文件魔数（magic bytes），限制上传大小",
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload",
+        "https://cwe.mitre.org/data/definitions/434.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-012",
+      "name": "时间比较使用客户端时间",
+      "severity": "high",
+      "category": "business_logic",
+      "description": "使用客户端传来的时间戳做业务判断（如优惠券有效期、活动是否开始），用户可篡改时间绕过限制",
+      "pattern": "(?:def|async\\s+def)\\s+\\w*(?:coupon|discount|promo|activity|campaign)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "所有时间判断使用服务器端时间（datetime.now()），不信任客户端传入的时间",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/20.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-013",
+      "name": "敏感操作缺少审计日志",
+      "severity": "medium",
+      "category": "business_logic",
+      "description": "删除用户、修改密码、转账等敏感操作未记录审计日志，事后无法追溯",
+      "pattern": "(?:def|async\\s+def)\\s+(?:delete_user|change_password|reset_password|transfer|refund|cancel_order)\\w*\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "为敏感操作添加审计日志，记录操作者、时间、操作对象和操作内容",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/778.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-014",
+      "name": "分页接口未限制最大页大小",
+      "severity": "medium",
+      "category": "business_logic",
+      "description": "分页查询接口允许客户端指定任意大的page_size，可能导致一次查询返回海量数据耗尽内存",
+      "pattern": "(?:page_size|limit|per_page|pageSize)\\s*=\\s*(?:request\\.(?:GET|args|query)|req\\.query)",
+      "file_pattern": "*.py",
+      "suggestion": "对page_size/limit设置最大值上限（如100），超过上限时截断为最大值",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/400.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-015",
+      "name": "用户密码明文存储或弱哈希",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用MD5/SHA1或明文存储用户密码，一旦数据库泄露密码可直接获取",
+      "pattern": "(?:hashlib\\.)?(?:md5|sha1|sha256)\\s*\\(\\s*(?:password|passwd|pwd)",
+      "file_pattern": "*.py",
+      "suggestion": "使用bcrypt/scrypt/argon2等专用密码哈希算法，配合随机盐值",
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_passwords"
+      ]
+    },
+    {
+      "check_id": "BIZ-016",
+      "name": "硬编码的管理员凭证",
+      "severity": "critical",
+      "category": "security",
+      "description": "代码中硬编码管理员用户名或密码，任何人获取源码即可获取管理权限",
+      "pattern": "(?:admin|username|password|passwd|pwd)\\s*[=:]\\s*['\"][^'\"$\\{]{3,}['\"]",
+      "file_pattern": "*.py",
+      "suggestion": "管理员凭证必须存储在环境变量或密钥管理系统中，代码中不得出现",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/798.html",
+        "https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_passwords"
+      ]
+    },
+    {
+      "check_id": "BIZ-017",
+      "name": "负数金额/数量未校验",
+      "severity": "high",
+      "category": "business_logic",
+      "description": "金额、数量等业务字段未校验负数值，可能导致负数金额退款为负（实际变成收款）",
+      "pattern": "(?:amount|price|quantity|count|total|fee|money)\\s*(?::\\s*(?:int|float|Decimal)|\\s*=\\s*(?:int|float|Decimal))",
+      "file_pattern": "*.py",
+      "suggestion": "对金额/数量字段添加非负校验（>=0），使用MinValueValidator或自定义校验器",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/20.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-018",
+      "name": "删除操作未做软删除",
+      "severity": "medium",
+      "category": "business_logic",
+      "description": "使用DELETE语句物理删除数据，关键业务数据（订单/交易记录）被永久删除无法恢复",
+      "pattern": "(?:\\.delete\\s*\\(|DELETE\\s+FROM)",
+      "file_pattern": "*.py",
+      "suggestion": "关键业务数据使用软删除（标记is_deleted），或先备份再删除",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/632.html"
+      ]
+    },
+    {
+      "check_id": "BIZ-019",
+      "name": "权限检查仅依赖前端控制",
+      "severity": "critical",
+      "category": "security",
+      "description": "权限控制仅通过前端隐藏按钮/菜单实现，后端接口缺少对应的权限校验",
+      "pattern": "(?:v-if|ng-if|ngIf|isAdmin|hasPermission)\\s*[=:]",
+      "file_pattern": "*.html",
+      "suggestion": "后端接口必须独立做权限校验，前端控制仅作为UX优化",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/"
+      ]
+    },
+    {
+      "check_id": "BIZ-020",
+      "name": "用户ID直接从URL路径参数获取且未校验归属",
+      "severity": "critical",
+      "category": "security",
+      "description": "从URL路径获取用户ID后直接查询，未校验当前登录用户是否就是该ID对应用户",
+      "pattern": "/(?:users|accounts|profiles)/(?:\\{|:|<)\\w*(?:id|user_id|uid)\\w*(?:\\}|>|)",
+      "file_pattern": "*.py",
+      "suggestion": "从认证session/token中获取当前用户ID，而非信任URL中的参数；或加上权限校验",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/639.html",
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    }
+  ]
+}

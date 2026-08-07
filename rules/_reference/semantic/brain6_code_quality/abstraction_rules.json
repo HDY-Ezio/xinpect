@@ -1,0 +1,68 @@
+{
+    "rules": [
+        {
+            "id": "CQ-ABS-001",
+            "name": "高层模块混入底层实现细节",
+            "severity": "medium",
+            "category": "abstraction-level",
+            "description": "高层业务逻辑函数中直接包含底层实现细节（如在业务Service中直接拼接SQL字符串、操作DOM、处理HTTP字节流），违反关注点分离。",
+            "suggestion": "将底层实现细节下沉到专门的模块/层中；高层模块只调用抽象接口；遵循依赖倒置原则。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-ABS-002",
+            "name": "同一函数内混合不同抽象层级的操作",
+            "severity": "medium",
+            "category": "abstraction-level",
+            "description": "一个函数中同时包含高层业务操作（如validateOrder）和底层技术操作（如parseDate、concatString），阅读者需要不断切换思维层级。",
+            "suggestion": "将不同层级的操作提取到独立的函数中；保持每个函数在同一抽象层级；使用Step Down规则（每个函数下一层只调用同层或更低层的函数）。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs",
+                "*.go"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "CQ-ABS-003",
+            "name": "接口定义包含实现相关概念",
+            "severity": "medium",
+            "category": "abstraction-level",
+            "description": "接口/抽象类的定义中暴露了实现细节（如方法参数使用具体类型而非抽象类型、返回值暴露数据库实体）。",
+            "suggestion": "接口使用抽象类型定义；返回DTO而非数据库实体；接口定义应描述'做什么'而非'怎么做'。",
+            "applicable_files": [
+                "*.java",
+                "*.cs",
+                "*.ts",
+                "*.go"
+            ]
+        },
+        {
+            "id": "CQ-ABS-004",
+            "name": "配置/环境变量硬编码在业务逻辑中",
+            "severity": "medium",
+            "category": "abstraction-level",
+            "description": "业务逻辑中硬编码了具体的配置值（如URL、超时时间、阈值），这些本应属于配置层而非业务逻辑层。",
+            "suggestion": "将配置值提取到配置文件或常量类中；通过依赖注入传入配置；业务逻辑只依赖抽象配置接口。",
+            "applicable_files": [
+                "*.java",
+                "*.py",
+                "*.js",
+                "*.ts",
+                "*.cs",
+                "*.go"
+            ]
+        }
+    ]
+}

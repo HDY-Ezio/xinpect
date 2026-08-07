@@ -1,0 +1,262 @@
+{
+    "_metadata": {
+        "version": "1.0.0",
+        "brain": 7,
+        "module": "architecture",
+        "description": "测试架构规则 - 测试分层、Mock规范、覆盖率要求",
+        "standard_refs": [
+            "Testing Pyramid(Martin Fowler)",
+            "Working Effectively with Legacy Code",
+            "Test-Driven Development",
+            "Google Testing Blog"
+        ],
+        "total_rules": 15
+    },
+    "rules": [
+        {
+            "id": "ARCH-TA-001",
+            "name": "缺少测试金字塔分层",
+            "severity": "high",
+            "category": "test_layering",
+            "description": "项目只有大量端到端测试(UI测试)，缺少单元测试和集成测试，测试执行慢且脆弱",
+            "suggestion": "遵循测试金字塔：70%单元测试 + 20%集成测试 + 10%端到端测试",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*.test.js",
+                "*.spec.js",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-002",
+            "name": "单元测试包含外部依赖",
+            "severity": "high",
+            "category": "test_layering",
+            "description": "单元测试中直接连接数据库、HTTP请求或文件系统，导致测试不稳定且缓慢",
+            "suggestion": "单元测试必须隔离外部依赖；使用Mock/Stub替代真实的外部调用",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*.test.js",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-003",
+            "name": "集成测试缺少环境隔离",
+            "severity": "high",
+            "category": "test_layering",
+            "description": "集成测试共用同一个测试数据库或环境，测试间相互干扰导致偶发失败",
+            "suggestion": "每个测试用例使用独立的数据快照；使用Testcontainers启动隔离的数据库实例",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-004",
+            "name": "缺少契约测试(Contract Test)",
+            "severity": "medium",
+            "category": "test_layering",
+            "description": "微服务间调用缺少契约测试，服务提供方变更接口时无法检测对消费方的影响",
+            "suggestion": "使用Pact或Spring Cloud Contract实现Consumer-Driven Contract Testing",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-005",
+            "name": "E2E测试覆盖率不足关键路径",
+            "severity": "high",
+            "category": "test_layering",
+            "description": "关键业务流程(如支付、下单)缺少端到端测试覆盖，上线风险高",
+            "suggestion": "为关键用户旅程编写E2E测试；覆盖核心正向流程和关键异常场景",
+            "applicable_files": [
+                "*.e2e.ts",
+                "*.e2e.js",
+                "*.spec.ts",
+                "*.test.ts"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-006",
+            "name": "测试数据管理混乱",
+            "severity": "medium",
+            "category": "test_layering",
+            "description": "测试数据硬编码在测试用例中，数据变更后需要修改多处测试代码",
+            "suggestion": "使用Factory/Builder模式生成测试数据；使用Fixture管理测试数据；数据驱动测试",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-007",
+            "name": "过度Mock导致测试无意义",
+            "severity": "high",
+            "category": "mock_convention",
+            "description": "测试中Mock了被测代码调用的所有方法，只验证Mock被调用，实际未测试任何真实逻辑",
+            "suggestion": "只Mock外部依赖(网络、DB、文件系统)；内部逻辑使用真实实现",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-008",
+            "name": "Mock返回值与实际API不一致",
+            "severity": "high",
+            "category": "mock_convention",
+            "description": "Mock的数据结构与服务端实际返回不一致，测试通过但集成时失败",
+            "suggestion": "Mock数据使用与真实API相同的Type/Interface定义；定期同步更新Mock数据",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-009",
+            "name": "缺少Mock验证(verify/assert)",
+            "severity": "medium",
+            "category": "mock_convention",
+            "description": "测试中设置了Mock但缺少对Mock调用次数和参数的验证，无法确认交互是否正确",
+            "suggestion": "使用verify()(Mockito)/toHaveBeenCalled()(Jest)/AssertCalled(testing.mock)验证交互",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-010",
+            "name": "静态方法Mock泄漏到其他测试",
+            "severity": "high",
+            "category": "mock_convention",
+            "description": "Mock了静态方法/全局函数但未在测试后恢复，影响后续测试用例",
+            "suggestion": "在afterEach/tearDown中恢复Mock；使用scoped mock限制作用范围",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-011",
+            "name": "Mock文件系统而非使用内存FS",
+            "severity": "medium",
+            "category": "mock_convention",
+            "description": "测试中Mock了fs.readFile等文件操作API，测试脆弱且难以维护",
+            "suggestion": "使用memfs/mock-fs等内存文件系统；或重构代码接受抽象的文件系统接口",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*.test.js",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-012",
+            "name": "核心模块测试覆盖率低于80%",
+            "severity": "high",
+            "category": "coverage_requirement",
+            "description": "核心业务逻辑模块(如支付、权限、订单)的代码覆盖率低于80%，存在质量风险",
+            "suggestion": "核心模块要求行覆盖率>=80%，分支覆盖率>=70%；在CI中设置覆盖率门禁",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-013",
+            "name": "缺少分支覆盖率要求",
+            "severity": "medium",
+            "category": "coverage_requirement",
+            "description": "项目只检查行覆盖率，忽略了分支覆盖率，条件语句的不同分支可能未被测试",
+            "suggestion": "设置分支覆盖率阈值(建议>=70%)；使用Istanbul/nyc等工具报告分支覆盖",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-014",
+            "name": "测试执行时间过长",
+            "severity": "medium",
+            "category": "coverage_requirement",
+            "description": "完整测试套件执行时间超过10分钟，降低开发效率和CI反馈速度",
+            "suggestion": "并行执行测试；区分快/慢测试；使用增量测试(只运行变更相关测试)",
+            "applicable_files": [
+                "*.test.ts",
+                "*.spec.ts",
+                "*_test.go",
+                "*Test.java",
+                "test_*.py",
+                "*.yaml",
+                "*.yml"
+            ],
+            "pattern": ""
+        },
+        {
+            "id": "ARCH-TA-015",
+            "name": "缺少变更影响分析",
+            "severity": "low",
+            "category": "coverage_requirement",
+            "description": "代码变更后无法确定哪些测试需要重新运行，只能运行全量测试",
+            "suggestion": "使用测试影响分析工具(如Infinitest)或基于依赖图选择性运行测试",
+            "applicable_files": [
+                "*.ts",
+                "*.js",
+                "*.java",
+                "*.py",
+                "*.go",
+                "*.cs"
+            ],
+            "pattern": ""
+        }
+    ]
+}

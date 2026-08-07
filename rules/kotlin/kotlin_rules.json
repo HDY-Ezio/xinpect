@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+      "id": "KOTLIN-001",
+      "name": "!!强制非空断言滥用",
+      "severity": "high",
+      "category": "null_safety",
+      "description": "!!操作符在值为null时抛出KotlinNullPointerException导致App崩溃。在生产代码中大量使用!!意味着放弃了Kotlin空安全系统的保护，将可处理的null情况变成了致命异常。这是Kotlin新手最常犯的错误。",
+      "suggestion": "使用let、?:、?等安全操作符替代!!：\n```kotlin\n// 危险\nval name: String = user.name!! // null时崩溃\nval text = textView.text!!\n\n// 安全 - let\nuser.name?.let { name -> println(name) }\n\n// 安全 - Elvis操作符\nval name: String = user.name ?: \"default\"\n\n// 安全 - 可空类型\nval name: String? = user.name\n\n// 安全 - require/requireNotNull给出明确错误\nval name = requireNotNull(user.name) { \"用户名不能为空\" }\n```",
+      "applicable_files": [
+        "*.kt",
+        "*.kts"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,271 @@
+{
+  "metadata": {
+    "platform": "data_flow",
+    "version": "1.0",
+    "author": "煋旺智能"
+  },
+  "rules": [
+    {
+      "check_id": "DF-001",
+      "name": "API返回值结构变更未同步消费方",
+      "severity": "high",
+      "category": "data_flow",
+      "description": "API响应字段被直接通过索引访问（如resp['data']['field']），一旦返回结构变更将导致KeyError",
+      "pattern": "\\bresponse\\s*(?:\\[|\\.get)\\s*['\"][\\w]+['\"]\\s*\\]\\s*(?:\\[|\\.get)\\s*\\(\\s*['\"][\\w]+['\"]",
+      "file_pattern": "*.py",
+      "suggestion": "定义响应数据模型类（如Pydantic Model），通过模型校验和访问字段，提供默认值",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/20.html"
+      ]
+    },
+    {
+      "check_id": "DF-002",
+      "name": "ORM模型字段与数据库Schema可能不同步",
+      "severity": "high",
+      "category": "data_flow",
+      "description": "ORM模型新增字段但未运行数据库迁移，运行时将报OperationalError",
+      "pattern": "models\\.\\w+Field\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "新增/修改ORM字段后务必运行数据库迁移命令并验证迁移文件",
+      "references": [
+        "https://docs.djangoproject.com/en/stable/topics/migrations/"
+      ]
+    },
+    {
+      "check_id": "DF-003",
+      "name": "未校验的外部输入直接用于SQL查询",
+      "severity": "critical",
+      "category": "security",
+      "description": "用户输入直接拼接到SQL字符串中，存在SQL注入风险",
+      "pattern": "(?:execute|raw|extra)\\s*\\(\\s*(?:f['\"]|['\"][^)]*(?:%s|%\\(|\\+|\\{))",
+      "file_pattern": "*.py",
+      "suggestion": "使用参数化查询（?占位符或命名参数），禁止字符串拼接SQL",
+      "references": [
+        "https://owasp.org/www-community/attacks/SQL_Injection",
+        "https://cwe.mitre.org/data/definitions/89.html"
+      ]
+    },
+    {
+      "check_id": "DF-004",
+      "name": "类型断言跳过运行时校验",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "使用as关键字进行类型断言，运行时不做实际检查，类型不匹配时静默产生错误",
+      "pattern": "\\b\\w+\\s+as\\s+\\w+\\b",
+      "file_pattern": "*.ts",
+      "suggestion": "使用类型守卫（is关键字）或zod等运行时校验库验证数据类型",
+      "references": [
+        "https://www.typescriptlang.org/docs/handbook/2/narrowing.html"
+      ]
+    },
+    {
+      "check_id": "DF-005",
+      "name": "JSON反序列化未做schema验证",
+      "severity": "high",
+      "category": "data_flow",
+      "description": "json.loads后直接使用结果，未校验数据结构是否符合预期，可能因格式变更导致运行时错误",
+      "pattern": "json\\.loads?\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "反序列化后使用Pydantic/dataclasses等验证数据结构，或定义schema校验",
+      "references": [
+        "https://docs.pydantic.dev/latest/"
+      ]
+    },
+    {
+      "check_id": "DF-006",
+      "name": "序列化与反序列化使用不同格式",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "数据序列化时使用一种格式（如JSON），反序列化时使用另一种格式（如Pickle），导致数据不一致或安全风险",
+      "pattern": "pickle\\.(?:loads|load)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "避免使用pickle反序列化不可信数据，优先使用JSON等安全格式",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/502.html"
+      ]
+    },
+    {
+      "check_id": "DF-007",
+      "name": "未校验的外部输入直接入库",
+      "severity": "critical",
+      "category": "data_flow",
+      "description": "HTTP请求参数未经校验直接写入数据库，可能注入恶意数据",
+      "pattern": "(?:request\\.(?:POST|body|data|GET|params)|req\\.(?:body|query|params))\\s*(?:\\[|\\.get)\\s*\\(\\s*['\"][^'\"]+['\"]",
+      "file_pattern": "*.py",
+      "suggestion": "使用表单验证类、Pydantic模型或Joi/Yup等校验库验证外部输入后再入库",
+      "references": [
+        "https://owasp.org/www-project-proactive-controls/v3/en/c5-validate-inputs",
+        "https://cwe.mitre.org/data/definitions/20.html"
+      ]
+    },
+    {
+      "check_id": "DF-008",
+      "name": "强制类型转换未做边界检查",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "使用int()/float()强制转换外部输入，未处理转换失败的情况",
+      "pattern": "(?:int|float|Decimal)\\s*\\(\\s*(?:request|req|input|params|args|body)\\b",
+      "file_pattern": "*.py",
+      "suggestion": "用try-except包裹类型转换，或使用.isdigit()等方法预校验",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/704.html"
+      ]
+    },
+    {
+      "check_id": "DF-009",
+      "name": "函数返回值类型不一致",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "同一函数在不同分支返回不同类型（如有时返回dict有时返回list），调用方难以处理",
+      "pattern": "return\\s+None",
+      "file_pattern": "*.py",
+      "suggestion": "统一函数返回类型，或使用Optional/Union类型注解明确标注可能的返回类型",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/394.html"
+      ]
+    },
+    {
+      "check_id": "DF-010",
+      "name": "使用any类型（TypeScript）",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "使用any类型绕过了TypeScript的类型检查，使类型系统形同虚设",
+      "pattern": "[:\\s]\\s*any\\b",
+      "file_pattern": "*.ts",
+      "suggestion": "使用unknown替代any，然后通过类型守卫缩窄类型；或定义具体接口类型",
+      "references": [
+        "https://www.typescriptlang.org/docs/handbook/2/types-from-types.html"
+      ]
+    },
+    {
+      "check_id": "DF-011",
+      "name": "非空断言操作符滥用",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "过度使用!非空断言操作符跳过null检查，可能导致运行时TypeError",
+      "pattern": "\\w+!\\.\\w+",
+      "file_pattern": "*.ts",
+      "suggestion": "使用可选链（?.）和空值合并（??）安全访问可能为null的属性",
+      "references": [
+        "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#null-and-undefined"
+      ]
+    },
+    {
+      "check_id": "DF-012",
+      "name": "字典取值未使用get带默认值",
+      "severity": "low",
+      "category": "data_flow",
+      "description": "使用dict[key]方式取值，当key不存在时抛出KeyError",
+      "pattern": "\\b\\w+\\s*\\[\\s*['\"][^'\"]+['\"]\\s*\\]",
+      "file_pattern": "*.py",
+      "suggestion": "使用dict.get(key, default)方法取值，或先检查key是否在字典中",
+      "references": [
+        "https://docs.python.org/3/library/stdtypes.html#dict.get"
+      ]
+    },
+    {
+      "check_id": "DF-013",
+      "name": "数据库事务中混用DDL和DML",
+      "severity": "high",
+      "category": "data_flow",
+      "description": "在同一事务中混用DDL语句（CREATE/ALTER/DROP）和DML语句（INSERT/UPDATE），不同数据库行为不一致",
+      "pattern": "(?:BEGIN|transaction\\.atomic)",
+      "file_pattern": "*.py",
+      "suggestion": "将DDL操作和DML操作分开执行，DDL应在迁移脚本中完成",
+      "references": [
+        "https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html"
+      ]
+    },
+    {
+      "check_id": "DF-014",
+      "name": "接口响应未统一格式",
+      "severity": "low",
+      "category": "data_flow",
+      "description": "API接口直接返回ORM对象或原始数据，未通过统一响应格式包装",
+      "pattern": "return\\s+(?:Response|JsonResponse)\\s*\\(\\s*\\w+",
+      "file_pattern": "*.py",
+      "suggestion": "定义统一的API响应格式（如{code, message, data}），所有接口统一返回",
+      "references": [
+        "https://restfulapi.net/rest-api-design-tutorial-with-example/"
+      ]
+    },
+    {
+      "check_id": "DF-015",
+      "name": "数据导出未限制字段范围",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "导出/序列化整个模型对象，可能泄露敏感字段（如密码哈希、内部ID）",
+      "pattern": "(?:values|to_dict|serialize)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "明确指定导出的字段白名单，使用exclude排除敏感字段",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ]
+    },
+    {
+      "check_id": "DF-016",
+      "name": "隐式类型转换导致精度丢失",
+      "severity": "high",
+      "category": "data_flow",
+      "description": "JavaScript中大整数超出Number.MAX_SAFE_INTEGER范围导致精度丢失",
+      "pattern": "(?:parseInt|Number)\\s*\\(",
+      "file_pattern": "*.js",
+      "suggestion": "对大整数使用BigInt类型处理，避免使用Number",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt"
+      ]
+    },
+    {
+      "check_id": "DF-017",
+      "name": "日期时间未指定时区",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "创建datetime对象未指定时区，跨时区系统间数据交换产生时间偏差",
+      "pattern": "datetime\\.datetime\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "使用datetime.now(timezone.utc)或指定明确的时区信息",
+      "references": [
+        "https://docs.python.org/3/library/datetime.html#timezone-objects"
+      ]
+    },
+    {
+      "check_id": "DF-018",
+      "name": "数据批量操作未做事务保护",
+      "severity": "high",
+      "category": "data_flow",
+      "description": "批量数据库操作（如bulk_create/bulk_update）未包裹在事务中，部分失败时数据不一致",
+      "pattern": "(?:bulk_create|bulk_update|batch_insert|insertMany)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "使用transaction.atomic()包裹批量操作，确保原子性",
+      "references": [
+        "https://docs.djangoproject.com/en/stable/topics/db/transactions/"
+      ]
+    },
+    {
+      "check_id": "DF-019",
+      "name": "编码未显式指定",
+      "severity": "low",
+      "category": "data_flow",
+      "description": "文件读写未指定encoding参数，在不同操作系统上使用不同默认编码导致乱码",
+      "pattern": "open\\s*\\([^)]*\\)",
+      "file_pattern": "*.py",
+      "suggestion": "显式指定encoding='utf-8'参数",
+      "references": [
+        "https://docs.python.org/3/library/functions.html#open"
+      ]
+    },
+    {
+      "check_id": "DF-020",
+      "name": "缓存数据与数据库数据一致性风险",
+      "severity": "medium",
+      "category": "data_flow",
+      "description": "写入数据库后未同步更新/清除缓存，导致缓存中读到过期数据",
+      "pattern": "(?:cache\\.set|redis\\.set)\\s*\\(",
+      "file_pattern": "*.py",
+      "suggestion": "在数据库写入后同步更新或清除相关缓存，使用cache-aside或write-through模式",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/664.html"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "rules": [
+    {
+      "id": "DEP-QUAL-004",
+      "name": "npm包周下载量极低",
+      "severity": "high",
+      "category": "dependency_quality",
+      "description": "npm包的周下载量低于100，表明使用率很低，社区验证不足，可能存在未被发现的问题。",
+      "suggestion": "评估是否有更主流的替代方案；若必须使用，加强测试覆盖。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-005",
+      "name": "包下载量突增异常",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "包的下载量短期内异常暴增，可能是刷量行为（typosquatting攻击特征）。",
+      "suggestion": "核实包的真实性和来源，检查包名是否与知名包相似。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-006",
+      "name": "包下载量骤降",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "包的下载量近期骤降，可能表明社区已转向替代方案或包存在重大问题。",
+      "suggestion": "调查下载量下降原因，评估是否需要迁移到替代方案。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-007",
+      "name": "新兴包使用风险评估",
+      "severity": "low",
+      "category": "dependency_quality",
+      "description": "使用的npm/PyPI包发布不足6个月，尚未经过足够的时间验证。",
+      "suggestion": "密切关注包更新和社区反馈，做好替换预案。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-008",
+      "name": "包仅支持单一平台",
+      "severity": "low",
+      "category": "dependency_quality",
+      "description": "依赖仅在单一操作系统/运行时上测试过，跨平台使用可能存在问题。",
+      "suggestion": "在目标平台上进行充分测试，或寻找跨平台替代。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-009",
+      "name": "包版本发布过于频繁",
+      "severity": "low",
+      "category": "dependency_quality",
+      "description": "包版本发布过于频繁（>10次/周），可能是测试性发布或不稳定。",
+      "suggestion": "选择稳定的主要版本，避免使用alpha/beta/rc版本。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-010",
+      "name": "包无CI/CD配置",
+      "severity": "low",
+      "category": "dependency_quality",
+      "description": "依赖的GitHub仓库未配置CI/CD（无.github/workflows或.travis.yml），代码质量保障不足。",
+      "suggestion": "评估是否需要该依赖，或fork后添加CI配置。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-011",
+      "name": "GitHub Star数过低",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "依赖的GitHub仓库Star数少于50，社区认可度低，可能缺乏足够的代码审查。",
+      "suggestion": "审查源码质量，评估是否有Star数更高的替代方案。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-012",
+      "name": "Contributor数量过少",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "依赖仅有1-2个contributor，代码质量和安全性缺乏多样化审查。",
+      "suggestion": "评估单点维护风险，准备替代方案。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-013",
+      "name": "依赖缺少测试代码",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "依赖仓库中未发现测试代码（无test/spec目录），代码质量无法保证。",
+      "suggestion": "避免使用无测试覆盖的依赖，或fork后补充关键路径测试。",
+      "applicable_files": [
+        "package.json",
+        "requirements.txt"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-014",
+      "name": "依赖无安全政策",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "依赖仓库未配置SECURITY.md或安全漏洞报告流程，安全问题无法及时上报和修复。",
+      "suggestion": "优先选择有安全政策的依赖，或fork自建安全修复流程。",
+      "applicable_files": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "DEP-QUAL-015",
+      "name": "依赖社区响应缓慢",
+      "severity": "medium",
+      "category": "dependency_quality",
+      "description": "依赖的GitHub Issue平均响应时间超过3个月，安全问题无法及时得到处理。",
+      "suggestion": "评估替代方案的社区活跃度，选择响应更快的项目。",
+      "applicable_files": [
+        "package.json"
+      ]
+    }
+  ]
+}

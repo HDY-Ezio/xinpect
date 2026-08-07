@@ -1,0 +1,30 @@
+{
+  "rules": [
+    {
+      "check_id": "DEP-CHAIN-007",
+      "name": "npm项目缺少lock文件",
+      "severity": "high",
+      "category": "security",
+      "description": "缺少package-lock.json/yarn.lock/pnpm-lock.yaml意味着依赖版本不确定，存在供应链攻击风险",
+      "pattern": "",
+      "file_pattern": "package.json",
+      "suggestion": "运行npm install生成package-lock.json并提交到版本控制",
+      "references": [
+        "https://docs.npmjs.com/cli/v9/configuring-npm/package-lock-json"
+      ]
+    },
+    {
+      "check_id": "DEP-CHAIN-008",
+      "name": "Python项目缺少锁文件",
+      "severity": "high",
+      "category": "security",
+      "description": "缺少Pipfile.lock/poetry.lock意味着依赖版本不确定，存在供应链攻击风险",
+      "pattern": "",
+      "file_pattern": "requirements.txt",
+      "suggestion": "使用pip-tools/poetry/pipenv生成锁文件并提交到版本控制",
+      "references": [
+        "https://pip-tools.readthedocs.io/en/latest/"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "SSRF与文件上传安全规则集",
+    "total_rules": 5,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-144",
+      "name": "SSRF：服务端请求伪造",
+      "severity": "critical",
+      "category": "ssrf",
+      "description": "服务端根据用户输入发起HTTP请求(如图片下载、URL预览)，攻击者构造恶意URL访问内网服务(云元数据API、内部服务)。OWASP Top 10 A10:2021。",
+      "suggestion": "对用户提供的URL进行白名单验证(仅允许特定域名)；禁止访问内网IP(10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、169.254.169.254云元数据)；使用网络策略限制出站访问；对URL进行DNS解析后再次验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-147",
+      "name": "文件上传：文件类型未验证",
+      "severity": "critical",
+      "category": "file-upload",
+      "description": "文件上传功能未验证文件类型，攻击者上传可执行脚本(webshell、HTML+JS)导致服务器被控制或XSS攻击。",
+      "suggestion": "使用白名单验证文件扩展名和MIME类型；检查文件内容魔数(magic number)验证真实类型；将上传文件存储在非执行目录；重命名文件使用随机名称；扫描上传文件病毒。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-148",
+      "name": "文件上传：路径遍历上传",
+      "severity": "high",
+      "category": "file-upload",
+      "description": "文件上传时使用用户提供的文件名，攻击者使用../序列将文件写入任意目录，覆盖系统文件或部署恶意脚本。",
+      "suggestion": "重命名上传文件(使用UUID或时间戳)；移除文件名中的路径分隔符和..序列；验证文件存储路径是否在预期目录内；使用文件系统权限限制写入范围。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-164",
+      "name": "CWE-918：服务端请求伪造(SSRF)",
+      "severity": "critical",
+      "category": "ssrf",
+      "description": "Web应用接收用户提供的URL或参数发起HTTP请求，未验证目标地址，可被用于访问内网资源、云元数据或扫描端口。CWE Top 25新增。",
+      "suggestion": "白名单验证允许访问的域名和IP；禁止访问私有IP段和云元数据(169.254.169.254)；对URL进行DNS解析后再次验证；使用网络策略限制出站流量。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-165",
+      "name": "CWE-434：不受限的文件上传",
+      "severity": "critical",
+      "category": "file-upload",
+      "description": "应用允许用户上传文件但未正确验证类型、内容或大小，攻击者可上传恶意文件(webshell、HTML+JS、可执行文件)控制服务器。",
+      "suggestion": "白名单验证文件扩展名和MIME类型；检查文件魔数验证真实类型；重命名文件避免执行；存储在非执行目录；限制文件大小；扫描病毒。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    }
+  ]
+}

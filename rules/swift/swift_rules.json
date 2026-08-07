@@ -1,0 +1,15 @@
+{
+  "rules": [
+    {
+      "id": "SWIFT-003",
+      "name": "主线程UI操作未DispatchQueue.main",
+      "severity": "high",
+      "category": "threading",
+      "description": "iOS中所有UIKit/AppKit操作必须在主线程执行。在后台线程更新UI会导致界面异常、闪烁、布局错乱甚至crash。网络回调、DispatchQueue.global、async/await的Task中执行UI操作时尤其容易忽略这一点。",
+      "suggestion": "确保UI操作在主线程执行：\n```swift\n// 危险 - 后台线程更新UI\nURLSession.shared.dataTask(with: url) { data, _, _ in\n    let result = parse(data)\n    self.label.text = result  // 后台线程！\n}.resume()\n\n// 正确 - 切回主线程\nURLSession.shared.dataTask(with: url) { data, _, _ in\n    let result = parse(data)\n    DispatchQueue.main.async {\n        self.label.text = result\n    }\n}.resume()\n\n// async/await中使用MainActor\n@MainActor\nfunc updateUI(result: String) {\n    label.text = result\n}\n```",
+      "applicable_files": [
+        "*.swift"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "rules": [
+    {
+      "id": "B1-15-R001",
+      "name": "文本与背景颜色对比度不足(WCAG AA)",
+      "severity": "medium",
+      "category": "color-contrast",
+      "description": "普通文本（<18px或<14px bold）与背景色的对比度低于4.5:1，不满足WCAG 2.1 AA标准，视障用户难以阅读。",
+      "suggestion": "确保普通文本对比度≥4.5:1；大文本≥3:1；使用WebAIM Contrast Checker等工具验证颜色组合。",
+      "applicable_files": [
+        "*.css",
+        "*.scss",
+        "*.less",
+        "*.vue",
+        "*.jsx",
+        "*.tsx",
+        "*.html",
+        "*.wxml",
+        "*.wxss"
+      ]
+    },
+    {
+      "id": "B1-15-R002",
+      "name": "仅使用颜色传达信息",
+      "severity": "medium",
+      "category": "color-contrast",
+      "description": "仅通过颜色差异来传达信息（如红色表示错误、绿色表示成功），色盲用户无法区分。",
+      "suggestion": "除颜色外增加图标、文字标签或图案来传达信息；使用形状和纹理辅助区分。",
+      "applicable_files": [
+        "*.css",
+        "*.scss",
+        "*.vue",
+        "*.jsx",
+        "*.tsx",
+        "*.html",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "B1-15-R003",
+      "name": "占位符文本对比度不足",
+      "severity": "low",
+      "category": "color-contrast",
+      "description": "表单placeholder文本颜色过浅，与输入框背景对比度不足，影响可读性。但注意placeholder不应替代label。",
+      "suggestion": "确保placeholder颜色与背景对比度≥4.5:1（若需可读）；重要信息不要仅放在placeholder中。",
+      "applicable_files": [
+        "*.css",
+        "*.scss",
+        "*.vue",
+        "*.jsx",
+        "*.tsx",
+        "*.html",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "B1-15-R004",
+      "name": "交互元素焦点指示对比度不足",
+      "severity": "medium",
+      "category": "color-contrast",
+      "description": "键盘焦点指示器（outline/focus ring）与周围颜色对比度不足3:1，键盘用户难以看到当前焦点位置。",
+      "suggestion": "使用高对比度的focus样式；outline颜色与背景对比度≥3:1；不要使用outline:none替代为不可见的焦点样式。",
+      "applicable_files": [
+        "*.css",
+        "*.scss",
+        "*.less",
+        "*.vue",
+        "*.jsx",
+        "*.tsx"
+      ]
+    }
+  ]
+}

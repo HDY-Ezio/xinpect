@@ -1,0 +1,94 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain5_deps",
+    "generated": "2026-08",
+    "description": "事件驱动架构规则，检查事件发布/订阅、事件循环、事件总线使用中的性能瓶颈和可靠性问题",
+    "total_rules": 8,
+    "standards_reference": [
+      "Event-Driven Architecture Best Practices",
+      "Node.js Event Loop Documentation",
+      "CWE-400: Uncontrolled Resource Consumption"
+    ]
+  },
+  "rules": [
+    {
+      "id": "DEP-EVT-001",
+      "name": "事件回调中执行耗时操作阻塞事件循环",
+      "severity": "high",
+      "category": "事件驱动",
+      "description": "在事件回调函数中执行CPU密集型或同步阻塞操作（如大文件读写、JSON大对象解析、加密计算、图片处理等），导致事件循环被阻塞。在Node.js单线程模型中，这会导致所有其他事件无法被处理，整个服务响应停滞。即使在多线程模型中，如果回调在事件分发线程执行，也会延迟其他事件的处理。",
+      "suggestion": "1) 将耗时操作移至Worker Thread/线程池异步执行；2) 使用流式处理替代一次性大文件读取；3) 将大任务拆分为小块，使用setImmediate/process.nextTick分片执行；4) 使用Web Worker处理计算密集型任务；5) 监控事件循环延迟（eventLoopDelay）设置告警阈值。",
+      "applicable_files": ["*.js", "*.ts", "*.py", "*.go", "*.java"]
+    },
+    {
+      "id": "DEP-EVT-002",
+      "name": "事件监听器注册在循环中导致重复绑定",
+      "severity": "high",
+      "category": "事件驱动",
+      "description": "在for循环、forEach或条件分支中注册事件监听器，导致同一事件被绑定多次。每次事件触发时，所有重复的监听器都会执行，造成不必要的性能开销。更严重的是，循环每次迭代可能创建新的闭包捕获不同变量，导致难以预测的行为。随着循环次数增加，监听器数量会指数增长。",
+      "suggestion": "1) 将事件监听器注册移至循环外部；2) 在注册前检查是否已绑定（使用listenerCount或hasListeners）；3) 使用事件委托模式，在父级元素统一处理子元素事件；4) 如果确实需要在循环中处理多个对象，使用Map存储对象引用，通过一个监听器根据事件参数分发。",
+      "applicable_files": ["*.js", "*.ts", "*.jsx", "*.tsx", "*.vue", "*.java", "*.py"]
+    },
+    {
+      "id": "DEP-EVT-003",
+      "name": "事件发射后未处理监听器不存在的情况",
+      "severity": "medium",
+      "category": "事件驱动",
+      "description": "使用emit/fireEvent发布事件后，没有检查是否有监听器注册。如果没有任何监听器，事件会被静默丢弃，导致消息丢失但不会有任何报错提示。这种静默失败在开发阶段难以发现，可能在生产环境中导致关键业务流程中断而不自知。",
+      "suggestion": "1) 使用emit的返回值（Node.js的EventEmitter.emit返回boolean）检查是否有监听器；2) 对关键业务事件注册默认的空监听器作为兜底；3) 在开发/测试环境添加事件监控，告警无监听器的事件发射；4) 使用Typed Event确保事件类型和监听器的类型匹配。",
+      "applicable_files": ["*.js", "*.ts", "*.java", "*.cs", "*.py", "*.go"]
+    },
+    {
+      "id": "DEP-EVT-004",
+      "name": "事件命名不一致导致消息丢失",
+      "severity": "medium",
+      "category": "事件驱动",
+      "description": "事件发射方和监听方使用不同的事件名称，如发射方使用'user:created'而监听方使用'userCreated'，或大小写不一致如'UserCreated'vs'usercreated'。这导致事件永远不会被匹配到，监听器永远不执行。这种错误在代码审查中容易被忽略，因为代码本身没有语法错误。",
+      "suggestion": "1) 使用常量或枚举定义所有事件名称，禁止字符串字面量；2) 使用TypeScript的类型系统约束事件名称和payload类型；3) 建立事件名称注册表（Event Registry）统一管理；4) 使用camelCase或kebab-case统一命名风格并配置lint规则；5) 在测试中验证所有已注册事件都有对应的发射点。",
+      "applicable_files": ["*.js", "*.ts", "*.java", "*.cs", "*.py", "*.go", "*.vue", "*.jsx", "*.tsx"]
+    },
+    {
+      "id": "DEP-EVT-005",
+      "name": "同步事件处理器中触发异步操作",
+      "severity": "medium",
+      "category": "事件驱动",
+      "description": "在标记为同步的事件处理器中调用了异步操作（如发送HTTP请求、查询数据库），但没有正确处理Promise或回调。这可能导致：异步操作的结果被忽略、错误未被捕获、处理器在异步操作完成前就返回，使得事件总线误认为处理已完成。",
+      "suggestion": "1) 在事件处理器中正确await异步操作；2) 如果事件总线不支持异步处理器，将异步操作包装为fire-and-forget并添加错误处理；3) 使用事件处理器的async版本（如支持async handler的事件库）；4) 区分同步事件和异步事件，使用不同的事件总线或通道。",
+      "applicable_files": ["*.js", "*.ts", "*.java", "*.cs", "*.py"]
+    },
+    {
+      "id": "DEP-EVT-006",
+      "name": "事件总线未限制最大监听器数量（内存泄漏）",
+      "severity": "high",
+      "category": "事件驱动",
+      "description": "事件总线（EventEmitter、EventBus等）未设置最大监听器数量限制。在运行时如果持续添加监听器而未移除（如在请求处理中动态注册），监听器数量会持续增长，不仅消耗大量内存，还导致事件触发时遍历大量监听器影响性能。Node.js默认限制为10，但很多自定义EventBus未设置此限制。",
+      "suggestion": "1) 使用setMaxListeners()设置合理的最大监听器数量；2) 使用WeakMap/WeakRef关联监听器与对象生命周期；3) 实现监听器自动清理机制，如组件销毁时自动移除；4) 监控监听器数量，超过阈值告警；5) 审查动态注册监听器的代码路径，确保都有对应的移除逻辑。",
+      "applicable_files": ["*.js", "*.ts", "*.java", "*.cs", "*.py"]
+    },
+    {
+      "id": "DEP-EVT-007",
+      "name": "事件数据未序列化导致跨进程丢失",
+      "severity": "medium",
+      "category": "事件驱动",
+      "description": "在跨进程/跨Worker的事件通信中，事件携带的数据包含不可序列化的对象（如函数、DOM元素、Error实例、循环引用对象等），导致数据在序列化传输过程中丢失或抛出异常。这在Worker Threads、IPC（进程间通信）、WebSocket通信中尤为常见。",
+      "suggestion": "1) 确保事件数据为纯JSON可序列化对象（Plain Object）；2) 使用structuredClone替代JSON.parse(JSON.stringify())处理复杂对象；3) 对不可序列化字段在发送前转换为可序列化表示（如Error转为{message, stack}）；4) 使用Transferable Objects传递大二进制数据。",
+      "applicable_files": ["*.js", "*.ts", "*.java", "*.go", "*.cs"]
+    },
+    {
+      "id": "DEP-EVT-008",
+      "name": "错误事件未被全局捕获",
+      "severity": "high",
+      "category": "事件驱动",
+      "description": "应用未注册全局错误事件处理器（如Node.js的process.on('uncaughtException')、process.on('unhandledRejection')，或浏览器的window.onerror、unhandledrejection事件），导致未捕获的错误事件直接导致进程崩溃或页面白屏。在事件驱动架构中，错误通常以error事件的形式传播，如果没有全局捕获机制，错误可能在传播链中被静默吞掉。",
+      "suggestion": "1) 注册全局错误处理器：Node.js使用process.on('uncaughtException')和'unhandledRejection'；浏览器使用window.addEventListener('error')和'unhandledrejection'；2) 在全局处理器中记录错误日志并优雅退出（Node.js需退出重启）；3) 使用PM2/forever等进程管理器自动重启；4) 在框架层面（Express/Koa）使用错误处理中间件。",
+      "applicable_files": ["*.js", "*.ts", "*.jsx", "*.tsx", "*.java", "*.py"]
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 4,
+    "medium": 4,
+    "low": 0
+  }
+}

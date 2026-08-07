@@ -1,0 +1,94 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain6_code_quality",
+    "generated": "2026-08",
+    "description": "认知复杂度分析规则，检测代码的可读性、可维护性问题，包括圈复杂度、嵌套层级、函数长度、参数数量、类规模等维度",
+    "total_rules": 8,
+    "standards_reference": [
+      "Clean Code - Robert C. Martin",
+      "SonarQube Cognitive Complexity",
+      "Refactoring - Martin Fowler"
+    ]
+  },
+  "rules": [
+    {
+      "id": "QUAL-COG-001",
+      "name": "函数圈复杂度超过15",
+      "severity": "high",
+      "category": "complexity",
+      "description": "圈复杂度（Cyclomatic Complexity）衡量代码中独立执行路径的数量。超过15意味着函数包含过多的条件分支、循环或逻辑组合，极难理解和测试。高圈复杂度的函数bug率显著高于低复杂度函数，且测试覆盖率难以提升。",
+      "suggestion": "通过提取子函数、使用早返回（Early Return）、策略模式或表驱动法降低复杂度。目标：圈复杂度 <= 10。\n\n// 错误示例 - 圈复杂度高\npublic void process(Order order) {\n    if (order != null) {\n        if (order.getStatus() == PAID) {\n            if (order.getItems() != null) {\n                for (Item item : order.getItems()) {\n                    if (item.isValid()) {\n                        if (item.getPrice() > 0) {\n                            // 深层嵌套处理逻辑\n                        }\n                    }\n                }\n            }\n        }\n    }\n}\n\n// 正确示例 - 早返回降低复杂度\npublic void process(Order order) {\n    if (order == null || order.getStatus() != PAID) return;\n    if (order.getItems() == null) return;\n    \n    order.getItems().stream()\n        .filter(Item::isValid)\n        .filter(item -> item.getPrice() > 0)\n        .forEach(this::processItem);\n}",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.c", "*.cpp", "*.rb", "*.php"]
+    },
+    {
+      "id": "QUAL-COG-002",
+      "name": "嵌套层级超过4层",
+      "severity": "high",
+      "category": "nesting",
+      "description": "代码嵌套层级超过4层（if/for/while/try等嵌套），导致代码呈现\"箭头型\"结构，极难阅读和维护。深层嵌套使读者需要同时记住多层条件上下文，认知负荷急剧增加。研究表明嵌套超过3层后，开发者理解代码的能力显著下降。",
+      "suggestion": "使用卫语句（Guard Clauses）提前返回、提取函数、使用多态替代条件嵌套。\n\n// 错误示例 - 5层嵌套\npublic void handle(User user) {\n    if (user != null) {\n        if (user.isActive()) {\n            if (user.getRole() != null) {\n                for (Permission p : user.getPermissions()) {\n                    if (p.isGranted()) {\n                        // 实际业务逻辑\n                    }\n                }\n            }\n        }\n    }\n}\n\n// 正确示例 - 卫语句 + 提取方法\npublic void handle(User user) {\n    if (user == null || !user.isActive()) return;\n    processPermissions(user);\n}\n\nprivate void processPermissions(User user) {\n    if (user.getRole() == null) return;\n    user.getPermissions().stream()\n        .filter(Permission::isGranted)\n        .forEach(this::applyPermission);\n}",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.c", "*.cpp", "*.rb", "*.php"]
+    },
+    {
+      "id": "QUAL-COG-003",
+      "name": "单函数超过80行",
+      "severity": "medium",
+      "category": "function_length",
+      "description": "单个函数或方法体超过80行（不含空行和注释），说明函数承担了过多职责，违反了单一职责原则。长函数难以理解、测试和复用，且修改时容易引入bug。研究表明超过50行的函数，开发者理解其完整逻辑的准确率下降超过60%。",
+      "suggestion": "按职责拆分为多个小函数，每个函数只做一件事。函数名应清晰表达其意图。\n\n// 错误示例 - 一个函数做了太多事\npublic void processPayment(Order order) {\n    // 验证订单（20行）\n    // 计算价格（15行）\n    // 检查库存（15行）\n    // 扣减库存（10行）\n    // 创建支付单（15行）\n    // 发送通知（10行）\n    // 总计85行\n}\n\n// 正确示例 - 拆分为职责明确的函数\npublic void processPayment(Order order) {\n    validateOrder(order);\n    BigDecimal amount = calculateAmount(order);\n    deductInventory(order);\n    PaymentRecord payment = createPayment(order, amount);\n    notifyUser(order, payment);\n}",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.c", "*.cpp", "*.rb", "*.php"]
+    },
+    {
+      "id": "QUAL-COG-004",
+      "name": "条件分支超过5个",
+      "severity": "medium",
+      "category": "branching",
+      "description": "单个函数中if/else if/switch的条件分支超过5个，违反了开闭原则。每新增一个类型都需要修改该函数，容易遗漏导致bug。过多的分支也增加了认知负荷，使得分支之间的交互和边界条件难以把握。",
+      "suggestion": "使用多态、策略模式、Map/字典映射或枚举方法替代多重条件判断。\n\n// 错误示例 - 过多条件分支\npublic BigDecimal calculateDiscount(Order order) {\n    if (order.getType() == VIP) return vipDiscount();\n    else if (order.getType() == SVIP) return svipDiscount();\n    else if (order.getType() == NORMAL) return normalDiscount();\n    else if (order.getType() == TRIAL) return trialDiscount();\n    else if (order.getType() == PARTNER) return partnerDiscount();\n    else if (order.getType() == ENTERPRISE) return enterpriseDiscount();\n    else return BigDecimal.ZERO;\n}\n\n// 正确示例 - 策略模式\nprivate final Map<UserType, DiscountStrategy> strategies = Map.of(\n    VIP, new VipDiscountStrategy(),\n    SVIP, new SvipDiscountStrategy(),\n    NORMAL, new NormalDiscountStrategy()\n);\n\npublic BigDecimal calculateDiscount(Order order) {\n    return strategies.getOrDefault(order.getType(), DEFAULT)\n        .calculate(order);\n}",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.c", "*.cpp", "*.rb", "*.php"]
+    },
+    {
+      "id": "QUAL-COG-005",
+      "name": "函数参数超过5个",
+      "severity": "medium",
+      "category": "function_signature",
+      "description": "函数参数超过5个，增加了调用者的认知负担和出错概率。参数过多通常意味着函数职责过多或存在可以聚合的参数组。同时使单元测试的setup变得复杂，也增加了参数顺序传错的风险。",
+      "suggestion": "将相关参数封装为参数对象（Parameter Object）或使用Builder模式。\n\n// 错误示例 - 参数过多\npublic Order createOrder(String customerName, String phone,\n    String address, String city, String zipCode,\n    List<Item> items, String couponCode, String note) {\n    // ...\n}\n\n// 正确示例 - 参数对象\n@Data @Builder\npublic class OrderRequest {\n    private CustomerInfo customer;\n    private AddressInfo shippingAddress;\n    private List<Item> items;\n    private String couponCode;\n    private String note;\n}\n\npublic Order createOrder(OrderRequest request) { ... }",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.c", "*.cpp", "*.rb", "*.php"]
+    },
+    {
+      "id": "QUAL-COG-006",
+      "name": "单个类超过500行",
+      "severity": "medium",
+      "category": "class_size",
+      "description": "单个类文件超过500行（不含空行和注释），通常意味着该类承担了过多职责，违反了单一职责原则。大类难以理解、难以定位代码、容易在多人协作时产生合并冲突。统计数据表明，超过500行的类的bug密度是小型类的2-3倍。",
+      "suggestion": "按职责拆分为多个类。常见拆分方式：按业务模块拆分Service、提取工具类、将内部逻辑提取为独立组件。使用\"如果一个类需要两个不同的理由来修改，说明它应该被拆分\"作为判断标准。\n\n// 错误示例 - UserService承担了太多职责\npublic class UserService {\n    // 用户注册（50行）\n    // 用户登录（30行）\n    // 密码重置（40行）\n    // 邮件发送（60行）\n    // 权限校验（50行）\n    // 数据导出（80行）\n    // 日志记录（40行）\n    // 总计350+行，还在增长...\n}\n\n// 正确示例 - 按职责拆分\npublic class UserRegistrationService { ... }\npublic class UserAuthenticationService { ... }\npublic class UserNotificationService { ... }\npublic class UserExportService { ... }",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.rb", "*.php"]
+    },
+    {
+      "id": "QUAL-COG-007",
+      "name": "过深的链式调用超过5层",
+      "severity": "low",
+      "category": "chain_call",
+      "description": "链式调用（如 a.getB().getC().getD().getE().getF()）超过5层，违反了得墨忒耳法则（Law of Demeter）。过深的链式调用使代码对中间对象的内部结构产生强耦合，任何中间环节返回null都会导致NPE，且调试时难以定位问题。",
+      "suggestion": "引入中间变量、使用Optional安全链式调用、或通过封装隐藏内部结构。\n\n// 错误示例 - 过深链式调用\nString city = order.getCustomer().getAddress().getCity().getName().toUpperCase();\n\n// 正确示例1 - 中间变量 + 空值检查\nCustomer customer = order.getCustomer();\nif (customer != null && customer.getAddress() != null) {\n    City city = customer.getAddress().getCity();\n    if (city != null) {\n        String cityName = city.getName().toUpperCase();\n    }\n}\n\n// 正确示例2 - Optional链\nString city = Optional.ofNullable(order)\n    .map(Order::getCustomer)\n    .map(Customer::getAddress)\n    .map(Address::getCity)\n    .map(City::getName)\n    .map(String::toUpperCase)\n    .orElse(\"UNKNOWN\");",
+      "applicable_files": ["*.java", "*.js", "*.ts", "*.kt", "*.cs", "*.py"]
+    },
+    {
+      "id": "QUAL-COG-008",
+      "name": "布尔表达式过于复杂未提取",
+      "severity": "medium",
+      "category": "boolean_expression",
+      "description": "单个条件判断中包含超过3个逻辑运算符（&&、||、!）的复合布尔表达式，难以理解和维护。复杂的布尔表达式使业务规则隐晦不明，且同一条件在多处重复时容易不一致。这种代码的测试分支覆盖率也很难做全。",
+      "suggestion": "将复杂布尔表达式提取为语义明确的变量或方法，使代码自文档化。\n\n// 错误示例 - 复杂布尔表达式\nif (user != null && user.getStatus() == ACTIVE \n    && (user.getRole() == ADMIN || user.getRole() == MANAGER)\n    && user.getLastLogin() != null \n    && Duration.between(user.getLastLogin(), LocalDateTime.now()).toDays() < 30\n    && user.getDepartment() != null && user.getDepartment().isApproved()) {\n    // ...\n}\n\n// 正确示例 - 提取为语义化方法\nif (isRecentlyActiveManager(user)) { ... }\n\nprivate boolean isRecentlyActiveManager(User user) {\n    if (user == null || user.getStatus() != ACTIVE) return false;\n    if (!isManagementRole(user.getRole())) return false;\n    if (!hasRecentLogin(user)) return false;\n    return isApprovedDepartment(user.getDepartment());\n}",
+      "applicable_files": ["*.java", "*.go", "*.py", "*.js", "*.ts", "*.kt", "*.cs", "*.c", "*.cpp", "*.rb", "*.php"]
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 2,
+    "medium": 5,
+    "low": 1
+  }
+}

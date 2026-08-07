@@ -1,0 +1,168 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "反序列化安全规则集 - 覆盖不安全反序列化、XXE、代码注入",
+    "total_rules": 11,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-131",
+      "name": "反序列化：不安全的对象反序列化",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "对不可信数据进行反序列化(Java的ObjectInputStream、Python的pickle.load、PHP的unserialize、.NET的BinaryFormatter)，攻击者可构造恶意数据执行任意代码。OWASP Top 10 A08:2021。",
+      "suggestion": "避免对不可信数据进行反序列化；使用白名单限制可反序列化的类(Java的ObjectInputFilter)；使用JSON等安全格式替代原生序列化；对必须反序列化的场景使用沙箱环境。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.php",
+        "*.csharp",
+        "*.rb"
+      ]
+    },
+    {
+      "id": "SEC-132",
+      "name": "反序列化：Java原生序列化漏洞",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "Java的ObjectInputStream.readObject()对不可信数据进行反序列化，可利用Apache Commons Collections等库的gadget chain执行任意代码。",
+      "suggestion": "使用ObjectInputFilter过滤可反序列化的类；使用JSON/XML等替代Java原生序列化；使用LookAhead ObjectInputStream限制可实例化的类；避免从网络接收序列化对象。",
+      "applicable_files": [
+        "*.java"
+      ]
+    },
+    {
+      "id": "SEC-133",
+      "name": "反序列化：Python pickle反序列化",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "Python的pickle模块对不可信数据进行反序列化，pickle数据可包含执行任意代码的指令。pickle格式设计上就不安全。",
+      "suggestion": "避免对不可信数据使用pickle.load()；使用JSON替代pickle存储数据；必须使用pickle时限制反序列化环境(沙箱)；使用pickle.Unpickler并覆盖find_class限制可加载的类。",
+      "applicable_files": [
+        "*.py"
+      ]
+    },
+    {
+      "id": "SEC-134",
+      "name": "反序列化：PHP反序列化漏洞",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "PHP的unserialize()对不可信数据进行反序列化，可利用magic __wakeup、__destruct等方法执行任意代码(POP链攻击)。",
+      "suggestion": "使用json_decode()替代unserialize()；对必须反序列化的数据使用allowed_classes选项限制可实例化的类；避免从Cookie、URL参数等不可信来源反序列化。",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-135",
+      "name": "反序列化：.NET的二进制反序列化",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": ".NET的BinaryFormatter、ObjectStateFormatter、SoapFormatter对不可信数据反序列化可导致远程代码执行。Microsoft已弃用BinaryFormatter。",
+      "suggestion": "使用DataContractSerializer或XmlSerializer替代BinaryFormatter；对JSON使用System.Text.Json或Newtonsoft.Json；对必须反序列化的场景使用Binder限制可反序列化的类型。",
+      "applicable_files": [
+        "*.csharp",
+        "*.cs",
+        "*.vb"
+      ]
+    },
+    {
+      "id": "SEC-136",
+      "name": "反序列化：YAML反序列化漏洞",
+      "severity": "high",
+      "category": "deserialization",
+      "description": "YAML解析库(如PyYAML的yaml.load、Ruby的YAML.load)默认允许实例化任意对象，对不可信YAML数据进行反序列化会导致RCE。",
+      "suggestion": "使用安全的YAML加载方法(Python的yaml.safe_load、Ruby的YAML.safe_load)；避免使用yaml.load(无Loader参数)；对YAML数据进行预验证；限制YAML中可使用的标签。",
+      "applicable_files": [
+        "*.py",
+        "*.rb",
+        "*.js",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-137",
+      "name": "反序列化：XML外部实体(XXE)注入",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "XML解析器未禁用外部实体，攻击者通过<!DOCTYPE>声明引入外部实体，读取本地文件、执行SSRF或DoS攻击(十亿笑脸攻击)。OWASP Top 10 A05:2021。",
+      "suggestion": "禁用XML外部实体和DTD处理(Java: DocumentBuilderFactory.setFeature禁用external entities；Python: defusedxml库；Node: libxmljs禁用external entities)；使用JSON替代XML；对必须解析的XML使用安全的解析库。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php",
+        "*.xml"
+      ]
+    },
+    {
+      "id": "SEC-138",
+      "name": "反序列化：JSON反序列化的类型混淆",
+      "severity": "medium",
+      "category": "deserialization",
+      "description": "JSON反序列化时如果允许任意类型转换(如Jackson的enableDefaultTyping、.NET的TypeNameHandling)，攻击者可指定实例化的类导致RCE。",
+      "suggestion": "禁用默认类型处理(Jackson的ObjectMapper禁用enableDefaultTyping；.NET的JsonSerializer禁用TypeNameHandling)；使用显式的类型映射；对反序列化的类型进行白名单验证。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js"
+      ]
+    },
+    {
+      "id": "SEC-139",
+      "name": "反序列化：对象图反序列化DoS",
+      "severity": "medium",
+      "category": "deserialization",
+      "description": "反序列化深层嵌套或循环引用的对象图会导致栈溢出或内存耗尽(如十亿笑脸攻击的JSON版本)。",
+      "suggestion": "设置反序列化的最大深度限制；限制反序列化对象的大小和数量；对JSON使用流式解析(避免一次性加载大JSON)；实现超时机制防止无限循环。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-140",
+      "name": "反序列化：序列化数据的完整性验证",
+      "severity": "high",
+      "category": "deserialization",
+      "description": "序列化数据(如Cookie、URL参数、消息队列消息)在传输过程中被篡改，反序列化后执行恶意逻辑。",
+      "suggestion": "对序列化数据进行签名(HMAC)或加密；验证数据的完整性和来源；使用短有效期的Token替代长期序列化的数据；对敏感数据使用服务端存储(如Session)而非客户端序列化。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-173",
+      "name": "CWE-502：不可信数据的反序列化",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "对不可信数据进行反序列化可导致远程代码执行、重放攻击、注入攻击等严重后果。CWE Top 25第8位。",
+      "suggestion": "避免对不可信数据反序列化；使用白名单限制可反序列化的类；使用JSON等安全格式；对必须反序列化的场景实施完整性验证。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.php",
+        "*.csharp",
+        "*.rb"
+      ]
+    }
+  ]
+}

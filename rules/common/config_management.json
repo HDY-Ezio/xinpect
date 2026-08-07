@@ -1,0 +1,368 @@
+{
+  "metadata": {
+    "name": "配置管理规范",
+    "total_rules": 25
+  },
+  "rules": [
+    {
+      "id": "CFG-001",
+      "name": "密钥硬编码在源码中",
+      "severity": "S1",
+      "category": "config-management",
+      "description": "API密钥、数据库密码等敏感配置直接写在代码中",
+      "suggestion": "使用环境变量或配置中心管理敏感配置，严禁在源码中硬编码密钥",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CFG-002",
+      "name": "配置文件提交到版本控制",
+      "severity": "S1",
+      "category": "config-management",
+      "description": "包含敏感信息的配置文件（如.env、config.local）被提交到Git仓库",
+      "suggestion": "将敏感配置文件添加到.gitignore，使用.env.example作为模板",
+      "applicable_files": [
+        "*.env",
+        "*.json",
+        "*.yaml",
+        "*.yml",
+        "*.ini",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "CFG-003",
+      "name": "环境配置未分离",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "开发环境和生产环境使用相同的配置文件，容易导致误操作",
+      "suggestion": "按环境分离配置文件（.env.development、.env.production），使用环境变量切换",
+      "applicable_files": [
+        "*.env",
+        "*.json",
+        "*.yaml",
+        "*.yml",
+        "*.py",
+        "*.js"
+      ]
+    },
+    {
+      "id": "CFG-004",
+      "name": "环境变量未设置默认值",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "读取环境变量时没有设置合理的默认值，缺失时导致程序崩溃",
+      "suggestion": "为所有环境变量设置合理的默认值：process.env.PORT || 3000",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py"
+      ]
+    },
+    {
+      "id": "CFG-005",
+      "name": "配置项缺少校验",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "读取配置后未校验其有效性（如端口范围、URL格式），无效配置导致运行时错误",
+      "suggestion": "在应用启动时校验所有必填配置项，配置不合法时快速失败并给出明确提示",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CFG-006",
+      "name": "数据库连接串明文存储",
+      "severity": "S1",
+      "category": "config-management",
+      "description": "数据库连接字符串以明文形式存储在配置文件或环境变量中",
+      "suggestion": "使用密钥管理服务（如AWS Secrets Manager、Vault）存储数据库凭证",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.env",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "CFG-007",
+      "name": "配置文件中存在多余注释含敏感信息",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "配置文件注释中包含测试密码、临时密钥等敏感信息",
+      "suggestion": "定期检查配置文件注释，移除所有敏感信息，即使是注释中的",
+      "applicable_files": [
+        "*.env",
+        "*.json",
+        "*.yaml",
+        "*.yml",
+        "*.ini",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "CFG-008",
+      "name": "使用HTTP协议访问配置中心",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "通过HTTP而非HTTPS协议拉取配置中心数据，配置在传输过程中可能被截获",
+      "suggestion": "配置中心通信必须使用HTTPS，并验证服务端证书",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CFG-009",
+      "name": "配置热更新未做版本兼容",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "配置热更新时新配置项与旧版本代码不兼容，导致功能异常",
+      "suggestion": "配置变更需考虑向后兼容，新增配置项应有默认值，废弃项保留过渡期",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CFG-010",
+      "name": "Feature Flag缺少回退机制",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "功能开关关闭后没有对应的降级逻辑，用户看到空白或错误页面",
+      "suggestion": "每个Feature Flag都应有明确的开启和关闭两套处理逻辑",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.jsx",
+        "*.tsx"
+      ]
+    },
+    {
+      "id": "CFG-011",
+      "name": "配置文件格式不一致",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "项目中混用JSON、YAML、TOML等多种配置格式，增加维护成本",
+      "suggestion": "统一项目配置格式，推荐使用YAML或TOML作为主要配置格式",
+      "applicable_files": [
+        "*.json",
+        "*.yaml",
+        "*.yml",
+        "*.toml"
+      ]
+    },
+    {
+      "id": "CFG-012",
+      "name": "未使用配置类型定义",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "配置项没有类型定义或Schema校验，类型错误在运行时才发现",
+      "suggestion": "使用TypeScript类型定义配置结构，或使用Joi/Zod等库进行运行时Schema校验",
+      "applicable_files": [
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx"
+      ]
+    },
+    {
+      "id": "CFG-013",
+      "name": "配置变更缺少审计日志",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "配置变更没有记录变更历史，出问题后无法追溯",
+      "suggestion": "配置中心应记录每次变更的操作人、时间、变更前后值",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CFG-014",
+      "name": "多租户配置混用",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "不同租户/客户共用同一配置实例，数据隔离存在风险",
+      "suggestion": "每个租户使用独立的配置命名空间或配置实例，确保数据隔离",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CFG-015",
+      "name": "配置项命名不规范",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "配置项命名风格不统一（混用camelCase、snake_case、kebab-case）",
+      "suggestion": "统一配置项命名风格：环境变量使用SCREAMING_SNAKE_CASE，配置文件使用camelCase或kebab-case",
+      "applicable_files": [
+        "*.env",
+        "*.json",
+        "*.yaml",
+        "*.yml"
+      ]
+    },
+    {
+      "id": "CFG-016",
+      "name": "本地配置覆盖生产配置",
+      "severity": "S1",
+      "category": "config-management",
+      "description": "本地开发配置意外覆盖了生产环境配置，导致生产环境连接错误的数据库或服务",
+      "suggestion": "配置加载优先级应确保：环境变量 > 生产配置 > 本地配置，本地配置使用独立文件",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CFG-017",
+      "name": "超时配置使用魔法数字",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "超时时间等数值配置直接使用数字而没有命名常量，难以理解和维护",
+      "suggestion": "使用命名常量：const DB_CONNECT_TIMEOUT = 5000 代替直接使用5000",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CFG-018",
+      "name": "缺少配置加密",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "配置文件中敏感字段（如OAuth client_secret）未加密存储",
+      "suggestion": "敏感配置项应使用加密存储（如SOPS、git-crypt），运行时解密使用",
+      "applicable_files": [
+        "*.yaml",
+        "*.yml",
+        "*.json",
+        "*.env"
+      ]
+    },
+    {
+      "id": "CFG-019",
+      "name": "配置项缺少文档说明",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "配置项没有注释说明其用途、取值范围和影响，新成员难以理解",
+      "suggestion": "为每个配置项添加注释说明：用途、可选值、默认值、修改影响",
+      "applicable_files": [
+        "*.env",
+        "*.yaml",
+        "*.yml",
+        "*.json"
+      ]
+    },
+    {
+      "id": "CFG-020",
+      "name": "第三方服务配置未抽象",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "第三方服务（OSS、短信、支付）的配置直接散落在业务代码中",
+      "suggestion": "将第三方服务配置统一抽象到配置模块中，业务代码通过配置接口获取",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CFG-021",
+      "name": "配置中心未设置访问权限",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "配置中心的API接口没有权限控制，任何内部服务都可读写所有配置",
+      "suggestion": "配置中心实施RBAC权限控制，不同服务只能访问其授权范围内的配置",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CFG-022",
+      "name": "URL配置末尾斜杠不一致",
+      "severity": "S3",
+      "category": "config-management",
+      "description": "URL配置项有的以/结尾有的不以/结尾，拼接URL时出现双斜杠或缺少斜杠",
+      "suggestion": "统一URL配置规范：API_BASE不以/结尾，或在拼接时使用URL.join方法",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.env"
+      ]
+    },
+    {
+      "id": "CFG-023",
+      "name": "配置缺少必填项校验",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "应用启动时没有校验必填配置项是否存在，运行时才发现缺失",
+      "suggestion": "应用启动时校验所有必填配置项，缺失时立即报错退出（fail-fast）",
+      "applicable_files": [
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.java"
+      ]
+    },
+    {
+      "id": "CFG-024",
+      "name": "环境变量未加密传输",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "CI/CD流水线中环境变量以明文方式注入到构建环境",
+      "suggestion": "使用CI/CD平台的加密变量功能，敏感变量在传输和存储时加密",
+      "applicable_files": [
+        "*.yml",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "CFG-025",
+      "name": "配置变更后未触发验证",
+      "severity": "S2",
+      "category": "config-management",
+      "description": "配置变更后没有自动化验证机制，错误配置可能直接生效影响线上",
+      "suggestion": "配置变更后触发自动化验证（如健康检查、冒烟测试），验证失败自动回滚",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

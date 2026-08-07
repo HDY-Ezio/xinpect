@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "id": "DEP-SBOM-003",
+      "name": "SBOM缺少关键元数据",
+      "severity": "low",
+      "category": "dependency_sbom",
+      "description": "SBOM文件中缺少组件的版本号、许可证信息、来源（purl）等关键元数据，降低SBOM的实用价值。",
+      "suggestion": "确保每个组件包含：名称、版本、purl（Package URL）、许可证、hash值；使用SBOM生成工具自动填充。",
+      "applicable_files": [
+        "*.sbom.json",
+        "*.spdx",
+        "bom.json",
+        "bom.xml"
+      ]
+    }
+  ]
+}

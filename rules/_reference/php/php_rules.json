@@ -1,0 +1,133 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain1_rule_engine",
+    "generated": "2026-08",
+    "description": "PHP 语言专项静态分析规则集，覆盖SQL注入、XSS、文件包含、反序列化、会话安全、密码存储等Web安全问题",
+    "total_rules": 10,
+    "standards_reference": [
+      "OWASP Top 10",
+      "PHP Security Cheat Sheet",
+      "PSR-12 Coding Standard"
+    ]
+  },
+  "rules": [
+    {
+      "id": "PHP-001",
+      "name": "直接拼接SQL查询（SQL注入）",
+      "severity": "critical",
+      "category": "security_injection",
+      "description": "将用户输入直接拼接到SQL查询字符串中，攻击者可以通过构造恶意输入绕过认证、窃取数据、删除表甚至执行系统命令。SQL注入长期位居OWASP Top 10榜首，是最危险的Web漏洞之一。",
+      "suggestion": "使用PDO参数化查询或预处理语句：\n```php\n// 危险\n$sql = \"SELECT * FROM users WHERE name = '\" . $_GET['name'] . \"'\";\n$result = $pdo->query($sql);\n\n// 安全 - PDO参数化查询\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE name = :name\");\n$stmt->execute(['name' => $_GET['name']]);\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-002",
+      "name": "文件包含使用用户输入（LFI/RFI）",
+      "severity": "critical",
+      "category": "file_inclusion",
+      "description": "将用户输入作为include/require的参数，攻击者可以通过目录遍历读取系统文件（LFI），或通过远程文件包含加载恶意脚本执行任意代码（RFI）。这是PHP特有的高危漏洞。",
+      "suggestion": "使用白名单限制可包含的文件：\n```php\n// 危险\ninclude($_GET['page'] . '.php');\n\n// 安全 - 白名单验证\n$allowed = ['home', 'about', 'contact'];\n$page = $_GET['page'] ?? 'home';\nif (!in_array($page, $allowed, true)) $page = 'home';\ninclude($page . '.php');\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-003",
+      "name": "eval执行动态代码",
+      "severity": "critical",
+      "category": "code_injection",
+      "description": "eval将字符串作为PHP代码执行，如果字符串中包含用户可控内容，攻击者可以注入任意PHP代码实现远程代码执行（RCE）。即使没有直接用户输入，eval也极难保证安全，几乎所有安全规范都禁止使用eval。",
+      "suggestion": "避免使用eval，改用安全的替代方案：\n```php\n// 危险\neval('return $' . $var_name . ';');\n\n// 安全替代 - 变量变量\n$value = $$var_name;\n\n// 安全替代 - 回调映射\n$actions = ['save' => 'handleSave', 'delete' => 'handleDelete'];\n$action = $_GET['action'] ?? 'save';\nif (isset($actions[$action])) call_user_func($actions[$action]);\n\n// 安全替代 - JSON解析\n$data = json_decode($json_string, true);\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-004",
+      "name": "$_GET/$_POST未过滤直接输出（XSS）",
+      "severity": "high",
+      "category": "xss",
+      "description": "将用户输入未经转义直接输出到HTML页面，攻击者可以注入恶意JavaScript代码，窃取用户Cookie/Session、劫持账户、发起钓鱼攻击。存储型XSS还会影响所有访问该页面的用户。",
+      "suggestion": "输出时使用htmlspecialchars转义：\n```php\n// 危险\necho \"<p>欢迎, \" . $_GET['name'] . \"</p>\";\n\n// 安全\necho \"<p>欢迎, \" . htmlspecialchars($_GET['name'], ENT_QUOTES, 'UTF-8') . \"</p>\";\n\n// 更推荐 - 模板引擎自动转义（Twig/Blade的{{ }}）\n```",
+      "applicable_files": [
+        "*.php",
+        "*.phtml"
+      ]
+    },
+    {
+      "id": "PHP-005",
+      "name": "session_id未设置httponly和secure标志",
+      "severity": "medium",
+      "category": "session_security",
+      "description": "PHP默认配置中Session Cookie可能未设置HttpOnly和Secure标志。缺少HttpOnly时JavaScript可读取Session ID（XSS可窃取会话）；缺少Secure标志时Session ID可能通过HTTP明文传输被中间人截获。",
+      "suggestion": "在php.ini或代码中设置安全Cookie参数：\n```php\n// php.ini推荐\n// session.cookie_httponly = 1\n// session.cookie_secure = 1\n// session.cookie_samesite = Strict\n\n// 代码中设置\nini_set('session.cookie_httponly', 1);\nini_set('session.cookie_secure', 1);\nini_set('session.cookie_samesite', 'Strict');\nini_set('session.use_strict_mode', 1);\nsession_start();\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-006",
+      "name": "文件上传未校验类型和大小",
+      "severity": "high",
+      "category": "file_upload",
+      "description": "文件上传接口未校验文件类型、大小、内容，攻击者可以上传PHP WebShell直接获取服务器控制权，或上传超大文件耗尽磁盘空间。仅检查MIME类型不够（可伪造），需验证扩展名和实际内容。",
+      "suggestion": "多维度校验上传文件：\n```php\n// 危险\nmove_uploaded_file($_FILES['file']['tmp_name'], '/uploads/' . $_FILES['file']['name']);\n\n// 安全 - 全面校验\n$allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];\n$max_size = 5 * 1024 * 1024;\n$ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));\nif (!in_array($ext, $allowed_ext)) die('不允许的文件类型');\nif ($_FILES['file']['size'] > $max_size) die('文件过大');\n$finfo = finfo_open(FILEINFO_MIME_TYPE);\n$mime = finfo_file($finfo, $_FILES['file']['tmp_name']);\n// 使用随机文件名\n$new_name = bin2hex(random_bytes(16)) . '.' . $ext;\nmove_uploaded_file($_FILES['file']['tmp_name'], '/uploads/' . $new_name);\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-007",
+      "name": "反序列化unserialize使用用户输入",
+      "severity": "critical",
+      "category": "deserialization",
+      "description": "PHP的unserialize对用户输入进行反序列化时，攻击者可以构造恶意序列化数据触发对象注入，利用__wakeup/__destruct等魔术方法链实现任意代码执行、SQL注入、文件删除等严重后果。",
+      "suggestion": "禁止对用户输入使用unserialize，使用JSON替代：\n```php\n// 危险\n$data = unserialize($_COOKIE['user_data']);\n\n// 安全方式1 - JSON（推荐）\n$data = json_decode($_COOKIE['user_data'], true);\n\n// 安全方式2 - 限制可实例化的类\n$data = unserialize($input, ['allowed_classes' => false]);\n$data = unserialize($input, ['allowed_classes' => ['SafeClass']]);\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-008",
+      "name": "全局变量register_globals已废弃",
+      "severity": "high",
+      "category": "legacy_risk",
+      "description": "register_globals将请求参数自动注册为全局变量，攻击者可以轻松覆盖代码中的任何变量。虽然在PHP 5.4已移除，但部分老旧系统可能仍有风险代码模式存在。",
+      "suggestion": "始终使用超全局数组访问请求数据：\n```php\n// 安全 - 显式使用超全局数组\n$username = $_GET['username'] ?? null;\n$email = $_POST['email'] ?? null;\n\n// 确保php.ini: register_globals = Off\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-009",
+      "name": "密码使用md5/sha1存储",
+      "severity": "high",
+      "category": "credential_security",
+      "description": "MD5和SHA1是快速哈希算法，现代GPU每秒可计算数十亿次，加上彩虹表攻击，简单密码几乎可以瞬间破解。数据库泄露后用户密码等于明文暴露。",
+      "suggestion": "使用password_hash进行安全密码哈希：\n```php\n// 危险\n$hash = md5($password);\n$hash = sha1($password);\n\n// 安全 - bcrypt\n$hash = password_hash($password, PASSWORD_DEFAULT);\n\n// 安全 - argon2id（更安全）\n$hash = password_hash($password, PASSWORD_ARGON2ID);\n\n// 验证\nif (password_verify($input, $stored_hash)) {\n    if (password_needs_rehash($stored_hash, PASSWORD_DEFAULT)) {\n        // 重新哈希更新\n    }\n}\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    },
+    {
+      "id": "PHP-010",
+      "name": "错误信息直接输出到页面（信息泄露）",
+      "severity": "medium",
+      "category": "information_disclosure",
+      "description": "生产环境中将PHP错误信息（包含文件路径、数据库结构、代码逻辑）直接显示给用户，攻击者可以利用这些信息了解服务器内部结构，发现更多攻击面。display_errors=On是常见的安全配置失误。",
+      "suggestion": "生产环境关闭错误显示，使用日志记录：\n```php\n// 生产环境php.ini配置\n// display_errors = Off\n// log_errors = On\n// error_log = /var/log/php/error.log\n\n// 代码入口文件\nif (getenv('APP_ENV') === 'production') {\n    ini_set('display_errors', '0');\n    ini_set('log_errors', '1');\n    error_reporting(E_ALL);\n}\n\n// 自定义错误处理\nset_exception_handler(function ($e) {\n    error_log($e->getMessage());\n    http_response_code(500);\n    echo '服务器内部错误，请稍后重试';\n});\n```",
+      "applicable_files": [
+        "*.php"
+      ]
+    }
+  ],
+  "summary": {
+    "critical": 4,
+    "high": 4,
+    "medium": 2,
+    "low": 0
+  }
+}

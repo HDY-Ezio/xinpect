@@ -1,0 +1,347 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain2_security",
+    "generated": "2025-01",
+    "description": "密码学与加密安全规则集 - 覆盖加密算法、密钥管理、传输安全",
+    "total_rules": 22,
+    "standards_reference": [
+      "OWASP Top 10 (2021)",
+      "CWE Top 25 Most Dangerous",
+      "NIST SP 800-53 Security Controls",
+      "WSTG - Web Security Testing Guide",
+      "SANS Top 25 Software Errors"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEC-111",
+      "name": "加密：使用弱哈希算法(MD5/SHA1)",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "使用MD5或SHA1进行密码哈希或安全敏感场景，这些算法已被证明不安全，存在碰撞攻击。CWE-327。",
+      "suggestion": "密码哈希使用bcrypt、scrypt或Argon2；数据完整性校验使用SHA-256或SHA-3；避免在任何安全场景使用MD5/SHA1；对旧系统迁移到强哈希算法。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEC-112",
+      "name": "加密：使用弱加密算法(DES/3DES/RC4)",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "DES(56位密钥)、3DES(效率低且即将弃用)、RC4(存在已知漏洞)已被证明不安全，不应再使用。NIST已弃用。",
+      "suggestion": "使用AES-256或ChaCha20替代DES/3DES/RC4；对TLS使用AES-GCM或ChaCha20-Poly1305；避免使用ECB模式；使用认证的加密模式(AEAD)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-113",
+      "name": "加密：硬编码加密密钥",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "加密密钥硬编码在源代码中，一旦代码泄露攻击者可解密所有加密数据。违反Kerckhoffs原则。",
+      "suggestion": "使用密钥管理服务(AWS KMS、Azure Key Vault、HashiCorp Vault)；使用环境变量存储密钥；实现密钥轮换机制；对密钥进行访问控制和审计。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-114",
+      "name": "加密：使用ECB模式",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "ECB(Electronic Codebook)模式对相同明文块生成相同密文块，暴露数据模式，不适用于加密超过一个块的数据。",
+      "suggestion": "使用AES-GCM(认证加密)或AES-CBC(需配合HMAC)替代ECB；使用随机IV(初始化向量)；对每个消息使用唯一的nonce；优先使用AEAD模式。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-115",
+      "name": "加密：使用弱随机数生成器",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "使用Math.random()、java.util.Random等伪随机数生成器生成安全敏感数据(Token、Session ID、密钥)，可被预测。",
+      "suggestion": "使用密码学安全的随机数生成器(crypto.getRandomValues、SecureRandom、os.urandom)；避免使用Math.random生成安全Token；对随机数种子使用安全熵源。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-116",
+      "name": "加密：TLS配置不当",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "TLS配置使用旧版本(TLS 1.0/1.1)、弱密码套件(RC4、3DES)、禁用前向保密，容易受到降级攻击和中间人攻击。",
+      "suggestion": "仅启用TLS 1.2和TLS 1.3；使用强密码套件(AES-GCM、ChaCha20-Poly1305)；启用前向保密(ECDHE密钥交换)；禁用RC4、DES、3DES；使用SSL Labs测试配置。",
+      "applicable_files": [
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.yaml",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "SEC-117",
+      "name": "加密：证书验证禁用",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "禁用TLS证书验证(Node.js的rejectUnauthorized: false、Python的verify=False、Java的TrustAllCertificates)，容易受到中间人攻击。",
+      "suggestion": "始终启用TLS证书验证；使用系统信任的证书库；对自签名证书使用自定义信任库而非禁用验证；在测试环境使用本地CA而非禁用验证。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-118",
+      "name": "加密：IV/Nonce重用",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "AES-CBC的IV或AES-GCM的Nonce重用会严重削弱加密安全性，可能导致明文恢复攻击。",
+      "suggestion": "每次加密使用唯一的随机IV/Nonce(使用安全随机数生成器)；对AES-GCM确保Nonce绝不重用；记录加密操作的IV/Nonce避免重复；使用AEAD模式自动处理Nonce。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-119",
+      "name": "加密：密码哈希无盐值",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "密码哈希不使用盐值，相同密码生成相同哈希，容易受到彩虹表攻击和批量破解。",
+      "suggestion": "为每个密码生成唯一的随机盐值(至少128位)；使用bcrypt、scrypt或Argon2自动处理盐值；避免手动实现盐值逻辑；确保盐值与哈希一起存储。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-120",
+      "name": "加密：敏感数据传输未加密",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "敏感数据(密码、个人信息、支付信息)通过HTTP明文传输，容易被中间人窃听和篡改。",
+      "suggestion": "全站启用HTTPS(强制重定向HTTP到HTTPS)；使用HSTS(Strict-Transport-Security)强制浏览器使用HTTPS；对敏感API使用端到端加密；禁用不安全的HTTP接口。",
+      "applicable_files": [
+        "*.nginx.conf",
+        "*.httpd.conf",
+        "*.yaml",
+        "*.html"
+      ]
+    },
+    {
+      "id": "SEC-121",
+      "name": "加密：不安全的密钥派生",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "使用快速哈希(MD5、SHA)直接派生加密密钥，容易被暴力破解。密钥派生应使用慢速算法增加破解成本。",
+      "suggestion": "使用PBKDF2、bcrypt、scrypt或Argon2进行密钥派生；设置合理的迭代次数(PBKDF2至少100000次)；使用足够的盐值；对内存敏感场景使用Argon2。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-122",
+      "name": "加密：自实现的加密算法",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "自实现加密算法(自定义加密逻辑、自创哈希函数)通常存在严重安全缺陷，容易被破解。",
+      "suggestion": "使用经过验证的标准加密库(OpenSSL、libsodium、Web Crypto API)；避免自实现加密、哈希、随机数生成；使用标准协议(TLS、OAuth)而非自创协议。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-123",
+      "name": "加密：填充预言攻击(Padding Oracle)",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "AES-CBC解密时，错误处理泄露填充验证结果(成功/失败)，攻击者可利用此信息逐字节恢复明文。",
+      "suggestion": "使用AEAD模式(AES-GCM)替代AES-CBC；对解密错误使用统一的错误消息和响应时间；实现常量时间比较；使用认证的加密避免填充问题。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-124",
+      "name": "加密：密钥强度不足",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "使用过短的密钥长度(RSA<2048位、AES<128位、ECC<256位)，在当前计算能力下可被破解。",
+      "suggestion": "RSA使用2048位以上(推荐3072或4096)；AES使用128位或256位；ECC使用256位以上(secp256k1或P-256)；定期评估密钥强度是否符合最新标准。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-125",
+      "name": "加密：敏感数据的内存残留",
+      "severity": "medium",
+      "category": "cryptography",
+      "description": "加密密钥、密码等敏感数据在使用后仍残留在内存中，可能被内存转储或冷启动攻击恢复。",
+      "suggestion": "使用后立即清零敏感数据(字符数组而非字符串)；Java使用char[]而非String存储密码并手动清零；使用SecureString(.NET)或ProtectedMemory；限制敏感数据的生命周期。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.c",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "SEC-126",
+      "name": "加密：证书固定(Certificate Pinning)缺失",
+      "severity": "medium",
+      "category": "cryptography",
+      "description": "移动应用或关键服务未实施证书固定，容易受到伪造证书的中间人攻击(如企业代理、恶意CA)。",
+      "suggestion": "对移动应用实施证书固定(固定证书公钥hash)；使用PublicKey Pinning(注意Chrome已弃用HTTP PKP)；实现备用证书固定避免锁定；定期更新固定的证书。",
+      "applicable_files": [
+        "*.java",
+        "*.kt",
+        "*.swift",
+        "*.dart"
+      ]
+    },
+    {
+      "id": "SEC-127",
+      "name": "加密：随机数种子可预测",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "使用可预测的种子(如时间戳、进程ID)初始化随机数生成器，导致生成的随机数可被预测。",
+      "suggestion": "使用密码学安全的随机数生成器(自动使用系统熵源)；避免手动设置随机数种子；对安全敏感场景使用硬件随机数生成器(如果可用)。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-128",
+      "name": "加密：加密数据的完整性未验证",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "加密数据未验证完整性(仅加密未签名)，攻击者可篡改密文导致解密后数据被修改而未被发现。",
+      "suggestion": "使用认证的加密模式(AEAD: AES-GCM、ChaCha20-Poly1305)；或使用Encrypt-then-MAC(先加密后计算HMAC)；验证解密后的数据完整性；避免使用Encrypt-and-MAC。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-129",
+      "name": "加密：过期的加密标准和算法",
+      "severity": "medium",
+      "category": "cryptography",
+      "description": "使用已过时或被弃用的加密标准和算法(如PPTP VPN、WEP、SHA-1证书)，存在已知漏洞。",
+      "suggestion": "定期审查和更新加密算法；遵循NIST、IETF的最新建议；订阅安全公告跟踪算法弃用信息；制定加密算法迁移计划。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.conf"
+      ]
+    },
+    {
+      "id": "SEC-130",
+      "name": "加密：密钥轮换缺失",
+      "severity": "medium",
+      "category": "cryptography",
+      "description": "加密密钥长期不更换，增加密钥泄露的风险和影响范围。一旦密钥泄露，所有历史数据都可被解密。",
+      "suggestion": "实施密钥轮换策略(定期更换加密密钥)；使用密钥版本管理支持多版本密钥共存；对历史数据使用旧密钥解密后用新密钥重新加密；记录密钥轮换审计日志。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.yaml"
+      ]
+    },
+    {
+      "id": "SEC-191",
+      "name": "CWE-326：加密强度不足",
+      "severity": "high",
+      "category": "cryptography",
+      "description": "使用过短的密钥、弱算法或不安全的加密模式，无法有效保护数据机密性。",
+      "suggestion": "使用AES-256或ChaCha20加密数据；RSA使用2048位以上密钥；使用AEAD模式(AES-GCM)；遵循NIST最新加密建议；定期评估加密强度。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEC-192",
+      "name": "CWE-327：使用破损或危险的加密算法",
+      "severity": "critical",
+      "category": "cryptography",
+      "description": "使用已知不安全的加密算法(DES、3DES、RC4、MD5、SHA1)进行安全保护，容易被破解。",
+      "suggestion": "使用AES、ChaCha20替代DES、3DES、RC4；使用SHA-256/SHA-3替代MD5、SHA1；遵循NIST弃用算法列表；定期更新加密算法。",
+      "applicable_files": [
+        "*.java",
+        "*.py",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "rules": [
+    {
+      "id": "SEM-IR-001",
+      "name": "函数部分路径缺少return",
+      "severity": "high",
+      "category": "inconsistent-return",
+      "description": "函数的某些执行路径没有return语句，导致隐式返回undefined。",
+      "suggestion": "确保所有路径都有明确的return语句。"
+    },
+    {
+      "id": "SEM-IR-002",
+      "name": "函数返回多种不兼容类型",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "同一函数在不同路径返回完全不同的类型(如有时返回对象有时返回字符串)。",
+      "suggestion": "统一返回类型或使用Result/Either模式。"
+    },
+    {
+      "id": "SEM-IR-003",
+      "name": "隐式类型转换导致返回类型不一致",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "由于隐式类型转换，函数实际返回类型与预期不一致。",
+      "suggestion": "使用严格类型检查；明确类型转换。"
+    },
+    {
+      "id": "SEM-IR-004",
+      "name": "异步函数混用返回Promise和非Promise值",
+      "severity": "high",
+      "category": "inconsistent-return",
+      "description": "async函数某些路径返回await结果，某些路径直接返回普通值。",
+      "suggestion": "统一使用async函数，确保所有路径返回一致。"
+    },
+    {
+      "id": "SEM-IR-005",
+      "name": "箭头函数隐式返回与显式return混用",
+      "severity": "low",
+      "category": "inconsistent-return",
+      "description": "同一文件中箭头函数有的用隐式返回有的用显式return。",
+      "suggestion": "统一箭头函数的返回风格。"
+    },
+    {
+      "id": "SEM-IR-006",
+      "name": "有些路径有return有些路径没有return导致隐式undefined",
+      "severity": "high",
+      "category": "inconsistent-return",
+      "description": "函数的if分支有return但else分支没有，导致else返回undefined。",
+      "suggestion": "为所有分支添加明确的return。"
+    },
+    {
+      "id": "SEM-IR-007",
+      "name": "getter和setter返回值不一致",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "同名属性的getter返回类型与setter期望类型不一致。",
+      "suggestion": "确保getter/setter类型一致。"
+    },
+    {
+      "id": "SEM-IR-008",
+      "name": "基类和子类同名方法返回类型不一致",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "子类重写父类方法后返回了不同类型。",
+      "suggestion": "遵循里氏替换原则，子类返回类型应兼容父类。"
+    },
+    {
+      "id": "SEM-IR-009",
+      "name": "工具函数成功和失败返回不同数据结构",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "工具函数成功时返回数据对象，失败时返回null或错误码。",
+      "suggestion": "统一使用Result模式或抛出异常。"
+    },
+    {
+      "id": "SEM-IR-010",
+      "name": "错误时返回null而非抛出异常",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "方法遇到错误时返回null而非抛出异常，调用者容易忽略。",
+      "suggestion": "遇到错误时抛出异常或使用Optional/Maybe类型。"
+    },
+    {
+      "id": "SEM-IR-011",
+      "name": "条件分支中部分路径缺少return",
+      "severity": "high",
+      "category": "inconsistent-return",
+      "description": "switch/if-else中部分分支有return，其他分支穿透。",
+      "suggestion": "确保所有分支都有return或使用early return模式。"
+    },
+    {
+      "id": "SEM-IR-012",
+      "name": "工厂函数不同分支返回不同类型的对象",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "工厂方法根据条件返回不同类的实例但缺少公共基类/接口。",
+      "suggestion": "确保工厂返回的对象实现共同接口。"
+    },
+    {
+      "id": "SEM-IR-013",
+      "name": "map/filter回调中返回值类型不一致",
+      "severity": "low",
+      "category": "inconsistent-return",
+      "description": "map回调在不同条件下返回不同类型的值。",
+      "suggestion": "确保map回调返回一致的类型。"
+    },
+    {
+      "id": "SEM-IR-014",
+      "name": "switch语句未覆盖所有case导致隐式返回undefined",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "switch语句缺少default分支且未覆盖所有可能值。",
+      "suggestion": "添加default分支并返回明确值。"
+    },
+    {
+      "id": "SEM-IR-015",
+      "name": "重载函数不同重载的返回类型差异过大",
+      "severity": "low",
+      "category": "inconsistent-return",
+      "description": "同名函数的不同重载返回语义完全不同的类型。",
+      "suggestion": "使用不同的函数名区分不同返回语义。"
+    },
+    {
+      "id": "SEM-IR-016",
+      "name": "接口不同实现的返回类型语义不一致",
+      "severity": "medium",
+      "category": "inconsistent-return",
+      "description": "同一接口的不同实现类返回语义不一致的结果。",
+      "suggestion": "统一接口契约中的返回语义。"
+    },
+    {
+      "id": "SEM-IR-017",
+      "name": "异步回调与同步回调返回格式不同",
+      "severity": "low",
+      "category": "inconsistent-return",
+      "description": "同一API的异步版本和同步版本返回不同格式的数据。",
+      "suggestion": "统一返回格式。"
+    },
+    {
+      "id": "SEM-IR-018",
+      "name": "条件表达式的返回类型不明确",
+      "severity": "low",
+      "category": "inconsistent-return",
+      "description": "三元表达式的两个分支返回完全不同的类型。",
+      "suggestion": "确保三元表达式两个分支类型一致。"
+    }
+  ]
+}

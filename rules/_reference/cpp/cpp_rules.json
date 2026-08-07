@@ -1,0 +1,171 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain1_rule_engine",
+    "generated": "2026-08",
+    "description": "C++ 语言专项静态分析规则集，覆盖内存管理、智能指针、缓冲区溢出、未定义行为、多线程竞争等核心问题",
+    "total_rules": 10,
+    "standards_reference": [
+      "C++ Core Guidelines",
+      "CERT C++ Secure Coding Standard",
+      "C++17/20 ISO Standard"
+    ]
+  },
+  "rules": [
+    {
+      "id": "CPP-001",
+      "name": "裸指针new后未delete导致内存泄漏",
+      "severity": "critical",
+      "category": "memory_management",
+      "description": "使用new分配的堆内存必须通过对应的delete手动释放。如果分配后忘记释放，或在异常路径中跳过了释放代码，就会导致内存泄漏。长期运行的服务会因内存持续增长最终OOM崩溃。在嵌入式系统中问题更加致命。",
+      "suggestion": "优先使用智能指针替代裸指针：\n```cpp\n// 错误\nint* ptr = new int(42);\nif (condition) return; // 提前返回，ptr泄漏\ndelete ptr;\n\n// 正确\nauto ptr = std::make_unique<int>(42);\nauto ptr2 = std::make_shared<int>(42);\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-002",
+      "name": "使用malloc/free混用C++对象",
+      "severity": "high",
+      "category": "memory_management",
+      "description": "malloc/free是C语言的内存分配函数，不调用构造函数和析构函数。用malloc创建的C++对象不会调用构造函数，用free释放带析构函数的对象不会调用析构函数。这会导致对象未正确初始化或资源未释放（如文件句柄、互斥锁）。",
+      "suggestion": "C++代码中使用new/delete或智能指针：\n```cpp\n// 错误\nMyClass* obj = (MyClass*)malloc(sizeof(MyClass));\nobj->init(); // 构造函数未执行\nfree(obj);   // 析构函数不会调用\n\n// 正确\nauto obj = std::make_unique<MyClass>();\n// 或\nMyClass* obj = new MyClass();\ndelete obj;\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx"
+      ]
+    },
+    {
+      "id": "CPP-003",
+      "name": "未使用智能指针管理动态内存",
+      "severity": "high",
+      "category": "memory_management",
+      "description": "现代C++（C++11及以后）推荐使用智能指针管理动态内存。裸指针无法保证所有权语义清晰，容易在异常路径、早期返回、多出口场景中出现泄漏。智能指针通过RAII机制自动管理生命周期，是C++内存安全的核心保障。",
+      "suggestion": "使用std::unique_ptr或std::shared_ptr：\n```cpp\n// 不推荐\nWidget* w = new Widget();\n// ... 可能异常或提前返回\ndelete w;\n\n// 推荐 - unique_ptr（独占所有权）\nauto w = std::make_unique<Widget>();\n\n// 推荐 - shared_ptr（共享所有权）\nauto w = std::make_shared<Widget>();\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-004",
+      "name": "缓冲区溢出风险（strcpy/sprintf未检查长度）",
+      "severity": "critical",
+      "category": "security",
+      "description": "strcpy、sprintf、gets等C标准库函数不检查目标缓冲区大小，当源数据超过目标缓冲区时会导致缓冲区溢出。这是最经典的安全漏洞之一，可被攻击者利用覆盖栈上的返回地址实现任意代码执行（RCE）。",
+      "suggestion": "使用安全替代函数或C++字符串类：\n```cpp\n// 危险\nchar buf[64];\nstrcpy(buf, user_input);\nsprintf(buf, \"Hello %s\", name);\n\n// 安全方式1 - 带长度限制\nstrncpy(buf, user_input, sizeof(buf) - 1);\nbuf[sizeof(buf) - 1] = '\\0';\nsnprintf(buf, sizeof(buf), \"Hello %s\", name);\n\n// 安全方式2 - 使用std::string\nstd::string result = std::string(\"Hello \") + name;\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.c",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-005",
+      "name": "未定义行为：有符号整数溢出",
+      "severity": "medium",
+      "category": "undefined_behavior",
+      "description": "C++标准规定有符号整数溢出是未定义行为（Undefined Behavior），编译器可以假设溢出不会发生并据此优化代码。实际后果可能包括：循环边界计算错误、安全校验被跳过、程序行为在不同编译器/优化级别下不一致，极难复现和调试。",
+      "suggestion": "使用安全整数运算或在运算前检查溢出：\n```cpp\n// 危险\nint a = INT_MAX;\nint b = a + 1; // 未定义行为\n\n// 正确方式1 - 使用无符号整数\nunsigned int a = UINT_MAX;\nunsigned int b = a + 1; // 安全，结果为0\n\n// 正确方式2 - 溢出检查\nif (a > INT_MAX - increment) {\n    throw std::overflow_error(\"integer overflow\");\n}\nint result = a + increment;\n\n// 正确方式3 - 扩大类型\nlong long safe_result = (long long)a + increment;\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.c",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-006",
+      "name": "多线程数据竞争未加锁",
+      "severity": "high",
+      "category": "concurrency",
+      "description": "多个线程同时读写同一共享变量（非原子操作）会导致数据竞争（Data Race），这也是未定义行为。后果包括：读到中间状态的不完整数据、计数器丢失更新、程序行为不可预测。数据竞争是最难复现的并发Bug之一。",
+      "suggestion": "使用互斥锁或原子操作保护共享数据：\n```cpp\n// 错误\nclass Counter {\n    int count_ = 0;\npublic:\n    void increment() { count_++; } // 多线程不安全\n};\n\n// 正确方式1 - 互斥锁\nclass Counter {\n    int count_ = 0;\n    mutable std::mutex mtx_;\npublic:\n    void increment() {\n        std::lock_guard<std::mutex> lock(mtx_);\n        count_++;\n    }\n};\n\n// 正确方式2 - 原子操作\nstd::atomic<int> count_{0};\ncount_.fetch_add(1);\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-007",
+      "name": "析构函数中抛出异常",
+      "severity": "high",
+      "category": "error_handling",
+      "description": "当析构函数在栈展开（stack unwinding，即另一个异常正在传播）过程中被调用时再次抛出异常，程序会直接调用std::terminate终止。即使在正常析构中，异常跳出析构函数也会导致未定义行为。这是C++异常安全的核心原则之一。",
+      "suggestion": "析构函数不应抛出异常，捕获并处理所有异常：\n```cpp\n// 错误\nclass Resource {\npublic:\n    ~Resource() {\n        if (close() != 0)\n            throw std::runtime_error(\"close failed\"); // 致命\n    }\n};\n\n// 正确 - 标记noexcept\nclass Resource {\npublic:\n    ~Resource() noexcept {\n        try {\n            if (close() != 0) {\n                std::cerr << \"close failed\" << std::endl;\n            }\n        } catch (...) {\n            // 绝不在析构中传播\n        }\n    }\n};\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-008",
+      "name": "迭代器失效后继续使用",
+      "severity": "high",
+      "category": "iterator_safety",
+      "description": "对容器执行插入、删除操作后，原有迭代器可能失效。vector在push_back导致容量扩展时所有迭代器失效，map/set的erase只使被删除元素迭代器失效。使用失效迭代器是未定义行为，可能导致崩溃或访问错误数据。",
+      "suggestion": "在容器修改后重新获取有效迭代器：\n```cpp\n// 错误\nauto it = vec.begin();\nvec.push_back(42); // it可能失效\n*it = 10; // UB\n\n// 正确方式1 - 重新获取\nsize_t idx = std::distance(vec.begin(), it);\nvec.push_back(42);\nit = vec.begin() + idx;\n\n// 正确方式2 - erase返回下一个有效迭代器\nfor (auto it = vec.begin(); it != vec.end(); ) {\n    if (should_remove(*it)) {\n        it = vec.erase(it);\n    } else {\n        ++it;\n    }\n}\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx"
+      ]
+    },
+    {
+      "id": "CPP-009",
+      "name": "未遵守Rule of Three/Five",
+      "severity": "medium",
+      "category": "object_lifetime",
+      "description": "当类管理了需要手动释放的资源（如裸指针、文件句柄），却未定义拷贝构造函数、拷贝赋值运算符和析构函数（Rule of Three），编译器生成的默认拷贝执行浅拷贝，导致双重释放（double free）。C++11后扩展为Rule of Five（加移动构造和移动赋值）。",
+      "suggestion": "定义完整的特殊成员函数或使用=delete禁止拷贝：\n```cpp\n// 错误 - 浅拷贝导致double free\nclass Buffer {\n    char* data_;\npublic:\n    Buffer(size_t n) : data_(new char[n]) {}\n    ~Buffer() { delete[] data_; }\n    // 缺少拷贝构造和拷贝赋值\n};\n\n// 正确 - Rule of Five\nclass Buffer {\n    char* data_;\npublic:\n    Buffer(size_t n) : data_(new char[n]) {}\n    ~Buffer() { delete[] data_; }\n    Buffer(const Buffer& other); // 深拷贝\n    Buffer& operator=(const Buffer& other);\n    Buffer(Buffer&& other) noexcept;\n    Buffer& operator=(Buffer&& other) noexcept;\n};\n// 或直接禁止拷贝\nBuffer(const Buffer&) = delete;\nBuffer& operator=(const Buffer&) = delete;\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.h",
+        "*.hpp"
+      ]
+    },
+    {
+      "id": "CPP-010",
+      "name": "宏定义未加括号导致优先级错误",
+      "severity": "medium",
+      "category": "macro_safety",
+      "description": "C/C++宏替换是简单的文本替换，不对参数和结果加括号会导致运算符优先级错误。例如#define SQUARE(x) x*x，调用SQUARE(a+b)展开为a+b*a+b，结果与预期(a+b)*(a+b)完全不同。这类Bug编译无警告但结果错误，非常隐蔽。",
+      "suggestion": "宏参数和整体结果都加括号，或改用内联函数/constexpr：\n```cpp\n// 错误\n#define SQUARE(x) x * x\nint result = SQUARE(1 + 2); // 展开为 1 + 2 * 1 + 2 = 5\n\n#define MAX(a, b) a > b ? a : b\nint m = MAX(x, y) + 1; // 优先级错误\n\n// 正确 - 宏加括号\n#define SQUARE(x) ((x) * (x))\n#define MAX(a, b) (((a) > (b)) ? (a) : (b))\n\n// 更推荐 - constexpr\ntemplate<typename T>\nconstexpr T square(T x) { return x * x; }\n```",
+      "applicable_files": [
+        "*.cpp",
+        "*.cc",
+        "*.cxx",
+        "*.c",
+        "*.h",
+        "*.hpp"
+      ]
+    }
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 5,
+    "medium": 3,
+    "low": 0
+  }
+}

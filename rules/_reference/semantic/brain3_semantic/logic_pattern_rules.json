@@ -1,0 +1,349 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "brain": "brain3_semantic",
+    "generated": "2025-07",
+    "description": "逻辑模式异常规则集 - 覆盖重复条件、矛盾条件、浮点比较、整数溢出、运算符优先级等逻辑错误",
+    "total_rules": 25,
+    "standards_reference": [
+      "ESLint no-constant-condition",
+      "SonarQube Bug Detection",
+      "Pylint W0103-W0123",
+      "CWE-682 Incorrect Calculation"
+    ]
+  },
+  "rules": [
+    {
+      "id": "SEM-LP-001",
+      "name": "重复的条件判断",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "if-else链中存在重复的条件判断：if(a){...}else if(b){...}else if(a){...}。第二个a永远为false，该分支是死代码。",
+      "suggestion": "审查条件链确保每个条件唯一；使用switch/map替代过长的if-else链。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-002",
+      "name": "矛盾的条件：同时要求x为真且为假",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "条件中存在逻辑矛盾：if(a && !a)永远为false、if(x > 10 && x < 5)不可能同时满足。",
+      "suggestion": "检查条件中的变量是否存在矛盾关系；使用决策表分析所有条件组合。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-003",
+      "name": "永真条件（重言式）",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "条件表达式永远为true：if(x>=0 || x<0)对所有整数恒真、if(a || !a)是逻辑定律。条件判断失去了分支选择的意义。",
+      "suggestion": "简化永真条件为直接执行；使用真值表分析复杂布尔表达式。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-004",
+      "name": "switch缺少default分支",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "switch语句没有default分支，且条件表达式不是enum类型。当switch值不匹配任何case时代码静默跳过。",
+      "suggestion": "switch语句始终包含default分支；default中抛出异常或记录告警日志。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js",
+        "*.ts",
+        "*.go",
+        "*.php"
+      ]
+    },
+    {
+      "id": "SEM-LP-005",
+      "name": "比较中使用==而非equals（字符串/对象比较）",
+      "severity": "critical",
+      "category": "logic-pattern",
+      "description": "Java/C#中使用==比较字符串或对象，比较的是引用而非值。两个内容相同但引用不同的字符串会被判定为不相等。",
+      "suggestion": "Java使用equals()比较字符串内容；JavaScript使用===进行严格比较。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-006",
+      "name": "位运算与逻辑运算混用",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "在条件判断中使用位运算符(&、|)替代逻辑运算符(&&、||)。位运算不会短路，两侧都会计算，可能导致不必要的副作用。",
+      "suggestion": "条件判断使用逻辑运算符&&/||；位运算仅用于位操作场景。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.c",
+        "*.cpp",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "SEM-LP-007",
+      "name": "浮点数直接比较",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "使用==直接比较浮点数(0.1+0.2==0.3为false)。浮点数精度误差导致看似相等的值比较结果不相等。",
+      "suggestion": "使用epsilon比较：Math.abs(a-b) < Number.EPSILON；Java使用BigDecimal；金额计算使用整数(分)。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-008",
+      "name": "整数溢出风险",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "整数运算可能溢出但未做保护：int c = a + b当a+b超过MAX_VALUE时静默溢出为负数。",
+      "suggestion": "使用Math.addExact检测溢出；二分查找使用mid=low+(high-low)/2；大数运算使用long或BigInteger。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.c",
+        "*.cpp",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-LP-009",
+      "name": "自比较：x === x对NaN无效",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "代码中使用x === x判断x是否有效，但NaN !== NaN为true，导致NaN值通过检查。",
+      "suggestion": "使用Number.isNaN(x)(JavaScript)；Double.isNaN(x)(Java)；math.isnan(x)(Python)。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.java",
+        "*.py",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-010",
+      "name": "短路运算中的副作用",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "在&&或||的左侧表达式中包含副作用(函数调用、赋值)。如果顺序搞反会导致NPE或不必要的副作用。",
+      "suggestion": "确保短路运算的顺序正确；避免在短路表达式中使用有副作用的函数调用。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-011",
+      "name": "循环条件永真导致无限循环",
+      "severity": "critical",
+      "category": "logic-pattern",
+      "description": "while(true)、for(;;)等循环没有break/return退出条件，或退出条件永远不会满足。程序会无限循环。",
+      "suggestion": "确保循环有明确的退出条件；在循环体中更新循环变量；添加循环次数上限保护。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-012",
+      "name": "switch fall-through未使用break",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "switch的case分支缺少break语句，执行完当前case后继续执行下一个case的逻辑。通常是遗漏break的bug。",
+      "suggestion": "每个case分支末尾添加break或return；有意fall-through时添加注释// falls through。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js",
+        "*.ts",
+        "*.c",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "SEM-LP-013",
+      "name": "模运算的负数陷阱",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "使用a % b进行哈希或索引计算时，如果a可能为负数，结果也是负数。用作数组索引时会越界。",
+      "suggestion": "使用(a % b + b) % b确保结果为非负数；Java的Math.floorMod提供正确行为。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.c",
+        "*.cpp"
+      ]
+    },
+    {
+      "id": "SEM-LP-014",
+      "name": "正则表达式中的贪婪与非贪婪混用",
+      "severity": "low",
+      "category": "logic-pattern",
+      "description": "正则表达式中贪婪量词(.*)和非贪婪量词(.*?)混用导致匹配结果不符合预期。",
+      "suggestion": "明确使用非贪婪量词(.*?)限制匹配范围；使用否定字符类[^a]*替代。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-015",
+      "name": "字符串比较中的大小写和Unicode陷阱",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "字符串比较未考虑大小写差异或Unicode规范化差异。导致安全校验绕过或用户匹配失败。",
+      "suggestion": "使用equalsIgnoreCase或toLowerCase后比较；Unicode文本先规范化(NFC/NFD)再比较。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-016",
+      "name": "日期时间比较中的时区问题",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "日期时间比较未考虑时区差异。如使用本地日期与UTC时间比较，实际相差数小时。",
+      "suggestion": "统一使用UTC时间存储和比较；展示时转换为本地时区；使用标准时间库处理时区。",
+      "applicable_files": [
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.go"
+      ]
+    },
+    {
+      "id": "SEM-LP-017",
+      "name": "运算符优先级错误",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "复合条件中运算符优先级与预期不符：if(a & b == c)中==优先级高于&，实际为if(a & (b==c))。",
+      "suggestion": "使用括号明确运算优先级；复杂条件拆分为多个变量。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-018",
+      "name": "三元运算符嵌套导致可读性和优先级问题",
+      "severity": "low",
+      "category": "logic-pattern",
+      "description": "嵌套的三元运算符(a ? b ? c : d : e)可读性极差且容易出错。",
+      "suggestion": "避免嵌套三元运算符；使用if-else替代复杂条件；超过一层嵌套必须重构。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-019",
+      "name": "enum比较中的null安全问题",
+      "severity": "medium",
+      "category": "logic-pattern",
+      "description": "枚举变量的值为null时调用equals或直接比较会NPE。从数据库/反序列化读取的enum值可能为null。",
+      "suggestion": "枚举比较使用==而非equals(Java中enum的==是null安全的)；反序列化时对未知枚举值使用默认值。",
+      "applicable_files": [
+        "*.java",
+        "*.csharp"
+      ]
+    },
+    {
+      "id": "SEM-LP-020",
+      "name": "除法运算未检查除数为零",
+      "severity": "high",
+      "category": "logic-pattern",
+      "description": "除法运算中除数可能为0但未检查。整数除以0抛出ArithmeticException，浮点数除以0得到Infinity。",
+      "suggestion": "除法前检查除数是否为0；使用默认值替代：divisor != 0 ? a / divisor : 0。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java",
+        "*.go",
+        "*.php",
+        "*.rb",
+        "*.csharp"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "metadata": {
+    "name": "Web端安全增强规则集",
+    "version": "1.0.0",
+    "description": "基于OWASP Top 10、CWE/SANS Top 25等权威标准的Web前端安全检查规则",
+    "total_rules": 20,
+    "references": ["OWASP Top 10", "CWE/SANS Top 25", "MDN Web Security"]
+  },
+  "rules": [
+    {
+      "check_id": "WEB-SEC-001",
+      "name": "CSP策略缺失",
+      "severity": "high",
+      "category": "security",
+      "description": "未配置Content-Security-Policy响应头，无法防御XSS攻击和数据注入。CSP是防御XSS的第一道防线。",
+      "pattern": "(?<!Content-Security-Policy[:\\s])",
+      "file_pattern": "*.html, *.htaccess, nginx.conf",
+      "suggestion": "在HTTP响应头中添加严格的CSP策略，禁止unsafe-inline和unsafe-eval，限制script-src为可信来源",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP", "https://owasp.org/www-community/controls/Content_Security_Policy"]
+    },
+    {
+      "check_id": "WEB-SEC-002",
+      "name": "CORS配置允许所有来源",
+      "severity": "high",
+      "category": "security",
+      "description": "Access-Control-Allow-Origin设置为通配符*，允许任意网站跨域请求，可能导致CSRF攻击和数据泄露。",
+      "pattern": "Access-Control-Allow-Origin[:\\s]*\\*",
+      "file_pattern": "*.js, *.ts, *.java, *.py, *.go, nginx.conf",
+      "suggestion": "将Access-Control-Allow-Origin设置为白名单域名，或使用环境变量动态配置允许的来源",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS", "https://owasp.org/www-community/attacks/CORS_Origin_Bypass"]
+    },
+    {
+      "check_id": "WEB-SEC-003",
+      "name": "Cookie缺少HttpOnly标志",
+      "severity": "high",
+      "category": "security",
+      "description": "敏感Cookie（如session、token）未设置HttpOnly属性，可被JavaScript通过document.cookie读取，存在XSS盗取风险。",
+      "pattern": "document\\.cookie\\s*=|(Set-Cookie:(?!.*HttpOnly))",
+      "file_pattern": "*.js, *.ts, *.py, *.java, *.php, nginx.conf",
+      "suggestion": "为敏感Cookie添加HttpOnly属性，防止JavaScript访问。同时设置Secure和SameSite属性",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies", "https://owasp.org/www-community/HttpOnly"]
+    },
+    {
+      "check_id": "WEB-SEC-004",
+      "name": "Cookie缺少Secure标志",
+      "severity": "medium",
+      "category": "security",
+      "description": "Cookie未设置Secure属性，可在HTTP明文连接中传输，存在中间人攻击窃取风险。",
+      "pattern": "Set-Cookie:(?!.*Secure)",
+      "file_pattern": "*.js, *.ts, *.py, *.java, *.php, nginx.conf",
+      "suggestion": "为所有Cookie添加Secure属性，确保仅通过HTTPS传输。生产环境必须启用此标志",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies", "https://owasp.org/www-project-web-security-testing-guide/"]
+    },
+    {
+      "check_id": "WEB-SEC-005",
+      "name": "Cookie缺少SameSite属性",
+      "severity": "medium",
+      "category": "security",
+      "description": "Cookie未设置SameSite属性，无法防御CSRF攻击。默认情况下浏览器会将Cookie附加到所有请求，包括跨站请求。",
+      "pattern": "Set-Cookie:(?!.*SameSite)",
+      "file_pattern": "*.js, *.ts, *.py, *.java, *.php, nginx.conf",
+      "suggestion": "设置SameSite=Strict或SameSite=Lax属性，防止Cookie随跨站请求发送。现代浏览器默认SameSite=Lax",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite", "https://owasp.org/www-community/SameSite"]
+    },
+    {
+      "check_id": "WEB-SEC-006",
+      "name": "DOM XSS危险函数使用",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用了innerHTML、outerHTML、document.write等DOM操作，如果数据来源于用户输入且未转义，将导致DOM型XSS攻击。",
+      "pattern": "\\.(innerHTML|outerHTML)\\s*=|document\\.write\\(|eval\\(|Function\\(|setTimeout\\s*\\(\\s*[\"']",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx, *.vue",
+      "suggestion": "避免使用innerHTML等危险DOM操作，改用textContent或createElement。必须使用时对用户输入进行HTML实体转义。禁止在生产代码中使用eval",
+      "references": ["https://owasp.org/www-community/attacks/DOM_Based_XSS", "https://cwe.mitre.org/data/definitions/79.html"]
+    },
+    {
+      "check_id": "WEB-SEC-007",
+      "name": "WebSocket使用未加密协议",
+      "severity": "high",
+      "category": "security",
+      "description": "WebSocket连接使用ws://而非wss://协议，数据以明文传输，存在中间人窃听和篡改风险。",
+      "pattern": "new\\s+WebSocket\\s*\\(\\s*['\"]ws://",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "将所有ws://连接改为wss://（WebSocket Secure），确保数据传输加密。生产环境必须使用wss://",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/API/WebSocket", "https://owasp.org/www-chapter-london/2016/04/14/Web-Socket-Security.html"]
+    },
+    {
+      "check_id": "WEB-SEC-008",
+      "name": "WebSocket未校验Origin",
+      "severity": "medium",
+      "category": "security",
+      "description": "WebSocket服务端未校验请求Origin，可能被恶意网站建立连接，存在CSRF和跨域数据泄露风险。",
+      "pattern": "new\\s+WebSocket\\s*\\([^)]*\\)\\s*(?!.*origin)",
+      "file_pattern": "*.js, *.ts, *.java, *.go, *.py",
+      "suggestion": "服务端应校验WebSocket请求的Origin头，仅允许可信来源的连接请求",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/API/WebSocket", "https://cheatsheetseries.owasp.org/cheatsheets/Web_Socket_Security_Cheat_Sheet.html"]
+    },
+    {
+      "check_id": "WEB-SEC-009",
+      "name": "Service Worker scope过于宽泛",
+      "severity": "medium",
+      "category": "security",
+      "description": "Service Worker注册scope设置为根路径(/)且缓存所有请求，可能导致缓存投毒攻击。攻击者可通过恶意响应污染整个应用的缓存。",
+      "pattern": "navigator\\.serviceWorker\\.register\\s*\\([^,]+\\s*,\\s*\\{\\s*scope:\\s*['\"/]",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "限制Service Worker的scope到最小必要路径，使用cache.addAll时校验响应状态码，实施缓存版本控制",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API", "https://web.dev/security-considerations/"]
+    },
+    {
+      "check_id": "WEB-SEC-010",
+      "name": "localStorage存储敏感数据",
+      "severity": "high",
+      "category": "security",
+      "description": "将敏感信息（token、密码、身份证号、银行卡号等）存储在localStorage/sessionStorage中，这些数据可被XSS攻击通过JavaScript读取。",
+      "pattern": "localStorage\\.setItem\\s*\\(\\s*['\"](token|password|secret|key|auth|credential|id_card|bank)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx, *.vue",
+      "suggestion": "避免在localStorage存储敏感数据。JWT token应存储在HttpOnly Cookie中。如必须存储，应加密后存储并使用短期token",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage", "https://owasp.org/www-community/attacks/XSS"]
+    },
+    {
+      "check_id": "WEB-SEC-011",
+      "name": "前端路由缺少鉴权守卫",
+      "severity": "high",
+      "category": "security",
+      "description": "敏感页面（管理后台、个人中心、支付页面等）未配置路由守卫，未登录用户可直接通过URL访问。",
+      "pattern": "beforeEach\\s*\\(\\s*\\([^)]*\\)\\s*=>\\s*\\{\\s*\\}\\s*\\)|router\\.beforeEach\\s*\\(\\s*\\)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx, *.vue",
+      "suggestion": "为所有敏感路由配置beforeEach全局守卫或路由级守卫，校验用户登录状态和权限。使用meta字段标记需要鉴权的路由",
+      "references": ["https://router.vuejs.org/guide/advanced/navigation-guards.html", "https://reactrouter.com/docs/en/v6/examples/auth"]
+    },
+    {
+      "check_id": "WEB-SEC-012",
+      "name": "表单缺少CSRF Token",
+      "severity": "high",
+      "category": "security",
+      "description": "POST/PUT/DELETE等修改类表单未包含CSRF Token，可被跨站请求伪造攻击利用，攻击者可代表用户执行未授权操作。",
+      "pattern": "<form[^>]*method=[\"'](?:post|put|delete)[\"'][^>]*>(?!.*csrf)",
+      "file_pattern": "*.html, *.jsx, *.tsx, *.vue, *.erb, *.jsp",
+      "suggestion": "所有修改类表单必须包含CSRF Token。使用服务端生成随机token并通过hidden字段或meta标签传递给前端",
+      "references": ["https://owasp.org/www-community/attacks/csrf", "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"]
+    },
+    {
+      "check_id": "WEB-SEC-013",
+      "name": "第三方脚本缺少完整性校验",
+      "severity": "medium",
+      "category": "security",
+      "description": "通过<script src>加载的第三方脚本未配置SRI（Subresource Integrity）完整性校验，CDN被入侵时可能加载恶意代码。",
+      "pattern": "<script[^>]+src=[\"']https?://[^\"']+[\"'][^>]*>(?!.*integrity)",
+      "file_pattern": "*.html, *.jsx, *.tsx",
+      "suggestion": "为所有第三方脚本添加integrity属性（SHA-384哈希值）和crossorigin属性，确保加载内容未被篡改",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity", "https://www.srihash.org/"]
+    },
+    {
+      "check_id": "WEB-SEC-014",
+      "name": "表单自动填充敏感字段",
+      "severity": "medium",
+      "category": "security",
+      "description": "密码、身份证号、银行卡号等敏感输入框未设置autocomplete=off，浏览器可能自动填充并在公共设备上泄露。",
+      "pattern": "<input[^>]*(?:type=[\"']password[\"']|type=[\"']text[\"'])[^>]*>(?!.*autocomplete=[\"']off[\"'])",
+      "file_pattern": "*.html, *.jsx, *.tsx, *.vue",
+      "suggestion": "为敏感输入框设置autocomplete=off或autocomplete=new-password。对于新密码字段使用autocomplete=new-password防止浏览器预填",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete", "https://owasp.org/www-community/attacks/Information_exposure_through_query_strings_in_url"]
+    },
+    {
+      "check_id": "WEB-SEC-015",
+      "name": "缺少Clickjacking防护",
+      "severity": "high",
+      "category": "security",
+      "description": "未配置X-Frame-Options或frame-ancestors CSP指令，页面可被恶意网站嵌入iframe进行点击劫持攻击。",
+      "pattern": "(?<!X-Frame-Options[:\\s])|(?<!frame-ancestors)",
+      "file_pattern": "*.html, *.htaccess, nginx.conf, *.py, *.java, *.go",
+      "suggestion": "设置X-Frame-Options: DENY或SAMEORIGIN，或在CSP中添加frame-ancestors 'self'指令，防止页面被嵌入iframe",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options", "https://owasp.org/www-community/attacks/Clickjacking"]
+    },
+    {
+      "check_id": "WEB-SEC-016",
+      "name": "Open Redirect漏洞",
+      "severity": "high",
+      "category": "security",
+      "description": "页面跳转目标URL来自用户输入（如redirect参数）且未校验，攻击者可构造恶意URL进行钓鱼攻击。",
+      "pattern": "window\\.location\\s*=\\s*(?:window\\.location\\.search|URLSearchParams|req\\.query|params\\.redirect)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx, *.vue, *.py, *.java, *.go",
+      "suggestion": "对跳转URL进行白名单校验，只允许跳转到同域名或预定义的可信域名。使用相对路径而非绝对URL",
+      "references": ["https://cwe.mitre.org/data/definitions/601.html", "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"]
+    },
+    {
+      "check_id": "WEB-SEC-017",
+      "name": "JSONP回调未限制",
+      "severity": "high",
+      "category": "security",
+      "description": "JSONP接口的callback参数未限制为合法JavaScript标识符，可被注入恶意代码执行任意JavaScript。",
+      "pattern": "callback=|jsonp=|\\?callback=\\{",
+      "file_pattern": "*.js, *.ts, *.py, *.java, *.php, *.go",
+      "suggestion": "严格校验JSONP的callback参数，只允许字母数字和下划线。建议逐步迁移到CORS替代JSONP",
+      "references": ["https://owasp.org/www-community/attacks/JSONP_Injection", "https://cwe.mitre.org/data/definitions/834.html"]
+    },
+    {
+      "check_id": "WEB-SEC-018",
+      "name": "postMessage未校验Origin",
+      "severity": "high",
+      "category": "security",
+      "description": "使用postMessage进行跨窗口通信时，接收方未校验event.origin，可被恶意网站发送伪造消息。",
+      "pattern": "window\\.addEventListener\\s*\\(\\s*['\"]message['\"][^)]*\\)\\s*(?!.*event\\.origin)",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx, *.vue",
+      "suggestion": "在message事件监听器中必须校验event.origin是否为可信来源，同时校验event.source是否为预期的窗口",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage", "https://owasp.org/www-community/attacks/Cross-site_Scripting_(XSS)"]
+    },
+    {
+      "check_id": "WEB-SEC-019",
+      "name": "eval或动态代码执行",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用eval()、new Function()、setTimeout(string)等动态执行代码，如果参数包含用户输入，可导致代码注入攻击。",
+      "pattern": "\\beval\\s*\\(|new\\s+Function\\s*\\(|setTimeout\\s*\\(\\s*['\"]|setInterval\\s*\\(\\s*['\"]",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx",
+      "suggestion": "严禁使用eval和动态代码执行。使用JSON.parse解析JSON数据，使用函数引用而非字符串调用setTimeout",
+      "references": ["https://cwe.mitre.org/data/definitions/95.html", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval"]
+    },
+    {
+      "check_id": "WEB-SEC-020",
+      "name": "敏感信息通过URL参数传递",
+      "severity": "high",
+      "category": "security",
+      "description": "将敏感信息（token、密码、身份证号等）通过URL查询参数传递，URL会被浏览器历史记录、服务器日志、代理服务器等记录。",
+      "pattern": "\\?(?:.*&)?(?:token|password|secret|key|id_card|ssn|credit_card)=|/(?:token|password|secret)/",
+      "file_pattern": "*.js, *.ts, *.jsx, *.tsx, *.vue, *.html",
+      "suggestion": "敏感数据应通过HTTP请求体或请求头传递，禁止使用URL参数。使用POST方法传输敏感数据",
+      "references": ["https://owasp.org/www-community/attacks/Information_exposure_through_query_strings_in_url", "https://cwe.mitre.org/data/definitions/598.html"]
+    }
+  ]
+}

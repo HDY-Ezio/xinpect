@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "name": "Web端性能优化规则集",
+    "version": "1.0.0",
+    "description": "基于Web Vitals、Google Lighthouse、W3C Web Performance Working Group等标准的性能检查规则",
+    "total_rules": 15,
+    "references": ["Web Vitals", "Google Lighthouse", "W3C Performance"]
+  },
+  "rules": [
+    {
+      "check_id": "WEB-PERF-001",
+      "name": "大图未压缩或未懒加载",
+      "severity": "high",
+      "category": "performance",
+      "description": "页面中大于100KB的图片未进行压缩（lossy/lossless）或未使用loading='lazy'懒加载，直接影响FCP和LCP指标。首屏外的图片应延迟加载。",
+      "pattern": "<img[^>]+src=[\"'][^\"']+\\.(?:jpg|jpeg|png)[\"'][^>]*>(?!.*(?:loading=[\"']lazy[\"']|width=))",
+      "file_pattern": "*.html, *.jsx, *.tsx, *.vue",
+      "suggestion": "1. 使用WebP/AVIF格式或图片压缩工具(如sharp/imagemin)压缩图片; 2. 首屏外图片添加loading='lazy'; 3. 使用srcset实现响应式图片",
+      "references": ["https://web.dev/fast/lazy-loading", "https://web.dev/uses-optimized-images/"]
+    },
+    {
+      "check_id": "WEB-PERF-002",
+      "name": "未使用CSS/JS资源",
+      "severity": "medium",
+      "category": "performance",
+      "description": "页面引入了未使用的CSS文件或JS模块，增加了不必要的网络传输和解析时间。Tree-shaking和CSS PurgeCSS可移除死代码。",
+      "pattern": "(?:import|require|<link[^>]+href|<script[^>]+src)\\s*(?:from)?\\s*[\"'][^\"']+\\.css[\"']|<script[^>]+src=[\"'][^\"']+\\.js[\"']",
+      "file_pattern": "*.html, *.jsx, *.tsx, *.vue, *.js, *.ts",
+      "suggestion": "1. 使用PurgeCSS移除未使用的CSS; 2. 配置Webpack/Rollup开启Tree-shaking; 3. 使用coverage面板检查代码利用率",
+      "references": ["https://developers.google.com/web/tools/chrome-devtools/coverage", "https://purgecss.com/"]
+    },
+    {
+      "check_id": "WEB-PERF-003",
+      "name": "同步脚本阻塞渲染",
+      "severity": "high",
+      "category": "performance",
+      "description": "在<head>中使用<script src>同步加载JavaScript，阻塞HTML解析和首屏渲染。影响FCP和TTI指标。",
+      "pattern": "<head>[^<]*<script[^>]+src=[\"'][^\"']+\\.js[\"'][^>]*></script>",
+      "file_pattern": "*.html, *.ejs, *.hbs",
+      "suggestion": "1. 为非关键JS添加defer或async属性; 2. 将关键JS放在</body>前; 3. 使用动态import()按需加载",
+      "references": ["https://web.dev/render-blocking-resources/", "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script"]
+    },
+    {
+      "check_id": "WEB-PERF-004",
+      "name": "静态资源未使用CDN加速",
+      "severity": "medium",
+      "category": "performance",
+      "description": "静态资源（JS/CSS/图片/字体）直接从源站加载，未通过CDN分发。全球用户访问时延迟高，影响LCP。",
+      "pattern": "src=[\"']/(?!//)(?:static|assets|dist|public)/",
+      "file_pattern": "*.html, *.jsx, *.tsx, *.vue, *.css",
+      "suggestion": "将静态资源配置CDN（如Cloudflare/AWS CloudFront/阿里云CDN），使用独立域名如cdn.example.com加速分发",
+      "references": ["https://web.dev/use-long-cache-ttl/", "https://www.cloudflare.com/learning/cdn/what-is-a-cdn/"]
+    },
+    {
+      "check_id": "WEB-PERF-005",
+      "name": "关键CSS未内联",
+      "severity": "medium",
+      "category": "performance",
+      "description": "首屏渲染所需的关键CSS通过外部样式表加载，导致渲染阻塞。关键CSS内联到HTML中可减少一次网络往返。",
+      "pattern": "<head>[^<]*<link[^>]+rel=[\"']stylesheet[\"'][^>]+href=[\"'][^\"']+\\.css[\"']",
+      "file_pattern": "*.html",
+      "suggestion": "1. 使用critical/Penthouse等工具提取关键CSS并内联到<style>标签中; 2. 非关键CSS使用media='print' + onload异步加载",
+      "references": ["https://web.dev/extract-critical-css/", "https://web.dev/render-blocking-resources/"]
+    },
+    {
+      "check_id": "WEB-PERF-006",
+      "name": "自定义字体阻塞渲染",
+      "severity": "medium",
+      "category": "performance",
+      "description": "自定义Web字体（woff/woff2）加载阻塞文本渲染，出现FOIT（Flash of Invisible Text）现象。未使用font-display: swap优化。",
+      "pattern": "@font-face[^}]+(?:src|url)[^}]+\\}(?!.*font-display)",
+      "file_pattern": "*.css, *.scss, *.less",
+      "suggestion": "1. 设置font-display: swap; 2. 使用font preloading: <link rel='preload' as='font' crossorigin>; 3. 使用unicode-range减少字体子集",
+      "references": ["https://web.dev/font-best-practices/", "https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display"]
+    },
+    {
+      "check_id": "WEB-PERF-007",
+      "name": "图片未使用现代格式",
+      "severity": "medium",
+      "category": "performance",
+      "description": "页面使用传统JPEG/PNG格式而非WebP或AVIF格式，文件体积大30%-50%，增加网络传输时间和带宽消耗。",
+      "pattern": "(?:src|srcset)=[\"'][^\"']+\\.(?:jpg|jpeg|png|gif)[\"']",
+      "file_pattern": "*.html, *.jsx, *.tsx, *.vue, *.css",
+      "suggestion": "1. 优先使用AVIF格式（压缩率最高）; 2. 使用<picture>标签提供WebP/AVIF fallback; 3. 使用sharp/cwebp等工具批量转换",
+      "references": ["https://web.dev/uses-webp-images/", "https://web.dev/uses-avif-images/"]
+    },
+    {
+      "check_id": "WEB-PERF-008",
+      "name": "JavaScript未进行代码分割",
+      "severity": "medium",
+      "category": "performance",
+      "description": "将所有JavaScript打包为单个bundle文件，首屏加载了大量不必要的代码。影响TTI和TBT指标。",
+      "pattern": "(?:output\\s*:\\s*\\{[^}]*filename:\\s*[\"'].*\\[name\\]\\.js[\"'])",
+      "file_pattern": "webpack.config.js, *.config.js, vite.config.js, rollup.config.js",
+      "suggestion": "1. 使用动态import()进行路由级代码分割; 2. 配置Webpack splitChunks提取公共依赖; 3. 使用React.lazy/Suspense进行组件级懒加载",
+      "references": ["https://web.dev/reduce-javascript-payloads-with-code-splitting/", "https://webpack.js.org/guides/code-splitting/"]
+    },
+    {
+      "check_id": "WEB-PERF-009",
+      "name": "缺少预加载/预连接资源提示",
+      "severity": "low",
+      "category": "performance",
+      "description": "未使用<link rel='preload'>预加载关键资源，未使用<link rel='preconnect'>预连接第三方域名，浪费了浏览器资源提示能力。",
+      "pattern": "(?!.*<link[^>]+rel=[\"']preload[\"'])(?!.*<link[^>]+rel=[\"']preconnect[\"'])",
+      "file_pattern": "*.html",
+      "suggestion": "1. 对关键字体/脚本使用preload: <link rel='preload' as='script/font'>; 2. 对第三方CDN使用preconnect: <link rel='preconnect' href='https://cdn.example.com'>",
+      "references": ["https://developer.mozilla.org/en-US/docs/Web/Performance/Resource_hints", "https://web.dev/preload-critical-assets/"]
+    },
+    {
+      "check_id": "WEB-PERF-010",
+      "name": "HTTP/2 Server Push未利用",
+      "severity": "low",
+      "category": "performance",
+      "description": "服务端支持HTTP/2但未使用Server Push或103 Early Hints，关键资源仍需要等待HTML解析后才开始下载。",
+      "pattern": "Link:\\s*<[^>]+>;\\s*rel=preload",
+      "file_pattern": "nginx.conf, *.conf, *.htaccess",
+      "suggestion": "1. 使用103 Early Hints提前推送关键资源; 2. 通过HTTP Link头预加载关键CSS/字体; 3. 确保服务端启用HTTP/2",
+      "references": ["https://developer.mozilla.org/en-US/docs/Glossary/HTTP_2", "https://datatracker.ietf.org/doc/html/rfc8297"]
+    },
+    {
+      "check_id": "WEB-PERF-011",
+      "name": "未启用响应压缩",
+      "severity": "medium",
+      "category": "performance",
+      "description": "文本类资源（HTML/CSS/JS/JSON）未配置Brotli或Gzip压缩，传输体积大。Brotli比Gzip压缩率高15%-25%。",
+      "pattern": "(?!.*(?:Content-Encoding|gzip|br|deflate))",
+      "file_pattern": "nginx.conf, *.conf, *.htaccess, server.js",
+      "suggestion": "1. 启用Brotli压缩(首选): gzip_static on; brotli on; 2. 或启用Gzip: gzip on; gzip_types text/css application/javascript; 3. 压缩级别建议设为5-6",
+      "references": ["https://web.dev/uses-text-compression/", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding"]
+    },
+    {
+      "check_id": "WEB-PERF-012",
+      "name": "未配置长期缓存策略",
+      "severity": "medium",
+      "category": "performance",
+      "description": "静态资源未设置长期缓存（Cache-Control: max-age=31536000），每次访问都重新下载，浪费带宽和加载时间。",
+      "pattern": "(?:Cache-Control|Expires):\\s*(?:no-cache|max-age=0)",
+      "file_pattern": "nginx.conf, *.conf, *.htaccess, server.js",
+      "suggestion": "1. 对带hash的静态资源设置Cache-Control: max-age=31536000, immutable; 2. HTML文件使用no-cache; 3. 文件名包含内容hash确保缓存更新",
+      "references": ["https://web.dev/http-cache/", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"]
+    },
+    {
+      "check_id": "WEB-PERF-013",
+      "name": "大量DOM节点影响渲染性能",
+      "severity": "medium",
+      "category": "performance",
+      "description": "页面DOM节点数超过1500个或DOM深度超过32层，导致样式计算和布局成本增加，影响INP指标。",
+      "pattern": "(?:for|map|filter|reduce)\\s*\\([^)]*(?:items|list|data|array)",
+      "file_pattern": "*.jsx, *.tsx, *.vue, *.html",
+      "suggestion": "1. 使用虚拟列表(react-virtualized/vue-virtual-scroller)渲染大列表; 2. 减少不必要的DOM嵌套; 3. 使用CSS Grid/Flexbox减少包装层",
+      "references": ["https://web.dev/dom-size/", "https://web.dev/inp/"]
+    },
+    {
+      "check_id": "WEB-PERF-014",
+      "name": "动画未使用GPU加速",
+      "severity": "low",
+      "category": "performance",
+      "description": "动画使用left/top/width/height等触发Layout的属性，未使用transform/opacity等可在Compositor线程处理的属性，导致掉帧卡顿。",
+      "pattern": "animation:\\s*[^;]+(?:top|left|right|bottom|width|height|margin|padding)",
+      "file_pattern": "*.css, *.scss, *.less, *.vue, *.jsx, *.tsx",
+      "suggestion": "1. 使用transform(translate/scale/rotate)替代position变化; 2. 使用opacity替代visibility/display; 3. 添加will-change提示浏览器优化",
+      "references": ["https://web.dev/animations/", "https://developer.mozilla.org/en-US/docs/Web/CSS/will-change"]
+    },
+    {
+      "check_id": "WEB-PERF-015",
+      "name": "第三方脚本未延迟加载",
+      "severity": "medium",
+      "category": "performance",
+      "description": "分析/统计/广告等第三方脚本同步加载，阻塞主线程和首屏渲染。应延迟到页面可交互后再加载。",
+      "pattern": "<script[^>]+src=[\"'](?:https?://[^\"']*(?:google-analytics|googletagmanager|facebook|hotjar|clarity))",
+      "file_pattern": "*.html, *.jsx, *.tsx",
+      "suggestion": "1. 使用async或defer加载第三方脚本; 2. 使用requestIdleCallback延迟非关键脚本; 3. 考虑使用Partytown将第三方脚本移入Web Worker",
+      "references": ["https://web.dev/off-main-thread/", "https://partytown.builder.io/"]
+    }
+  ]
+}

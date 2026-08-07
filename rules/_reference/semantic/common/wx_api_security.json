@@ -1,0 +1,343 @@
+{
+  "metadata": {
+    "name": "微信API安全规则",
+    "total_rules": 25
+  },
+  "rules": [
+    {
+      "id": "WXSEC-001",
+      "name": "微信支付金额由前端传入",
+      "severity": "S1",
+      "category": "wx-api-security",
+      "description": "支付金额由前端计算并传入后端，攻击者可篡改请求中的金额参数完成低价支付",
+      "suggestion": "支付金额必须由后端从数据库/业务逻辑中计算，前端仅传递商品ID和数量，后端校验价格",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "WXSEC-002",
+      "name": "AppSecret硬编码在前端代码中",
+      "severity": "S1",
+      "category": "wx-api-security",
+      "description": "AppSecret或AppKey直接写在小程序前端代码中，可被反编译提取",
+      "suggestion": "AppSecret仅保存在服务端，前端通过后端代理调用微信API，永远不在客户端存储密钥",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-003",
+      "name": "wx.login获取的code直接暴露",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "wx.login获取的code在日志或网络请求中暴露，可能被中间人截获用于冒充用户身份",
+      "suggestion": "code仅通过HTTPS直接发送给自有后端，不在日志中打印，不经过第三方中转",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-004",
+      "name": "用户隐私数据未加密传输",
+      "severity": "S1",
+      "category": "wx-api-security",
+      "description": "手机号、身份证等隐私数据通过普通接口明文传输，未使用微信加密API",
+      "suggestion": "使用wx.getPhoneNumber等官方加密接口获取敏感数据，数据经微信服务端加密后传给后端解密",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.java"
+      ]
+    },
+    {
+      "id": "WXSEC-005",
+      "name": "session_key存储在前端",
+      "severity": "S1",
+      "category": "wx-api-security",
+      "description": "将wx.login获取的session_key存储在前端Storage中，泄露后可解密用户敏感数据",
+      "suggestion": "session_key仅在服务端保存和使用，前端不存储、不传递session_key",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-006",
+      "name": "微信支付回调未验签",
+      "severity": "S1",
+      "category": "wx-api-security",
+      "description": "微信支付结果通知回调接口未验证签名，攻击者可伪造支付成功通知",
+      "suggestion": "回调接口必须验证微信签名（使用微信支付API v3密钥验证），确认通知来源合法",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "WXSEC-007",
+      "name": "支付回调未做幂等处理",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "支付回调接口未做幂等性处理，重复通知可能导致重复发货或重复入账",
+      "suggestion": "使用微信支付订单号作为唯一键做幂等校验，已处理的订单直接返回成功不重复处理",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "WXSEC-008",
+      "name": "openId在前端展示或传递",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "openId在前端页面展示或通过URL参数传递，存在用户身份泄露风险",
+      "suggestion": "openId仅在服务端使用，前端不展示、不传递；对外使用自定义用户ID替代",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "WXSEC-009",
+      "name": "小程序接口未做鉴权",
+      "severity": "S1",
+      "category": "wx-api-security",
+      "description": "小程序后端API接口缺少Token验证，任何人可直接调用接口获取数据",
+      "suggestion": "所有需要登录态的接口必须验证Token（如JWT），Token通过wx.login换取并存储在内存中",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "WXSEC-010",
+      "name": "request合法域名未配置",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "小程序后台未配置request合法域名列表，或配置了过于宽泛的通配域名",
+      "suggestion": "在微信公众平台精确配置request合法域名，仅添加实际使用的API域名，不使用通配符",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-011",
+      "name": "wx.getUserProfile滥用",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "在非必要场景频繁调用wx.getUserProfile获取用户头像昵称，违反最小权限原则",
+      "suggestion": "仅在用户主动触发（如点击头像编辑按钮）时获取用户信息，避免启动时自动获取",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-012",
+      "name": "敏感接口缺少频率限制",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "获取验证码、提交订单等接口缺少频率限制，可被自动化脚本滥用",
+      "suggestion": "对敏感接口实施频率限制（如60秒内同一用户最多请求1次验证码），使用Redis计数器实现",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "WXSEC-013",
+      "name": "小程序云函数权限过大",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "云函数未做权限隔离，所有用户调用的云函数共享同一高权限身份",
+      "suggestion": "云函数实施最小权限原则，不同业务使用不同云函数，配置独立的安全规则和数据库权限",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-014",
+      "name": "小程序存储敏感信息未加密",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "使用wx.setStorageSync存储token或用户信息但未加密，设备丢失后可直接读取",
+      "suggestion": "敏感信息加密后存储，或使用微信提供的安全Storage API；token优先存内存而非持久化",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-015",
+      "name": "接口返回全量用户数据",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "API接口返回用户完整信息（含手机号、地址、身份证等），前端仅需部分字段",
+      "suggestion": "接口按需返回字段，使用DTO/VO模式过滤敏感字段，前端只获取实际需要的数据",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "WXSEC-016",
+      "name": "微信支付签名使用MD5",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "微信支付签名仍使用MD5算法（v2），安全性低于HMAC-SHA256",
+      "suggestion": "升级到微信支付API v3，使用RSA-SHA256签名；v2接口也应选择HMAC-SHA256签名方式",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-017",
+      "name": "未校验小程序来源的referer",
+      "severity": "S3",
+      "category": "wx-api-security",
+      "description": "后端接口未校验请求来源是否为合法的小程序appId，存在接口被非授权方调用的风险",
+      "suggestion": "后端校验请求Header中的小程序来源标识，结合Token双重验证请求合法性",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts",
+        "*.go"
+      ]
+    },
+    {
+      "id": "WXSEC-018",
+      "name": "微信订阅消息templateId硬编码",
+      "severity": "S3",
+      "category": "wx-api-security",
+      "description": "订阅消息模板ID硬编码在前端代码中，模板变更时需要重新发版",
+      "suggestion": "模板ID从后端配置接口获取，便于动态更新而不需要小程序重新发版",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-019",
+      "name": "未实施请求重放防护",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "关键操作接口（如转账、下单）未做防重放处理，截获的请求可被重复发送",
+      "suggestion": "关键请求添加timestamp + nonce + signature，后端校验时间窗口和nonce唯一性",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-020",
+      "name": "小程序web-view未限制加载域名",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "web-view组件可加载任意URL，未做域名白名单限制，可能被利用加载钓鱼页面",
+      "suggestion": "web-view加载的URL必须来自业务域名白名单，且在微信后台配置业务域名",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.wxml"
+      ]
+    },
+    {
+      "id": "WXSEC-021",
+      "name": "图片上传未校验文件内容",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "使用wx.chooseImage上传图片，后端未校验文件实际内容，可能上传伪装为图片的恶意文件",
+      "suggestion": "后端校验文件MIME类型、魔数（magic bytes）、文件大小，使用安全存储路径",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-022",
+      "name": "二维码scene参数未过滤",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "小程序码的scene参数未在服务端过滤，用户可生成包含恶意参数的二维码",
+      "suggestion": "服务端校验scene参数格式和内容，只允许白名单内的参数值，对输入做长度和字符限制",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-023",
+      "name": "用户数据跨境传输未合规",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "小程序收集的国内用户数据传输到境外服务器，未进行合规评估和数据出境安全评估",
+      "suggestion": "用户数据优先存储在境内服务器；跨境传输需依法进行数据出境安全评估",
+      "applicable_files": [
+        "*.py",
+        "*.java",
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-024",
+      "name": "分享功能泄露敏感页面参数",
+      "severity": "S3",
+      "category": "wx-api-security",
+      "description": "小程序分享时path中携带了token、userId等敏感参数，接收方可从分享链接中提取",
+      "suggestion": "分享链接中不携带敏感参数，使用匿名化的分享ID，敏感数据在接收方页面通过接口获取",
+      "applicable_files": [
+        "*.js",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "WXSEC-025",
+      "name": "插件使用未做安全审查",
+      "severity": "S2",
+      "category": "wx-api-security",
+      "description": "引入第三方插件未审查其权限和数据访问范围，插件可能收集用户隐私数据",
+      "suggestion": "使用前审查插件的权限申请和数据访问行为，选择官方认证的插件，定期更新",
+      "applicable_files": [
+        "app.json",
+        "*.js",
+        "*.ts"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "metadata": {
+    "name": "iOS安全专项规则集",
+    "version": "1.0.0",
+    "description": "基于Apple App Store安全指南、OWASP Mobile Security、CWE Mobile标准的安全检查规则",
+    "total_rules": 20,
+    "references": ["Apple Security Guidelines", "OWASP MSTG", "CWE Mobile Top 25"]
+  },
+  "rules": [
+    {
+      "check_id": "IOS-SEC-001",
+      "name": "权限声明缺少用途描述",
+      "severity": "high",
+      "category": "privacy",
+      "description": "Info.plist中声明了权限（如NSCameraUsageDescription、NSLocationWhenInUseUsageDescription）但未提供用户可读的用途说明，App Store审核将被拒绝。",
+      "pattern": "<key>NS(?:Camera|Microphone|Location|PhotoLibrary|Contacts|Calendar|Bluetooth|Motion|Health|HomeKit|MediaLibrary|SpeechRecognition)UsageDescription</key>\\s*<string>\\s*</string>",
+      "file_pattern": "Info.plist, *.plist",
+      "suggestion": "为每个权限声明添加清晰、具体的用途描述字符串，说明为何需要该权限。Apple要求描述必须解释数据用途",
+      "references": ["https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources", "https://developer.apple.com/app-store/review/guidelines/"]
+    },
+    {
+      "check_id": "IOS-SEC-002",
+      "name": "ATS允许HTTP明文传输",
+      "severity": "critical",
+      "category": "security",
+      "description": "App Transport Security配置中NSAllowsArbitraryLoads设置为true或NSExceptionAllowsInsecureHTTPLoads设置为true，允许HTTP明文传输，存在中间人攻击风险。",
+      "pattern": "NSAllowsArbitraryLoads\\s*=\\s*(?:true|1)|NSExceptionAllowsInsecureHTTPLoads\\s*=\\s*(?:true|1)",
+      "file_pattern": "Info.plist, *.plist",
+      "suggestion": "1. 移除NSAllowsArbitraryLoads或设置为false; 2. 为特定域名使用NSExceptionDomains白名单; 3. 所有网络请求使用HTTPS",
+      "references": ["https://developer.apple.com/documentation/security/preventing_insecure_network_connections", "https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CocoaKeys.html"]
+    },
+    {
+      "check_id": "IOS-SEC-003",
+      "name": "Keychain访问缺少访问控制",
+      "severity": "high",
+      "category": "security",
+      "description": "Keychain存储敏感数据（密码、token、密钥）时未设置kSecAttrAccessible属性，默认使用kSecAttrAccessibleWhenUnlocked，设备锁定时数据可被访问。",
+      "pattern": "SecItemAdd[^;]*(?!.*kSecAttrAccessible)|kSecAttrAccessibleWhenUnlocked",
+      "file_pattern": "*.swift, *.m, *.h",
+      "suggestion": "使用kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly或kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly限制Keychain访问，防止数据在备份时被提取",
+      "references": ["https://developer.apple.com/documentation/security/keychain_services/keychain_items/restricting_keychain_item_accessibility", "https://developer.apple.com/documentation/security/ksecattraccessibleraw"]
+    },
+    {
+      "check_id": "IOS-SEC-004",
+      "name": "Universal Links配置校验缺失",
+      "severity": "medium",
+      "category": "security",
+      "description": "Universal Links的apple-app-site-association文件中配置了通配符*匹配所有路径，或未验证关联域名证书有效性，可被钓鱼网站伪造深度链接。",
+      "pattern": "\\\"paths\\\"\\s*:\\s*\\[\\s*\\\"\\*\\\"\\s*\\]|\\\"components\\\"\\s*:\\s*\\[\\s*\\{\\s*\\\"/\\\"\\s*:\\s*\\\"/\\*\\\"",
+      "file_pattern": "apple-app-site-association, *.json, *.entitlements",
+      "suggestion": "1. 在apple-app-site-association中指定具体的路径前缀; 2. 使用/components而非/paths（iOS 13+）; 3. 确保关联域名使用HTTPS且证书有效",
+      "references": ["https://developer.apple.com/documentation/xcode/supporting-associated-domains", "https://developer.apple.com/library/archive/documentation/General/Conceptual/AppSearch/UniversalLinks.html"]
+    },
+    {
+      "check_id": "IOS-SEC-005",
+      "name": "未实现证书固定",
+      "severity": "medium",
+      "category": "security",
+      "description": "网络请求未实现证书固定（Certificate Pinning），仅依赖系统信任的CA。如果用户安装了恶意根证书（如企业WiFi代理），可解密HTTPS流量。",
+      "pattern": "URLSession\\s*\\(\\s*\\)|URLSessionConfiguration\\.default|Alamofire\\.Session\\s*\\(\\s*\\)(?!.*ServerTrustPolicy|.*Pinning|.*delegate)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 使用URLSessionDelegate的didReceive challenge回调校验服务器证书; 2. 使用Alamofire的ServerTrustManager配置证书固定; 3. 固定服务器公钥而非证书（避免证书更换影响）",
+      "references": ["https://developer.apple.com/documentation/foundation/urlsessiondelegate/1409812-urlsession", "https://owasp.org/www-community/controls/Certificate_and_Public_Key_Pinning"]
+    },
+    {
+      "check_id": "IOS-SEC-006",
+      "name": "生物识别实现不安全",
+      "severity": "high",
+      "category": "security",
+      "description": "使用LocalAuthentication仅校验生物识别结果但未将认证结果与Keychain绑定，攻击者可通过hook laContext.evaluatePolicy绕过验证。",
+      "pattern": "LAContext\\s*\\(\\s*\\)\\s*\\n[^;]*\\.evaluatePolicy\\s*\\([^)]*\\)\\s*(?!.*SecAccessControl|.*kSecAccessControl)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 使用SecAccessControlCreateWithFlags创建带生物识别保护的Keychain项; 2. 设置kSecAccessControlBiometryCurrentSet; 3. 不要仅依赖evaluatePolicy的布尔结果",
+      "references": ["https://developer.apple.com/documentation/localauthentication", "https://developer.apple.com/documentation/security/security_constants/secaccesscontrolcreateflags"]
+    },
+    {
+      "check_id": "IOS-SEC-007",
+      "name": "本地数据明文存储敏感信息",
+      "severity": "critical",
+      "category": "security",
+      "description": "使用UserDefaults、plist文件或SQLite明文存储敏感信息（密码、token、个人身份数据），这些数据在设备备份时以明文提取。",
+      "pattern": "UserDefaults\\.standard\\.set\\s*\\([^,]+,\\s*forKey:\\s*\\\"(?:password|token|secret|key|auth|session|credential)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 使用Keychain存储密码和token; 2. 需要加密的本地数据使用CryptoKit或RNCryptor; 3. UserDefaults仅存储非敏感配置数据",
+      "references": ["https://developer.apple.com/documentation/security/keychain_services", "https://developer.apple.com/documentation/cryptokit"]
+    },
+    {
+      "check_id": "IOS-SEC-008",
+      "name": "推送Token未安全传输",
+      "severity": "medium",
+      "category": "security",
+      "description": "设备推送Token（Device Token）通过HTTP明文传输或未加密存储在本地，攻击者可截获或提取token后发送恶意推送通知。",
+      "pattern": "deviceToken(?:\\.hexEncodedString|\\.base64EncodedString|\\.map)\\s*\\(\\s*\\)\\s*(?!.*https|.*encrypt|.*keychain)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 通过HTTPS上传Device Token; 2. 将token与用户身份绑定; 3. 在用户登出时从服务端注销token",
+      "references": ["https://developer.apple.com/documentation/usernotifications/registering_your_app_with_apns", "https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server"]
+    },
+    {
+      "check_id": "IOS-SEC-009",
+      "name": "应用签名校验缺失",
+      "severity": "medium",
+      "category": "security",
+      "description": "应用未校验自身代码签名完整性，被篡改的应用包（重打包）可能绕过安全机制。越狱设备上尤其容易被篡改。",
+      "pattern": "(?!.*SecCodeCopySigningInformation|.*codeSignatureValid|.*amIResigned)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "在应用启动时校验代码签名，检测是否被重打包。检查embedded.mobileprovision中的证书是否与预期匹配",
+      "references": ["https://developer.apple.com/documentation/security/code_security", "https://developer.apple.com/library/archive/technotes/tn2250/"]
+    },
+    {
+      "check_id": "IOS-SEC-010",
+      "name": "剪贴板包含敏感数据",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "将密码、token、身份证号等敏感数据写入UIPasteboard，iOS 14+会通知用户'从XX粘贴'，且数据在iCloud剪贴板同步中明文传输。",
+      "pattern": "UIPasteboard\\.general\\.string\\s*=|UIPasteboard\\.general\\.setItems\\s*\\([^)]*(?:password|token|secret)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 避免将敏感数据写入剪贴板; 2. 必须使用UIPasteboard时设置expirationDate和localOnly属性; 3. 使用expirationDate限制剪贴板有效期",
+      "references": ["https://developer.apple.com/documentation/uikit/uipasteboard", "https://developer.apple.com/documentation/uikit/protecting_the_user_s_privacy"]
+    },
+    {
+      "check_id": "IOS-SEC-011",
+      "name": "后台任务包含敏感操作",
+      "severity": "medium",
+      "category": "security",
+      "description": "在BGTask（后台刷新、后台下载）中执行敏感操作（如同步敏感数据、网络请求携带token），后台任务可能在不安全的网络环境下执行。",
+      "pattern": "BGAppRefreshTaskRequest|BGProcessingTaskRequest|UIApplication\\.shared\\.beginBackgroundTask",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 后台任务避免传输敏感数据; 2. 使用Background Modes时限定最小数据量; 3. 确保后台任务也使用HTTPS",
+      "references": ["https://developer.apple.com/documentation/backgroundtasks", "https://developer.apple.com/documentation/uikit/app_and_environment/scenes/preparing_your_ui_to_run_in_the_background"]
+    },
+    {
+      "check_id": "IOS-SEC-012",
+      "name": "WKWebView安全配置不足",
+      "severity": "high",
+      "category": "security",
+      "description": "WKWebView配置中允许JavaScript打开窗口、允许文件访问、未禁用JavaScript自动打开窗口等不安全配置，可能导致XSS或本地文件泄露。",
+      "pattern": "WKWebViewConfiguration\\s*\\(\\s*\\)\\s*(?!.*javaScriptCanOpenWindowsAutomatically\\s*=\\s*false)(?!.*javaScriptEnabled\\s*=\\s*false)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 设置javaScriptCanOpenWindowsAutomatically = false; 2. 设置allowFileAccessFromFileURLs = false; 3. 实现decidePolicyFor导航代理校验URL",
+      "references": ["https://developer.apple.com/documentation/webkit/wkwebviewconfiguration", "https://developer.apple.com/documentation/webkit"]
+    },
+    {
+      "check_id": "IOS-SEC-013",
+      "name": "URL Scheme注册过于宽泛",
+      "severity": "medium",
+      "category": "security",
+      "description": "自定义URL Scheme注册了过于通用的标识（如app://而非com.company.app://），可能被其他应用注册相同scheme进行URL劫持。",
+      "pattern": "<key>CFBundleURLSchemes</key>\\s*<array>\\s*<string>[a-z]{1,5}</string>",
+      "file_pattern": "Info.plist, *.plist",
+      "suggestion": "1. 使用反向域名格式的URL Scheme; 2. 优先使用Universal Links替代自定义URL Scheme; 3. 在处理URL时进行严格的参数校验",
+      "references": ["https://developer.apple.com/documentation/xcode/defining-a-custom-url-scheme-for-your-app", "https://developer.apple.com/documentation/uikit/inter-app_communication"]
+    },
+    {
+      "check_id": "IOS-SEC-014",
+      "name": "敏感数据输出到系统日志",
+      "severity": "high",
+      "category": "security",
+      "description": "使用NSLog、print或os_log输出敏感信息（密码、token、身份证号等），这些日志可通过Xcode Console或Console.app查看，也可被恶意应用提取。",
+      "pattern": "(?:NSLog|print|os_log|debugPrint)\\s*\\(\\s*\\\".*(?:password|token|secret|key|auth|session|credit_card|ssn|id_card)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 生产环境禁用日志输出; 2. 使用条件编译#ifdef DEBUG包裹日志语句; 3. 使用专门的日志框架控制日志级别",
+      "references": ["https://developer.apple.com/documentation/os/logging", "https://developer.apple.com/documentation/os/2880482-os_log"]
+    },
+    {
+      "check_id": "IOS-SEC-015",
+      "name": "未实现越狱检测",
+      "severity": "medium",
+      "category": "security",
+      "description": "应用未检测运行环境是否为越狱设备，越狱设备上应用沙箱被破坏，数据可被其他应用访问，安全机制可能被绕过。",
+      "pattern": "(?!.*jailbreak|.*Jailbreak|.*canOpenPath|.*cydia|.*substrate)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 检测常见越狱路径（/Applications/Cydia.app、/usr/sbin/sshd等）; 2. 检测文件符号链接; 3. 越狱设备上可降低功能或增强加密",
+      "references": ["https://owasp.org/www-community/controls/Jailbreak_Detection", "https://www.raywenderlich.com/202-jailbreak-detection"]
+    },
+    {
+      "check_id": "IOS-SEC-016",
+      "name": "应用截图包含敏感信息",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "应用进入后台时未隐藏敏感界面（如银行卡号、余额），系统截图保存在Library/Caches/Snapshots中可被提取。",
+      "pattern": "UIApplication\\.shared\\.applicationWillResignActive|sceneWillResignActive(?!.*blurView|.*overlay|.*hide)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "在applicationWillResignActive或sceneWillResignActive中添加模糊覆盖层遮挡敏感内容，在applicationDidBecomeActive时移除",
+      "references": ["https://developer.apple.com/documentation/uikit/app_and_environment/responding_to_the_launch_of_your_app", "https://developer.apple.com/documentation/uikit/protecting_the_user_s_privacy"]
+    },
+    {
+      "check_id": "IOS-SEC-017",
+      "name": "网络请求缺少请求头安全配置",
+      "severity": "medium",
+      "category": "security",
+      "description": "网络请求未添加安全相关的请求头（如自定义User-Agent、请求签名），无法有效防御请求重放和中间人篡改。",
+      "pattern": "URLRequest\\s*\\(\\s*url:|Alamofire\\.request\\s*\\((?!.*Authorization|.*signature|.*nonce)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 为敏感请求添加请求签名（timestamp + nonce + HMAC）; 2. 使用自定义Authorization头; 3. 服务端校验请求时效性和签名",
+      "references": ["https://developer.apple.com/documentation/foundation/urlsession", "https://owasp.org/www-community/controls/Web_Service_Architecture"]
+    },
+    {
+      "check_id": "IOS-SEC-018",
+      "name": "动态库未校验加载来源",
+      "severity": "high",
+      "category": "security",
+      "description": "使用dlopen或NSBundle动态加载库文件时未校验文件来源和签名，越狱设备上可被替换为恶意dylib实现代码注入。",
+      "pattern": "dlopen\\s*\\(|Bundle\\s*\\(\\s*path:|NSBundle\\s*\\(\\s*path:",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 避免动态加载非App Bundle内的库; 2. 必须使用时校验文件的代码签名; 3. 检查dylib路径是否在预期的framework目录内",
+      "references": ["https://developer.apple.com/documentation/security/code_security", "https://developer.apple.com/library/archive/documentation/Security/Conceptual/SecureCodingGuide/"]
+    },
+    {
+      "check_id": "IOS-SEC-019",
+      "name": "键盘缓存输入敏感数据",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "密码、验证码等敏感输入框未禁用键盘缓存（UITextAutocorrectionType/UITextAutocapitalizationType），输入内容被系统键盘学习记录。",
+      "pattern": "UITextField\\s*\\(\\s*\\)(?!.*autocorrectionType|.*autocapitalizationType|.*isSecureTextEntry)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "为密码输入框设置isSecureTextEntry = true, autocorrectionType = .no, autocapitalizationType = .none",
+      "references": ["https://developer.apple.com/documentation/uikit/uitextinputtraits", "https://developer.apple.com/documentation/uikit/uitextfield"]
+    },
+    {
+      "check_id": "IOS-SEC-020",
+      "name": "第三方SDK缺少隐私合规审查",
+      "severity": "medium",
+      "category": "privacy",
+      "description": "集成的第三方SDK（广告、统计、支付等）可能采集设备信息、位置数据等隐私数据，未在隐私清单中声明，违反Apple隐私政策。",
+      "pattern": "import\\s+(?:Firebase|Bugly|Umeng|TalkingData|JPush|MobSDK|AdSupport|AppTrackingTransparency)",
+      "file_pattern": "*.swift, *.m",
+      "suggestion": "1. 审查每个SDK的数据采集行为; 2. 在App隐私标签中声明SDK的采集数据; 3. 使用ATT框架获取用户追踪授权; 4. 优先选择隐私友好的SDK替代方案",
+      "references": ["https://developer.apple.com/app-store/app-privacy-details/", "https://developer.apple.com/documentation/ad_support"]
+    }
+  ]
+}

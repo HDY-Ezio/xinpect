@@ -1,0 +1,19 @@
+{
+  "rules": [
+    {
+      "id": "DEP-REM-003",
+      "name": "升级依赖未进行兼容性验证",
+      "severity": "medium",
+      "category": "dependency_remediation",
+      "description": "为修复漏洞升级依赖版本但未运行测试验证兼容性，可能引入新的bug或breaking change。",
+      "suggestion": "升级后运行完整测试套件；查阅CHANGELOG确认breaking changes；使用Dependabot/Renovate自动创建PR并运行CI。",
+      "applicable_files": [
+        "package.json",
+        "pom.xml",
+        "go.mod",
+        "requirements.txt",
+        "*.csproj"
+      ]
+    }
+  ]
+}

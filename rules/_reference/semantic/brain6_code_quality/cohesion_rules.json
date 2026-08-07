@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "id": "CQ-COH-002",
+      "name": "类的字段仅被单个方法使用",
+      "severity": "low",
+      "category": "cohesion",
+      "description": "类中定义了多个私有字段，但每个字段仅被一个方法使用，这些字段和方法应该提取为独立的类或作为方法局部变量。",
+      "suggestion": "将仅被单个方法使用的字段和方法提取到独立类中；或将其降级为方法内局部变量。",
+      "applicable_files": [
+        "*.java",
+        "*.cs",
+        "*.py",
+        "*.ts"
+      ]
+    },
+    {
+      "id": "CQ-COH-003",
+      "name": "模块功能分散缺乏统一主题",
+      "severity": "medium",
+      "category": "cohesion",
+      "description": "模块/文件中导出的函数/类涉及多个不相关的业务领域（如同时处理用户认证和日志格式化），缺乏功能内聚性。",
+      "suggestion": "按业务领域重新组织模块；每个模块/文件应有一个明确统一的主题（功能性内聚）。",
+      "applicable_files": [
+        "*.js",
+        "*.ts",
+        "*.py",
+        "*.go",
+        "*.java",
+        "*.cs"
+      ]
+    }
+  ]
+}

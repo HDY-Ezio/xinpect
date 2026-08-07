@@ -1,0 +1,231 @@
+{
+  "metadata": {
+    "name": "Electron安全增强规则集",
+    "version": "1.0.0",
+    "description": "基于Electron官方安全最佳实践和OWASP Desktop App Security标准的检查规则",
+    "total_rules": 20,
+    "references": ["Electron Security Checklist", "OWASP Desktop App Security", "CWE-693"]
+  },
+  "rules": [
+    {
+      "check_id": "ELN-SEC-001",
+      "name": "nodeIntegration未禁用",
+      "severity": "critical",
+      "category": "security",
+      "description": "BrowserWindow配置中nodeIntegration为true，允许渲染进程直接使用Node.js API（如fs、child_process），一旦加载恶意内容可导致远程代码执行（RCE）。",
+      "pattern": "nodeIntegration\\s*:\\s*true",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "设置nodeIntegration: false（默认值）。通过preload脚本暴露必要的API给渲染进程，使用contextBridge安全通信",
+      "references": ["https://www.electronjs.org/docs/latest/tutorial/security", "https://cwe.mitre.org/data/definitions/94.html"]
+    },
+    {
+      "check_id": "ELN-SEC-002",
+      "name": "contextIsolation未启用",
+      "severity": "critical",
+      "category": "security",
+      "description": "BrowserWindow配置中contextIsolation为false或未设置，渲染进程的JavaScript可直接访问preload脚本的上下文，恶意代码可劫持暴露的API。",
+      "pattern": "contextIsolation\\s*:\\s*false|(?<!contextIsolation\\s*:\\s*)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "设置contextIsolation: true。使用contextBridge.exposeInMainWorld安全地暴露API，确保渲染进程无法直接访问Node.js",
+      "references": ["https://www.electronjs.org/docs/latest/api/context-bridge", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-003",
+      "name": "sandbox选项未启用",
+      "severity": "high",
+      "category": "security",
+      "description": "BrowserWindow未启用sandbox选项，渲染进程以完整权限运行。启用sandbox后，渲染进程运行在操作系统沙箱中，即使被攻破也无法访问系统资源。",
+      "pattern": "sandbox\\s*:\\s*false|(?<!sandbox)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "设置sandbox: true。沙箱模式限制了渲染进程对文件系统和网络等系统资源的访问。注意：启用sandbox后preload脚本运行受限",
+      "references": ["https://www.electronjs.org/docs/latest/tutorial/sandbox", "https://chromium.googlesource.com/chromium/src/+/main/docs/linux/sandboxing.md"]
+    },
+    {
+      "check_id": "ELN-SEC-004",
+      "name": "preload脚本暴露过多敏感API",
+      "severity": "high",
+      "category": "security",
+      "description": "preload脚本中通过contextBridge暴露了敏感API（如文件操作、命令执行、注册表操作），未进行参数校验和权限控制，可被渲染进程滥用。",
+      "pattern": "contextBridge\\.exposeInMainWorld\\s*\\([^,]+,\\s*\\{[^}]*(?:exec|execSync|spawn|writeFile|unlink|rm|mkdir)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 只暴露必要的最小权限API; 2. 对暴露的方法进行严格的参数校验和白名单过滤; 3. 禁止直接暴露fs/child_process等原生模块",
+      "references": ["https://www.electronjs.org/docs/latest/api/context-bridge", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-005",
+      "name": "IPC通信缺少channel鉴权",
+      "severity": "high",
+      "category": "security",
+      "description": "ipcMain监听处理消息时未校验channel白名单和来源窗口，任何渲染进程可向任意channel发送消息，导致未授权操作。",
+      "pattern": "ipcMain\\.on\\s*\\(\\s*['\"]\\*['\"]|ipcMain\\.on\\s*\\(\\s*['\"][^'\"]*['\"][^)]*\\)\\s*(?!.*sender)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 使用ipcMain.handle/ipcMain.on注册明确的channel; 2. 在handler中校验event.sender是否为预期窗口; 3. 实现channel白名单机制",
+      "references": ["https://www.electronjs.org/docs/latest/tutorial/ipc", "https://www.electronjs.org/docs/latest/api/ipc-main"]
+    },
+    {
+      "check_id": "ELN-SEC-006",
+      "name": "webSecurity配置为false",
+      "severity": "critical",
+      "category": "security",
+      "description": "webPreferences中webSecurity设置为false，禁用了同源策略等Web安全机制。渲染进程可访问任何域的资源，存在严重的安全风险。",
+      "pattern": "webSecurity\\s*:\\s*false",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "严禁将webSecurity设置为false。如需跨域访问，应通过配置CORS头或使用session.webRequest拦截请求来实现",
+      "references": ["https://www.electronjs.org/docs/latest/api/structures/web-preferences", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-007",
+      "name": "允许运行不安全内容",
+      "severity": "critical",
+      "category": "security",
+      "description": "allowRunningInsecureContent设置为true，允许HTTPS页面加载HTTP资源（脚本/样式），可被中间人攻击替换为恶意内容。",
+      "pattern": "allowRunningInsecureContent\\s*:\\s*true",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "将allowRunningInsecureContent设置为false（默认值）。确保所有资源通过HTTPS加载，使用CSP策略限制可加载的来源",
+      "references": ["https://www.electronjs.org/docs/latest/api/structures/web-preferences", "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"]
+    },
+    {
+      "check_id": "ELN-SEC-008",
+      "name": "自动更新未验证代码签名",
+      "severity": "high",
+      "category": "security",
+      "description": "autoUpdater未验证更新包的代码签名（app.asar/安装包），攻击者可替换更新服务器或中间人注入恶意更新包。",
+      "pattern": "autoUpdater\\.checkForUpdates\\s*\\(\\)(?!.*verify|.*signature|.*codeSign)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 使用electron-updater并确保配置了有效的代码签名证书; 2. 监听error事件处理签名验证失败; 3. 使用HTTPS下载更新包",
+      "references": ["https://www.electronjs.org/docs/latest/api/auto-updater", "https://www.electron.build/auto-update"]
+    },
+    {
+      "check_id": "ELN-SEC-009",
+      "name": "生产环境暴露DevTools",
+      "severity": "medium",
+      "category": "security",
+      "description": "生产环境中未禁用DevTools快捷键（Ctrl+Shift+I/Cmd+Option+I），用户或攻击者可打开开发者工具查看应用内部逻辑、调试信息。",
+      "pattern": "webPreferences\\.devTools\\s*=\\s*true|globalShortcut\\.register\\s*\\(\\s*['\"](?:CommandOrControl|Cmd)\\+(?:Shift|Option)\\+[Ii]",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 生产环境设置webPreferences.devTools: false; 2. 注册快捷键拦截Ctrl+Shift+I; 3. 使用process.env.NODE_ENV判断环境",
+      "references": ["https://www.electronjs.org/docs/latest/api/structures/web-preferences", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-010",
+      "name": "新窗口创建未安全处理",
+      "severity": "high",
+      "category": "security",
+      "description": "未处理webContents的new-window事件，点击链接可创建不受控的新窗口（新BrowserWindow），新窗口可能继承不安全配置。",
+      "pattern": "(?!.*new-window)(?!.*setWindowOpenHandler)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 使用setWindowOpenHandler拦截新窗口创建; 2. 校验URL白名单; 3. 使用action: 'deny'阻止不信任的窗口打开; 4. 允许时使用安全的webPreferences",
+      "references": ["https://www.electronjs.org/docs/latest/api/web-contents", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-011",
+      "name": "文件拖放安全未处理",
+      "severity": "medium",
+      "category": "security",
+      "description": "未处理will-navigate事件和drop事件，攻击者可通过拖放恶意文件到窗口触发文件加载或执行，导致本地文件泄露。",
+      "pattern": "(?!.*will-navigate)(?!.*drop)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 监听webContents的will-navigate事件，阻止导航到file://协议; 2. 监听drop事件并preventDefault阻止文件加载",
+      "references": ["https://www.electronjs.org/docs/latest/tutorial/security", "https://www.electronjs.org/docs/latest/api/web-contents"]
+    },
+    {
+      "check_id": "ELN-SEC-012",
+      "name": "协议处理器注册不安全",
+      "severity": "high",
+      "category": "security",
+      "description": "使用protocol.registerFileProtocol或registerHttpProtocol时未限制访问路径，攻击者可通过构造路径遍历攻击（../）读取系统任意文件。",
+      "pattern": "protocol\\.register(?:File|Http)Protocol\\s*\\(\\s*['\"][^'\"]+['\"][^)]*\\)\\s*(?!.*path\\.resolve|.*sanitize)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 在协议处理器中校验和净化请求路径; 2. 使用path.resolve和startsWith校验路径不超出白名单目录; 3. 禁止处理file://协议",
+      "references": ["https://www.electronjs.org/docs/latest/api/protocol", "https://cwe.mitre.org/data/definitions/22.html"]
+    },
+    {
+      "check_id": "ELN-SEC-013",
+      "name": "BrowserWindow未正确释放导致内存泄漏",
+      "severity": "medium",
+      "category": "memory",
+      "description": "创建BrowserWindow后未监听closed事件清理引用，或未在窗口关闭时释放关联资源（事件监听、定时器、IPC引用），导致内存持续增长。",
+      "pattern": "new\\s+BrowserWindow[^;]*;\\s*(?!.*closed|.*on\\s*\\(\\s*['\"]closed)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 监听closed事件将窗口引用设为null; 2. 关闭窗口前移除所有事件监听器和定时器; 3. 使用WeakRef管理窗口引用",
+      "references": ["https://www.electronjs.org/docs/latest/api/browser-window", "https://nodejs.org/api/globals.html#weakref"]
+    },
+    {
+      "check_id": "ELN-SEC-014",
+      "name": "nativeWindowOpen配置不当",
+      "severity": "medium",
+      "category": "security",
+      "description": "nativeWindowOpen未设置为true，使用旧的window.open实现，可能继承不安全的webPreferences配置。Electron 12+已默认启用。",
+      "pattern": "nativeWindowOpen\\s*:\\s*false",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "设置nativeWindowOpen: true（Electron 12+默认值）。使用新的窗口创建路径，确保新窗口继承安全配置",
+      "references": ["https://www.electronjs.org/docs/latest/api/window-open", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-015",
+      "name": "disableWebSecurity检测",
+      "severity": "critical",
+      "category": "security",
+      "description": "disableWebSecurity设置为true或存在该配置，完全禁用Web安全特性（同源策略、CSP等），等同于关闭所有Web安全防线。",
+      "pattern": "disableWebSecurity\\s*:\\s*true|disablewebsecurity",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "严禁设置disableWebSecurity: true。如需特殊需求，使用session.webRequest精细控制请求，而非全局禁用安全特性",
+      "references": ["https://www.electronjs.org/docs/latest/api/structures/web-preferences", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-016",
+      "name": "远程内容加载缺少安全校验",
+      "severity": "high",
+      "category": "security",
+      "description": "使用loadURL加载远程HTTPS内容时，未校验证书有效性或未设置安全相关配置，可能加载被篡改的远程页面。",
+      "pattern": "\\.loadURL\\s*\\(\\s*['\"]https://",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 实现certificate-error事件处理，校验服务器证书; 2. 加载远程内容时确保nodeIntegration: false, contextIsolation: true; 3. 设置CSP限制可加载内容",
+      "references": ["https://www.electronjs.org/docs/latest/api/app", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-017",
+      "name": "权限请求未做用户确认",
+      "severity": "medium",
+      "category": "security",
+      "description": "未在session的permission-request或setPermissionRequestHandler中拦截权限请求（摄像头/麦克风/地理位置/通知），远程内容可自动获取权限。",
+      "pattern": "(?!.*setPermissionRequestHandler)(?!.*permission-request)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "1. 使用session.defaultSession.setPermissionRequestHandler拦截权限请求; 2. 对用户弹出确认对话框; 3. 默认拒绝远程内容的权限请求",
+      "references": ["https://www.electronjs.org/docs/latest/api/session", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-018",
+      "name": "未使用content-security-policy meta标签",
+      "severity": "high",
+      "category": "security",
+      "description": "加载HTML内容时未设置Content-Security-Policy，无法限制页面可加载的脚本来源和执行的代码类型。",
+      "pattern": "(?!.*<meta[^>]+http-equiv=[\"']Content-Security-Policy[\"'])",
+      "file_pattern": "*.html, *.js, *.ts",
+      "suggestion": "在HTML中添加CSP meta标签或webContents.on('headers-received')中设置CSP头：script-src 'self'; object-src 'none'",
+      "references": ["https://www.electronjs.org/docs/latest/tutorial/security", "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"]
+    },
+    {
+      "check_id": "ELN-SEC-019",
+      "name": "未处理证书错误事件",
+      "severity": "high",
+      "category": "security",
+      "description": "未监听app的certificate-error事件，当远程HTTPS请求证书无效时不会有任何提示，可能连接到中间人攻击服务器。",
+      "pattern": "(?!.*certificate-error)",
+      "file_pattern": "*.js, *.ts",
+      "suggestion": "监听app.on('certificate-error')事件，校验证书有效性。对于非预期证书应阻止连接(event.preventDefault + callback(false))",
+      "references": ["https://www.electronjs.org/docs/latest/api/app", "https://www.electronjs.org/docs/latest/tutorial/security"]
+    },
+    {
+      "check_id": "ELN-SEC-020",
+      "name": "asar包未启用完整性校验",
+      "severity": "medium",
+      "category": "security",
+      "description": "打包后的app.asar未配置完整性校验（integrity），可能被替换为恶意修改后的asar包，导致代码注入。",
+      "pattern": "(?!.*integrity)(?!.*appAsar)",
+      "file_pattern": "*.js, *.ts, package.json",
+      "suggestion": "1. 在electron-builder配置中设置asar.integrity; 2. 启用代码签名; 3. 在启动时验证asar包的完整性哈希",
+      "references": ["https://www.electronjs.org/docs/latest/tutorial/application-distribution", "https://www.electron.build/configuration/asar"]
+    }
+  ]
+}
