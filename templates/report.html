@@ -1,0 +1,1805 @@
+{% extends "base.html" %}
+
+{% block title %}检测报告 - 煋鉴 Xinpect</title>
+{% endblock %}
+
+{% block content %}
+<section class="section" style="padding: 32px 0;">
+    <div class="container">
+        <!-- 返回 -->
+        <div style="margin-bottom:20px;">
+            <a href="{{ url_for('upload_page') }}" style="color:var(--text-muted);font-size:14px;">← 返回上传</a>
+        </div>
+
+        <!-- 报告头部：双栏布局（架构评级 + 健康分） -->
+        <div class="report-summary">
+            <!-- 左栏：积木架构评级 -->
+            <div class="summary-col summary-arch">
+                <div class="summary-col-head">
+                    <span class="summary-col-title">架构健康度</span>
+                    <div class="info-tooltip" title="积木架构评级评估代码架构设计水平：职责清晰、函数精简、入口统一、测试完备、依赖干净。五大原则共同决定架构健康度，雷达图直观呈现每个维度得分。">
+                        ⓘ
+                    </div>
+                    {% if not is_vip %}
+                    <span class="status-badge info" style="margin-left:auto;">免费版 · 规范层</span>
+                    {% else %}
+                    <span class="status-badge success" style="margin-left:auto;">专业版 · 全维度</span>
+                    {% endif %}
+                </div>
+
+                <!-- 积木架构五维雷达图 -->
+                <div class="bb-radar-wrap">
+                    <canvas id="bbRadarChart" width="280" height="280" style="width:280px;height:280px;"></canvas>
+                </div>
+                <div class="arch-grade-sub">积木架构五维雷达图 · 五大原则共同决定架构健康度</div>
+
+                <!-- 五维得分明细 -->
+                <div class="bb-dim-list">
+                    {% set bb_keys = ['one_module_one_thing', 'one_func_one_thing', 'one_module_one_entry', 'one_module_one_test', 'clean_splicing'] %}
+                    {% for key in bb_keys %}
+                    {% set bb = bb_scores.get(key, {}) %}
+                    <div class="bb-dim-item {% if not bb.get('detected') %}not-detected{% endif %}" title="{{ bb.get('desc', '') }}">
+                        <span class="bb-dim-name">{{ bb.get('name', key) }}</span>
+                        <span class="bb-dim-score">
+                            {% if bb.get('detected') %}
+                                {{ bb.get('grade', 'A') }}级
+                            {% else %}
+                                未检测
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="tier-mini-cards">
+                    {% for tier in tiers %}
+                    {% set ts = tier_scores[tier.key] %}
+                    <div class="tier-mini-card" data-tier="{{ tier.key }}" onclick="toggleTierFilter('{{ tier.key }}')">
+                        <div class="tier-mini-icon">
+                            {% if tier.key == 'spec' %}🎨
+                            {% elif tier.key == 'quality' %}🧱
+                            {% elif tier.key == 'security' %}🛡️
+                            {% endif %}
+                        </div>
+                        <div class="tier-mini-body">
+                            <div class="tier-mini-name">{{ tier.name }}</div>
+                            {% if ts.locked %}
+                            <div class="tier-mini-grade locked">🔒</div>
+                            <div class="tier-mini-desc">升级解锁</div>
+                            {% else %}
+                            <div class="tier-mini-grade grade-{{ ts.grade }}">{{ ts.grade }} · {{ ts.score }}分</div>
+                            <div class="tier-mini-desc">{{ ts.issue_count }} 个问题</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 中部分隔线 -->
+            <div class="summary-divider"></div>
+
+            <!-- 右栏：代码健康分 -->
+            <div class="summary-col summary-health">
+                <div class="summary-col-head">
+                    <span class="summary-col-title">代码健康分</span>
+                    <div class="info-tooltip" title="基于问题数量和严重程度的扣分制评分。问题越多、越严重，分数越低，反映当前代码的健康状况。">
+                        ⓘ
+                    </div>
+                </div>
+
+                <div class="health-score-wrap">
+                    <div class="health-score-number">{{ score }}</div>
+                    <div class="health-score-unit">/ 100</div>
+                </div>
+                <div class="health-score-sub">基于问题数量与严重度的扣分制得分</div>
+
+                <div class="severity-stats">
+                    <div class="sev-item sev-critical">
+                        <div class="sev-num">{{ severity_counts.critical }}</div>
+                        <div class="sev-label">严重</div>
+                    </div>
+                    <div class="sev-item sev-high">
+                        <div class="sev-num">{{ severity_counts.high }}</div>
+                        <div class="sev-label">高危</div>
+                    </div>
+                    <div class="sev-item sev-medium">
+                        <div class="sev-num">{{ severity_counts.medium }}</div>
+                        <div class="sev-label">中危</div>
+                    </div>
+                    <div class="sev-item sev-low">
+                        <div class="sev-num">{{ severity_counts.low }}</div>
+                        <div class="sev-label">低危</div>
+                    </div>
+                    <div class="sev-item sev-info">
+                        <div class="sev-num">{{ severity_counts.info }}</div>
+                        <div class="sev-label">建议</div>
+                    </div>
+                </div>
+
+                <div class="report-meta-inline">
+                    <span>📄 {{ file_count }} 个文件</span>
+                    <span>🐛 共 {{ total_issues }} 个问题</span>
+                    <span>⏱ {{ created_at }}</span>
+                    <span>🔖 ID: {{ scan_id[:8] }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 报告标题 + 操作 -->
+        <div class="report-title-bar">
+            <h2 style="font-size:20px;font-weight:700;margin:0;">{{ report_title }}</h2>
+            <div class="report-actions">
+                <a href="{{ url_for('download_report', scan_id=scan_id) }}" class="btn btn-primary">
+                    📥 下载 MD 报告 <span style="font-size:11px;opacity:.7;">(AI友好)</span>
+                </a>
+                <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">
+                    🔄 再测一次
+                </a>
+                {% if not is_vip %}
+                <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">
+                    ⚡ 升级解锁全维度
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 修复路线图 -->
+        {% if fix_roadmap %}
+        <div class="fix-roadmap-card">
+            <div class="roadmap-header">
+                <h3>📋 修复路线图</h3>
+                <span class="roadmap-total">共 {{ visible_issues_count }} 个问题</span>
+            </div>
+            <div class="roadmap-priority-bar">
+                {% for p in ['P0', 'P1', 'P2', 'P3'] %}
+                {% set s = fix_roadmap.summary[p] %}
+                {% if s.issue_count > 0 %}
+                <div class="priority-segment" style="flex:{{ s.issue_count }};background:{{ s.color }};" onclick="filterByPriority('{{ p }}')" title="{{ s.label }}: {{ s.issue_count }}个问题">
+                    <span class="priority-segment-label">{{ s.icon }} {{ s.issue_count }}</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="roadmap-priority-list">
+                {% for p in ['P0', 'P1', 'P2', 'P3'] %}
+                {% set s = fix_roadmap.summary[p] %}
+                <div class="priority-row" onclick="filterByPriority('{{ p }}')" style="cursor:pointer;">
+                    <span class="priority-icon">{{ s.icon }}</span>
+                    <span class="priority-label" style="color:{{ s.color }};font-weight:600;">{{ s.label }}</span>
+                    <span class="priority-count">{{ s.file_count }}个文件 · {{ s.issue_count }}个问题</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if fix_roadmap.top_fixes %}
+            <div class="roadmap-top-fixes">
+                <div class="top-fixes-title">🎯 推荐优先修复</div>
+                {% for fix in fix_roadmap.top_fixes %}
+                <div class="top-fix-item">
+                    <span class="top-fix-num" style="color:{{ fix.color }};">{{ loop.index }}</span>
+                    <span class="top-fix-icon">{{ fix.icon }}</span>
+                    <span class="top-fix-title">{{ fix.title }}{% if fix.count > 1 %} (×{{ fix.count }}){% endif %}</span>
+                    <span class="top-fix-file">{{ fix.file_short }}:{{ fix.line }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- 修复进度 -->
+        {% if fix_progress %}
+        <div class="fix-progress-card">
+            <div class="progress-header">
+                <h3>📈 修复进度</h3>
+                <span class="progress-sub">对比上次扫描：{{ fix_progress.previous_scan.created_at }}</span>
+            </div>
+            <div class="progress-stats">
+                <div class="progress-stat fixed">
+                    <div class="progress-stat-num" style="color:#10B981;">✅ {{ fix_progress.fixed_total }}</div>
+                    <div class="progress-stat-label">已修复</div>
+                </div>
+                <div class="progress-stat new">
+                    <div class="progress-stat-num" style="color:#EF4444;">⚠️ {{ fix_progress.new_total }}</div>
+                    <div class="progress-stat-label">新增</div>
+                </div>
+                <div class="progress-stat remaining">
+                    <div class="progress-stat-num">{{ fix_progress.remaining }}</div>
+                    <div class="progress-stat-label">仍存在</div>
+                </div>
+                <div class="progress-stat rate">
+                    <div class="progress-stat-num" style="color:{{ '#10B981' if fix_progress.score_change >= 0 else '#EF4444' }};">
+                        {{ '+' if fix_progress.score_change >= 0 else '' }}{{ fix_progress.score_change }}
+                    </div>
+                    <div class="progress-stat-label">分数变化</div>
+                </div>
+            </div>
+            <div class="progress-detail-row">
+                {% for p in ['P0', 'P1', 'P2', 'P3'] %}
+                {% if fix_progress.fixed[p] > 0 %}
+                <span class="progress-detail-item">
+                    {% if p == 'P0' %}🔴{% elif p == 'P1' %}🟡{% elif p == 'P2' %}🟠{% else %}⚪{% endif %}
+                    {{ p }}: {{ fix_progress.fixed[p] }}个已修
+                </span>
+                {% endif %}
+                {% endfor %}
+                <span class="progress-rate-badge">修复率 {{ fix_progress.fix_rate }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 9 大引擎得分卡片 -->
+        <div class="dimensions-grid">
+            {% for dim in dimensions %}
+            <div class="dimension-card {% if dim.locked %}locked{% endif %} {% if loop.first %}active{% endif %}" data-brain="{{ dim.id }}">
+                <div class="dimension-header">
+                    <div class="dimension-brain">B{{ dim.id }}</div>
+                    <div class="dimension-title">{{ dim.name }}</div>
+                </div>
+                {% if dim.locked %}
+                <div class="dimension-locked-badge">
+                    <span>🔒</span>
+                    <span>升级解锁专业检测</span>
+                </div>
+                <div style="margin-top:8px;">
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" style="font-size:12px;color:var(--accent-orange);">查看详情 →</a>
+                </div>
+                {% else %}
+                <div class="dimension-score-row">
+                    <span class="dimension-score" style="color:{{ dim.score_color }};">{{ dim.score }}</span>
+                    <div class="dimension-score-bar">
+                        <div class="dimension-score-bar-fill" style="width:{{ dim.score }}%;background:{{ dim.score_color }};"></div>
+                    </div>
+                </div>
+                <div class="dimension-issues-count">{{ dim.issues_count }} 个问题</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 问题列表 -->
+        <div class="issues-section">
+            <div class="issues-header">
+                <div class="issues-title">
+                    问题列表 <span id="issues-count" style="color:var(--text-muted);font-weight:400;">({{ visible_issues_count }})</span>
+                    <span id="tier-filter-tag" style="display:none;margin-left:8px;padding:2px 8px;background:var(--primary-color);color:#fff;border-radius:4px;font-size:12px;"></span>
+                    <span id="brain-filter-tag" style="display:none;margin-left:6px;padding:2px 8px;background:var(--primary-color);color:#fff;border-radius:4px;font-size:12px;"></span>
+                    <button id="reset-all-filter" onclick="resetAllFilters()" style="display:none;margin-left:8px;padding:2px 10px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-color);border-radius:4px;font-size:12px;cursor:pointer;vertical-align:middle;">× 查看全部</button>
+                </div>
+                <div class="issues-filters">
+                    <button class="filter-btn active" data-filter="all">全部</button>
+                    <button class="filter-btn critical" data-filter="critical">严重</button>
+                    <button class="filter-btn high" data-filter="high">高危</button>
+                    <button class="filter-btn medium" data-filter="medium">中等</button>
+                    <button class="filter-btn low" data-filter="low">轻微</button>
+                    <button class="filter-btn info" data-filter="info">建议</button>
+                    <span style="width:1px;height:16px;background:var(--border-color);margin:0 8px;display:inline-block;vertical-align:middle;"></span>
+                    <button class="source-filter-btn source-active" data-source="all">全部方式</button>
+                    <button class="source-filter-btn" data-source="rule">🔧 规则</button>
+                    <button class="source-filter-btn" data-source="ai">🧠 AI</button>
+                </div>
+            </div>
+
+            {% if visible_issues %}
+                {% for issue in visible_issues %}
+                <div class="issue-item" data-brain="{{ issue.brain_id }}" data-severity="{{ issue.severity }}" data-tier="{{ issue.tier }}" data-source="{{ 'ai' if issue.ai_source and issue.ai_source != 'rule' else 'rule' }}">
+                    <div class="issue-header">
+                        <span class="issue-severity {{ issue.severity }}">{{ issue.severity_label }}</span>
+                        {% if issue.ai_source and issue.ai_source != 'rule' %}
+                            <span class="source-badge source-ai" title="AI模型分析">🧠 AI</span>
+                            {% if is_vip %}
+                                {% if issue.ai_source == 'ai_confirmed' %}
+                                <span class="ai-verify-badge verified" title="AI验证为真实漏洞">✓ AI验证</span>
+                                {% elif issue.ai_source == 'ai_false_positive' %}
+                                <span class="ai-verify-badge fp" title="AI判定可能为误报">⚪ 可能误报</span>
+                                {% elif issue.ai_source == 'ai_failed' %}
+                                <span class="ai-verify-badge failed" title="AI深度诊断调用失败">⚠️ AI诊断未执行</span>
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            <span class="source-badge source-rule" title="规则引擎检测">🔧 规则</span>
+                        {% endif %}
+                        <span class="issue-title">{{ issue.title }}</span>
+                        <span class="issue-location">
+                            {% if is_vip %}
+                                {{ issue.file }}:{{ issue.line }}
+                            {% else %}
+                                {{ issue.file }} 🔒 <span style="color:var(--accent-orange);font-weight:500;">升级查看位置</span>
+                            {% endif %}
+                        </span>
+                        <button class="fp-mark-btn" onclick="markFalsePositive(this, '{{ issue.rule_id }}', '{{ issue.file }}', {{ issue.line }}, '{{ issue.title|e }}')" title="标记为误报" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:12px;color:#adb5bd;opacity:0.6;transition:all 0.2s;" onmouseover="this.style.opacity='1';this.style.color='#ef4444'" onmouseout="this.style.opacity='0.6';this.style.color='#adb5bd'">⊘</button>
+                        <span class="issue-toggle">▼</span>
+                    </div>
+                    <div class="issue-body">
+                        <div class="issue-desc">{{ issue.description }}</div>
+
+                        {% if issue.code_snippet %}
+                        <div class="issue-section-title">📝 问题代码</div>
+                        {% if is_vip %}
+                        <pre class="issue-code">{{ issue.code_snippet }}</pre>
+                        {% else %}
+                        <div class="free-suggestion-mask">
+                            <div class="free-mask-text">🔒 升级专业版解锁问题代码定位</div>
+                            <div class="free-mask-hint">知道哪个文件有问题，还想知道具体哪一行？升级专业版查看精确定位 + 代码上下文</div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        {% if issue.suggestion %}
+                        <div class="issue-section-title">💡 修复建议</div>
+                        {% if is_vip %}
+                        <div class="issue-suggestion">{{ issue.suggestion }}</div>
+                        {% else %}
+                        <div class="free-suggestion-mask">
+                            <div class="free-mask-text">🔒 升级专业版解锁修复建议</div>
+                            <div class="free-mask-hint">知道问题在哪，还要知道怎么修。专业版提供每条问题的修复方案 + AI智能分析</div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        {% if issue.fix_summary %}
+                        <div class="issue-section-title">⚡ 快速修复</div>
+                        <div class="issue-suggestion" style="background:linear-gradient(135deg, #FFF7E6 0%, #FFF1EB 100%); border:1px solid #FFD591; color:#D46B08; padding:12px 16px; border-radius:8px;">
+                            <span style="font-weight:600;">{{ issue.fix_summary }}</span>
+                            {% if issue.fix_suggestion and is_vip %}
+                            <button class="ai-copy-btn" onclick="showFixDetail(this)" style="margin-left:8px;float:right;background:#1A3A5C;color:white;border:none;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;">查看详情</button>
+                            <div class="fix-detail-content" style="display:none;margin-top:10px;">{{ issue.fix_suggestion|safe }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if is_vip and issue.ai_analysis %}
+                        <div class="ai-analysis-block">
+                            <div class="ai-analysis-header">
+                                <span class="ai-badge">🧠 AI深度分析</span>
+                                <span class="ai-confidence">置信度 {{ issue.ai_confidence }}%</span>
+                                {% if issue.ai_source == 'ai_false_positive' %}
+                                <span class="ai-badge-fp">⚠️ 误报判定</span>
+                                {% endif %}
+                                {% if issue.ai_exploitability %}
+                                <span class="ai-exploitability">可利用性: {{ issue.ai_exploitability }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="ai-analysis-content">{{ issue.ai_analysis }}</div>
+
+                            {% if issue.ai_fix_suggestion %}
+                            <div class="ai-fix-block">
+                                <div class="ai-fix-title">🔧 AI修复建议</div>
+                                <button class="ai-copy-btn" onclick="copyFixCode(this)" title="复制修复代码">📋 复制代码</button>
+                                <div class="ai-fix-content">{{ issue.ai_fix_suggestion }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div style="margin-top:14px;display:flex;gap:12px;font-size:12px;color:var(--text-muted);">
+                            <span>检测维度：B{{ issue.brain_id }} {{ issue.brain_name }}</span>
+                            <span>规则ID：{{ issue.rule_id }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                {% if is_vip %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎉</div>
+                    <div class="empty-state-text">太棒了！未检测到任何问题</div>
+                    <a href="{{ url_for('upload_page') }}" class="btn btn-primary">检测更多代码</a>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔒</div>
+                    <div class="empty-state-text">免费版仅展示规范层问题<br>升级专业版解锁全部 9 大引擎检测</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">立即升级</a>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {% if style_count and style_count > 0 %}
+        <!-- P0: 代码风格建议折叠面板 -->
+        <div class="style-panel" id="stylePanel" style="margin-top:24px;">
+            <div class="style-panel-header" onclick="toggleStylePanel()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-radius:12px;cursor:pointer;border:1px solid #e0e0e0;transition:all 0.2s;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:20px;">🎨</span>
+                    <span style="font-weight:600;color:#495057;font-size:16px;">代码风格建议</span>
+                    <span style="background:#6c757d;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ style_count }} 条</span>
+                    <span style="font-size:12px;color:#868e96;margin-left:4px;">不影响安全评分</span>
+                </div>
+                <span id="styleArrow" style="transition:transform 0.3s;color:#868e96;font-size:14px;">&#9660;</span>
+            </div>
+            <div id="styleContent" style="display:none;padding:16px 0;">
+                <div style="display:grid;gap:12px;">
+                {% for issue in style_issues %}
+                <div class="style-issue-card" style="background:#fafbfc;border:1px solid #e9ecef;border-radius:10px;padding:14px 16px;border-left:3px solid #adb5bd;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <span style="background:#e9ecef;color:#495057;padding:2px 8px;border-radius:6px;font-size:11px;">{{ issue.severity_label }}</span>
+                        <span style="background:#e9ecef;color:#495057;padding:2px 8px;border-radius:6px;font-size:11px;">{{ issue.brain_name }}</span>
+                        <span style="font-size:11px;color:#868e96;">{{ issue.rule_id }}</span>
+                    </div>
+                    <div style="font-weight:600;color:#495057;font-size:14px;margin-bottom:4px;">{{ issue.title }}</div>
+                    {% if issue.description %}
+                    <div style="color:#868e96;font-size:13px;margin-bottom:6px;">{{ issue.description }}</div>
+                    {% endif %}
+                    <div style="font-size:12px;color:#6c757d;">
+                        📄 {{ issue.file }}{% if issue.line %}<span style="color:#adb5bd;">:{{ issue.line }}</span>{% endif %}
+                    </div>
+                    {% if issue.code_snippet %}
+                    <pre style="background:#f1f3f5;padding:10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;overflow-x:auto;margin-top:8px;color:#495057;border:1px solid #e9ecef;white-space:pre-wrap;word-break:break-all;">{{ issue.code_snippet }}</pre>
+                    {% endif %}
+                    {% if issue.suggestion %}
+                    <div style="margin-top:8px;padding:10px;background:#e8f5e9;border-radius:8px;color:#2e7d32;font-size:13px;">💡 {{ issue.suggestion }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        <script>
+        function toggleStylePanel() {
+            var content = document.getElementById('styleContent');
+            var arrow = document.getElementById('styleArrow');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+        </script>
+        {% endif %}
+
+        <!-- 免费版升级引导 -->
+        {% if not is_vip %}
+        <div style="margin-top:24px;background:linear-gradient(135deg, rgba(26,58,92,0.1) 0%, rgba(37,99,235,0.05) 100%);border:1px solid rgba(26,58,92,0.3);border-radius:var(--radius-lg);padding:32px;display:flex;align-items:center;gap:32px;">
+            <div style="font-size:48px;">🚀</div>
+            <div style="flex:1;">
+                <h3 style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--accent-orange);">升级专业版，解锁完整检测能力</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">E3 性能与可靠性 · E5 架构与部署 · E4 代码质量 · E2 安全检测 · E6 组件合规，5 大专业维度等你体验</p>
+                <div style="display:flex;gap:24px;font-size:14px;color:var(--text-secondary);flex-wrap:wrap;">
+                    <span>✓ 全部 9 大引擎检测</span>
+                    <span>✓ 无限检测次数</span>
+                    <span>✓ 完整报告下载</span>
+                    <span>✓ 优先技术支持</span>
+                </div>
+            </div>
+            <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange btn-lg">立即升级</a>
+        </div>
+        {% endif %}
+    </div>
+
+<!-- ========== 扫描结果反馈区域 ========== -->
+<div class="feedback-section" id="feedbackSection" style="margin:32px auto;max-width:600px;text-align:center;padding:24px;background:var(--card-bg,#fff);border-radius:12px;border:1px solid var(--border-color,#e5e7eb);">
+    <div id="feedbackInitial">
+        <p style="font-size:16px;font-weight:600;margin:0 0 16px;color:var(--text-primary,#1a1a1a);">扫描结果有用吗？</p>
+        <div style="display:flex;gap:16px;justify-content:center;">
+            <button onclick="submitRating(5)" style="padding:10px 28px;border-radius:8px;border:1px solid #22c55e;background:#f0fdf4;color:#16a34a;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;">
+                👍 有用
+            </button>
+            <button onclick="submitRating(1)" style="padding:10px 28px;border-radius:8px;border:1px solid #ef4444;background:#fef2f2;color:#dc2626;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;">
+                👎 没用
+            </button>
+        </div>
+    </div>
+    <div id="feedbackForm" style="display:none;margin-top:16px;text-align:left;">
+        <p style="font-size:14px;color:var(--text-secondary,#6b7280);margin:0 0 12px;" id="feedbackFormTitle">请告诉我们哪里不够好：</p>
+        <div id="issueTypeCheckboxes" style="display:none;margin-bottom:12px;">
+            <label style="display:inline-flex;align-items:center;gap:4px;margin:4px 8px 4px 0;font-size:13px;cursor:pointer;">
+                <input type="checkbox" value="漏报" class="feedback-issue-cb"> 漏报（真实问题没扫出来）
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:4px;margin:4px 8px 4px 0;font-size:13px;cursor:pointer;">
+                <input type="checkbox" value="误报" class="feedback-issue-cb"> 误报（扫出的不是问题）
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:4px;margin:4px 8px 4px 0;font-size:13px;cursor:pointer;">
+                <input type="checkbox" value="报告不清晰" class="feedback-issue-cb"> 报告不清晰
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:4px;margin:4px 8px 4px 0;font-size:13px;cursor:pointer;">
+                <input type="checkbox" value="修复建议没用" class="feedback-issue-cb"> 修复建议没用
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:4px;margin:4px 8px 4px 0;font-size:13px;cursor:pointer;">
+                <input type="checkbox" value="其他" class="feedback-issue-cb"> 其他
+            </label>
+        </div>
+        <textarea id="feedbackText" placeholder="具体反馈（可选，最多1000字）" maxlength="1000" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--border-color,#e5e7eb);border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+        <div style="margin-top:12px;display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="cancelFeedback()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color,#e5e7eb);background:transparent;color:var(--text-secondary,#6b7280);font-size:13px;cursor:pointer;">取消</button>
+            <button onclick="submitFeedbackForm()" style="padding:8px 20px;border-radius:6px;border:none;background:#1A3A5C;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">提交反馈</button>
+        </div>
+    </div>
+    <div id="feedbackThanks" style="display:none;">
+        <p style="font-size:16px;font-weight:600;color:#22c55e;margin:0;">✓ 感谢反馈！</p>
+        <p style="font-size:13px;color:var(--text-secondary,#6b7280);margin:8px 0 0;">您的反馈帮助我们持续改进检测质量</p>
+    </div>
+</div>
+
+<style>
+.feedback-section button:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.feedback-section button:active { transform: translateY(0); }
+@media (max-width: 480px) {
+    #feedbackSection { margin: 20px 12px !important; padding: 16px !important; }
+}
+
+/* ========== PDF 导出样式 ========== */
+.pdf-export-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px;
+    background: linear-gradient(135deg, #1A3A5C, #1E40AF);
+    color: #fff; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer;
+    transition: all 0.2s;
+}
+.pdf-export-btn:hover {
+    background: linear-gradient(135deg, #1E40AF, #d14d1f);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,58,92,0.3);
+}
+.pdf-export-btn:active { transform: translateY(0); }
+.pdf-export-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+.pdf-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,15,26,0.85);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(4px);
+}
+.pdf-overlay-inner { text-align: center; color: #f1f5f9; }
+.pdf-overlay .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(26,58,92,0.2);
+    border-top-color: #1A3A5C;
+    border-radius: 50%;
+    animation: pdf-spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+@keyframes pdf-spin { to { transform: rotate(360deg); } }
+.pdf-overlay .msg { font-size: 15px; font-weight: 600; }
+.pdf-overlay .sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+
+.action-buttons { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ===== 打印专用样式 ===== */
+@media print {
+    .topbar, .footer, .pdf-export-btn, .badge-section,
+    .action-buttons, .fp-mark-btn, .issue-toggle,
+    .filter-bar, .tab-nav, .drill-down-section,
+    button:not(.pdf-export-btn), .btn { display: none !important; }
+
+    @page {
+        size: A4 portrait;
+        margin: 15mm 12mm 20mm 12mm;
+    }
+
+    body {
+        background: #fff !important;
+        color: #1a1a1a !important;
+        font-size: 11pt !important;
+        line-height: 1.5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .container { max-width: 100% !important; padding: 0 !important; }
+    .main { padding: 0 !important; }
+
+    .report-header {
+        background: #f8f9fa !important;
+        border: 2px solid #1A3A5C !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+        margin-bottom: 16px !important;
+        page-break-inside: avoid;
+    }
+    .report-header h1 { color: #1a1a1a !important; font-size: 18pt !important; }
+
+    .score-circle { border-width: 3px !important; }
+    .score-circle .score-num { font-size: 28pt !important; }
+    .score-excellent { border-color: #22c55e !important; color: #22c55e !important; }
+    .score-good { border-color: #1A3A5C !important; color: #1A3A5C !important; }
+    .score-fair { border-color: #f59e0b !important; color: #f59e0b !important; }
+    .score-poor { border-color: #ef4444 !important; color: #ef4444 !important; }
+
+    .meta-label { color: #666 !important; }
+    .meta-value { color: #1a1a1a !important; }
+
+    .stats-row { gap: 8px !important; margin-bottom: 16px !important; }
+    .stat-card {
+        background: #f8f9fa !important;
+        border: 1px solid #ddd !important;
+        border-radius: 6px !important;
+        padding: 12px !important;
+        page-break-inside: avoid;
+    }
+    .stat-num { color: #1a1a1a !important; font-size: 20pt !important; }
+    .stat-num.critical { color: #ef4444 !important; }
+    .stat-num.warning { color: #f59e0b !important; }
+    .stat-num.info { color: #3b82f6 !important; }
+    .stat-num.total { color: #1A3A5C !important; }
+    .stat-label { color: #666 !important; }
+
+    .section-title {
+        font-size: 13pt !important;
+        margin-bottom: 10px !important;
+        margin-top: 16px !important;
+        page-break-after: avoid;
+        color: #1a1a1a !important;
+    }
+
+    .issue-section { margin-bottom: 16px !important; }
+    .issue-item {
+        background: #fff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        padding: 10px 14px !important;
+        margin-bottom: 6px !important;
+        page-break-inside: avoid;
+    }
+    .issue-item.critical { border-left: 4px solid #ef4444 !important; }
+    .issue-item.warning { border-left: 4px solid #f59e0b !important; }
+    .issue-item.info { border-left: 4px solid #3b82f6 !important; }
+
+    .issue-severity { font-size: 9pt !important; padding: 1px 6px !important; }
+    .issue-severity.critical { background: #fef2f2 !important; color: #ef4444 !important; }
+    .issue-severity.warning { background: #fffbeb !important; color: #d97706 !important; }
+    .issue-severity.info { background: #eff6ff !important; color: #3b82f6 !important; }
+
+    .issue-title { color: #1a1a1a !important; font-size: 11pt !important; }
+    .issue-file { color: #666 !important; font-size: 9pt !important; }
+    .issue-desc { color: #333 !important; font-size: 10pt !important; }
+
+    .issue-code, pre, code {
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 9pt !important;
+        background: #f5f5f5 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 4px !important;
+        padding: 6px 8px !important;
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
+        color: #1a1a1a !important;
+    }
+
+    .pdf-footer {
+        display: block !important;
+        text-align: center;
+        font-size: 9pt;
+        color: #999;
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #ddd;
+    }
+    .pdf-footer .brand { color: #1A3A5C; font-weight: 700; }
+
+    .empty-state { color: #666 !important; }
+}
+
+.pdf-footer { display: none; }
+
+    </style>
+
+</section>
+
+
+<style>
+/* 积木架构五维雷达图样式 */
+.bb-radar-wrap {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    margin: 8px auto 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.bb-radar-wrap canvas {
+    width: 280px !important;
+    height: 280px !important;
+}
+
+.bb-dim-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    margin-top: 12px;
+    font-size: 12px;
+}
+.bb-dim-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    background: rgba(99, 102, 241, 0.06);
+    border-radius: 6px;
+    border: 1px solid rgba(99, 102, 241, 0.1);
+}
+.bb-dim-item.not-detected {
+    background: rgba(156, 163, 175, 0.06);
+    border-color: rgba(156, 163, 175, 0.15);
+}
+.bb-dim-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+.bb-dim-item.not-detected .bb-dim-name {
+    color: var(--text-muted);
+}
+.bb-dim-score {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.bb-dim-item.not-detected .bb-dim-score {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+@media (max-width: 768px) {
+    .bb-radar-wrap {
+        max-width: 280px;
+    }
+    .bb-dim-list {
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 12px;
+        font-size: 11px;
+    }
+}
+
+/* 检测方式标签样式 */
+.source-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.6;
+    vertical-align: middle;
+}
+.source-badge.source-rule {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+.source-badge.source-ai {
+    background: rgba(37,99,235, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(37,99,235, 0.2);
+}
+.source-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    vertical-align: middle;
+}
+.source-filter-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* ===== 修复路线图样式 ===== */
+.fix-roadmap-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+.roadmap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.roadmap-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+.roadmap-total {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.roadmap-priority-bar {
+    display: flex;
+    height: 32px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    gap: 2px;
+}
+.priority-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    min-width: 40px;
+}
+.priority-segment:hover { opacity: 0.85; }
+.priority-segment-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.roadmap-priority-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.priority-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary, rgba(255,255,255,0.03));
+    transition: background 0.15s;
+}
+.priority-row:hover { background: rgba(255,255,255,0.06); }
+.priority-icon { font-size: 16px; }
+.priority-label { font-size: 14px; }
+.priority-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+.roadmap-top-fixes {
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+}
+.top-fixes-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+.top-fix-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.top-fix-item:last-child { border-bottom: none; }
+.top-fix-num { font-size: 14px; font-weight: 700; min-width: 20px; }
+.top-fix-icon { font-size: 14px; }
+.top-fix-title { color: var(--text-primary); font-weight: 500; flex: 1; }
+.top-fix-file { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+
+/* ===== 修复进度样式 ===== */
+.fix-progress-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+.progress-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.progress-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+.progress-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.progress-stat {
+    text-align: center;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+}
+.progress-stat-num { font-size: 24px; font-weight: 700; }
+.progress-stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.progress-detail-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+.progress-detail-item {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.progress-rate-badge {
+    margin-left: auto;
+    padding: 4px 12px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ===== 文件分组问题列表样式 ===== */
+.file-group {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.file-group:hover { border-color: rgba(255,255,255,0.15); }
+.file-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+.file-group-header:hover { background: rgba(255,255,255,0.03); }
+.file-group-toggle {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 16px;
+    text-align: center;
+}
+.file-group.expanded .file-group-toggle { transform: rotate(90deg); }
+.file-group-icon { font-size: 14px; }
+.file-group-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-group-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+.file-group-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.file-group-body {
+    display: none;
+    border-top: 1px solid var(--border-color);
+    padding: 0 20px;
+}
+.file-group.expanded .file-group-body { display: block; }
+
+.file-group-body .issue-item {
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-radius: 0;
+    margin: 0;
+    padding: 12px 0;
+}
+.file-group-body .issue-item:last-child { border-bottom: none; }
+
+/* P3 折叠区域 */
+.p3-collapse-section {
+    margin-top: 16px;
+}
+.p3-collapse-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.p3-collapse-toggle:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.15);
+}
+.p3-collapse-toggle .toggle-arrow { transition: transform 0.2s; }
+.p3-collapse-section.expanded .toggle-arrow { transform: rotate(180deg); }
+.p3-file-groups { display: none; margin-top: 12px; }
+.p3-collapse-section.expanded .p3-file-groups { display: block; }
+
+@media (max-width: 768px) {
+    .progress-stats { grid-template-columns: repeat(2, 1fr); }
+    .roadmap-priority-list { grid-template-columns: 1fr; }
+}
+
+.source-filter-btn.source-active {
+    background: var(--accent-orange);
+    color: #fff;
+    border-color: var(--accent-orange);
+}
+</style>
+
+<!-- Chart.js for radar chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    // 五维雷达图数据（从后端传入）
+    var bbData = {
+        one_module_one_thing: {{ bb_scores.get('one_module_one_thing', {}).get('score', 0) if bb_scores.get('one_module_one_thing', {}).get('detected') else 0 }},
+        one_func_one_thing: {{ bb_scores.get('one_func_one_thing', {}).get('score', 0) if bb_scores.get('one_func_one_thing', {}).get('detected') else 0 }},
+        one_module_one_entry: {{ bb_scores.get('one_module_one_entry', {}).get('score', 0) if bb_scores.get('one_module_one_entry', {}).get('detected') else 0 }},
+        one_module_one_test: {{ bb_scores.get('one_module_one_test', {}).get('score', 0) if bb_scores.get('one_module_one_test', {}).get('detected') else 0 }},
+        clean_splicing: {{ bb_scores.get('clean_splicing', {}).get('score', 0) if bb_scores.get('clean_splicing', {}).get('detected') else 0 }},
+    };
+    var bbDetected = {
+        one_module_one_thing: {{ 'true' if bb_scores.get('one_module_one_thing', {}).get('detected') else 'false' }},
+        one_func_one_thing: {{ 'true' if bb_scores.get('one_func_one_thing', {}).get('detected') else 'false' }},
+        one_module_one_entry: {{ 'true' if bb_scores.get('one_module_one_entry', {}).get('detected') else 'false' }},
+        one_module_one_test: {{ 'true' if bb_scores.get('one_module_one_test', {}).get('detected') else 'false' }},
+        clean_splicing: {{ 'true' if bb_scores.get('clean_splicing', {}).get('detected') else 'false' }},
+    };
+    var bbGrade = {
+        one_module_one_thing: {{ bb_scores.get('one_module_one_thing', {}).get('grade', 'A') | tojson if bb_scores.get('one_module_one_thing', {}).get('detected') else 'null' }},
+        one_func_one_thing: {{ bb_scores.get('one_func_one_thing', {}).get('grade', 'A') | tojson if bb_scores.get('one_func_one_thing', {}).get('detected') else 'null' }},
+        one_module_one_entry: {{ bb_scores.get('one_module_one_entry', {}).get('grade', 'A') | tojson if bb_scores.get('one_module_one_entry', {}).get('detected') else 'null' }},
+        one_module_one_test: {{ bb_scores.get('one_module_one_test', {}).get('grade', 'A') | tojson if bb_scores.get('one_module_one_test', {}).get('detected') else 'null' }},
+        clean_splicing: {{ bb_scores.get('clean_splicing', {}).get('grade', 'A') | tojson if bb_scores.get('clean_splicing', {}).get('detected') else 'null' }},
+    };
+    var allDetected = Object.values(bbDetected).some(function(v) { return v; });
+
+    var labels = ['职责清晰', '函数精简', '入口统一', '测试完备', '依赖干净'];
+    var keys = ['one_module_one_thing', 'one_func_one_thing', 'one_module_one_entry', 'one_module_one_test', 'clean_splicing'];
+    // pointLabels 只显示维度名，分数由插件用橙色单独绘制
+var labelsWithScore = labels;
+
+    var dataValues = keys.map(function(k) { return bbDetected[k] ? bbData[k] : 0; });
+    var backgroundColors = keys.map(function(k) {
+        if (!bbDetected[k]) return 'rgba(156, 163, 175, 0.1)';
+        var s = bbData[k];
+        if (s >= 90) return 'rgba(16, 185, 129, 0.2)';
+        if (s >= 80) return 'rgba(14, 165, 233, 0.2)';
+        if (s >= 70) return 'rgba(139, 92, 246, 0.2)';
+        if (s >= 60) return 'rgba(37,99,235, 0.2)';
+        return 'rgba(239, 68, 68, 0.2)';
+    });
+    var borderColors = keys.map(function(k) {
+        if (!bbDetected[k]) return 'rgba(156, 163, 175, 0.5)';
+        var s = bbData[k];
+        if (s >= 90) return 'rgba(16, 185, 129, 1)';
+        if (s >= 80) return 'rgba(14, 165, 233, 1)';
+        if (s >= 70) return 'rgba(139, 92, 246, 1)';
+        if (s >= 60) return 'rgba(37,99,235, 1)';
+        return 'rgba(239, 68, 68, 1)';
+    });
+
+    var ctx = document.getElementById('bbRadarChart');
+    if (ctx && typeof Chart !== 'undefined') {
+        // 检测实际背景色，确保文字与背景对比度足够
+        var bgEl = document.querySelector('.report-card') || document.body;
+        var bgStyle = getComputedStyle(bgEl);
+        var bgColor = bgStyle.backgroundColor || '#1e293b';
+        // 计算亮度判断深浅
+        var rgbMatch = bgColor.match(/\d+/g);
+        var isDark = true;
+        if (rgbMatch && rgbMatch.length >= 3) {
+            var brightness = (parseInt(rgbMatch[0]) * 299 + parseInt(rgbMatch[1]) * 587 + parseInt(rgbMatch[2]) * 114) / 1000;
+            isDark = brightness < 128;
+        }
+        var gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+        var tickColor = isDark ? 'rgba(226, 232, 240, 0.85)' : 'rgba(0,0,0,0.55)';
+        var labelColor = isDark ? '#e2e8f0' : 'rgba(0,0,0,0.85)';
+
+        // 自定义插件：绘制维度名（白）+ 分数（橙），完全接管pointLabels
+        var bbRadarLabelPlugin = {
+            id: 'bbRadarLabel',
+            afterDraw: function(chart) {
+                var ctx = chart.ctx;
+                var scale = chart.scales.r;
+                if (!scale) return;
+
+                var labelFont = '600 13px -apple-system, BlinkMacSystemFont, sans-serif';
+                var scoreFont = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
+                var labelColor = chart.options.scales.r.pointLabels.color || '#e2e8f0';
+                var scoreColor = '#1A3A5C';
+                var pad = 8;
+
+                ctx.save();
+                ctx.textBaseline = 'middle';
+
+                for (var i = 0; i < labels.length; i++) {
+                    var key = keys[i];
+                    var angle = scale.getIndexAngle(i);
+                    var cosA = Math.cos(angle);
+                    var sinA = Math.sin(angle);
+
+                    ctx.font = labelFont;
+                    var labelW = ctx.measureText(labels[i]).width;
+                    ctx.font = scoreFont;
+                    var scoreText = bbDetected[key] ? (bbGrade[key] + '级') : '未检测';
+                    var scoreW = ctx.measureText(scoreText).width;
+                    var gap = 6;
+                    var totalW = labelW + gap + scoreW;
+
+                    var dist = scale.distanceCenter + pad + totalW / 2;
+                    var cx = scale.x + cosA * dist;
+                    var cy = scale.y + sinA * dist;
+
+                    var labelX, scoreX;
+                    if (cosA > 0.2) {
+                        labelX = cx - totalW / 2;
+                        scoreX = labelX + labelW + gap;
+                        ctx.textAlign = 'left';
+                    } else if (cosA < -0.2) {
+                        labelX = cx + totalW / 2;
+                        scoreX = labelX - labelW - gap;
+                        ctx.textAlign = 'right';
+                    } else {
+                        labelX = cx - gap / 2;
+                        scoreX = cx + gap / 2;
+                    }
+
+                    // 画维度名
+                    ctx.font = labelFont;
+                    ctx.fillStyle = labelColor;
+                    if (cosA > 0.2) {
+                        ctx.textAlign = 'left';
+                        ctx.fillText(labels[i], labelX, cy);
+                    } else if (cosA < -0.2) {
+                        ctx.textAlign = 'right';
+                        ctx.fillText(labels[i], labelX, cy);
+                    } else {
+                        ctx.textAlign = 'right';
+                        ctx.fillText(labels[i], labelX, cy);
+                    }
+
+                    // 画分数（橙色）
+                    ctx.font = scoreFont;
+                    ctx.fillStyle = scoreColor;
+                    if (cosA > 0.2) {
+                        ctx.textAlign = 'left';
+                        ctx.fillText(scoreText, scoreX, cy);
+                    } else if (cosA < -0.2) {
+                        ctx.textAlign = 'right';
+                        ctx.fillText(scoreText, scoreX, cy);
+                    } else {
+                        ctx.textAlign = 'left';
+                        ctx.fillText(scoreText, scoreX, cy);
+                    }
+                }
+                ctx.restore();
+            }
+        };
+
+        var chart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '架构得分',
+                    data: dataValues,
+                    backgroundColor: allDetected ? 'rgba(99, 102, 241, 0.15)' : 'rgba(156, 163, 175, 0.08)',
+                    borderColor: allDetected ? 'rgba(99, 102, 241, 0.8)' : 'rgba(156, 163, 175, 0.3)',
+                    borderWidth: 2,
+                    pointBackgroundColor: borderColors,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            plugins: [bbRadarLabelPlugin],
+            options: {
+                responsive: false,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 12 },
+                        padding: 10,
+                        cornerRadius: 6,
+                        callbacks: {
+                            label: function(context) {
+                                var idx = context.dataIndex;
+                                var key = keys[idx];
+                                if (!bbDetected[key]) {
+                                    return '未检测 · 升级或检测完整项目查看';
+                                }
+                                return context.parsed.r + ' 分';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        min: 0,
+                        max: 100,
+                        beginAtZero: true,
+                        ticks: {
+                            display: false,
+                            stepSize: 20
+                        },
+                        grid: {
+                            color: gridColor,
+                            circular: true
+                        },
+                        angleLines: {
+                            color: gridColor
+                        },
+                        pointLabels: {
+                            display: true,
+                            color: labelColor,
+                            font: { size: 12, weight: '600', lineHeight: 1.4 },
+                            padding: 12
+                        }
+                    }
+                }
+            },
+        });
+
+    }
+})();
+</script>
+
+<script>
+// B->E engine ID mapping
+(function() {
+    var B2E = {'1':'1','2':'2','3':'1','4':'3','5':'4','6':'4','7':'5','8':'2','9':'6','10':'2'};
+    document.querySelectorAll('.dimension-brain').forEach(function(el) {
+        var card = el.closest('.dimension-card');
+        if (card) {
+            var bid = card.getAttribute('data-brain');
+            var eid = B2E[bid] || bid;
+            el.textContent = 'E' + eid;
+        }
+    });
+    document.querySelectorAll('.issue-item').forEach(function(el) {
+        var bid = el.getAttribute('data-brain');
+        var eid = B2E[bid] || bid;
+        var spans = el.querySelectorAll('span');
+        for (var i = 0; i < spans.length; i++) {
+            var t = spans[i].textContent;
+            if (t.indexOf('B' + bid) === 0) {
+                spans[i].textContent = t.replace('B' + bid, 'E' + eid);
+                break;
+            }
+        }
+    });
+})();
+</script>
+
+<script>
+// ===== 修复路线图：文件分组 + 折叠交互 =====
+(function() {
+    var issuesSection = document.querySelector('.issues-section');
+    if (!issuesSection) return;
+
+    var issueItems = issuesSection.querySelectorAll('.issue-item');
+    if (issueItems.length === 0) return;
+
+    // 收集所有 issue 数据
+    var issues = [];
+    issueItems.forEach(function(el) {
+        var brain = el.getAttribute('data-brain') || '';
+        var severity = el.getAttribute('data-severity') || 'info';
+        var tier = el.getAttribute('data-tier') || '';
+        var source = el.getAttribute('data-source') || 'rule';
+
+        // Extract file and line from location span
+        var locSpan = el.querySelector('.issue-location');
+        var locText = locSpan ? locSpan.textContent.trim() : '';
+        var file = '';
+        var line = 0;
+        // Format: "filename:line" or "filename 🔒 ..."
+        var parts = locText.split(/[\s]*🔒|[\s]*:|升级查看位置/);
+        file = (parts[0] || '').trim();
+        if (parts.length > 1) {
+            line = parseInt(parts[1]) || 0;
+        }
+
+        var titleSpan = el.querySelector('.issue-title');
+        var title = titleSpan ? titleSpan.textContent.trim() : '';
+
+        var sevSpan = el.querySelector('.issue-severity');
+        var sevLabel = sevSpan ? sevSpan.textContent.trim() : severity;
+
+        issues.push({
+            el: el,
+            file: file,
+            file_short: file.split('/').pop().split('\\').pop(),
+            line: line,
+            severity: severity,
+            severity_label: sevLabel,
+            title: title,
+            brain: brain,
+            tier: tier,
+            source: source,
+        });
+    });
+
+    // Priority map
+    var PRIORITY_MAP = {
+        'critical': 'P0', 'blocker': 'P0',
+        'high': 'P1', 'suspicious': 'P1',
+        'medium': 'P2', 'correctness': 'P2', 'restriction': 'P2',
+        'low': 'P3', 'style': 'P3', 'info': 'P3'
+    };
+    var SEVERITY_WEIGHT = {
+        'critical': 6, 'blocker': 6, 'high': 5, 'suspicious': 5,
+        'medium': 4, 'correctness': 4, 'restriction': 4,
+        'low': 2, 'style': 1, 'info': 1
+    };
+    var PRIORITY_META = {
+        'P0': {icon: '🔴', color: '#EF4444', label: '立即修复'},
+        'P1': {icon: '🟡', color: '#F59E0B', label: '计划修复'},
+        'P2': {icon: '🟠', color: '#F97316', label: '尽快修复'},
+        'P3': {icon: '⚪', color: '#9CA3AF', label: '建议优化'},
+    };
+
+    function getPriority(sev) { return PRIORITY_MAP[sev] || 'P3'; }
+    function getWeight(sev) { return SEVERITY_WEIGHT[sev] || 0; }
+
+    // Group by file
+    var fileMap = {};
+    issues.forEach(function(issue) {
+        var key = issue.file || '未知文件';
+        if (!fileMap[key]) {
+            fileMap[key] = { file: key, file_short: issue.file_short, issues: [], maxWeight: 0, maxSev: 'info', maxPriority: 'P3' };
+        }
+        fileMap[key].issues.push(issue);
+        var w = getWeight(issue.severity);
+        if (w > fileMap[key].maxWeight) {
+            fileMap[key].maxWeight = w;
+            fileMap[key].maxSev = issue.severity;
+            fileMap[key].maxPriority = getPriority(issue.severity);
+        }
+    });
+
+    // Sort file groups
+    var groups = Object.values(fileMap);
+    var PO = {'P0':0,'P1':1,'P2':2,'P3':3};
+    groups.sort(function(a, b) {
+        var pa = PO[a.maxPriority] || 9, pb = PO[b.maxPriority] || 9;
+        if (pa !== pb) return pa - pb;
+        if (b.maxWeight !== a.maxWeight) return b.maxWeight - a.maxWeight;
+        return a.file.localeCompare(b.file);
+    });
+
+    // Separate P3 groups
+    var nonP3 = groups.filter(function(g) { return g.maxPriority !== 'P3'; });
+    var p3 = groups.filter(function(g) { return g.maxPriority === 'P3'; });
+
+    // Build DOM
+    var wrapper = document.createElement('div');
+    wrapper.id = 'file-grouped-issues';
+
+    // Remove original flat issue items from DOM (hide them)
+    issueItems.forEach(function(el) { el.style.display = 'none'; });
+
+    function createGroupEl(group) {
+        var meta = PRIORITY_META[group.maxPriority] || PRIORITY_META['P3'];
+        var isExpanded = (group.maxPriority === 'P0' || group.maxPriority === 'P1');
+
+        var div = document.createElement('div');
+        div.className = 'file-group' + (isExpanded ? ' expanded' : '');
+        div.setAttribute('data-max-priority', group.maxPriority);
+
+        var header = document.createElement('div');
+        header.className = 'file-group-header';
+        header.innerHTML = '<span class="file-group-toggle">▶</span>' +
+            '<span class="file-group-icon">' + meta.icon + '</span>' +
+            '<span class="file-group-name">' + escapeHtml(group.file_short) + '</span>' +
+            '<span class="file-group-badge" style="background:' + meta.color + '20;color:' + meta.color + ';">' + meta.label + '</span>' +
+            '<span class="file-group-count">' + group.issues.length + ' 个问题</span>';
+
+        var body = document.createElement('div');
+        body.className = 'file-group-body';
+
+        // Sort issues within group by severity
+        group.issues.sort(function(a, b) {
+            return getWeight(b.severity) - getWeight(a.severity) || a.line - b.line;
+        });
+        group.issues.forEach(function(issue) {
+            var clone = issue.el.cloneNode(true);
+            clone.style.display = '';
+            body.appendChild(clone);
+        });
+
+        header.addEventListener('click', function() {
+            div.classList.toggle('expanded');
+        });
+
+        div.appendChild(header);
+        div.appendChild(body);
+        return div;
+    }
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    // Render non-P3 groups
+    nonP3.forEach(function(g) { wrapper.appendChild(createGroupEl(g)); });
+
+    // Render P3 as collapsible section
+    if (p3.length > 0) {
+        var p3Section = document.createElement('div');
+        p3Section.className = 'p3-collapse-section';
+        var p3Toggle = document.createElement('div');
+        p3Toggle.className = 'p3-collapse-toggle';
+        p3Toggle.innerHTML = '<span class="toggle-arrow">▼</span> ⚪ 建议优化（' + p3.reduce(function(s,g){return s+g.issues.length;}, 0) + '个问题）';
+        p3Toggle.addEventListener('click', function() {
+            p3Section.classList.toggle('expanded');
+        });
+        p3Section.appendChild(p3Toggle);
+
+        var p3Container = document.createElement('div');
+        p3Container.className = 'p3-file-groups';
+        p3.forEach(function(g) { p3Container.appendChild(createGroupEl(g)); });
+        p3Section.appendChild(p3Container);
+
+        wrapper.appendChild(p3Section);
+    }
+
+    // Insert after the issues-header
+    var issuesHeader = issuesSection.querySelector('.issues-header');
+    if (issuesHeader && issuesHeader.nextSibling) {
+        issuesSection.insertBefore(wrapper, issuesHeader.nextSibling);
+    } else {
+        issuesSection.appendChild(wrapper);
+    }
+
+    // Priority filter from roadmap card
+    window.filterByPriority = function(priority) {
+        var allGroups = wrapper.querySelectorAll('.file-group');
+        var p3sec = wrapper.querySelector('.p3-collapse-section');
+
+        allGroups.forEach(function(g) {
+            var gp = g.getAttribute('data-max-priority');
+            g.style.display = (gp === priority) ? '' : 'none';
+        });
+
+        // Expand P3 section if filtering for P3
+        if (priority === 'P3' && p3sec) {
+            p3sec.classList.add('expanded');
+            p3sec.style.display = '';
+        } else if (p3sec) {
+            p3sec.style.display = (priority === 'P3') ? '' : 'none';
+        }
+
+        // Show all if clicking again (toggle off)
+        if (window._lastPriorityFilter === priority) {
+            allGroups.forEach(function(g) { g.style.display = ''; });
+            if (p3sec) p3sec.style.display = '';
+            window._lastPriorityFilter = null;
+        } else {
+            window._lastPriorityFilter = priority;
+        }
+
+        // Scroll to issues section
+        issuesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+})();
+</script>
+
+
+<!-- ========== 反馈系统 JS ========== -->
+<script>
+(function() {
+    var _fbScanId = "{{ scan_id }}";
+    var _csrfMeta2 = document.querySelector('meta[name="csrf-token"]');
+    var _fbCsrfToken = _csrfMeta2 ? _csrfMeta2.content : '';
+    var _currentRating = 0;
+
+    fetch('/api/feedback/status?scan_id=' + encodeURIComponent(_fbScanId), { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.submitted) {
+            var el = document.getElementById('feedbackInitial');
+            if (el) el.style.display = 'none';
+            var th = document.getElementById('feedbackThanks');
+            if (th) th.style.display = 'block';
+        }
+    }).catch(function() {});
+
+    window.submitRating = function(rating) {
+        _currentRating = rating;
+        document.getElementById('feedbackInitial').style.display = 'none';
+        if (rating === 1) {
+            document.getElementById('feedbackFormTitle').textContent = '请告诉我们哪里不够好：';
+            document.getElementById('issueTypeCheckboxes').style.display = 'block';
+        } else {
+            document.getElementById('feedbackFormTitle').textContent = '很高兴对您有帮助！有什么建议吗？（可选）';
+            document.getElementById('issueTypeCheckboxes').style.display = 'none';
+        }
+        document.getElementById('feedbackForm').style.display = 'block';
+    };
+
+    window.cancelFeedback = function() { _doSubmit([], ''); };
+
+    window.submitFeedbackForm = function() {
+        var types = [];
+        var cbs = document.querySelectorAll('.feedback-issue-cb:checked');
+        for (var i = 0; i < cbs.length; i++) types.push(cbs[i].value);
+        _doSubmit(types, document.getElementById('feedbackText').value.trim());
+    };
+
+    function _doSubmit(issueTypes, text) {
+        document.getElementById('feedbackForm').style.display = 'none';
+        document.getElementById('feedbackThanks').style.display = 'block';
+        fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': _fbCsrfToken },
+            credentials: 'same-origin',
+            body: JSON.stringify({ scan_id: _fbScanId, rating: _currentRating, issue_types: issueTypes, feedback_text: text })
+        }).then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status !== 'ok' && data.error) {
+                document.getElementById('feedbackThanks').innerHTML = '<p style="font-size:14px;color:#ef4444;margin:0;">' + data.error + '</p>';
+            }
+        }).catch(function() {
+            document.getElementById('feedbackThanks').innerHTML = '<p style="font-size:14px;color:#ef4444;margin:0;">提交失败，请稍后重试</p>';
+        });
+    }
+})();
+</script>
+
+{% endblock %}
+
+<!-- ===== 分享报告功能 ===== -->
+<style>
+.share-btn { background: linear-gradient(135deg, #0EA5E9, #0284C7); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition: all .2s; }
+.share-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14,165,233,.3); }
+.share-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.6); z-index:9999; justify-content:center; align-items:center; }
+.share-modal-overlay.active { display:flex; }
+.share-modal { background:#1e293b; border:1px solid #334155; border-radius:16px; padding:32px; max-width:480px; width:90%; color:#f1f5f9; position:relative; }
+.share-modal h3 { font-size:18px; font-weight:700; margin-bottom:8px; }
+.share-modal p { font-size:13px; color:#94a3b8; margin-bottom:20px; }
+.share-link-box { display:flex; gap:8px; margin-bottom:16px; }
+.share-link-input { flex:1; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:10px 14px; color:#e2e8f0; font-size:13px; font-family:monospace; outline:none; }
+.share-link-input:focus { border-color:#0EA5E9; }
+.copy-btn { background:#0EA5E9; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition: all .2s; }
+.copy-btn:hover { background:#0284C7; }
+.copy-btn.copied { background:#22c55e; }
+.share-modal-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; }
+.share-modal-actions button { background:transparent; border:1px solid #334155; color:#94a3b8; padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; }
+.share-modal-actions button:hover { border-color:#64748b; color:#e2e8f0; }
+.unshare-btn { color:#ef4444 !important; border-color:rgba(239,68,68,.3) !important; }
+.unshare-btn:hover { border-color:#ef4444 !important; background:rgba(239,68,68,.1) !important; }
+.share-badge-section { margin-top:20px; padding-top:16px; border-top:1px solid #334155; }
+.share-badge-section label { font-size:12px; color:#64748b; display:block; margin-bottom:8px; }
+.badge-preview-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.badge-preview-row img { height:22px; }
+.badge-md-box { background:#0f172a; border:1px solid #334155; border-radius:6px; padding:8px 12px; font-size:11px; font-family:monospace; color:#94a3b8; word-break:break-all; }
+</style>
+
+{% if session.get('user_id') %}
+<div style="margin-top:0;">
+    <button class="share-btn" onclick="openShareModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        分享报告
+    </button>
+</div>
+
+<div class="share-modal-overlay" id="shareModal">
+    <div class="share-modal">
+        <h3>📤 分享扫描报告</h3>
+        <p>生成公开链接，任何人都可以查看这份报告（无需登录）</p>
+        
+        <div class="share-link-box">
+            <input type="text" class="share-link-input" id="shareLinkInput" readonly placeholder="点击生成分享链接...">
+            <button class="copy-btn" id="copyBtn" onclick="copyShareLink()">复制</button>
+        </div>
+
+        <div class="share-badge-section" id="badgeSection" style="display:none;">
+            <label>🏷️ 在 README 中展示徽章：</label>
+            <div class="badge-preview-row">
+                <img id="badgeImg" src="" alt="badge">
+                <span style="font-size:12px;color:#64748b;">代码质量徽章</span>
+            </div>
+            <div class="badge-md-box" id="badgeMd"></div>
+        </div>
+
+        <div class="share-modal-actions">
+            {% if share_token %}
+            <button class="unshare-btn" onclick="unshareReport()">取消分享</button>
+            {% endif %}
+            <button onclick="closeShareModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var scanId = '{{ scan_id }}';
+    var existingToken = '{{ share_token or "" }}';
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    var baseUrl = 'https://xinpect.xingwangzhineng.com/report/share/';
+
+    window.openShareModal = function() {
+        var modal = document.getElementById('shareModal');
+        modal.classList.add('active');
+        if (existingToken) {
+            showShareLink(existingToken);
+        } else {
+            generateShareLink();
+        }
+    };
+
+    window.closeShareModal = function() {
+        document.getElementById('shareModal').classList.remove('active');
+    };
+
+    function generateShareLink() {
+        var input = document.getElementById('shareLinkInput');
+        input.value = '生成中...';
+        fetch('/api/scan/' + scanId + '/share', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok' && data.share_token) {
+                existingToken = data.share_token;
+                showShareLink(data.share_token);
+            } else {
+                input.value = data.message || '生成失败';
+            }
+        })
+        .catch(function(e) { input.value = '网络错误'; });
+    }
+
+    function showShareLink(token) {
+        var url = baseUrl + token;
+        var input = document.getElementById('shareLinkInput');
+        input.value = url;
+        // Show badge
+        var badgeSection = document.getElementById('badgeSection');
+        badgeSection.style.display = 'block';
+        var badgeUrl = 'https://xinpect.xingwangzhineng.com/api/badge/' + scanId + '.svg';
+        document.getElementById('badgeImg').src = badgeUrl;
+        document.getElementById('badgeMd').textContent = '[![Xinpect](' + badgeUrl + ')](' + url + ')';
+    }
+
+    window.copyShareLink = function() {
+        var input = document.getElementById('shareLinkInput');
+        if (!input.value || input.value === '生成中...' || input.value === '生成失败') return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(input.value).then(function() {
+                var btn = document.getElementById('copyBtn');
+                btn.textContent = '已复制 ✓';
+                btn.classList.add('copied');
+                setTimeout(function() { btn.textContent = '复制'; btn.classList.remove('copied'); }, 2000);
+            }).catch(function() {
+                var ta = document.createElement('textarea');
+                ta.value = input.value; ta.style.position='fixed'; ta.style.opacity='0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); var b2 = document.getElementById('copyBtn'); b2.textContent='已复制 ✓'; b2.classList.add('copied'); setTimeout(function(){b2.textContent='复制';b2.classList.remove('copied')},2000); } catch(e2) { alert('复制失败，请手动复制'); }
+                document.body.removeChild(ta);
+            });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = input.value; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); var b3 = document.getElementById('copyBtn'); b3.textContent='已复制 ✓'; b3.classList.add('copied'); setTimeout(function(){b3.textContent='复制';b3.classList.remove('copied')},2000); } catch(e3) { alert('复制失败，请手动复制'); }
+            document.body.removeChild(ta);
+        }
+    };
+
+    window.unshareReport = function() {
+        if (!confirm('确定要取消分享吗？已分享的链接将失效。')) return;
+        fetch('/api/scan/' + scanId + '/unshare', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            credentials: 'same-origin'
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') {
+                existingToken = '';
+                document.getElementById('shareLinkInput').value = '分享已取消';
+                document.getElementById('badgeSection').style.display = 'none';
+                setTimeout(function() { closeShareModal(); }, 1000);
+            }
+        });
+    };
+
+    // Click overlay to close
+    document.getElementById('shareModal').addEventListener('click', function(e) {
+        if (e.target === this) closeShareModal();
+    });
+})();
+
+// ========== 误报反馈功能 ==========
+var scanId = '{{ scan_id }}';
+
+window.markFalsePositive = function(btn, ruleId, file, line, title) {
+    if (!confirm('确定将此问题标记为误报吗？\n\n规则: ' + ruleId + '\n文件: ' + file + ':' + line)) return;
+    
+    fetch('/api/scan/' + scanId + '/false-positive', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content},
+        credentials: 'same-origin',
+        body: JSON.stringify({rule_id: ruleId, file: file, line: line, title: title, reason: '用户标记'})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.status === 'ok') {
+            // 视觉反馈：标记为已处理
+            var card = btn.closest('.issue-item');
+            if (card) {
+                card.style.opacity = '0.4';
+                card.style.borderLeft = '3px solid #adb5bd';
+                btn.textContent = '✓';
+                btn.title = '已标记为误报';
+                btn.style.color = '#22c55e';
+                btn.onclick = function() { unmarkFalsePositive(btn, ruleId, file, line, title); };
+            }
+        } else {
+            alert(data.error || '标记失败');
+        }
+    })
+    .catch(function(e) { alert('网络错误'); });
+};
+
+window.unmarkFalsePositive = function(btn, ruleId, file, line, title) {
+    if (!confirm('取消误报标记？')) return;
+    
+    fetch('/api/scan/' + scanId + '/false-positives', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.status === 'ok' && data.false_positives) {
+            var fp = data.false_positives.find(function(f) { return f.rule_id === ruleId && f.file === file && f.line === line; });
+            if (fp) {
+                return fetch('/api/scan/' + scanId + '/false-positive/' + fp.id, {method: 'DELETE', credentials: 'same-origin'});
+            }
+        }
+    })
+    .then(function(r) { return r ? r.json() : null; })
+    .then(function(data) {
+        if (data && data.status === 'ok') {
+            var card = btn.closest('.issue-item');
+            if (card) {
+                card.style.opacity = '1';
+                card.style.borderLeft = '';
+                btn.textContent = '⊘';
+                btn.title = '标记为误报';
+                btn.style.color = '#adb5bd';
+                btn.onclick = function() { markFalsePositive(btn, ruleId, file, line, title); };
+            }
+        }
+    })
+    .catch(function(e) { alert('网络错误'); });
+};
+
+</script>
+{% endif %}

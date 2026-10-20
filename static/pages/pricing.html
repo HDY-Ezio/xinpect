@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定价方案 - 煋鉴 Xinpect</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+
+  /* === Brand & Primary === */
+  --primary: #FF6B35;
+  --primary-light: #FF8C5A;
+  --primary-dark: #E85A24;
+  --primary-bg: #FFF5F0;
+  --primary-rgb: 255, 107, 53;
+
+  /* === Backgrounds === */
+  --bg: #FAF8F6;
+  --surface: #FFFFFF;
+  --surface-hover: #FFF9F5;
+  --surface-alt: #FDFAF8;
+  --surface-elevated: #F5F1ED;
+  --neutral-bg: #FAFAFA;
+  --neutral-bg-hover: #F3F4F6;
+
+  /* === Borders === */
+  --border: #EDE5DF;
+  --border-light: #F2ECE7;
+  --border-neutral: #E5E7EB;
+  --border-width: 1px;
+  --border-width-accent: 4px;
+
+  /* === Text === */
+  --text-primary: #2D2A28;
+  --text-secondary: #6B6560;
+  --text-muted: #9E9792;
+
+  /* === Spacing === */
+  --space-25: 1px;
+  --space-50: 2px;
+  --space-75: 3px;
+  --space-100: 4px;
+  --space-125: 5px;
+  --space-150: 6px;
+  --space-200: 8px;
+  --space-250: 10px;
+  --space-275: 11px;
+  --space-300: 12px;
+  --space-350: 14px;
+  --space-400: 16px;
+  --space-450: 18px;
+  --space-500: 20px;
+  --space-550: 22px;
+  --space-600: 24px;
+  --space-700: 28px;
+  --space-800: 32px;
+  --space-900: 40px;
+  --space-1000: 48px;
+  --space-1200: 60px;
+
+  /* === Font Sizes === */
+  --font-3xs: 10px;
+  --font-2xs: 11px;
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-md: 15px;
+  --font-lg: 16px;
+  --font-ml: 18px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+  --font-3xl: 28px;
+  --font-4xl: 32px;
+  --font-5xl: 48px;
+
+  /* === Border Radius === */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 12px;
+  --radius-full: 9999px;
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+
+  --container-max-width: 1200px;
+}
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: var(--font-base);
+  min-height: 100vh;
+}
+body { display: flex; flex-direction: column; }
+
+/* ========== Navigation ========== */
+.site-nav {
+  background: var(--surface);
+  border-bottom: var(--border-width) solid var(--border-light);
+  padding: 0 var(--space-800);
+}
+.site-nav-inner {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-600);
+}
+.site-nav a {
+  display: inline-block;
+  padding: var(--space-300) 0;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.site-nav a:hover { color: var(--primary); }
+.site-nav a.active {
+  color: var(--primary);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
+}
+
+/* ========== Header ========== */
+.page-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  padding: var(--space-600) var(--space-800);
+  box-shadow: var(--shadow-md);
+}
+.page-header-inner {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+.page-header .brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-350);
+}
+.page-header .brand-logo {
+  width: 44px;
+  height: 44px;
+  background: rgba(255,255,255,0.2);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-2xl);
+  backdrop-filter: blur(10px);
+}
+.page-header .brand-text h1 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.page-header .brand-text p {
+  font-size: var(--font-xs);
+  opacity: 0.85;
+  margin-top: var(--space-50);
+}
+
+/* ========== Page Content ========== */
+.page-content {
+  flex: 1;
+  max-width: var(--container-max-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-900) var(--space-800) var(--space-1200);
+}
+.page-content h2 {
+  font-size: var(--font-3xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-600);
+}
+.page-content h3 {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-400);
+  margin-top: var(--space-800);
+}
+.page-content p {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: var(--space-400);
+}
+
+/* ========== Cards ========== */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-600);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-500);
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-500);
+  margin-bottom: var(--space-600);
+}
+.feature-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-600);
+  box-shadow: var(--shadow-sm);
+  border: var(--border-width) solid var(--border-light);
+  transition: all 0.2s;
+}
+.feature-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+.feature-card .icon {
+  font-size: var(--font-3xl);
+  margin-bottom: var(--space-300);
+}
+.feature-card h4 {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-200);
+}
+.feature-card p {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ========== Info Block ========== */
+.info-block {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-600);
+  box-shadow: var(--shadow-sm);
+  border-left: var(--border-width-accent) solid var(--primary);
+  margin-bottom: var(--space-500);
+}
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--space-300) 0;
+  border-bottom: var(--border-width) solid var(--border-light);
+}
+.info-row:last-child { border-bottom: none; }
+.info-label {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.info-value {
+  font-size: var(--font-base);
+  color: var(--text-primary);
+}
+
+/* ========== Pricing ========== */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-500);
+  margin-bottom: var(--space-800);
+}
+.pricing-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-700);
+  box-shadow: var(--shadow-sm);
+  border: var(--border-width) solid var(--border-light);
+  text-align: center;
+  transition: all 0.2s;
+}
+.pricing-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.pricing-card.featured {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+.pricing-card.featured::before {
+  content: "推荐";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: white;
+  font-size: var(--font-xs);
+  padding: var(--space-100) var(--space-300);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+.pricing-card h4 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-200);
+}
+.pricing-card .price {
+  font-size: var(--font-3xl);
+  font-weight: 700;
+  color: var(--primary);
+  margin: var(--space-400) 0;
+}
+.pricing-card .price small {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.pricing-card ul {
+  list-style: none;
+  text-align: left;
+  margin: var(--space-400) 0;
+}
+.pricing-card li {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  padding: var(--space-200) 0;
+  border-bottom: var(--border-width) solid var(--border-light);
+}
+.pricing-card li::before {
+  content: "✓ ";
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* ========== CTA Button ========== */
+.btn-primary {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  padding: var(--space-300) var(--space-600);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base);
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.btn-secondary {
+  display: inline-block;
+  background: var(--surface);
+  color: var(--primary);
+  padding: var(--space-300) var(--space-600);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base);
+  font-weight: 600;
+  text-decoration: none;
+  border: var(--border-width) solid var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: var(--primary-bg);
+}
+
+/* ========== Footer ========== */
+.site-footer {
+  text-align: center;
+  padding: var(--space-500) var(--space-800);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  border-top: var(--border-width) solid var(--border-light);
+  background: var(--surface);
+}
+.site-footer p { margin-bottom: var(--space-100); }
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .page-header { padding: var(--space-400) var(--space-500); }
+  .page-content { padding: var(--space-600) var(--space-500) var(--space-800); }
+  .page-content h2 { font-size: var(--font-2xl); }
+  .card-grid, .pricing-grid { grid-template-columns: 1fr; }
+  .site-nav { padding: 0 var(--space-500); }
+  .site-nav-inner { gap: var(--space-400); }
+  .site-nav a { font-size: var(--font-xs); }
+  .info-row { flex-direction: column; gap: var(--space-100); }
+  .info-label { width: auto; }
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="site-nav-inner">
+      <a href="/">首页</a>
+      <a href="/pages/product.html">产品介绍</a>
+      <a href="/pages/pricing.html" class="active">定价方案</a>
+      <a href="/pages/about.html">关于我们</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="brand">
+      <div class="brand-logo">🔥</div>
+      <div class="brand-text">
+        <h1>煋鉴 Xinpect</h1>
+        <p>多引擎智能代码质检 · 灵活定价</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="page-content">
+
+<h2>定价方案</h2>
+
+<p style="font-size: var(--font-lg); color: var(--text-primary); margin-bottom: var(--space-800);">灵活的定价方案，满足从个人开发者到企业团队的不同需求。</p>
+
+<div class="pricing-grid">
+  <div class="pricing-card">
+    <h4>免费体验</h4>
+    <div class="price">¥0<small>/永久</small></div>
+    <ul>
+      <li>每日赠送免费扫描积分</li>
+      <li>基础扫描功能全开放</li>
+      <li>支持单文件扫描</li>
+      <li>基础问题检测报告</li>
+      <li>社区技术支持</li>
+    </ul>
+    <a href="/" class="btn-secondary" style="display: inline-block; margin-top: var(--space-400);">免费开始</a>
+  </div>
+
+  <div class="pricing-card featured">
+    <h4>会员版</h4>
+    <div class="price">¥99<span>/月</span></div>
+    <ul>
+      <li>每日大量扫描积分</li>
+      <li>全部9大引擎解锁</li>
+      <li>AI深度分析（E7引擎）</li>
+      <li>批量文件扫描</li>
+      <li>完整修复建议</li>
+      <li>优先技术支持</li>
+    </ul>
+    <a href="/" class="btn-primary" style="display: inline-block; margin-top: var(--space-400);">敬请期待</a>
+  </div>
+
+  <div class="pricing-card">
+    <h4>企业定制</h4>
+    <div class="price">按需定价</div>
+    <ul>
+      <li>不限量扫描积分</li>
+      <li>API接口接入</li>
+      <li>CI/CD流水线集成</li>
+      <li>私有化部署方案</li>
+      <li>自定义检测规则</li>
+      <li>专属技术对接</li>
+    </ul>
+    <a href="mailto:hdyabcd@163.com" class="btn-secondary" style="display: inline-block; margin-top: var(--space-400);">联系我们</a>
+  </div>
+</div>
+
+<h3>积分制说明</h3>
+<div class="card">
+  <p>煋鉴采用积分制计费模式，灵活透明，按实际使用量消耗：</p>
+  <div class="info-block" style="margin-top: var(--space-400);">
+    <div class="info-row">
+      <span class="info-label">扫描消耗</span>
+      <span class="info-value">根据代码行数和所选引擎类型消耗积分，行数越多、引擎越高级消耗越大</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">免费额度</span>
+      <span class="info-value">每日自动赠送免费积分，可体验基础扫描功能</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">积分获取</span>
+      <span class="info-value">会员用户享有每日积分配额，也可按需购买积分包</span>
+    </div>
+  </div>
+</div>
+
+<div style="text-align: center; margin-top: var(--space-900);">
+  <p style="color: var(--text-secondary); margin-bottom: var(--space-400);">有任何问题？欢迎联系我们获取详细报价</p>
+  <a href="mailto:hdyabcd@163.com" class="btn-secondary">联系销售团队</a>
+  <span style="display: inline-block; width: var(--space-400);"></span>
+  <a href="/" class="btn-primary">立即体验</a>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <p>© 2024 长沙煋旺智能科技有限公司 版权所有</p>
+  <p>煋鉴 Xinpect · 多引擎智能代码质检平台</p>
+</footer>
+
+</body>
+</html>

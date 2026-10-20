@@ -1,0 +1,123 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}概览 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>概览</h1>
+    <p>查看你的会员状态和检测统计</p>
+</div>
+
+<!-- 会员状态卡片 -->
+<div class="vip-card">
+    <div class="vip-info">
+        {% if is_vip %}
+        <h3>⚡ 专业版会员</h3>
+        <p>有效期至：{{ vip_expire or '永久' }} · 享受全部 8 维度检测 · 积分按行计费</p>
+        {% else %}
+        <h3>🎯 免费版用户</h3>
+        <p>当前可使用 B1~B3 基础检测 · 每日 3 次检测 · 升级解锁全部 8 维度</p>
+        {% endif %}
+    </div>
+    {% if not is_vip %}
+    <a href="{{ url_for('dashboard_page', page='recharge') }}" class="btn btn-orange btn-lg">立即升级</a>
+    {% else %}
+    <a href="{{ url_for('dashboard_page', page='recharge') }}" class="btn btn-primary">续费 / 充值</a>
+    {% endif %}
+</div>
+
+<!-- 统计卡片 -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">总检测次数</div>
+        <div class="stat-value primary">{{ stats.total_scans or 0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">今日检测</div>
+        <div class="stat-value success">{{ stats.today_scans or 0 }}</div>
+    </div>
+    {% if is_vip %}
+    <div class="stat-card">
+        <div class="stat-label">积分余额</div>
+        <div class="credit-stat-value">{{ credit_balance or 0 }}</div>
+    </div>
+    {% else %}
+    <div class="stat-card">
+        <div class="stat-label">今日剩余</div>
+        <div class="stat-value warning">{{ stats.remaining or 0 }} / 3</div>
+    </div>
+    {% endif %}
+    <div class="stat-card">
+        <div class="stat-label">累计发现问题</div>
+        <div class="stat-value" style="color:#f97316;">{{ stats.total_issues or 0 }}</div>
+    </div>
+</div>
+
+<!-- 最近检测 -->
+<div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="font-size:18px;font-weight:600;">最近检测</h2>
+        <a href="{{ url_for('dashboard_page', page='scans') }}" style="font-size:14px;">查看全部 →</a>
+    </div>
+
+    {% if recent_scans %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>检测名称</th>
+                <th>文件数</th>
+                {% if is_vip %}<th style="text-align:center;">积分消耗</th>{% endif %}
+                <th>问题数</th>
+                <th>得分</th>
+                <th>检测时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scan in recent_scans %}
+            <tr>
+                <td>{{ scan.title }}</td>
+                <td>{{ scan.file_count }}</td>
+                {% if is_vip %}<td style="text-align:center;color:var(--accent-orange);font-weight:600;">−{{ scan.credits_spent or 0 }}</td>{% endif %}
+                <td><span style="color:{% if scan.issue_count > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ scan.issue_count }}</span></td>
+                <td>
+                    <span style="color:{% if scan.score >= 80 %}var(--success){% elif scan.score >= 60 %}var(--warning){% else %}var(--danger){% endif %};font-weight:600;">
+                        {{ scan.score }}
+                    </span>
+                </td>
+                <td style="color:var(--text-muted);font-size:13px;">{{ scan.created_at }}</td>
+                <td><a href="{{ url_for('report_page', scan_id=scan.scan_id) }}">查看报告</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-text">还没有检测记录</div>
+        <a href="{{ url_for('upload_page') }}" class="btn btn-primary">开始第一次检测</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function() {
+    // 千分位格式化积分余额和统计数字
+    function formatNum(el) {
+        var text = el.textContent.trim();
+        var num = parseInt(text);
+        if (!isNaN(num)) {
+            el.textContent = num.toLocaleString('en-US');
+        }
+    }
+    var creditEl = document.querySelector('.credit-stat-value');
+    if (creditEl) formatNum(creditEl);
+
+    document.querySelectorAll('.stat-value').forEach(function(el) {
+        formatNum(el);
+    });
+})();
+</script>
+{% endblock %}

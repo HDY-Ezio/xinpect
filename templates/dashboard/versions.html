@@ -1,0 +1,272 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}版本信息 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>版本信息</h1>
+    <p>煋鉴代码检测引擎的历史版本更新记录</p>
+</div>
+
+<div class="versions-timeline">
+
+    <!-- v5.44 -->
+    <div class="version-card">
+        <div class="version-badge major">
+            <span class="version-number">v6.1</span>
+            <span class="version-date">2026-09-30</span>
+        </div>
+        <div class="version-body">
+            <h3>🧠 污点分析引擎结构升级 + 批量扫描稳定性增强</h3>
+            <div class="version-tags">
+                <span class="tag tag-security">安全引擎</span>
+                <span class="tag tag-perf">稳定性</span>
+            </div>
+            <ul>
+                <li><strong>强更新(Strong Update)：</strong>变量被赋值为安全值时自动消除污点标记，避免误报</li>
+                <li><strong>跨方法污点追踪：</strong>调用函数时自动追踪实参到形参的污染传播</li>
+                <li><strong>Sanitizer 智能识别：</strong>通过语言特定的净化函数赋值的新变量自动排除污染</li>
+                <li><strong>批量扫描 5 层防御：</strong>资源监控 / 文件数上限(50000) / 大文件过滤(>5MB) / 自适应分片 / 总超时保护(600s)</li>
+                <li><strong>基准表现：</strong>OWASP Benchmark 精确率 100%，零误报，F1=91.9%</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- v6.0 -->
+    <div class="version-card">
+        <div class="version-badge major">
+            <span class="version-number">v6.0</span>
+            <span class="version-date">2026-09-05</span>
+        </div>
+        <div class="version-body">
+            <h3>🚀 7 大引擎架构 + 四档扫描体系</h3>
+            <div class="version-tags">
+                <span class="tag tag-arch">架构升级</span>
+                <span class="tag tag-feature">新功能</span>
+            </div>
+            <ul>
+                <li><strong>15 大脑整合为 7 大核心引擎：</strong>E1 语法AST / E2 安全 / E3 性能 / E4 代码质量 / E5 架构部署 / E6 组件合规 / E7 AI 智能</li>
+                <li><strong>四档扫描体系上线：</strong>免费体验 / 快速扫描 / 智能扫描 / 深度扫描，按需选择</li>
+                <li><strong>积分体系优化：</strong>会员每月统一 300 积分，积分池消耗规则优化，不足自动降级</li>
+                <li><strong>分享有礼：</strong>邀请好友充值获得积分奖励</li>
+                <li><strong>报告体验升级：</strong>每个问题标注检测来源，规则检测与 AI 分析一目了然</li>
+                <li><strong>API 扫描记录同步：</strong>通过 API 完成的扫描结果自动同步至官网历史记录</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- v5.16 -->
+    <div class="version-card">
+        <div class="version-badge">
+            <span class="version-number">v5.10</span>
+            <span class="version-date">2026-09-05</span>
+        </div>
+        <div class="version-body">
+            <h3>🌐 跨文件数据流追踪 + SSRF 全语言覆盖</h3>
+            <div class="version-tags">
+                <span class="tag tag-security">安全引擎</span>
+                <span class="tag tag-core">核心能力</span>
+            </div>
+            <ul>
+                <li><strong>跨文件追踪：</strong>支持 Python/Java/JS/PHP/Go 的 import 跨模块追踪，A→B→C 完整链路分析</li>
+                <li><strong>SSRF 检测全语言覆盖：</strong>5 语言 20+ 危险函数 100% 覆盖（requests/urllib/OkHttp/HttpClient/curl 等）</li>
+                <li><strong>7 语言 Benchmark 实战：</strong>PHP 93% · C# 89% · Rust 97% · JS 83% · Go 75% · Shell 100% · Kotlin 100%</li>
+                <li><strong>3 个系统性误报修复：</strong>secret_var 幽灵变量消除、外部库未定义变量误报消除(300+ 库名白名单)、Go 参数化查询误判修复</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- v5.9 -->
+    <div class="version-card">
+        <div class="version-badge">
+            <span class="version-number">v5.9</span>
+            <span class="version-date">2026-08-14</span>
+        </div>
+        <div class="version-body">
+            <h3>🤖 AI 增强全量升级</h3>
+            <div class="version-tags">
+                <span class="tag tag-ai">AI 引擎</span>
+                <span class="tag tag-core">核心能力</span>
+            </div>
+            <ul>
+                <li><strong>AI 语义分析引擎升级：</strong>LLM 语义扫描能力增强，检测精度大幅提升</li>
+                <li><strong>多语言 AST 深度检测规则扩展：</strong>覆盖更多语言特有问题模式</li>
+                <li><strong>检测覆盖率提升：</strong>全量测试突破 1700+ 用例</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- v5.8 -->
+    <div class="version-card">
+        <div class="version-badge">
+            <span class="version-number">v5.8</span>
+            <span class="version-date">2026-09-02</span>
+        </div>
+        <div class="version-body">
+            <h3>💰 计费大幅降价 + 积分体系升级</h3>
+            <div class="version-tags">
+                <span class="tag tag-product">产品优化</span>
+            </div>
+            <ul>
+                <li><strong>扫描计费降价：</strong>专业版从 1积分/百行 降至 0.3积分/百行(降幅70%)，基础版降至 0.1积分/百行(降幅60%)</li>
+                <li><strong>差额已返还：</strong>历史扫描已按新价返还差额至积分流水</li>
+                <li><strong>月卡可检测约 10 万行代码</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- v5.3 -->
+    <div class="version-card">
+        <div class="version-badge">
+            <span class="version-number">v5.3</span>
+            <span class="version-date">2026-08-29</span>
+        </div>
+        <div class="version-body">
+            <h3>⚡ B1 语法引擎 3S 架构重构 + 8 语言扩展</h3>
+            <div class="version-tags">
+                <span class="tag tag-arch">架构升级</span>
+                <span class="tag tag-security">安全规则</span>
+            </div>
+            <ul>
+                <li><strong>B1 语法引擎 3S 架构重构：</strong>全新语法分析架构，检测效率大幅提升</li>
+                <li><strong>新增 8 种语言语法规则：</strong>JS / Java / Go / C / C++ / Rust / PHP / C#</li>
+                <li><strong>Go 语言 27 条安全规则：</strong>覆盖注入、XSS、路径遍历、硬编码、弱加密等 10 大类</li>
+                <li><strong>tree-sitter 多语言 AST 架构：</strong>B3 语义引擎全面支持多语言深度分析</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- v3.0 -->
+    <div class="version-card">
+        <div class="version-badge">
+            <span class="version-number">v3.0</span>
+            <span class="version-date">2026-08-05</span>
+        </div>
+        <div class="version-body">
+            <h3>🔄 生态闭环机制</h3>
+            <div class="version-tags">
+                <span class="tag tag-product">产品基础</span>
+            </div>
+            <ul>
+                <li><strong>扫描自动 hook 记录规则触发数据：</strong>每次扫描结果自动归档</li>
+                <li><strong>3 个新模块上线：</strong>规则统计 / 触发分析 / 数据追踪</li>
+                <li><strong>CHANGELOG 机制建立：</strong>版本可追溯，迭代有记录</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.versions-timeline {
+    position: relative;
+    padding-left: 32px;
+    max-width: 900px;
+}
+.versions-timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border, #e0e0e0);
+}
+.version-card {
+    position: relative;
+    margin-bottom: 28px;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+.version-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.version-card::before {
+    content: '';
+    position: absolute;
+    left: -27px;
+    top: 20px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary, #1A3A5C);
+    border: 2px solid var(--bg-card, #fff);
+    box-shadow: 0 0 0 2px var(--primary, #1A3A5C);
+}
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, var(--primary, #1A3A5C), #60A5FA);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+}
+.version-badge.major {
+    background: linear-gradient(135deg, #1E40AF, #60A5FA);
+}
+.version-number {
+    font-size: 1.2em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.version-date {
+    font-size: 0.85em;
+    opacity: 0.9;
+}
+.version-body {
+    padding: 18px 20px;
+}
+.version-body h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.05em;
+    color: var(--text-primary, #1a1a1a);
+}
+.version-tags {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+.tag-security { background: #fee2e2; color: #b91c1c; }
+.tag-arch { background: #dbeafe; color: #1d4ed8; }
+.tag-perf { background: #DBEAFE; color: #92400e; }
+.tag-ai { background: #ede9fe; color: #6d28d9; }
+.tag-core { background: #d1fae5; color: #065f46; }
+.tag-feature { background: #fce7f3; color: #9d174d; }
+.tag-product { background: #e0e7ff; color: #3730a3; }
+.version-body ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text-secondary, #555);
+    font-size: 0.92em;
+    line-height: 1.7;
+}
+.version-body ul li {
+    margin-bottom: 4px;
+}
+@media (max-width: 768px) {
+    .versions-timeline {
+        padding-left: 20px;
+    }
+    .version-card::before {
+        left: -15px;
+        width: 10px;
+        height: 10px;
+    }
+    .version-body {
+        padding: 14px 16px;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}煋鉴 Xinpect - 8 维度代码质检工具{% endblock %}</title>
+    <meta name="description" content="煋鉴 Xinpect - 基于 8 大脑并行扫描架构的智能代码质检工具，AST 级语义分析，行业领先低误报率。">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230EA5E9'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-weight='bold' font-family='Arial'>X</text></svg>">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container navbar-inner">
+            <a href="{{ url_for('index') }}" class="logo">
+                <div class="logo-icon">X</div>
+                <span class="logo-text">煋鉴 Xinpect</span>
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}#features">功能</a>
+                <a href="{{ url_for('index') }}#pricing">定价</a>
+                <a href="{{ url_for('upload_page') }}">在线检测</a>
+            </div>
+            <div class="nav-actions">
+                {% if session.get('user_id') %}
+                    <span class="nav-user">
+                        <span>你好，<strong>{{ session.get('user_email', '')[:session.get('user_email', '').index('@') if '@' in session.get('user_email', '') else 8] }}</strong></span>
+                    </span>
+                    <a href="{{ url_for('dashboard_page') }}" class="btn btn-ghost">会员中心</a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-ghost">退出</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-ghost">登录</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">免费注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- 消息提示 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="max-width:600px;margin:16px auto 0;padding:0 24px;">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- 主内容区 -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% block footer %}
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <div class="logo-icon">X</div>
+                        <span class="logo-text">煋鉴 Xinpect</span>
+                    </div>
+                    <p>8 大脑并行扫描架构，AST 级语义分析代码质检工具，让每一行代码都经得起推敲。</p>
+                </div>
+                <div class="footer-col">
+                    <h4>产品</h4>
+                    <a href="{{ url_for('index') }}#features">功能介绍</a>
+                    <a href="{{ url_for('index') }}#pricing">价格方案</a>
+                    <a href="{{ url_for('upload_page') }}">在线检测</a>
+                </div>
+                <div class="footer-col">
+                    <h4>资源</h4>
+                    <a href="#">使用文档</a>
+                    <a href="#">API 接入</a>
+                    <a href="#">常见问题</a>
+                </div>
+                <div class="footer-col">
+                    <h4>关于</h4>
+                    <a href="#">关于煋旺</a>
+                    <a href="#">联系我们</a>
+                    <a href="#">服务条款</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 煋旺智能 Xingwang Intelligent. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    {% endblock %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block script %}{% endblock %}
+</body>
+</html>

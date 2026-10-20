@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-09-21T21:28:51.751432",
+  "levels": [
+    3
+  ],
+  "elapsed_seconds": 98.4,
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "p0_failures": 0,
+    "p1_failures": 0
+  },
+  "results": [
+    {
+      "test": "漏洞检出-Python SQL注入+命令注入",
+      "passed": true,
+      "detail": "检出6个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Python SQL注入+命令注入",
+      "passed": true,
+      "detail": "AI评估返回非标准格式，跳过打分。issues=6",
+      "severity": "info"
+    },
+    {
+      "test": "误报检查-Python安全代码无误报",
+      "passed": true,
+      "detail": "无误报",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Python安全代码无误报",
+      "passed": true,
+      "detail": "AI评估返回非标准格式，跳过打分。issues=1",
+      "severity": "info"
+    },
+    {
+      "test": "漏洞检出-Python路径遍历+硬编码密钥",
+      "passed": true,
+      "detail": "检出5个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Python路径遍历+硬编码密钥",
+      "passed": true,
+      "detail": "AI评估返回非标准格式，跳过打分。issues=5",
+      "severity": "info"
+    },
+    {
+      "test": "漏洞检出-JavaScript XSS漏洞",
+      "passed": true,
+      "detail": "检出5个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-JavaScript XSS漏洞",
+      "passed": true,
+      "detail": "AI评估返回非标准格式，跳过打分。issues=5",
+      "severity": "info"
+    },
+    {
+      "test": "漏洞检出-Java SQL注入",
+      "passed": true,
+      "detail": "检出3个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Java SQL注入",
+      "passed": true,
+      "detail": "AI评估返回非标准格式，跳过打分。issues=3",
+      "severity": "info"
+    }
+  ],
+  "failures": []
+}

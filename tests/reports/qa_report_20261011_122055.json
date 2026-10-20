@@ -1,0 +1,261 @@
+{
+  "timestamp": "2026-10-11T12:20:55.781175",
+  "levels": [
+    1,
+    2,
+    3
+  ],
+  "elapsed_seconds": 1254.5,
+  "summary": {
+    "total": 36,
+    "passed": 31,
+    "failed": 5,
+    "p0_failures": 1,
+    "p1_failures": 4
+  },
+  "results": [
+    {
+      "test": "服务状态-xinpect-scanner-green",
+      "passed": true,
+      "detail": "status=active, port=8620",
+      "severity": "info"
+    },
+    {
+      "test": "服务状态-xinpect-scanner-blue",
+      "passed": true,
+      "detail": "status=active, port=8622",
+      "severity": "info"
+    },
+    {
+      "test": "服务状态-xinpect-website",
+      "passed": true,
+      "detail": "status=active, port=8621",
+      "severity": "info"
+    },
+    {
+      "test": "服务状态-xinpect-pay",
+      "passed": true,
+      "detail": "status=active, port=8612",
+      "severity": "info"
+    },
+    {
+      "test": "扫描器健康-green",
+      "passed": true,
+      "detail": "status=ok, brains=9, ids=['1', '11', '2', '3', '4', '5', '6', '7', '8']",
+      "severity": "info"
+    },
+    {
+      "test": "扫描器健康-blue",
+      "passed": true,
+      "detail": "status=ok, brains=9, ids=['1', '11', '2', '3', '4', '5', '6', '7', '8']",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/pricing",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/help",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/login",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/register",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/sitemap.xml",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "页面可达-/robots.txt",
+      "passed": true,
+      "detail": "HTTP 200 (expected 200)",
+      "severity": "info"
+    },
+    {
+      "test": "数据库表完整性",
+      "passed": true,
+      "detail": "全部24张表完好",
+      "severity": "info"
+    },
+    {
+      "test": "磁盘空间",
+      "passed": true,
+      "detail": "使用率 65%",
+      "severity": "info"
+    },
+    {
+      "test": "免费扫描流程",
+      "passed": true,
+      "detail": "status=200, has_results=True",
+      "severity": "info"
+    },
+    {
+      "test": "多语言扫描-python",
+      "passed": true,
+      "detail": "status=200",
+      "severity": "info"
+    },
+    {
+      "test": "多语言扫描-javascript",
+      "passed": true,
+      "detail": "status=200",
+      "severity": "info"
+    },
+    {
+      "test": "多语言扫描-java",
+      "passed": true,
+      "detail": "status=200",
+      "severity": "info"
+    },
+    {
+      "test": "多语言扫描-go",
+      "passed": true,
+      "detail": "status=200",
+      "severity": "info"
+    },
+    {
+      "test": "扫描结果生成",
+      "passed": true,
+      "detail": "扫描成功完成",
+      "severity": "info"
+    },
+    {
+      "test": "扫描预估接口",
+      "passed": true,
+      "detail": "返回: cost=?",
+      "severity": "info"
+    },
+    {
+      "test": "安全拦截-/.env",
+      "passed": true,
+      "detail": "连接被拒绝（已拦截）",
+      "severity": "info"
+    },
+    {
+      "test": "安全拦截-/.git/config",
+      "passed": true,
+      "detail": "连接被拒绝（已拦截）",
+      "severity": "info"
+    },
+    {
+      "test": "安全拦截-/wp-admin",
+      "passed": true,
+      "detail": "连接被拒绝（已拦截）",
+      "severity": "info"
+    },
+    {
+      "test": "安全拦截-/phpmyadmin",
+      "passed": true,
+      "detail": "连接被拒绝（已拦截）",
+      "severity": "info"
+    },
+    {
+      "test": "24h扫描失败率",
+      "passed": true,
+      "detail": "最近24h无扫描记录",
+      "severity": "info"
+    },
+    {
+      "test": "漏洞检出-Python SQL注入+命令注入",
+      "passed": true,
+      "detail": "检出5个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Python SQL注入+命令注入",
+      "passed": false,
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]",
+      "severity": "P1"
+    },
+    {
+      "test": "误报检查-Python安全代码无误报",
+      "passed": true,
+      "detail": "无误报",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Python安全代码无误报",
+      "passed": false,
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]",
+      "severity": "P1"
+    },
+    {
+      "test": "漏洞检出-Python路径遍历+硬编码密钥",
+      "passed": true,
+      "detail": "检出3个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-Python路径遍历+硬编码密钥",
+      "passed": false,
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]",
+      "severity": "P1"
+    },
+    {
+      "test": "漏洞检出-JavaScript XSS漏洞",
+      "passed": true,
+      "detail": "检出3个问题",
+      "severity": "info"
+    },
+    {
+      "test": "AI评估-JavaScript XSS漏洞",
+      "passed": false,
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]",
+      "severity": "P1"
+    },
+    {
+      "test": "AI验证-Java SQL注入",
+      "passed": false,
+      "detail": "扫描失败: timed out",
+      "severity": "P0"
+    }
+  ],
+  "failures": [
+    {
+      "test": "AI评估-Python SQL注入+命令注入",
+      "severity": "P1",
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]"
+    },
+    {
+      "test": "AI评估-Python安全代码无误报",
+      "severity": "P1",
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]"
+    },
+    {
+      "test": "AI评估-Python路径遍历+硬编码密钥",
+      "severity": "P1",
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]"
+    },
+    {
+      "test": "AI评估-JavaScript XSS漏洞",
+      "severity": "P1",
+      "detail": "AI调用失败: [AI调用失败: HTTP Error 401: Unauthorized]"
+    },
+    {
+      "test": "AI验证-Java SQL注入",
+      "severity": "P0",
+      "detail": "扫描失败: timed out"
+    }
+  ]
+}

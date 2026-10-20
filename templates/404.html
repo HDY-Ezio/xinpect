@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}404 - 页面不存在 - 煋鉴 Xinpect{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<section class="section" style="padding: 80px 0; text-align: center;">
+    <div class="container-sm">
+        <div style="font-size: 96px; font-weight: 800; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px;">
+            404
+        </div>
+        <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 12px;">页面走丢了</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 32px; font-size: 16px;">
+            你访问的页面不存在，或已被移动到其他位置
+        </p>
+        <div style="display: flex; gap: 16px; justify-content: center;">
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">返回首页</a>
+            <a href="{{ url_for('upload_page') }}" class="btn3d"><span class="btn3d-edge" aria-hidden="true"></span><span class="btn3d-front">立即检测</span></a>
+        </div>
+    </div>
+</section>
+{% endblock %}

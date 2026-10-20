@@ -1,0 +1,52 @@
+{
+  "timestamp": "2026-10-20T19:05:02.150213",
+  "services": {
+    "xinpect-website": {
+      "status": "ok",
+      "port_alive": true,
+      "message": "",
+      "response_ms": 57
+    },
+    "xinpect-scanner-green": {
+      "status": "ok",
+      "port_alive": true,
+      "message": "",
+      "response_ms": 2
+    },
+    "xinpect-scanner-blue": {
+      "status": "ok",
+      "port_alive": true,
+      "message": "",
+      "response_ms": 2
+    },
+    "pdf-pro": {
+      "status": "ok",
+      "port_alive": true,
+      "message": "",
+      "response_ms": 211
+    },
+    "xinpect-pay": {
+      "status": "ok",
+      "port_alive": true,
+      "message": "",
+      "response_ms": 2
+    }
+  },
+  "disk": {
+    "usage": 62,
+    "status": "ok"
+  },
+  "memory": {
+    "usage_pct": 67.4,
+    "available_mb": 2424,
+    "status": "ok"
+  },
+  "load": {
+    "load1": 0.38,
+    "load5": 0.25,
+    "load15": 0.1,
+    "status": "ok"
+  },
+  "heal_results": null,
+  "overall": "healthy"
+}

@@ -1,0 +1,12 @@
+# 煋鉴 Xinpect - Python 依赖
+# 生产环境使用 gunicorn 替代 Flask 开发服务器
+
+Flask==3.0.3
+Werkzeug==3.0.3
+requests==2.32.3
+Jinja2>=3.1.0
+MarkupSafe>=2.1.0
+itsdangerous>=2.1.0
+click>=8.1.0
+blinker>=1.7.0
+gunicorn>=21.2.0

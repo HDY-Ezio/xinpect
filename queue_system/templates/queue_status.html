@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block title %}扫描排队状态 - 煋鉴 Xinpect{% endblock %}
+{% block extra_css %}
+<style>
+    .queue-container {
+        max-width: 520px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+    .queue-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .queue-header {
+        background: linear-gradient(135deg, #FF6B35, #ff8c5a);
+        padding: 32px;
+        text-align: center;
+        color: #fff;
+    }
+    .queue-header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .queue-header p { font-size: 13px; opacity: 0.85; }
+    .queue-body { padding: 32px; }
+
+    /* 排队动画 */
+    .queue-animation { text-align: center; margin-bottom: 24px; }
+    .queue-icon { font-size: 56px; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+    }
+    .position-display { text-align: center; margin: 24px 0; }
+    .position-number {
+        font-size: 72px; font-weight: 700; color: #FF6B35; line-height: 1;
+    }
+    .position-label { font-size: 16px; color: #666; margin-top: 8px; }
+    .wait-time {
+        text-align: center;
+        background: #fff8f5;
+        border: 1px solid #ffe0d0;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+    }
+    .wait-time span { color: #FF6B35; font-weight: 600; font-size: 18px; }
+    .info-row {
+        display: flex; justify-content: space-between;
+        padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #888; }
+    .info-value { color: #333; font-weight: 500; }
+
+    .status-running { color: #4CAF50; }
+    .status-queued { color: #FF6B35; }
+    .status-completed { color: #4CAF50; }
+    .status-failed { color: #f44336; }
+
+    .progress-bar {
+        height: 6px; background: #f0f0f0; border-radius: 3px;
+        margin: 20px 0; overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #FF6B35, #ff8c5a);
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+
+    .btn-queue {
+        display: block; width: 100%; padding: 14px;
+        border: none; border-radius: 10px; font-size: 15px;
+        font-weight: 500; cursor: pointer; margin-top: 16px;
+        transition: all 0.2s; text-align: center; text-decoration: none;
+    }
+    .btn-cancel { background: #f5f5f5; color: #666; }
+    .btn-cancel:hover { background: #eee; }
+    .btn-view { background: #FF6B35; color: #fff; }
+    .btn-view:hover { background: #e85d2a; }
+
+    .queue-tip {
+        text-align: center; font-size: 12px; color: #aaa;
+        margin-top: 16px;
+    }
+    .vip-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #fff; font-size: 11px; font-weight: 600;
+        padding: 2px 8px; border-radius: 10px; margin-left: 8px;
+    }
+
+    @keyframes progress-pulse {
+        0%, 100% { width: 40%; }
+        50% { width: 80%; }
+    }
+    .progress-animated {
+        animation: progress-pulse 2s ease-in-out infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="queue-container">
+    <div class="queue-card">
+        <div class="queue-header">
+            <h1>扫描排队状态</h1>
+            <p>煋鉴 Xinpect · AI 代码质量审计</p>
+        </div>
+        <div class="queue-body" id="content">
+            <div style="text-align:center;padding:40px;color:#888;">
+                <div class="queue-icon" style="font-size:36px;">⏳</div>
+                <p style="margin-top:12px;">正在加载状态...</p>
+            </div>
+        </div>
+    </div>
+    <p class="queue-tip">页面每5秒自动刷新 · 关闭页面不影响扫描进度</p>
+</div>
+
+<script>
+    const taskId = '{{ task_id }}' || new URLSearchParams(location.search).get('task_id');
+    let pollTimer = null;
+
+    async function fetchStatus() {
+        if (!taskId) {
+            document.getElementById('content').innerHTML = `
+                <div style="text-align:center;padding:40px;">
+                    <p style="color:#888;">缺少任务ID</p>
+                    <a href="/upload" style="color:#FF6B35;margin-top:12px;display:inline-block;">返回上传页</a>
+                </div>`;
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/queue/status?task_id=${taskId}`);
+            const data = await res.json();
+            if (!data.success) {
+                renderError(data.error || '任务不存在');
+                return;
+            }
+            renderStatus(data);
+        } catch (e) {
+            console.error('获取状态失败:', e);
+        }
+    }
+
+    function renderStatus(data) {
+        const content = document.getElementById('content');
+        const isVip = data.is_vip;
+        const vipHtml = isVip ? '<span class="vip-badge">VIP</span>' : '';
+
+        if (data.status === 'queued') {
+            content.innerHTML = `
+                <div class="queue-animation"><div class="queue-icon">⏳</div></div>
+                <div class="position-display">
+                    <div class="position-number">${data.position || '-'}</div>
+                    <div class="position-label">您前面还有 ${data.position ? (data.position - 1) : '?'} 人排队${vipHtml}</div>
+                </div>
+                <div class="wait-time">
+                    预计等待 <span>${formatWait(data.estimated_wait)}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${Math.max(10, 100 - (data.position || 1) * 15)}%"></div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">项目名称</span>
+                    <span class="info-value">${data.project_name || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">扫描模式</span>
+                    <span class="info-value">${data.scan_mode || '智能'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">状态</span>
+                    <span class="info-value status-queued">排队中</span>
+                </div>
+                <button class="btn-queue btn-cancel" onclick="cancelTask()">取消排队</button>
+            `;
+        } else if (data.status === 'running') {
+            content.innerHTML = `
+                <div class="queue-animation"><div class="queue-icon">🔍</div></div>
+                <div class="position-display">
+                    <div class="position-label" style="font-size:22px;color:#4CAF50;font-weight:600;">正在扫描中...</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill progress-animated"></div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">项目名称</span>
+                    <span class="info-value">${data.project_name || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">开始时间</span>
+                    <span class="info-value">${formatTime(data.started_at)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">状态</span>
+                    <span class="info-value status-running">扫描中</span>
+                </div>
+                <p class="queue-tip" style="margin-top:20px;">扫描完成后将通过邮件通知您</p>
+            `;
+        } else if (data.status === 'completed') {
+            content.innerHTML = `
+                <div class="queue-animation"><div class="queue-icon">✅</div></div>
+                <div class="position-display">
+                    <div class="position-label" style="font-size:22px;color:#4CAF50;font-weight:600;">扫描完成${vipHtml}</div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">项目名称</span>
+                    <span class="info-value">${data.project_name || '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">完成时间</span>
+                    <span class="info-value">${formatTime(data.finished_at)}</span>
+                </div>
+                <a href="/report/${taskId}" class="btn-queue btn-view">查看完整报告</a>
+            `;
+            clearInterval(pollTimer);
+        } else if (data.status === 'failed') {
+            content.innerHTML = `
+                <div class="queue-animation"><div class="queue-icon">❌</div></div>
+                <div class="position-display">
+                    <div class="position-label" style="font-size:20px;color:#f44336;font-weight:600;">扫描失败</div>
+                </div>
+                <p style="text-align:center;color:#888;font-size:14px;margin:16px 0;">${data.error || '未知错误'}</p>
+                <a href="/upload" class="btn-queue btn-view">重新提交</a>
+            `;
+            clearInterval(pollTimer);
+        } else if (data.status === 'cancelled') {
+            content.innerHTML = `
+                <div class="queue-animation"><div class="queue-icon">🚫</div></div>
+                <div class="position-display">
+                    <div class="position-label" style="font-size:20px;color:#888;">已取消排队</div>
+                </div>
+                <a href="/upload" class="btn-queue btn-view">重新提交扫描</a>
+            `;
+            clearInterval(pollTimer);
+        }
+    }
+
+    function renderError(msg) {
+        document.getElementById('content').innerHTML = `
+            <div style="text-align:center;padding:40px;">
+                <div style="font-size:48px;margin-bottom:16px;">😕</div>
+                <p style="color:#888;">${msg}</p>
+                <a href="/upload" style="color:#FF6B35;margin-top:12px;display:inline-block;">返回上传页</a>
+            </div>`;
+        clearInterval(pollTimer);
+    }
+
+    async function cancelTask() {
+        if (!confirm('确定取消排队？')) return;
+        try {
+            const res = await fetch('/api/queue/cancel', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({task_id: taskId})
+            });
+            const data = await res.json();
+            if (data.success) fetchStatus();
+            else alert(data.error || '取消失败');
+        } catch (e) {
+            alert('操作失败');
+        }
+    }
+
+    function formatWait(seconds) {
+        if (!seconds || seconds <= 0) return '即将开始';
+        if (seconds < 60) return `${seconds}秒`;
+        return `${Math.ceil(seconds / 60)}分钟`;
+    }
+
+    function formatTime(ts) {
+        if (!ts) return '-';
+        return new Date(ts * 1000).toLocaleString('zh-CN', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    }
+
+    // 启动轮询
+    fetchStatus();
+    pollTimer = setInterval(fetchStatus, 5000);
+</script>
+{% endblock %}

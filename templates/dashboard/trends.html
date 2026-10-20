@@ -1,0 +1,314 @@
+{% extends "dashboard/base.html" %}
+{% block extra_css %}
+<style>
+.trends-container { /* padding inherited from dashboard-content */ }
+
+/* 时间范围选择 */
+.trends-toolbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.trends-toolbar .period-btn {
+    padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border-color, #E2E8F0);
+    background: var(--bg-card, #FFFFFF); color: var(--text-secondary, #475569);
+    cursor: pointer; font-size: 13px; transition: all .2s;
+}
+.trends-toolbar .period-btn:hover { border-color: #1A3A5C; color: #1A3A5C; }
+.trends-toolbar .period-btn.active {
+    background: #1A3A5C; color: #fff; border-color: #1A3A5C;
+}
+
+/* 摘要卡片 */
+.trends-summary-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+}
+.summary-card {
+    background: var(--bg-card, #FFFFFF); border: 1px solid var(--border-color, #E2E8F0);
+    border-radius: 12px; padding: 16px 18px;
+}
+.summary-card .label { font-size: 12px; color: var(--text-muted, #64748B); margin-bottom: 6px; }
+.summary-card .value { font-size: 24px; font-weight: 700; color: var(--text-primary, #0F172A); }
+.summary-card .trend-badge {
+    display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-top: 4px;
+}
+.trend-up { background: rgba(34,197,94,.15); color: #22c55e; }
+.trend-down { background: rgba(239,68,68,.15); color: #ef4444; }
+.trend-stable { background: rgba(148,163,184,.15); color: #94a3b8; }
+
+/* 图表区域 */
+.charts-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card {
+    background: var(--bg-card, #FFFFFF); border: 1px solid var(--border-color, #E2E8F0);
+    border-radius: 12px; padding: 20px; position: relative;
+}
+.chart-card.full-width { grid-column: 1 / -1; }
+.chart-card h3 {
+    font-size: 14px; font-weight: 600; color: var(--text-primary, #0F172A);
+    margin: 0 0 14px 0;
+}
+.chart-card canvas { width: 100% !important; }
+
+/* 加载态 */
+.trends-loading {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 300px; color: var(--text-muted, #64748B); font-size: 14px;
+}
+
+/* 空状态 */
+.trends-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 300px; color: var(--text-muted, #64748B);
+}
+.trends-empty .icon { font-size: 48px; margin-bottom: 12px; opacity: .5; }
+.trends-empty .text { font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="trends-container">
+    <h2 style="font-size:18px; font-weight:700; color:var(--text-primary, #0F172A); margin-bottom:6px;">📈 技术债趋势</h2>
+    <p class="page-desc">追踪每次扫描的代码质量变化。得分走势反映整体趋势，问题分布帮你定位短板，引擎对比看哪个维度最严格。</p>
+
+    <!-- 工具栏 -->
+    <div class="trends-toolbar">
+        <button class="period-btn active" data-days="7">7天</button>
+        <button class="period-btn" data-days="30">30天</button>
+        <button class="period-btn" data-days="90">90天</button>
+        <button class="period-btn" data-days="180">180天</button>
+    </div>
+
+    <!-- 摘要卡片 -->
+    <div class="trends-summary-grid" id="summaryGrid" style="display:none;">
+        <div class="summary-card">
+            <div class="label">平均得分</div>
+            <div class="value" id="avgScore">--</div>
+            <div class="trend-badge" id="scoreTrend">--</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">检测次数</div>
+            <div class="value" id="totalScans">--</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">最弱引擎</div>
+            <div class="value" id="weakestBrain" style="font-size:16px;">--</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">主要问题等级</div>
+            <div class="value" id="mainSeverity" style="font-size:16px;">--</div>
+        </div>
+    </div>
+
+    <!-- 图表 -->
+    <div id="chartsArea">
+        <div class="trends-loading" id="loadingState">
+            <span>加载中...</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    let currentDays = 7;
+    let chartScore = null;
+    let chartSeverity = null;
+    let chartBrain = null;
+
+    // 时间范围切换
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentDays = parseInt(this.dataset.days);
+            loadTrends();
+        });
+    });
+
+    function loadTrends() {
+        const loading = document.getElementById('loadingState');
+        if (loading) loading.style.display = 'flex';
+
+        fetch('/api/trends?days=' + currentDays)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) { alert(data.error || '加载失败'); return; }
+                renderSummary(data.summary);
+                renderCharts(data.data_points, data.summary);
+                if (loading) loading.style.display = 'none';
+            })
+            .catch(err => {
+                console.error('Trends load error:', err);
+                if (loading) loading.textContent = '加载失败，请刷新重试';
+            });
+    }
+
+    function renderSummary(s) {
+        const grid = document.getElementById('summaryGrid');
+        grid.style.display = 'grid';
+
+        document.getElementById('avgScore').textContent = s.avg_score || 0;
+        document.getElementById('totalScans').textContent = s.total_scans || 0;
+
+        // 分数趋势
+        const badge = document.getElementById('scoreTrend');
+        if (s.score_trend === 'improving') {
+            badge.textContent = '↑ +' + s.score_change;
+            badge.className = 'trend-badge trend-up';
+        } else if (s.score_trend === 'declining') {
+            badge.textContent = '↓ ' + s.score_change;
+            badge.className = 'trend-badge trend-down';
+        } else {
+            badge.textContent = '→ 稳定';
+            badge.className = 'trend-badge trend-stable';
+        }
+
+        // 最弱引擎
+        const wb = document.getElementById('weakestBrain');
+        if (s.weakest_brain_name) {
+            wb.textContent = 'B' + s.weakest_brain + ' ' + s.weakest_brain_name + ' (' + s.weakest_brain_score + '分)';
+        } else {
+            wb.textContent = '--';
+        }
+
+        // 主要问题等级
+        const sevLabels = { critical: '致命', high: '高危', medium: '中危', low: '低危' };
+        document.getElementById('mainSeverity').textContent = sevLabels[s.most_common_severity] || '--';
+    }
+
+    function renderCharts(dataPoints, summary) {
+        if (!dataPoints.length) {
+            document.getElementById('chartsArea').innerHTML =
+                '<div class="trends-empty"><div class="icon">📊</div><div class="text">暂无检测数据，完成一次扫描后即可查看趋势</div></div>';
+            return;
+        }
+
+        const labels = dataPoints.map(dp => {
+            const d = dp.date.split(' ')[0] || dp.date;
+            return d.substring(5); // MM-DD
+        });
+
+        // 确保 charts area 有 canvas elements
+        const area = document.getElementById('chartsArea');
+        area.innerHTML = `
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>得分趋势</h3>
+                    <canvas id="scoreChart" height="100"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>问题等级分布</h3>
+                    <canvas id="severityChart" height="160"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>引擎得分对比</h3>
+                    <canvas id="brainChart" height="160"></canvas>
+                </div>
+            </div>
+        `;
+
+        // 公共 chart options
+        const textColor = '#475569';
+        const gridColor = 'rgba(226,232,240,0.8)';
+        const commonOpts = {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { labels: { color: textColor, font: { size: 11 } } } },
+            scales: {
+                x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
+                y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
+            }
+        };
+
+        // 1. 得分趋势折线图
+        const ctxScore = document.getElementById('scoreChart').getContext('2d');
+        if (chartScore) chartScore.destroy();
+        chartScore = new Chart(ctxScore, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '得分',
+                    data: dataPoints.map(dp => dp.score),
+                    borderColor: '#1A3A5C',
+                    backgroundColor: 'rgba(26,58,92,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#1A3A5C',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                ...commonOpts,
+                scales: {
+                    ...commonOpts.scales,
+                    y: { ...commonOpts.scales.y, min: 0, max: 100 }
+                }
+            }
+        });
+
+        // 2. 问题等级堆叠面积图
+        const ctxSev = document.getElementById('severityChart').getContext('2d');
+        if (chartSeverity) chartSeverity.destroy();
+        chartSeverity = new Chart(ctxSev, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: '致命', data: dataPoints.map(dp => dp.critical), backgroundColor: '#ef4444', stack: 'sev' },
+                    { label: '高危', data: dataPoints.map(dp => dp.high), backgroundColor: '#f97316', stack: 'sev' },
+                    { label: '中危', data: dataPoints.map(dp => dp.medium), backgroundColor: '#eab308', stack: 'sev' },
+                    { label: '低危', data: dataPoints.map(dp => dp.low), backgroundColor: '#22c55e', stack: 'sev' },
+                ]
+            },
+            options: {
+                ...commonOpts,
+                scales: {
+                    ...commonOpts.scales,
+                    x: { ...commonOpts.scales.x, stacked: true },
+                    y: { ...commonOpts.scales.y, stacked: true }
+                }
+            }
+        });
+
+        // 3. 引擎得分折线图
+        const brainIds = new Set();
+        dataPoints.forEach(dp => {
+            Object.keys(dp.brain_scores || {}).forEach(bid => brainIds.add(bid));
+        });
+        const brainIdList = Array.from(brainIds).sort((a, b) => parseInt(a) - parseInt(b));
+        const brainColors = ['#1A3A5C', '#3b82f6', '#22c55e', '#eab308', '#a855f7', '#ec4899', '#06b6d4', '#f97316', '#6366f1'];
+
+        const brainDatasets = brainIdList.map((bid, i) => ({
+            label: 'B' + bid,
+            data: dataPoints.map(dp => (dp.brain_scores || {})[bid] ?? null),
+            borderColor: brainColors[i % brainColors.length],
+            tension: 0.3,
+            pointRadius: 3,
+            borderWidth: 1.5,
+            spanGaps: true,
+        }));
+
+        const ctxBrain = document.getElementById('brainChart').getContext('2d');
+        if (chartBrain) chartBrain.destroy();
+        chartBrain = new Chart(ctxBrain, {
+            type: 'line',
+            data: { labels: labels, datasets: brainDatasets },
+            options: {
+                ...commonOpts,
+                scales: {
+                    ...commonOpts.scales,
+                    y: { ...commonOpts.scales.y, min: 0, max: 100 }
+                }
+            }
+        });
+    }
+
+    // 初始加载
+    loadTrends();
+})();
+</script>
+{% endblock %}

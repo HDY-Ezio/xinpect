@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>团队设置 - {{ team.name }} - 煋鉴</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f7fa; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+        .breadcrumb { font-size: 13px; color: #999; margin-bottom: 16px; }
+        .breadcrumb a { color: #1A3A5C; text-decoration: none; }
+        h1 { font-size: 22px; font-weight: 600; margin-bottom: 24px; }
+        .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #1A3A5C; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1A3A5C; color: #fff; }
+        .btn-primary:hover { background: #1E40AF; }
+        .btn-danger { background: #fff; color: #FF4444; border: 1px solid #FF4444; }
+        .btn-danger:hover { background: #FFF0F0; }
+        .btn-secondary { background: #fff; color: #666; border: 1px solid #ddd; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* 成员管理 */
+        .member-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+        .member-row:last-child { border-bottom: none; }
+        .member-left { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #EFF6FF; display: flex; align-items: center; justify-content: center; color: #1A3A5C; font-weight: 600; font-size: 15px; }
+        .member-email { font-size: 14px; }
+        .member-actions { display: flex; gap: 6px; align-items: center; }
+        select { padding: 5px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; }
+        select:focus { outline: none; border-color: #1A3A5C; }
+
+        /* 邀请链接列表 */
+        .invite-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f8f8f8; font-size: 13px; }
+        .invite-row:last-child { border-bottom: none; }
+        .status-pending { color: #1A3A5C; }
+        .status-accepted { color: #36B37E; }
+        .status-rejected, .status-expired { color: #bbb; }
+
+        /* 危险区域 */
+        .danger-zone { border: 1px solid #FFD4D4; }
+        .danger-zone h2 { color: #FF4444; border-bottom-color: #FFE8E8; }
+        .danger-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+        .danger-item .desc { font-size: 13px; color: #888; }
+
+        /* 确认弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 16px; padding: 32px; width: 90%; max-width: 400px; text-align: center; }
+        .modal h3 { font-size: 18px; margin-bottom: 12px; }
+        .modal p { font-size: 14px; color: #888; margin-bottom: 24px; }
+        .modal-btns { display: flex; gap: 12px; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/dashboard/team">我的团队</a> / <a href="/dashboard/team/{{ team.id }}">{{ team.name }}</a> / 设置
+        </div>
+        <h1>团队设置</h1>
+
+        <!-- 基本信息 -->
+        <div class="card">
+            <h2>基本信息</h2>
+            <div class="form-group">
+                <label>团队名称</label>
+                <input type="text" id="teamName" value="{{ team.name }}" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label>团队描述</label>
+                <textarea id="teamDesc" maxlength="500">{{ team.description or '' }}</textarea>
+            </div>
+            <button class="btn btn-primary" onclick="saveTeamInfo()">保存修改</button>
+        </div>
+
+        <!-- 成员管理 -->
+        <div class="card">
+            <h2>成员管理</h2>
+            {% for m in members %}
+            <div class="member-row">
+                <div class="member-left">
+                    <div class="avatar">{{ m.email[0]|upper }}</div>
+                    <div>
+                        <div class="member-email">{{ m.email }}</div>
+                        <div style="font-size:12px;color:#bbb;">加入于 {{ m.joined_at[:10] if m.joined_at else '' }}</div>
+                    </div>
+                </div>
+                <div class="member-actions">
+                    {% if m.role == 'owner' %}
+                    <span style="font-size:13px;color:#1A3A5C;font-weight:500;">所有者</span>
+                    {% elif is_owner %}
+                    <select onchange="changeRole({{ m.user_id }}, this.value)">
+                        <option value="admin" {% if m.role == 'admin' %}selected{% endif %}>管理员</option>
+                        <option value="member" {% if m.role == 'member' %}selected{% endif %}>成员</option>
+                    </select>
+                    {% if m.role != 'owner' %}
+                    <button class="btn btn-danger btn-sm" onclick="removeMember({{ m.user_id }}, '{{ m.email }}')">移除</button>
+                    {% endif %}
+                    {% else %}
+                    <span style="font-size:13px;color:{% if m.role == 'admin' %}#4A7AFF{% else %}#36B37E{% endif %};font-weight:500;">
+                        {% if m.role == 'admin' %}管理员{% else %}成员{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 邀请链接管理 -->
+        {% if invite_links %}
+        <div class="card">
+            <h2>邀请记录</h2>
+            {% for inv in invite_links %}
+            <div class="invite-row">
+                <div>
+                    <span>{{ inv.invitee_email if inv.invitee_email != '__link__' else '通用链接' }}</span>
+                    <span class="status-{{ inv.status }}" style="margin-left:8px;font-size:12px;">
+                        {% if inv.status == 'pending' %}待接受{% elif inv.status == 'accepted' %}已接受{% elif inv.status == 'rejected' %}已拒绝{% else %}已过期{% endif %}
+                    </span>
+                </div>
+                {% if inv.status == 'pending' %}
+                <button class="btn btn-secondary btn-sm" onclick="cancelInvite({{ inv.id }})">撤销</button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 转让所有权 -->
+        {% if is_owner and members|length > 1 %}
+        <div class="card">
+            <h2>转让所有权</h2>
+            <p style="font-size:13px;color:#888;margin-bottom:12px;">将团队所有权转让给其他成员，你将变为管理员角色。</p>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <select id="transferTarget" style="flex:1;">
+                    {% for m in members %}
+                    {% if m.role != 'owner' %}
+                    <option value="{{ m.user_id }}">{{ m.email }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                <button class="btn btn-danger" onclick="transferOwnership()">转让</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 危险区域 -->
+        {% if is_owner %}
+        <div class="card danger-zone">
+            <h2>危险操作</h2>
+            <div class="danger-item">
+                <div>
+                    <div style="font-weight:500;">删除团队</div>
+                    <div class="desc">永久删除团队及所有关联数据，此操作不可撤销</div>
+                </div>
+                <button class="btn btn-danger" onclick="showDeleteConfirm()">删除团队</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <h3>确认删除团队？</h3>
+            <p>此操作将永久删除团队「{{ team.name }}」及所有数据，不可撤销。</p>
+            <div class="modal-btns">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button>
+                <button class="btn btn-danger" onclick="deleteTeam()" style="background:#FF4444;color:#fff;border:none;">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teamId = {{ team.id }};
+
+        async function saveTeamInfo() {
+            const name = document.getElementById('teamName').value.trim();
+            const description = document.getElementById('teamDesc').value.trim();
+            if (!name || name.length < 2) { alert('名称至少2个字符'); return; }
+            try {
+                const resp = await fetch(`/api/teams/${teamId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+                const data = await resp.json();
+                alert(data.msg);
+                if (data.code === 0) location.reload();
+            } catch (e) { alert('保存失败'); }
+        }
+
+        async function changeRole(userId, role) {
+            try {
+                const resp = await fetch(`/api/teams/${teamId}/members/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+                const data = await resp.json();
+                alert(data.msg);
+                if (data.code === 0) location.reload();
+            } catch (e) { alert('操作失败'); }
+        }
+
+        async function removeMember(userId, email) {
+            if (!confirm(`确认移除成员 ${email}？`)) return;
+            try {
+                const resp = await fetch(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' });
+                const data = await resp.json();
+                alert(data.msg);
+                if (data.code === 0) location.reload();
+            } catch (e) { alert('操作失败'); }
+        }
+
+        async function cancelInvite(invId) {
+            try {
+                const resp = await fetch(`/api/teams/invitations/${invId}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.code === 0) location.reload();
+                else alert(data.msg);
+            } catch (e) { alert('操作失败'); }
+        }
+
+        async function transferOwnership() {
+            const target = document.getElementById('transferTarget').value;
+            if (!confirm('确认转让团队所有权？此操作不可撤销。')) return;
+            try {
+                const resp = await fetch(`/api/teams/${teamId}/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: target })
+                });
+                const data = await resp.json();
+                alert(data.msg);
+                if (data.code === 0) location.reload();
+            } catch (e) { alert('操作失败'); }
+        }
+
+        function showDeleteConfirm() { document.getElementById('deleteModal').classList.add('active'); }
+        function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('active'); }
+
+        async function deleteTeam() {
+            try {
+                const resp = await fetch(`/api/teams/${teamId}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.code === 0) { window.location = '/dashboard/team'; }
+                else { alert(data.msg); closeDeleteModal(); }
+            } catch (e) { alert('删除失败'); closeDeleteModal(); }
+        }
+
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteModal();
+        });
+    </script>
+</body>
+</html>

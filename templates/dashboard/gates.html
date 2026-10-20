@@ -1,0 +1,243 @@
+{% extends "dashboard/base.html" %}
+{% block title %}质量门禁{% endblock %}
+
+{% block extra_css %}
+<style>
+    .g-page { /* max-width inherited from dashboard-content */ }
+    .g-hero { margin-bottom: 20px; }
+    .g-hero h1 { font-size: 20px; font-weight: 700; color: #0F172A; margin: 0 0 4px; }
+    .g-hero p { font-size: 13px; color: #64748B; margin: 0; }
+
+    .g-templates {
+        display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .g-tpl {
+        padding: 10px 16px;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #475569;
+        transition: all 0.2s;
+    }
+    .g-tpl:hover { border-color: #1A3A5C; color: #1A3A5C; }
+    .g-tpl.active { border-color: #1A3A5C; background: #EFF6FF; color: #1A3A5C; }
+    .g-tpl .tpl-name { font-weight: 600; }
+    .g-tpl .tpl-desc { font-size: 11px; color: #64748B; margin-top: 2px; }
+
+    .g-rules {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .g-rule {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .g-rule:last-child { border-bottom: none; }
+    .g-rule .toggle {
+        width: 36px; height: 20px;
+        background: #E2E8F0;
+        border-radius: 10px;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+        transition: background 0.2s;
+    }
+    .g-rule .toggle.on { background: #1A3A5C; }
+    .g-rule .toggle::after {
+        content: '';
+        width: 16px; height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        position: absolute;
+        top: 2px; left: 2px;
+        transition: left 0.2s;
+    }
+    .g-rule .toggle.on::after { left: 18px; }
+    .g-rule .r-name {
+        flex: 1;
+        font-size: 13px;
+        color: #0F172A;
+        min-width: 0;
+    }
+    .g-rule .r-config {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .g-rule select {
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 4px;
+        color: #475569;
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    .g-rule input {
+        width: 60px;
+        padding: 4px 8px;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 4px;
+        color: #0F172A;
+        font-size: 13px;
+        text-align: center;
+        font-family: monospace;
+    }
+    .g-rule input:focus, .g-rule select:focus {
+        outline: none;
+        border-color: #1A3A5C;
+    }
+
+    .g-actions {
+        display: flex; gap: 10px; margin-top: 20px;
+    }
+    .g-btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+    }
+    .g-btn.primary { background: #1A3A5C; color: #fff; }
+    .g-btn.primary:hover { background: #e85d2c; }
+    .g-btn.secondary { background: #E2E8F0; color: #475569; border: 1px solid #CBD5E1; }
+    .g-btn.secondary:hover { border-color: #1A3A5C; color: #1A3A5C; }
+
+    .g-toast {
+        position: fixed; top: 20px; right: 20px;
+        padding: 12px 20px; border-radius: 8px;
+        font-size: 13px; z-index: 9999; display: none;
+    }
+    .g-toast.ok { background: #00b578; color: #fff; display: block; }
+    .g-toast.err { background: #e53e3e; color: #fff; display: block; }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="g-page">
+    <div class="g-hero">
+        <h1>质量门禁</h1>
+        <p class="page-desc">设定代码质量标准线。扫描完成后自动对比这些规则，任何一条不达标就标记「未通过门禁」。可快速选模板，也可逐条自定义。</p>
+        <p style="font-size:12px;color:#4a5568;margin-bottom:16px;">💡 生产代码用严格模式，日常开发用标准模式，原型验证用宽松模式</p>
+    </div>
+
+    <!-- 模板选择 -->
+    <div class="g-templates" id="tplRow">
+        <div class="g-tpl" onclick="loadTemplate('strict', event)">
+            <div class="tpl-name">严格模式</div>
+            <div class="tpl-desc">零容忍，适合生产代码</div>
+        </div>
+        <div class="g-tpl" onclick="loadTemplate('standard', event)">
+            <div class="tpl-name">标准模式</div>
+            <div class="tpl-desc">允许少量高危，适合日常开发</div>
+        </div>
+        <div class="g-tpl" onclick="loadTemplate('relaxed', event)">
+            <div class="tpl-name">宽松模式</div>
+            <div class="tpl-desc">只看总分和严重问题</div>
+        </div>
+    </div>
+
+    <!-- 规则列表 -->
+    <div class="g-rules" id="rulesBox"></div>
+
+    <!-- 操作 -->
+    <div class="g-actions">
+        <button class="g-btn primary" onclick="saveGates()"><i class="fas fa-save"></i> 保存</button>
+        <button class="g-btn secondary" onclick="loadGates()"><i class="fas fa-undo"></i> 重置</button>
+    </div>
+</div>
+
+<div class="g-toast" id="gToast"></div>
+
+<script>
+var currentRules = [];
+
+function loadGates() {
+    fetch('/api/gates').then(function(r){return r.json()}).then(function(d){
+        if (!d.success) return;
+        if (d.current && d.current.rules && d.current.rules.length > 0) {
+            currentRules = d.current.rules;
+        } else {
+            // 默认用标准模板
+            currentRules = d.templates.standard.rules.map(function(r){return Object.assign({},r)});
+        }
+        renderRules();
+    });
+}
+
+function loadTemplate(name, evt) {
+    fetch('/api/gates/templates').then(function(r){return r.json()}).then(function(d){
+        if (!d.success || !d.templates[name]) return;
+        currentRules = d.templates[name].rules.map(function(r){return Object.assign({},r)});
+        renderRules();
+        // 高亮模板
+        document.querySelectorAll('.g-tpl').forEach(function(e){e.classList.remove('active')});
+        if (evt) evt.currentTarget.classList.add('active');
+    });
+}
+
+function renderRules() {
+    var box = document.getElementById('rulesBox');
+    box.innerHTML = '';
+    currentRules.forEach(function(rule, idx) {
+        var div = document.createElement('div');
+        div.className = 'g-rule';
+        var field = rule.field || 'score';
+        var operators = ['>=', '<=', '==', '!=', '>', '<'];
+        var opsHtml = operators.map(function(op){
+            return '<option value="'+op+'" '+(op===rule.operator?'selected':'')+'>'+op+'</option>';
+        }).join('');
+
+        div.innerHTML = '<div class="toggle '+(rule.enabled?'on':'')+'" onclick="toggleRule('+idx+')"></div>' +
+            '<div class="r-name">'+rule.name+'</div>' +
+            '<div class="r-config">' +
+            '<select onchange="changeOp('+idx+',this.value)">'+opsHtml+'</select>' +
+            '<input type="number" value="'+rule.value+'" onchange="changeVal('+idx+',this.value)" min="0">' +
+            '</div>';
+        box.appendChild(div);
+    });
+}
+
+function toggleRule(idx) {
+    currentRules[idx].enabled = !currentRules[idx].enabled;
+    renderRules();
+}
+
+function changeOp(idx, val) {
+    currentRules[idx].operator = val;
+}
+
+function changeVal(idx, val) {
+    currentRules[idx].value = parseInt(val) || 0;
+}
+
+function saveGates() {
+    fetch('/api/gates', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({rules: currentRules, name: 'custom'})
+    }).then(function(r){return r.json()}).then(function(d){
+        if (d.success) showToast('已保存', 'ok');
+        else showToast(d.error || '保存失败', 'err');
+    }).catch(function(){ showToast('网络错误', 'err'); });
+}
+
+function showToast(msg, type) {
+    var t = document.getElementById('gToast');
+    t.textContent = msg;
+    t.className = 'g-toast ' + type;
+    setTimeout(function(){ t.className = 'g-toast'; }, 3000);
+}
+
+loadGates();
+</script>
+{% endblock %}

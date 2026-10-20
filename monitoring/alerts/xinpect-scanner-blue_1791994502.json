@@ -1,0 +1,7 @@
+{
+  "id": "xinpect-scanner-blue_1791994502",
+  "service": "xinpect-scanner-blue",
+  "status": "degraded",
+  "message": "HTTP 检查失败: <urlopen error [Errno 111] Connection refused>",
+  "timestamp": "2026-10-15T00:15:02.128227"
+}

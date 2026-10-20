@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排队监控面板 - 煋鉴管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Microsoft YaHei', sans-serif;
+            background: #1a1d23;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .topbar {
+            background: #22252d;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #333;
+        }
+        .topbar h1 { font-size: 18px; color: #FF6B35; }
+        .topbar .refresh-info { font-size: 12px; color: #666; }
+
+        .dashboard { padding: 24px; }
+
+        /* 指标卡片 */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: #22252d;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+        .metric-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .metric-value { font-size: 36px; font-weight: 700; margin: 8px 0 4px; }
+        .metric-sub { font-size: 12px; color: #666; }
+
+        .metric-value.orange { color: #FF6B35; }
+        .metric-value.green { color: #4CAF50; }
+        .metric-value.gold { color: #FFD700; }
+        .metric-value.blue { color: #42A5F5; }
+        .metric-value.red { color: #f44336; }
+
+        /* 并发进度 */
+        .concurrent-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        .concurrent-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        /* 排队列表 */
+        .queue-section {
+            background: #22252d;
+            border-radius: 12px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+        .queue-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .queue-header h2 { font-size: 16px; color: #fff; }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .queue-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: #888;
+            font-weight: 500;
+            border-bottom: 1px solid #333;
+            text-transform: uppercase;
+        }
+        .queue-table td {
+            padding: 12px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .queue-table tr:hover { background: rgba(255,107,53,0.05); }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-vip { background: rgba(255,215,0,0.15); color: #FFD700; }
+        .badge-normal { background: rgba(255,255,255,0.05); color: #888; }
+        .badge-queued { background: rgba(255,107,53,0.15); color: #FF6B35; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #555;
+        }
+
+        /* CPU状态指示 */
+        .cpu-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .cpu-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .cpu-dot.ok { background: #4CAF50; }
+        .cpu-dot.warn { background: #FFD700; }
+        .cpu-dot.danger { background: #f44336; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>🔍 煋鉴排队监控面板</h1>
+        <span class="refresh-info">每3秒自动刷新 · <span id="last-update">-</span></span>
+    </div>
+
+    <div class="dashboard">
+        <!-- 指标卡片 -->
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-label">排队中</div>
+                <div class="metric-value orange" id="m-queued">-</div>
+                <div class="metric-sub" id="m-vip">VIP: -</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">扫描中</div>
+                <div class="metric-value green" id="m-running">-</div>
+                <div class="metric-sub">最大并发: <span id="m-max">5</span></div>
+                <div class="concurrent-bar">
+                    <div class="concurrent-fill" id="concurrent-fill" style="width:0%;background:#4CAF50;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">可用槽位</div>
+                <div class="metric-value blue" id="m-slots">-</div>
+                <div class="metric-sub">空闲 capacity</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">平均等待</div>
+                <div class="metric-value gold" id="m-avg-wait">-</div>
+                <div class="metric-sub">近10次扫描</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">系统状态</div>
+                <div class="metric-value" id="m-cpu">
+                    <span class="cpu-indicator">
+                        <span class="cpu-dot ok" id="cpu-dot"></span>
+                        <span id="cpu-text">正常</span>
+                    </span>
+                </div>
+                <div class="metric-sub" id="cpu-detail">CPU < 80%</div>
+            </div>
+        </div>
+
+        <!-- 排队列表 -->
+        <div class="queue-section">
+            <div class="queue-header">
+                <h2>排队列表</h2>
+                <span style="font-size:12px;color:#888;" id="queue-count">-</span>
+            </div>
+            <div id="queue-body">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_KEY = new URLSearchParams(location.search).get('key') || 'xinpect-admin-2026';
+
+        async function refresh() {
+            try {
+                const res = await fetch('/api/admin/queue/list', {
+                    headers: {'X-Admin-Key': ADMIN_KEY}
+                });
+                const data = await res.json();
+                if (!data.success) return;
+
+                const ov = data.overview;
+                const list = data.queue || [];
+
+                // 更新指标
+                document.getElementById('m-queued').textContent = ov.queued;
+                document.getElementById('m-vip').textContent = `VIP: ${ov.vip_queued}`;
+                document.getElementById('m-running').textContent = ov.running;
+                document.getElementById('m-max').textContent = ov.max_concurrent;
+                document.getElementById('m-slots').textContent = ov.available_slots;
+
+                const avgMin = Math.round((ov.avg_wait_seconds || 0) / 60);
+                document.getElementById('m-avg-wait').textContent = avgMin > 0 ? `${avgMin}分钟` : '暂无';
+
+                // 并发进度条
+                const pct = ov.max_concurrent > 0 ? (ov.running / ov.max_concurrent) * 100 : 0;
+                const fill = document.getElementById('concurrent-fill');
+                fill.style.width = pct + '%';
+                fill.style.background = pct >= 100 ? '#f44336' : pct >= 80 ? '#FFD700' : '#4CAF50';
+
+                // CPU状态
+                const dot = document.getElementById('cpu-dot');
+                const txt = document.getElementById('cpu-text');
+                const detail = document.getElementById('cpu-detail');
+                if (ov.cpu_locked) {
+                    dot.className = 'cpu-dot danger';
+                    txt.textContent = '限流中';
+                    detail.textContent = 'CPU > 80%';
+                } else if (pct >= 80) {
+                    dot.className = 'cpu-dot warn';
+                    txt.textContent = '高负载';
+                    detail.textContent = `并发 ${ov.running}/${ov.max_concurrent}`;
+                } else {
+                    dot.className = 'cpu-dot ok';
+                    txt.textContent = '正常';
+                    detail.textContent = `CPU < 80%`;
+                }
+
+                // 排队列表
+                document.getElementById('queue-count').textContent = `${list.length} 个任务`;
+                renderQueue(list);
+
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString('zh-CN');
+
+            } catch (e) {
+                console.error('刷新失败:', e);
+            }
+        }
+
+        function renderQueue(list) {
+            const body = document.getElementById('queue-body');
+            if (!list.length) {
+                body.innerHTML = '<div class="empty-state">暂无排队任务 ✨</div>';
+                return;
+            }
+
+            let html = `<table class="queue-table">
+                <thead><tr>
+                    <th>#</th><th>项目</th><th>用户</th><th>模式</th><th>类型</th><th>提交时间</th>
+                </tr></thead><tbody>`;
+
+            list.forEach((item, i) => {
+                const vip = item.is_vip === '1' || item.is_vip === 1;
+                const badge = vip ? '<span class="badge badge-vip">VIP</span>' : '<span class="badge badge-normal">普通</span>';
+                const time = item.submitted_at ? new Date(parseFloat(item.submitted_at) * 1000).toLocaleTimeString('zh-CN') : '-';
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td>${item.project_name || '-'}</td>
+                    <td>${item.email || item.user_id || '-'}</td>
+                    <td>${item.scan_mode || 'smart'}</td>
+                    <td>${badge}</td>
+                    <td>${time}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            body.innerHTML = html;
+        }
+
+        refresh();
+        setInterval(refresh, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+{% extends "dashboard/base.html" %}
+{% block title %}扫描阈值配置{% endblock %}
+
+{% block extra_css %}
+<style>
+    .th-page { /* max-width inherited from dashboard-content */ }
+    .th-hero { margin-bottom: 20px; }
+    .th-hero h1 { font-size: 20px; font-weight: 700; color: #0F172A; margin: 0 0 4px; }
+    .th-hero p { font-size: 13px; color: #64748B; margin: 0; }
+
+    .th-group {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+    .th-group-head {
+        padding: 14px 18px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .th-group-head .icon {
+        width: 28px; height: 28px;
+        background: #1A3A5C;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 13px; flex-shrink: 0;
+    }
+    .th-group-head h3 {
+        font-size: 14px; font-weight: 600; color: #0F172A; margin: 0;
+    }
+    .th-group-body { padding: 14px 18px 18px; }
+
+    .th-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .th-row:last-child { border-bottom: none; }
+    .th-row .label {
+        font-size: 13px;
+        color: #475569;
+    }
+    .th-row .label .hint {
+        font-size: 11px; color: #4a5568; display: block; margin-top: 2px;
+    }
+    .th-row input {
+        width: 80px;
+        padding: 6px 10px;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        color: #0F172A;
+        font-size: 13px;
+        text-align: center;
+        font-family: monospace;
+    }
+    .th-row input:focus {
+        outline: none;
+        border-color: #1A3A5C;
+    }
+    .th-row .default-val {
+        font-size: 11px;
+        color: #4a5568;
+        margin-left: 6px;
+    }
+
+    .th-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    .th-btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+    }
+    .th-btn.primary {
+        background: #1A3A5C;
+        color: #fff;
+    }
+    .th-btn.primary:hover { background: #e85d2c; }
+    .th-btn.secondary {
+        background: #E2E8F0;
+        color: #475569;
+        border: 1px solid #CBD5E1;
+    }
+    .th-btn.secondary:hover { border-color: #1A3A5C; color: #1A3A5C; }
+
+    .th-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        z-index: 9999;
+        display: none;
+    }
+    .th-toast.ok {
+        background: #00b578;
+        color: #fff;
+        display: block;
+    }
+    .th-toast.err {
+        background: #e53e3e;
+        color: #fff;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="th-page">
+    <div class="th-hero">
+        <h1>扫描阈值配置</h1>
+        <p class="page-desc">调整检测引擎的判定标准，修改后下次扫描立即生效。每项参数控制不同类型的代码问题检测灵敏度，数值越小检查越严格。</p>
+    </div>
+
+    <form id="thForm" onsubmit="return saveThresholds()">
+        <!-- 代码质量 -->
+        <div class="th-group">
+            <div class="th-group-head">
+                <div class="icon"><i class="fas fa-code"></i></div>
+                <h3>代码质量</h3>
+            </div>
+            <div class="th-group-body">
+                <div class="th-row">
+                    <div class="label">函数最大行数<span class="hint">超过则报「函数过长」</span></div>
+                    <div><input type="number" name="code_quality.max_function_lines" min="5" max="500"> <span class="default-val">默认 50</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">文件最大行数<span class="hint">超过则报「文件过大」</span></div>
+                    <div><input type="number" name="code_quality.max_file_lines" min="50" max="5000"> <span class="default-val">默认 500</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">函数最大参数数<span class="hint">参数过多说明函数职责不单一，建议拆分</span></div>
+                    <div><input type="number" name="code_quality.max_function_params" min="1" max="20"> <span class="default-val">默认 5</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">最大嵌套深度<span class="hint">if/for/while 嵌套层数</span></div>
+                    <div><input type="number" name="code_quality.max_nesting_depth" min="1" max="10"> <span class="default-val">默认 4</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">类最大方法数<span class="hint">方法过多说明类职责过重，违反单一职责原则</span></div>
+                    <div><input type="number" name="code_quality.max_class_methods" min="5" max="100"> <span class="default-val">默认 20</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 架构规则 -->
+        <div class="th-group">
+            <div class="th-group-head">
+                <div class="icon"><i class="fas fa-sitemap"></i></div>
+                <h3>架构规则</h3>
+            </div>
+            <div class="th-group-body">
+                <div class="th-row">
+                    <div class="label">文件行数预警线<span class="hint">文件超过此行数触发「建议拆分」警告</span></div>
+                    <div><input type="number" name="architecture.warn_file_lines" min="50" max="2000"> <span class="default-val">默认 300</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">文件行数红线<span class="hint">文件超过此行数触发「必须拆分」错误</span></div>
+                    <div><input type="number" name="architecture.red_file_lines" min="100" max="5000"> <span class="default-val">默认 500</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">函数行数预警线<span class="hint">单函数超过此行数建议重构</span></div>
+                    <div><input type="number" name="architecture.warn_func_lines" min="5" max="300"> <span class="default-val">默认 50</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">函数行数红线<span class="hint">单函数超过此行数直接报错</span></div>
+                    <div><input type="number" name="architecture.red_func_lines" min="10" max="500"> <span class="default-val">默认 75</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 复杂度 -->
+        <div class="th-group">
+            <div class="th-group-head">
+                <div class="icon"><i class="fas fa-project-diagram"></i></div>
+                <h3>复杂度</h3>
+            </div>
+            <div class="th-group-body">
+                <div class="th-row">
+                    <div class="label">圈复杂度上限<span class="hint">if/else/for/while/switch 的独立路径数量，越高越难测试和维护</span></div>
+                    <div><input type="number" name="complexity.max_cyclomatic_complexity" min="3" max="50"> <span class="default-val">默认 10</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">认知复杂度上限<span class="hint">模拟人类阅读代码的心智负担，比圈复杂度更贴近真实复杂度</span></div>
+                    <div><input type="number" name="complexity.max_cognitive_complexity" min="5" max="100"> <span class="default-val">默认 15</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 命名规则 -->
+        <div class="th-group">
+            <div class="th-group-head">
+                <div class="icon"><i class="fas fa-font"></i></div>
+                <h3>命名规则</h3>
+            </div>
+            <div class="th-group-body">
+                <div class="th-row">
+                    <div class="label">变量名最短长度<span class="hint">太短的变量名（如 a、x）降低可读性</span></div>
+                    <div><input type="number" name="naming.min_variable_length" min="1" max="10"> <span class="default-val">默认 2</span></div>
+                </div>
+                <div class="th-row">
+                    <div class="label">变量名最大长度<span class="hint">过长的变量名可能是命名不规范</span></div>
+                    <div><input type="number" name="naming.max_variable_length" min="10" max="100"> <span class="default-val">默认 40</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="th-actions">
+            <button type="submit" class="th-btn primary"><i class="fas fa-save"></i> 保存配置</button>
+            <button type="button" class="th-btn secondary" onclick="resetDefaults()"><i class="fas fa-undo"></i> 恢复默认</button>
+        </div>
+    </form>
+</div>
+
+<div class="th-toast" id="toast"></div>
+
+<script>
+var DEFAULTS = {
+    'code_quality.max_function_lines': 50,
+    'code_quality.max_file_lines': 500,
+    'code_quality.max_function_params': 5,
+    'code_quality.max_nesting_depth': 4,
+    'code_quality.max_class_methods': 20,
+    'architecture.warn_file_lines': 300,
+    'architecture.red_file_lines': 500,
+    'architecture.warn_func_lines': 50,
+    'architecture.red_func_lines': 75,
+    'complexity.max_cyclomatic_complexity': 10,
+    'complexity.max_cognitive_complexity': 15,
+    'naming.min_variable_length': 2,
+    'naming.max_variable_length': 40,
+};
+
+function loadThresholds() {
+    fetch('/api/thresholds').then(function(r){return r.json()}).then(function(d){
+        if (!d.success) return;
+        var cur = d.current || {};
+        var inputs = document.querySelectorAll('#thForm input[type=number]');
+        inputs.forEach(function(inp) {
+            var parts = inp.name.split('.');
+            var cat = parts[0], key = parts[1];
+            var val = (cur[cat] && cur[cat][key]) || DEFAULTS[inp.name];
+            inp.value = val;
+        });
+    });
+}
+
+function saveThresholds() {
+    var config = {};
+    var inputs = document.querySelectorAll('#thForm input[type=number]');
+    inputs.forEach(function(inp) {
+        var parts = inp.name.split('.');
+        var cat = parts[0], key = parts[1];
+        if (!config[cat]) config[cat] = {};
+        var v = parseInt(inp.value);
+        if (v > 0) config[cat][key] = v;
+    });
+
+    fetch('/api/thresholds', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({config: config})
+    }).then(function(r){return r.json()}).then(function(d){
+        if (d.success) showToast('已保存，下次扫描生效', 'ok');
+        else showToast(d.error || '保存失败', 'err');
+    }).catch(function(){ showToast('网络错误', 'err'); });
+    return false;
+}
+
+function resetDefaults() {
+    var inputs = document.querySelectorAll('#thForm input[type=number]');
+    inputs.forEach(function(inp) {
+        inp.value = DEFAULTS[inp.name] || '';
+    });
+    showToast('已恢复默认值，需点保存才生效', 'ok');
+}
+
+function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'th-toast ' + type;
+    setTimeout(function(){ t.className = 'th-toast'; }, 3000);
+}
+
+loadThresholds();
+</script>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Agent 接入{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ap { /* max-width inherited from dashboard-content */ }
+
+    /* ===== 通用卡片 - 深色主题 ===== */
+    .card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+    .card-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 18px 0;
+    }
+    .card-top .num {
+        width: 24px; height: 24px;
+        background: #1A3A5C;
+        color: #fff;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 700;
+        flex-shrink: 0;
+    }
+    .card-top h3 {
+        font-size: 14px; font-weight: 600; margin: 0;
+        color: #0F172A;
+    }
+    .card-top .sub {
+        font-size: 12px; color: #64748B; margin-left: auto;
+    }
+    .card-body {
+        padding: 14px 18px 18px;
+    }
+
+    /* ===== 密钥行 ===== */
+    .key-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 12px 14px;
+    }
+    .key-row .k-val {
+        flex: 1;
+        min-width: 0;
+        font-family: monospace;
+        font-size: 13px;
+        color: #1A3A5C;
+        font-weight: 600;
+        word-break: break-all;
+    }
+    .key-row .k-btn {
+        background: #E2E8F0;
+        border: 1px solid #CBD5E1;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 12px;
+        color: #c0c8d4;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .key-row .k-btn:hover {
+        border-color: #1A3A5C; color: #1A3A5C;
+    }
+
+    /* ===== Tab ===== */
+    .tab-bar {
+        display: flex;
+        gap: 0;
+        background: #F1F5F9;
+        border-radius: 8px;
+        padding: 3px;
+        margin-bottom: 14px;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 8px 0;
+        text-align: center;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #64748B;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+    }
+    .tab-btn.on {
+        background: #FFFFFF;
+        color: #1A3A5C;
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .tab-btn .badge {
+        font-size: 9px;
+        background: #1A3A5C;
+        color: #fff;
+        padding: 1px 5px;
+        border-radius: 6px;
+        margin-left: 4px;
+    }
+    .tp { display: none; }
+    .tp.on { display: block; }
+
+    /* ===== 指令复制区 ===== */
+    .copy-area {
+        background: #F1F5F9;
+        border: 1px dashed #E2E8F0;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .copy-area .ca-text {
+        font-size: 12px;
+        line-height: 1.7;
+        color: #475569;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 160px;
+        overflow-y: auto;
+        margin-bottom: 12px;
+    }
+    .copy-btn-big {
+        width: 100%;
+        padding: 11px;
+        background: #1A3A5C;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .copy-btn-big:hover { background: #e85d2c; }
+    .copy-btn-big.done { background: #00b578; }
+
+    /* ===== MCP ===== */
+    .mcp-block {
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .mcp-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        background: #162035;
+    }
+    .mcp-top .fn {
+        font-family: monospace; font-size: 11px; color: #64748B;
+    }
+    .mcp-top .mc {
+        background: none; border: 1px solid #E2E8F0;
+        border-radius: 4px; padding: 3px 10px;
+        font-size: 11px; color: #64748B; cursor: pointer;
+    }
+    .mcp-top .mc:hover { border-color: #1A3A5C; color: #1A3A5C; }
+    .mcp-top .mc.done { border-color: #00b578; color: #00b578; }
+    .mcp-body {
+        padding: 12px 14px;
+        font-family: monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #475569;
+        overflow-x: auto;
+        white-space: pre;
+        margin: 0;
+    }
+    .mcp-body .k { color: #7c3aed; }
+    .mcp-body .v { color: #00b578; }
+    .mcp-foot {
+        padding: 8px 14px;
+        background: #162035;
+        border-top: 1px solid #E2E8F0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: #64748B;
+        flex-wrap: wrap;
+    }
+    .mcp-foot code {
+        background: #F1F5F9;
+        padding: 3px 8px;
+        border-radius: 4px;
+        color: #475569;
+        font-size: 11px;
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow-x: auto;
+    }
+    .mcp-foot button {
+        background: #E2E8F0; border: none;
+        border-radius: 4px; padding: 3px 8px;
+        font-size: 10px; color: #475569; cursor: pointer;
+    }
+    .mcp-foot button:hover { background: #1A3A5C; color: #fff; }
+
+    /* ===== 提示 ===== */
+    .tip {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 16px;
+        background: #0f1f18;
+        border: 1px solid #1a3a2e;
+        border-radius: 8px;
+    }
+    .tip .ti {
+        width: 20px; height: 20px;
+        background: #00b578;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 10px;
+        flex-shrink: 0; margin-top: 1px;
+    }
+    .tip .tt {
+        font-size: 13px; color: #a0c4b4; line-height: 1.5;
+    }
+
+    /* ===== 底部平台 ===== */
+    .plats {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        margin-top: 12px; justify-content: center;
+    }
+    .plats span {
+        padding: 4px 10px;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        font-size: 11px; color: #64748B;
+    }
+
+    /* ===== 无密钥 ===== */
+    .nokey {
+        text-align: center; padding: 30px 20px;
+        background: #FFFFFF; border: 2px dashed #E2E8F0;
+        border-radius: 12px;
+    }
+    .nokey i { font-size: 28px; color: #E2E8F0; display: block; margin-bottom: 8px; }
+    .nokey p { font-size: 13px; color: #64748B; margin: 0 0 12px; }
+    .nokey button {
+        background: #1A3A5C; color: #fff; border: none;
+        border-radius: 8px; padding: 10px 20px;
+        font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+        .key-row { flex-direction: column; }
+        .key-row .k-btn { width: 100%; text-align: center; }
+        .card-top .sub { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="ap">
+
+{% if user_api_key %}
+
+<!-- ① 密钥 -->
+<div class="card">
+    <div class="card-top">
+        <div class="num">1</div>
+        <h3>你的密钥</h3>
+    </div>
+    <div class="card-body">
+        <div class="key-row">
+            <div class="k-val" id="kDisp">{{ user_api_key }}</div>
+            <button class="k-btn" onclick="cpKey()"><i class="fas fa-copy"></i> 复制密钥</button>
+        </div>
+    </div>
+</div>
+
+<!-- ② 接入方式 -->
+<div class="card">
+    <div class="card-top">
+        <div class="num">2</div>
+        <h3>接入方式</h3>
+        <span class="sub">二选一，效果一样</span>
+    </div>
+    <div class="card-body">
+        <div class="tab-bar">
+            <button class="tab-btn on" id="tabCmd" onclick="sw('d')">复制指令 <span class="badge">推荐</span></button>
+            <button class="tab-btn" id="tabMcp" onclick="sw('m')">MCP 配置</button>
+        </div>
+
+        <div class="tp on" id="tp-d">
+            <div class="copy-area">
+                <div class="ca-text" id="cmdTxt">你现在获得了一个代码安全扫描技能。
+
+【技能信息】
+- 名称：煋鉴代码安全扫描
+- 用途：检查代码的安全漏洞、质量缺陷、性能问题
+- 触发条件：当用户要求"检查代码""扫描代码""代码审查""安全检测"时，自动调用
+- API地址：https://xinpect.xingwangzhineng.com/api/v1/scan
+- 认证密钥：{{ user_api_key }}
+- 支持语言：Python、JavaScript、Java、Go、PHP、Ruby、C、C++、TypeScript、Rust
+
+【调用方式】
+POST请求，Body为JSON：
+{"code_files": {"文件名": "代码内容"}, "language": "语言类型"}
+
+【返回结果】
+JSON，含score（评分）、grade（等级）、issues（问题列表）。
+
+确认后，以后我发代码给你检查时，自动调用此技能。</div>
+                <button class="copy-btn-big" id="cpBtn" onclick="cpCmd(this)">
+                    <i class="fas fa-copy"></i> 复制全部，发给AI助手
+                </button>
+            </div>
+        </div>
+
+        <div class="tp" id="tp-m">
+            <div class="mcp-block">
+                <div class="mcp-top">
+                    <span class="fn">.mcp.json</span>
+                    <button class="mc" onclick="cpMcp(this)"><i class="fas fa-copy"></i> 复制</button>
+                </div>
+                <pre class="mcp-body" id="mcpPre">{
+  <span class="k">"mcpServers"</span>: {
+    <span class="k">"xinpect"</span>: {
+      <span class="k">"command"</span>: <span class="v">"uv"</span>,
+      <span class="k">"args"</span>: [<span class="v">"run"</span>, <span class="v">"xinpect_mcp_server.py"</span>],
+      <span class="k">"env"</span>: {
+        <span class="k">"XINPECT_API_KEY"</span>: <span class="v">"{{ user_api_key }}"</span>
+      }
+    }
+  }
+}</pre>
+                <div class="mcp-foot">
+                    <span>下载脚本：</span>
+                    <code id="dlC">curl -O https://xinpect.xingwangzhineng.com/static/xinpect_mcp_server.py</code>
+                    <button onclick="cpDl(this)"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ③ 使用 -->
+<div class="card">
+    <div class="card-top">
+        <div class="num">3</div>
+        <h3>使用</h3>
+    </div>
+    <div class="card-body">
+        <div class="tip" id="tipBox">
+            <div class="ti"><i class="fas fa-check"></i></div>
+            <div class="tt" id="tipTxt">粘贴到你常用的AI助手（扣子、ChatGPT、通义等），即可自动扫描代码。</div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align:center;padding-top:8px;">
+    <div class="plats">
+        <span>扣子</span><span>ChatGPT</span><span>通义</span><span>Claude Code</span><span>Cursor</span><span>Windsurf</span>
+    </div>
+</div>
+
+{% else %}
+<div class="nokey">
+    <i class="fas fa-key"></i>
+    <p>还没有扫描密钥</p>
+    <button onclick="genKey()"><i class="fas fa-plus"></i> 生成密钥</button>
+</div>
+{% endif %}
+
+</div>
+
+<script>
+function _fbCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(ta);return ok}
+function _copyText(t,ok,fail){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok).catch(function(){if(!_fbCopy(t)){if(fail)fail()}})}else{if(!_fbCopy(t)){if(fail)fail()}}}
+function sw(t){var d=document.getElementById('tp-d'),m=document.getElementById('tp-m'),a=document.getElementById('tabCmd'),b=document.getElementById('tabMcp');if(t==='m'){d.classList.remove('on');m.classList.add('on');a.classList.remove('on');b.classList.add('on')}else{d.classList.add('on');m.classList.remove('on');a.classList.add('on');b.classList.remove('on')}}
+function cpKey(){var t=document.getElementById('kDisp').textContent;_copyText(t,function(){var b=document.querySelector('.k-btn');b.innerHTML='<i class="fas fa-check"></i> \u5df2\u590d\u5236';setTimeout(function(){b.innerHTML='<i class="fas fa-copy"></i> \u590d\u5236\u5bc6\u94a5'},2000)},function(){alert('\u590d\u5236\u5931\u8d25\uff0c\u8bf7\u624b\u52a8\u590d\u5236')})}
+function cpCmd(btn){var t=document.getElementById('cmdTxt').textContent;_copyText(t,function(){btn.innerHTML='<i class="fas fa-check"></i> \u5df2\u590d\u5236\uff01\u53bb\u7c98\u8d34\u5427';btn.classList.add('done');setTimeout(function(){btn.innerHTML='<i class="fas fa-copy"></i> \u590d\u5236\u5168\u90e8\uff0c\u53d1\u7ed9AI\u52a9\u624b';btn.classList.remove('done')},3000)},function(){alert('\u590d\u5236\u5931\u8d25\uff0c\u8bf7\u624b\u52a8\u590d\u5236')})}
+function cpMcp(btn){var t=document.getElementById('mcpPre').textContent;_copyText(t,function(){btn.innerHTML='<i class="fas fa-check"></i> \u5df2\u590d\u5236';btn.classList.add('done');setTimeout(function(){btn.innerHTML='<i class="fas fa-copy"></i> \u590d\u5236';btn.classList.remove('done')},2000)},function(){alert('\u590d\u5236\u5931\u8d25\uff0c\u8bf7\u624b\u52a8\u590d\u5236')})}
+function cpDl(btn){var t=document.getElementById('dlC').textContent;_copyText(t,function(){btn.innerHTML='<i class="fas fa-check"></i>';setTimeout(function(){btn.innerHTML='<i class="fas fa-copy"></i>'},2000)},function(){alert('\u590d\u5236\u5931\u8d25\uff0c\u8bf7\u624b\u52a8\u590d\u5236')})}
+function genKey(){if(!confirm('\u786e\u5b9a\u751f\u6210\u626b\u63cf\u5bc6\u94a5\uff1f\u751f\u6210\u540e\u8bf7\u7acb\u5373\u4fdd\u5b58\uff0c\u4e4b\u540e\u65e0\u6cd5\u518d\u6b21\u67e5\u770b\u5b8c\u6574\u5bc6\u94a5\uff01'))return;fetch('/api/v1/keys/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}).then(function(r){return r.json()}).then(function(d){if(d.key){alert('\u5bc6\u94a5\u5df2\u751f\u6210\uff1a'+d.key+'\n\n\u8bf7\u7acb\u5373\u4fdd\u5b58\uff0c\u5237\u65b0\u540e\u5c06\u65e0\u6cd5\u518d\u67e5\u770b\u5b8c\u6574\u5bc6\u94a5\uff01');location.reload()}else{alert(d.error||d.message||'\u751f\u6210\u5931\u8d25')}}).catch(function(){alert('\u8bf7\u6c42\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5')})}
+</script>
+{% endblock %}

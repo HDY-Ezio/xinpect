@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-09-26 09:28:21",
+  "passed": 10,
+  "failed": 0,
+  "total": 10,
+  "consecutive_failures": 0,
+  "needs_alert": false,
+  "critical_failures": [],
+  "warnings": [],
+  "results": {
+    "xinpect-pay:8765(X402付费+支付+免费入口)": {
+      "status": "pass",
+      "error": null,
+      "critical": true,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "扫描器green:8620": {
+      "status": "pass",
+      "error": null,
+      "critical": true,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "扫描器blue:8622": {
+      "status": "pass",
+      "error": null,
+      "critical": true,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "网站前端:8621": {
+      "status": "pass",
+      "error": null,
+      "critical": false,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "[免费扫描]nginx→xinpect-pay→scanner链路": {
+      "status": "pass",
+      "error": null,
+      "critical": true,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "[付费扫描]X402健康检查": {
+      "status": "pass",
+      "error": null,
+      "critical": true,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "[微信支付]回调端点": {
+      "status": "pass",
+      "error": null,
+      "critical": true,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "[合作方API]内部扫描接口": {
+      "status": "pass",
+      "error": null,
+      "critical": false,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "扫描器green直连": {
+      "status": "pass",
+      "error": null,
+      "critical": false,
+      "checked_at": "2026-09-26 09:28:21"
+    },
+    "扫描器blue直连": {
+      "status": "pass",
+      "error": null,
+      "critical": false,
+      "checked_at": "2026-09-26 09:28:21"
+    }
+  }
+}
