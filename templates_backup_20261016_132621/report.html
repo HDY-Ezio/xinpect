@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>煋鉴 - 检测报告</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1A2B4A;--accent:#FF6B35;--bg:#FFFFFF;--bg-alt:#F5F7FA;--text:#333333;--text-sec:#666666;--border:#E0E6ED;--success:#52C41A;--warn:#FAAD14;--error:#F5222D;--info:#1890FF;--shadow:0 2px 8px rgba(0,0,0,0.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg-alt);line-height:1.6}
+a{text-decoration:none;color:inherit}
+/* NAV */
+.nav{background:var(--primary);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.nav-logo i{color:var(--accent)}
+.nav-links{display:flex;gap:24px}
+.nav-links a{color:rgba(255,255,255,0.7);font-size:14px;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.nav-right{display:flex;align-items:center;gap:16px}
+.btn-sm{padding:6px 16px;border-radius:6px;font-size:13px;font-weight:500;transition:all .2s;cursor:pointer;border:none}
+.btn-outline-w{border:1px solid rgba(255,255,255,0.3);color:#fff;background:transparent}
+.btn-outline-w:hover{border-color:#fff}
+.btn-accent{background:var(--accent);color:#fff;font-weight:600}
+.btn-accent:hover{background:#e55a28}
+/* REPORT HEADER */
+.report-header{background:#fff;padding:32px;border-bottom:1px solid var(--border)}
+.report-header-inner{max-width:1200px;margin:0 auto}
+.report-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.report-title h1{font-size:24px;color:var(--primary);font-weight:700;margin-bottom:8px}
+.report-meta{display:flex;gap:24px;font-size:13px;color:var(--text-sec);flex-wrap:wrap}
+.report-meta span{display:flex;align-items:center;gap:6px}
+.report-meta i{color:var(--primary);font-size:12px}
+.score-badge{display:flex;align-items:center;gap:12px}
+.score-circle{width:64px;height:64px;border-radius:50%;border:4px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--primary)}
+.score-label{font-size:13px;color:var(--text-sec)}
+.score-label strong{display:block;font-size:16px;color:var(--primary)}
+/* STATS */
+.stats-row{max-width:1200px;margin:24px auto;padding:0 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{background:#fff;border-radius:8px;padding:20px 24px;box-shadow:var(--shadow);border-left:4px solid transparent}
+.stat-card.critical{border-left-color:var(--error)}
+.stat-card.high{border-left-color:var(--accent)}
+.stat-card.medium{border-left-color:var(--warn)}
+.stat-card.low{border-left-color:var(--info)}
+.stat-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.stat-card-label{font-size:13px;color:var(--text-sec);font-weight:500}
+.stat-card-icon{font-size:14px}
+.stat-card.critical .stat-card-icon{color:var(--error)}
+.stat-card.high .stat-card-icon{color:var(--accent)}
+.stat-card.medium .stat-card-icon{color:var(--warn)}
+.stat-card.low .stat-card-icon{color:var(--info)}
+.stat-card-value{font-size:28px;font-weight:800;color:var(--primary)}
+.stat-card-sub{font-size:12px;color:var(--text-sec);margin-top:4px}
+/* CONTENT */
+.content{max-width:1200px;margin:0 auto;padding:0 24px 40px}
+/* TOOLBAR */
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.filter-group{display:flex;gap:8px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;border-radius:6px;font-size:13px;border:1px solid var(--border);background:#fff;color:var(--text-sec);cursor:pointer;transition:all .2s}
+.filter-btn:hover{border-color:var(--accent);color:var(--accent)}
+.filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.action-group{display:flex;gap:8px}
+/* ISSUE LIST */
+.issue-list{display:flex;flex-direction:column;gap:16px}
+.issue-card{background:#fff;border-radius:8px;box-shadow:var(--shadow);overflow:hidden;transition:all .2s}
+.issue-card:hover{box-shadow:var(--shadow-hover)}
+.issue-header{display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid var(--border)}
+.issue-severity{padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;flex-shrink:0}
+.sev-critical{background:rgba(245,34,45,0.1);color:var(--error)}
+.sev-high{background:rgba(255,107,53,0.1);color:var(--accent)}
+.sev-medium{background:rgba(250,173,20,0.1);color:var(--warn)}
+.sev-low{background:rgba(24,144,255,0.1);color:var(--info)}
+.issue-title{font-size:15px;font-weight:600;color:var(--primary);flex:1}
+.issue-engine{font-size:12px;color:var(--text-sec);background:var(--bg-alt);padding:3px 10px;border-radius:4px}
+.issue-body{padding:20px 24px}
+.issue-desc{font-size:14px;color:var(--text-sec);margin-bottom:16px;line-height:1.7}
+.issue-location{display:flex;gap:16px;font-size:13px;color:var(--text-sec);margin-bottom:16px;flex-wrap:wrap}
+.issue-location span{display:flex;align-items:center;gap:6px}
+.issue-location i{color:var(--primary);font-size:12px}
+.code-block{background:#1e293b;border-radius:6px;padding:16px 20px;font-family:"Fira Code","JetBrains Mono",monospace;font-size:13px;line-height:1.8;overflow-x:auto;margin-bottom:16px}
+.code-line{display:flex;gap:16px}
+.code-line-num{color:rgba(255,255,255,0.3);min-width:30px;text-align:right;user-select:none}
+.code-line-content{color:rgba(255,255,255,0.85)}
+.code-line.highlight .code-line-content{color:var(--error);font-weight:500}
+.code-line.highlight{background:rgba(245,34,45,0.1);margin:0 -20px;padding:0 20px}
+.issue-footer{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:var(--bg-alt);border-top:1px solid var(--border)}
+.fix-suggestion{font-size:13px;color:var(--text-sec);display:flex;align-items:center;gap:6px}
+.fix-suggestion i{color:var(--success)}
+.feedback-btns{display:flex;gap:8px}
+.fb-btn{padding:5px 12px;border-radius:4px;font-size:12px;border:1px solid var(--border);background:#fff;color:var(--text-sec);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px}
+.fb-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* SUMMARY CARD */
+.summary-card{background:#fff;border-radius:8px;box-shadow:var(--shadow);padding:24px;margin-bottom:24px}
+.summary-title{font-size:16px;font-weight:600;color:var(--primary);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.summary-title i{color:var(--accent)}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.summary-item{padding:12px 16px;background:var(--bg-alt);border-radius:6px}
+.summary-item-label{font-size:12px;color:var(--text-sec);margin-bottom:4px}
+.summary-item-value{font-size:15px;font-weight:600;color:var(--primary)}
+/* MOBILE */
+@media(max-width:768px){
+.stats-row{grid-template-columns:1fr 1fr}
+.summary-grid{grid-template-columns:1fr}
+.issue-header{flex-wrap:wrap}
+.nav-links{display:none}
+.report-top{flex-direction:column;gap:16px}
+}
+</style>
+</head>
+<body>
+<!-- NAV -->
+<nav class="nav">
+<div class="nav-logo"><i class="fas fa-shield-halved"></i>煋鉴</div>
+<div class="nav-links">
+<a href="home.html">首页</a>
+<a href="dashboard.html">控制台</a>
+<a href="report.html">报告</a>
+<a href="docs.html">文档</a>
+</div>
+<div class="nav-right">
+<button class="btn-sm btn-outline-w"><i class="fas fa-arrow-left"></i> 返回</button>
+<button class="btn-sm btn-accent"><i class="fas fa-file-pdf"></i> 导出PDF</button>
+</div>
+</nav>
+<!-- REPORT HEADER -->
+<div class="report-header">
+<div class="report-header-inner">
+<div class="report-top">
+<div class="report-title">
+<h1>煋旺AI-Backend 扫描报告</h1>
+<div class="report-meta">
+<span><i class="fas fa-calendar"></i>2026-10-15 14:32</span>
+<span><i class="fas fa-code"></i>Python</span>
+<span><i class="fas fa-layer-group"></i>9个引擎</span>
+<span><i class="fas fa-file-code"></i>328个文件</span>
+<span><i class="fas fa-clock"></i>耗时 42秒</span>
+</div>
+</div>
+<div class="score-badge">
+<div>
+<div class="score-circle">76</div>
+</div>
+<div class="score-label">
+<strong>健康评分</strong>
+良好
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- STATS -->
+<div class="stats-row">
+<div class="stat-card critical">
+<div class="stat-card-header"><span class="stat-card-label">严重</span><i class="fas fa-skull-crossbones stat-card-icon"></i></div>
+<div class="stat-card-value">12</div>
+<div class="stat-card-sub">需立即修复</div>
+</div>
+<div class="stat-card high">
+<div class="stat-card-header"><span class="stat-card-label">高危</span><i class="fas fa-exclamation-triangle stat-card-icon"></i></div>
+<div class="stat-card-value">38</div>
+<div class="stat-card-sub">建议尽快修复</div>
+</div>
+<div class="stat-card medium">
+<div class="stat-card-header"><span class="stat-card-label">中危</span><i class="fas fa-exclamation-circle stat-card-icon"></i></div>
+<div class="stat-card-value">87</div>
+<div class="stat-card-sub">计划修复</div>
+</div>
+<div class="stat-card low">
+<div class="stat-card-header"><span class="stat-card-label">低危</span><i class="fas fa-info-circle stat-card-icon"></i></div>
+<div class="stat-card-value">156</div>
+<div class="stat-card-sub">建议优化</div>
+</div>
+</div>
+<!-- CONTENT -->
+<div class="content">
+<!-- SUMMARY -->
+<div class="summary-card">
+<div class="summary-title"><i class="fas fa-chart-bar"></i>扫描摘要</div>
+<div class="summary-grid">
+<div class="summary-item"><div class="summary-item-label">代码行数</div><div class="summary-item-value">45,832 行</div></div>
+<div class="summary-item"><div class="summary-item-label">函数/方法</div><div class="summary-item-value">2,147 个</div></div>
+<div class="summary-item"><div class="summary-item-label">代码复杂度</div><div class="summary-item-value">平均 8.3</div></div>
+<div class="summary-item"><div class="summary-item-label">代码重复率</div><div class="summary-item-value">4.2%</div></div>
+<div class="summary-item"><div class="summary-item-label">测试覆盖率</div><div class="summary-item-value">68.5%</div></div>
+<div class="summary-item"><div class="summary-item-label">技术债务</div><div class="summary-item-value">约 16 小时</div></div>
+</div>
+</div>
+<!-- TOOLBAR -->
+<div class="toolbar">
+<div class="filter-group">
+<button class="filter-btn active">全部 293</button>
+<button class="filter-btn">严重 12</button>
+<button class="filter-btn">高危 38</button>
+<button class="filter-btn">中危 87</button>
+<button class="filter-btn">低危 156</button>
+</div>
+<div class="action-group">
+<button class="filter-btn"><i class="fas fa-sort"></i> 排序</button>
+<button class="filter-btn"><i class="fas fa-compress-alt"></i> 折叠</button>
+</div>
+</div>
+<!-- ISSUES -->
+<div class="issue-list">
+<!-- ISSUE 1 -->
+<div class="issue-card">
+<div class="issue-header">
+<span class="issue-severity sev-critical">严重</span>
+<div class="issue-title">SQL注入漏洞 - 用户输入未过滤直接拼接</div>
+<span class="issue-engine">E2 安全漏洞</span>
+</div>
+<div class="issue-body">
+<div class="issue-desc">用户输入的 <code>user_id</code> 参数未经过参数化查询或转义处理，直接拼接到SQL语句中，存在SQL注入风险。攻击者可通过构造恶意输入执行任意SQL命令。</div>
+<div class="issue-location">
+<span><i class="fas fa-file-alt"></i>app/api/user.py</span>
+<span><i class="fas fa-map-pin"></i>第 142 行</span>
+<span><i class="fas fa-tag"></i>CWE-89</span>
+</div>
+<div class="code-block">
+<div class="code-line"><span class="code-line-num">140</span><span class="code-line-content">def get_user_orders(user_id):</span></div>
+<div class="code-line"><span class="code-line-num">141</span><span class="code-line-content">    db = get_connection()</span></div>
+<div class="code-line highlight"><span class="code-line-num">142</span><span class="code-line-content">    query = f"SELECT * FROM orders WHERE user_id = {user_id}"</span></div>
+<div class="code-line"><span class="code-line-num">143</span><span class="code-line-content">    cursor = db.execute(query)</span></div>
+<div class="code-line"><span class="code-line-num">144</span><span class="code-line-content">    return cursor.fetchall()</span></div>
+</div>
+</div>
+<div class="issue-footer">
+<div class="fix-suggestion"><i class="fas fa-lightbulb"></i>使用参数化查询替代字符串拼接</div>
+<div class="feedback-btns">
+<button class="fb-btn"><i class="fas fa-check"></i>已修复</button>
+<button class="fb-btn"><i class="fas fa-flag"></i>误报</button>
+<button class="fb-btn"><i class="fas fa-eye-slash"></i>忽略</button>
+</div>
+</div>
+</div>
+<!-- ISSUE 2 -->
+<div class="issue-card">
+<div class="issue-header">
+<span class="issue-severity sev-high">高危</span>
+<div class="issue-title">硬编码API密钥 - 生产环境凭证暴露在源码中</div>
+<span class="issue-engine">E2 安全漏洞</span>
+</div>
+<div class="issue-body">
+<div class="issue-desc">API密钥和数据库密码直接硬编码在源代码中，一旦代码泄露将导致严重安全事故。建议将所有敏感凭证迁移至环境变量或密钥管理服务。</div>
+<div class="issue-location">
+<span><i class="fas fa-file-alt"></i>config/settings.py</span>
+<span><i class="fas fa-map-pin"></i>第 28 行</span>
+<span><i class="fas fa-tag"></i>CWE-798</span>
+</div>
+<div class="code-block">
+<div class="code-line"><span class="code-line-num">26</span><span class="code-line-content"># 数据库配置</span></div>
+<div class="code-line highlight"><span class="code-line-num">27</span><span class="code-line-content">DB_PASSWORD = "Prod_xK9#mP2$vL5nQ8"</span></div>
+<div class="code-line highlight"><span class="code-line-num">28</span><span class="code-line-content">API_SECRET_KEY = "sk-live-7f3a9b2c4d5e6f8a"</span></div>
+<div class="code-line"><span class="code-line-num">29</span><span class="code-line-content">REDIS_HOST = "172.16.0.100"</span></div>
+</div>
+</div>
+<div class="issue-footer">
+<div class="fix-suggestion"><i class="fas fa-lightbulb"></i>使用环境变量或密钥管理服务（如Vault）</div>
+<div class="feedback-btns">
+<button class="fb-btn"><i class="fas fa-check"></i>已修复</button>
+<button class="fb-btn"><i class="fas fa-flag"></i>误报</button>
+<button class="fb-btn"><i class="fas fa-eye-slash"></i>忽略</button>
+</div>
+</div>
+</div>
+<!-- ISSUE 3 -->
+<div class="issue-card">
+<div class="issue-header">
+<span class="issue-severity sev-medium">中危</span>
+<div class="issue-title">未处理的异常 - 数据库操作缺少try-catch</div>
+<span class="issue-engine">E3 逻辑缺陷</span>
+</div>
+<div class="issue-body">
+<div class="issue-desc">数据库连接和查询操作缺少异常处理，当数据库不可用或查询超时时会导致程序崩溃，影响服务稳定性。</div>
+<div class="issue-location">
+<span><i class="fas fa-file-alt"></i>app/services/order.py</span>
+<span><i class="fas fa-map-pin"></i>第 67 行</span>
+<span><i class="fas fa-tag"></i>CWE-248</span>
+</div>
+<div class="code-block">
+<div class="code-line"><span class="code-line-num">65</span><span class="code-line-content">def process_order(order_data):</span></div>
+<div class="code-line"><span class="code-line-num">66</span><span class="code-line-content">    db = get_connection()</span></div>
+<div class="code-line highlight"><span class="code-line-num">67</span><span class="code-line-content">    result = db.execute("INSERT INTO orders ...", order_data)</span></div>
+<div class="code-line"><span class="code-line-num">68</span><span class="code-line-content">    db.commit()</span></div>
+<div class="code-line"><span class="code-line-num">69</span><span class="code-line-content">    return result</span></div>
+</div>
+</div>
+<div class="issue-footer">
+<div class="fix-suggestion"><i class="fas fa-lightbulb"></i>添加try-except块处理数据库异常</div>
+<div class="feedback-btns">
+<button class="fb-btn"><i class="fas fa-check"></i>已修复</button>
+<button class="fb-btn"><i class="fas fa-flag"></i>误报</button>
+<button class="fb-btn"><i class="fas fa-eye-slash"></i>忽略</button>
+</div>
+</div>
+</div>
+<!-- ISSUE 4 -->
+<div class="issue-card">
+<div class="issue-header">
+<span class="issue-severity sev-low">低危</span>
+<div class="issue-title">函数圈复杂度过高 - process_payment 复杂度 23</div>
+<span class="issue-engine">E1 代码质量</span>
+</div>
+<div class="issue-body">
+<div class="issue-desc">函数包含过多嵌套分支和循环，圈复杂度达23（建议不超过10），严重影响代码可读性和可维护性。</div>
+<div class="issue-location">
+<span><i class="fas fa-file-alt"></i>app/services/payment.py</span>
+<span><i class="fas fa-map-pin"></i>第 112 行</span>
+<span><i class="fas fa-tag"></i>Maintainability</span>
+</div>
+</div>
+<div class="issue-footer">
+<div class="fix-suggestion"><i class="fas fa-lightbulb"></i>拆分为多个小函数，降低嵌套层级</div>
+<div class="feedback-btns">
+<button class="fb-btn"><i class="fas fa-check"></i>已修复</button>
+<button class="fb-btn"><i class="fas fa-flag"></i>误报</button>
+<button class="fb-btn"><i class="fas fa-eye-slash"></i>忽略</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

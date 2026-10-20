@@ -1,0 +1,183 @@
+# =============================================================
+# 煋鉴 Xinpect - GitLab CI/CD 代码安全扫描
+# =============================================================
+# 使用方法：
+#   方式一：将此文件内容复制到项目的 .gitlab-ci.yml 中
+#   方式二：在 .gitlab-ci.yml 中添加 include 引用此模板
+#   方式三：将此文件放到项目的 ci/xinpect-scan.yml 中，
+#           然后在 .gitlab-ci.yml 中添加：
+#           include:
+#             - local: 'ci/xinpect-scan.yml'
+#
+#   在 CI/CD > Settings > Variables 中添加：
+#     - XINPECT_API_KEY: 你的煋鉴 API Key
+#       (masked=true, protected=false)
+#
+#   可选变量：
+#     - XINPECT_SCAN_MODE: 扫描档位 (free/quick/smart/deep)，默认 quick
+#     - XINPECT_THRESHOLD: 质量门禁阈值 (0-100)，默认 60
+#     - XINPECT_FAIL_ON_BELOW: 低于阈值时是否让 CI 失败 (true/false)，默认 true
+# =============================================================
+
+variables:
+  XINPECT_SCAN_MODE: "quick"
+  XINPECT_THRESHOLD: "60"
+  XINPECT_FAIL_ON_BELOW: "true"
+  XINPECT_API_URL: "https://xinpect.xingwangzhineng.com"
+
+xinpect-scan:
+  stage: test
+  image: python:3.11-slim
+  tags:
+    - docker
+  rules:
+    # 在 main/master/develop 分支的 push 和 MR 时触发
+    - if: '$CI_COMMIT_BRANCH =~ /^(main|master|develop)$/'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(main|master|develop)$/'
+    # 手动触发
+    - when: manual
+      allow_failure: true
+  timeout: 10m
+  allow_failure: false
+
+  before_script:
+    - echo "🔍 煋鉴代码扫描开始..."
+
+  script:
+    # 1. 收集代码文件
+    - |
+      python3 -c "
+      import json, os, sys
+
+      extensions = {
+          '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go',
+          '.c', '.cpp', '.h', '.hpp', '.cs', '.rb', '.php',
+          '.swift', '.kt', '.scala', '.rs', '.vue', '.svelte',
+          '.html', '.css', '.scss', '.sql', '.sh', '.yaml', '.yml'
+      }
+
+      ignore_dirs = {
+          'node_modules', '.git', '__pycache__', '.venv', 'venv',
+          'dist', 'build', '.next', '.nuxt', 'target', 'vendor',
+          '.tox', '.mypy_cache', '.pytest_cache', 'coverage',
+          '.gitlab', '.idea', '.vscode'
+      }
+
+      files = {}
+      max_files = 200
+      max_file_kb = 500
+
+      for root, dirs, filenames in os.walk('.'):
+          dirs[:] = [d for d in dirs if d not in ignore_dirs and not d.startswith('.')]
+          for fn in filenames:
+              ext = os.path.splitext(fn)[1].lower()
+              if ext not in extensions:
+                  continue
+              filepath = os.path.join(root, fn)
+              relpath = os.path.relpath(filepath, '.')
+              try:
+                  size = os.path.getsize(filepath)
+                  if size > max_file_kb * 1024 or size == 0:
+                      continue
+                  with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                      content = f.read()
+                  if content.strip():
+                      files[relpath] = content
+              except Exception:
+                  continue
+              if len(files) >= max_files:
+                  break
+          if len(files) >= max_files:
+              break
+
+      if not files:
+          print('No scannable files found')
+          sys.exit(0)
+
+      with open('/tmp/xinpect_files.json', 'w') as f:
+          json.dump(files, f)
+
+      total_lines = sum(c.count(chr(10)) + 1 for c in files.values())
+      print(f'Collected {len(files)} files, {total_lines} lines')
+      "
+
+    # 2. 执行扫描
+    - |
+      python3 -c "
+      import json, sys, urllib.request, os
+
+      if not os.path.exists('/tmp/xinpect_files.json'):
+          print('No files to scan, skipping.')
+          sys.exit(0)
+
+      with open('/tmp/xinpect_files.json') as f:
+          code_files = json.load(f)
+
+      api_key = os.environ.get('XINPECT_API_KEY', '')
+      if not api_key:
+          print('ERROR: XINPECT_API_KEY not set')
+          sys.exit(1)
+
+      payload = json.dumps({
+          'code_files': code_files,
+          'scan_mode': os.environ.get('XINPECT_SCAN_MODE', 'quick'),
+          'threshold': int(os.environ.get('XINPECT_THRESHOLD', '60')),
+          'repo': os.environ.get('CI_PROJECT_PATH', ''),
+          'branch': os.environ.get('CI_COMMIT_REF_NAME', ''),
+          'commit_sha': os.environ.get('CI_COMMIT_SHA', ''),
+      }).encode()
+
+      api_url = os.environ.get('XINPECT_API_URL', 'https://xinpect.xingwangzhineng.com')
+      req = urllib.request.Request(
+          f'{api_url}/api/ci/scan',
+          data=payload,
+          headers={
+              'Content-Type': 'application/json',
+              'X-API-Key': api_key,
+              'X-Requested-With': 'XMLHttpRequest',
+          }
+      )
+
+      try:
+          with urllib.request.urlopen(req, timeout=300) as resp:
+              result = json.loads(resp.read())
+              with open('/tmp/xinpect_result.json', 'w') as f:
+                  json.dump(result, f)
+
+              score = result.get('score', 0)
+              passed = result.get('passed', False)
+              report_url = result.get('report_url', '')
+              issues = result.get('issues', {})
+
+              print(f'\\n===== 煋鉴扫描结果 =====')
+              print(f'质量评分: {score}/100')
+              print(f'门禁状态: {\"✅ 通过\" if passed else \"❌ 未通过\"}')
+              print(f'问题总数: {issues.get(\"total\", 0)}')
+              print(f'严重问题: {issues.get(\"critical\", 0)}')
+              print(f'详细报告: {report_url}')
+              print(f'========================\\n')
+
+              if not passed:
+                  threshold = os.environ.get('XINPECT_THRESHOLD', '60')
+                  fail_on_below = os.environ.get('XINPECT_FAIL_ON_BELOW', 'true')
+                  if fail_on_below.lower() == 'true':
+                      print(f'FAIL: Score {score} below threshold {threshold}')
+                      sys.exit(1)
+      except urllib.error.HTTPError as e:
+          body = e.read().decode()
+          print(f'Scan failed: {e.code} - {body}')
+          sys.exit(1)
+      "
+
+  after_script:
+    - echo "煋鉴扫描完成"
+
+  artifacts:
+    when: always
+    paths:
+      - /tmp/xinpect_result.json
+    expire_in: 30 days
+    reports:
+      # 可选：如果产生了 SARIF 格式报告，可在此引用
+      # coverage_report 等
+      []

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ team.name }} - 煋鉴团队</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f7fa; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+        .breadcrumb { font-size: 13px; color: #999; margin-bottom: 16px; }
+        .breadcrumb a { color: #1A3A5C; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+
+        .team-header { background: #fff; border-radius: 12px; padding: 28px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .team-header .top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .team-header h1 { font-size: 22px; font-weight: 600; }
+        .team-header .desc { font-size: 14px; color: #888; margin-top: 6px; }
+        .team-header .stats { display: flex; gap: 28px; margin-top: 20px; }
+        .stat-item { text-align: center; }
+        .stat-item .num { font-size: 24px; font-weight: 700; color: #1A3A5C; }
+        .stat-item .label { font-size: 12px; color: #999; margin-top: 2px; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+        .card h2 .badge { font-size: 12px; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; font-weight: 400; color: #666; }
+
+        /* 配额进度条 */
+        .quota-bar { height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; margin: 12px 0; }
+        .quota-bar .fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .quota-bar .fill.green { background: #36B37E; }
+        .quota-bar .fill.orange { background: #1A3A5C; }
+        .quota-bar .fill.red { background: #FF4444; }
+        .quota-info { display: flex; justify-content: space-between; font-size: 13px; color: #888; }
+
+        /* 成员列表 */
+        .member-list { list-style: none; }
+        .member-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+        .member-item:last-child { border-bottom: none; }
+        .member-info { display: flex; align-items: center; gap: 10px; }
+        .member-avatar { width: 32px; height: 32px; border-radius: 50%; background: #EFF6FF; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #1A3A5C; font-weight: 600; }
+        .member-email { font-size: 14px; color: #333; }
+        .member-time { font-size: 12px; color: #bbb; }
+        .role-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .role-owner { background: #EFF6FF; color: #1A3A5C; }
+        .role-admin { background: #F0F5FF; color: #4A7AFF; }
+        .role-member { background: #F0FAF0; color: #36B37E; }
+
+        /* 扫描记录 */
+        .scan-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .scan-table th { text-align: left; padding: 8px 10px; background: #fafafa; color: #999; font-weight: 500; border-bottom: 1px solid #f0f0f0; }
+        .scan-table td { padding: 10px; border-bottom: 1px solid #f8f8f8; color: #555; }
+        .scan-table tr:hover td { background: #FFFAF7; }
+        .score-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .score-high { background: #FFF0F0; color: #FF4444; }
+        .score-mid { background: #EFF6FF; color: #1A3A5C; }
+        .score-low { background: #F0FAF0; color: #36B37E; }
+
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1A3A5C; color: #fff; }
+        .btn-primary:hover { background: #1E40AF; }
+        .btn-secondary { background: #fff; color: #1A3A5C; border: 1px solid #1A3A5C; }
+        .btn-secondary:hover { background: #EFF6FF; }
+
+        /* 邀请弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 16px; padding: 32px; width: 90%; max-width: 440px; }
+        .modal h2 { font-size: 18px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group input { width: 100%; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #1A3A5C; }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+        .empty-mini { text-align: center; padding: 24px; color: #bbb; font-size: 13px; }
+
+        /* 邀请链接展示 */
+        .invite-link-box { background: #f8f9fa; border: 1px dashed #ddd; border-radius: 8px; padding: 12px; margin-top: 12px; display: none; }
+        .invite-link-box input { width: 100%; border: none; background: transparent; font-size: 13px; color: #333; outline: none; }
+        .invite-link-box .copy-btn { font-size: 12px; color: #1A3A5C; cursor: pointer; border: none; background: none; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/dashboard/team">我的团队</a> / {{ team.name }}
+        </div>
+
+        <!-- 团队头部 -->
+        <div class="team-header">
+            <div class="top">
+                <div>
+                    <h1>{{ team.name }}</h1>
+                    <div class="desc">{{ team.description or '暂无描述' }}</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    {% if team.my_role in ['owner', 'admin'] %}
+                    <button class="btn btn-primary" onclick="openInviteModal()">邀请成员</button>
+                    <button class="btn btn-secondary" onclick="window.location='/dashboard/team/{{ team.id }}/settings'">团队设置</button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="num">{{ team.member_count }}</div>
+                    <div class="label">团队成员</div>
+                </div>
+                <div class="stat-item">
+                    <div class="num">{{ quota.used_today }}/{{ quota.daily_limit }}</div>
+                    <div class="label">今日扫描</div>
+                </div>
+                <div class="stat-item">
+                    <div class="num">{{ recent_scans|length }}</div>
+                    <div class="label">最近扫描</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- 左列 -->
+            <div>
+                <!-- 配额 -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h2>团队配额</h2>
+                    {% set pct = (quota.used_today / quota.daily_limit * 100) if quota.daily_limit > 0 else 0 %}
+                    <div class="quota-bar">
+                        <div class="fill {% if pct < 60 %}green{% elif pct < 90 %}orange{% else %}red{% endif %}"
+                             style="width:{{ pct }}%"></div>
+                    </div>
+                    <div class="quota-info">
+                        <span>已使用 {{ quota.used_today }} 次</span>
+                        <span>剩余 {{ quota.daily_limit - quota.used_today }} 次</span>
+                    </div>
+                    <div style="font-size:12px;color:#bbb;margin-top:8px;">每日 {{ quota.daily_limit }} 次 · 每日0点重置 · 配额用完后使用个人配额</div>
+                </div>
+
+                <!-- 成员列表 -->
+                <div class="card">
+                    <h2>
+                        团队成员
+                        <span class="badge">{{ members|length }} 人</span>
+                    </h2>
+                    {% if members %}
+                    <ul class="member-list">
+                        {% for m in members %}
+                        <li class="member-item">
+                            <div class="member-info">
+                                <div class="member-avatar">{{ m.email[0]|upper }}</div>
+                                <div>
+                                    <div class="member-email">{{ m.email }}</div>
+                                    <div class="member-time">加入于 {{ m.joined_at[:10] if m.joined_at else '' }}</div>
+                                </div>
+                            </div>
+                            <span class="role-tag role-{{ m.role }}">
+                                {% if m.role == 'owner' %}所有者{% elif m.role == 'admin' %}管理员{% else %}成员{% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="empty-mini">暂无成员</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 右列 -->
+            <div>
+                <!-- 扫描历史 -->
+                <div class="card">
+                    <h2>
+                        扫描历史
+                        <span class="badge">最近20条</span>
+                    </h2>
+                    {% if recent_scans %}
+                    <table class="scan-table">
+                        <thead>
+                            <tr>
+                                <th>文件</th>
+                                <th>语言</th>
+                                <th>评分</th>
+                                <th>扫描者</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in recent_scans %}
+                            <tr>
+                                <td title="{{ s.filename }}">{{ s.filename[:20] }}{% if s.filename|length > 20 %}...{% endif %}</td>
+                                <td>{{ s.language or '-' }}</td>
+                                <td>
+                                    {% if s.score is not none %}
+                                    <span class="score-badge {% if s.score >= 80 %}score-low{% elif s.score >= 60 %}score-mid{% else %}score-high{% endif %}">
+                                        {{ s.score }}
+                                    </span>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td>{{ s.scanner_email or '-' }}</td>
+                                <td>{{ s.created_at[:10] if s.created_at else '' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty-mini">暂无扫描记录</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邀请弹窗 -->
+    <div class="modal-overlay" id="inviteModal">
+        <div class="modal">
+            <h2>邀请成员</h2>
+            <div class="form-group">
+                <input type="email" id="inviteEmail" placeholder="输入成员邮箱地址">
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button class="btn btn-primary" onclick="sendInvite()" style="flex:1;">发送邮件邀请</button>
+                <button class="btn btn-secondary" onclick="genInviteLink()" style="flex:1;">生成邀请链接</button>
+            </div>
+            <div class="invite-link-box" id="linkBox">
+                <input type="text" id="linkInput" readonly>
+                <button class="copy-btn" onclick="copyLink()">复制链接</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeInviteModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const teamId = {{ team.id }};
+
+        function openInviteModal() { document.getElementById('inviteModal').classList.add('active'); }
+        function closeInviteModal() { document.getElementById('inviteModal').classList.remove('active'); document.getElementById('linkBox').style.display='none'; }
+
+        async function sendInvite() {
+            const email = document.getElementById('inviteEmail').value.trim();
+            if (!email || !email.includes('@')) { alert('请输入有效邮箱'); return; }
+            try {
+                const resp = await fetch(`/api/teams/${teamId}/invitations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await resp.json();
+                alert(data.msg);
+                if (data.code === 0) location.reload();
+            } catch (e) { alert('发送失败'); }
+        }
+
+        async function genInviteLink() {
+            try {
+                const resp = await fetch(`/api/teams/${teamId}/invite-link`, { method: 'POST' });
+                const data = await resp.json();
+                if (data.code === 0) {
+                    document.getElementById('linkInput').value = data.data.url;
+                    document.getElementById('linkBox').style.display = 'block';
+                } else { alert(data.msg); }
+            } catch (e) { alert('生成失败'); }
+        }
+
+        function copyLink() {
+            const input = document.getElementById('linkInput');
+            input.select();
+            document.execCommand('copy');
+            alert('链接已复制');
+        }
+
+        document.getElementById('inviteModal').addEventListener('click', function(e) {
+            if (e.target === this) closeInviteModal();
+        });
+    </script>
+</body>
+</html>

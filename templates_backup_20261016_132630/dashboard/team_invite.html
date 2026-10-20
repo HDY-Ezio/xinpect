@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>团队邀请 - 煋鉴</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .invite-card { background: #fff; border-radius: 16px; padding: 40px; max-width: 460px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+        .logo { font-size: 28px; font-weight: 700; color: #FF6B35; margin-bottom: 8px; }
+        .logo-sub { font-size: 13px; color: #999; margin-bottom: 32px; }
+        .team-icon { width: 64px; height: 64px; border-radius: 16px; background: #FFF5F0; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 28px; }
+        h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+        .team-name { color: #FF6B35; }
+        .invite-desc { font-size: 14px; color: #888; margin-bottom: 32px; line-height: 1.6; }
+        .invite-desc strong { color: #333; }
+        .btn-group { display: flex; gap: 12px; }
+        .btn { flex: 1; padding: 12px 20px; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #FF6B35; color: #fff; }
+        .btn-primary:hover { background: #e55a28; }
+        .btn-secondary { background: #f5f5f5; color: #666; }
+        .btn-secondary:hover { background: #eee; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .result { display: none; margin-top: 20px; padding: 16px; border-radius: 10px; font-size: 14px; }
+        .result.success { background: #F0FAF0; color: #36B37E; display: block; }
+        .result.error { background: #FFF0F0; color: #FF4444; display: block; }
+    </style>
+</head>
+<body>
+    <div class="invite-card">
+        <div class="logo">煋鉴</div>
+        <div class="logo-sub">AI 代码质量审计平台</div>
+
+        <div class="team-icon">👥</div>
+        <h2>你被邀请加入</h2>
+        <p class="invite-desc">
+            <span class="team-name"><strong>{{ invite.team_name }}</strong></span><br>
+            加入后你可以查看团队共享扫描结果，使用团队配额进行代码扫描。
+        </p>
+
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="reject()">拒绝</button>
+            <button class="btn btn-primary" id="acceptBtn" onclick="accept()">接受邀请</button>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const invitationId = {{ invite.id }};
+
+        async function accept() {
+            const btn = document.getElementById('acceptBtn');
+            btn.disabled = true;
+            btn.textContent = '处理中...';
+            try {
+                const resp = await fetch(`/api/teams/invitations/${invitationId}/accept`, { method: 'POST' });
+                const data = await resp.json();
+                const result = document.getElementById('result');
+                if (data.code === 0) {
+                    result.className = 'result success';
+                    result.textContent = '已加入团队！即将跳转...';
+                    setTimeout(() => { window.location = '/dashboard/team'; }, 1500);
+                } else {
+                    result.className = 'result error';
+                    result.textContent = data.msg || '操作失败';
+                    btn.disabled = false;
+                    btn.textContent = '接受邀请';
+                }
+            } catch (e) {
+                document.getElementById('result').className = 'result error';
+                document.getElementById('result').textContent = '网络错误，请重试';
+                btn.disabled = false;
+                btn.textContent = '接受邀请';
+            }
+        }
+
+        async function reject() {
+            try {
+                await fetch(`/api/teams/invitations/${invitationId}/reject`, { method: 'POST' });
+                window.location = '/dashboard/team';
+            } catch (e) {
+                alert('操作失败');
+            }
+        }
+    </script>
+</body>
+</html>

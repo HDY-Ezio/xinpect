@@ -1,0 +1,283 @@
+# xinpect.xingwangzhineng.com - 煋鉴官网/产品站
+server {
+    listen 80;
+    server_name xinpect.xingwangzhineng.com;
+    absolute_redirect off;
+    server_name_in_redirect off;
+
+    client_max_body_size 50M;
+
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 500;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml text/javascript application/xml;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+    # ACME challenge
+    location /.well-known/acme-challenge/ {
+        root /var/www/xingwang-website;
+    }
+
+    # X402 付费扫描 API（精确匹配，避免前缀匹配吃掉独立站的 /api/scan/submit 等）
+    location = /api/scan {
+        proxy_pass http://127.0.0.1:8765/api/scan;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass_header X-Out-Trade-No;
+        proxy_pass_header WeixinPay-Required;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        client_max_body_size 50M;
+    }
+    location = /api/scan/health {
+        proxy_pass http://127.0.0.1:8765/api/scan/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+    }
+    location = /api/scan/order {
+        proxy_pass http://127.0.0.1:8765/api/scan/order;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+    }
+
+    # 内部满血扫描API → 扫描器核心（带API Key鉴权，限合作方使用）
+    location /api/internal/scan {
+        rewrite ^/api/internal/scan/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8620;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        client_max_body_size 100M;
+    }
+
+        # 微信支付回调 → 门房（只有这个外网直连门房）
+    location /api/pay/wechat/notify {
+        proxy_pass http://127.0.0.1:8612/api/pay/wechat/notify;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    # 远程扫描 → 门房（转发到 scanner v5）
+    location /api/scan/remote {
+        proxy_pass http://127.0.0.1:8612/api/scan/remote;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    # 网站前端 + 网站所有 API（支付创建/状态查询等）走 8621
+    # 网站后端再通过内网调门房完成真实支付
+    location / {
+        proxy_pass http://127.0.0.1:8621;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+
+server {
+    listen 127.0.0.1:8443 ssl;
+    server_name xinpect.xingwangzhineng.com;
+    absolute_redirect off;
+    server_name_in_redirect off;
+
+    ssl_certificate /etc/letsencrypt/live/xinpect.xingwangzhineng.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/xinpect.xingwangzhineng.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    client_max_body_size 50M;
+
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 500;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml text/javascript application/xml;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+    # X402 付费扫描 API（精确匹配，避免前缀匹配吃掉独立站的 /api/scan/submit 等）
+    location = /api/scan {
+        proxy_pass http://127.0.0.1:8765/api/scan;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass_header X-Out-Trade-No;
+        proxy_pass_header WeixinPay-Required;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        client_max_body_size 50M;
+    }
+    location = /api/scan/health {
+        proxy_pass http://127.0.0.1:8765/api/scan/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+    }
+    location = /api/scan/order {
+        proxy_pass http://127.0.0.1:8765/api/scan/order;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+    }
+
+    # 内部满血扫描API → 扫描器核心（带API Key鉴权，限合作方使用）
+    location /api/internal/scan {
+        rewrite ^/api/internal/scan/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8620;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        client_max_body_size 100M;
+    }
+
+        # 微信支付回调 → 门房
+    location /api/pay/wechat/notify {
+        proxy_pass http://127.0.0.1:8612/api/pay/wechat/notify;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    # 远程扫描 → 门房
+    location /api/scan/remote {
+        proxy_pass http://127.0.0.1:8612/api/scan/remote;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    # 网站前端 + 网站所有 API 走 8621
+    location / {
+        proxy_pass http://127.0.0.1:8621;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+
+# pay.xingwangzhineng.com - 支付专用域名（门房独立支付页）
+server {
+    listen 80;
+    server_name pay.xingwangzhineng.com;
+    absolute_redirect off;
+    server_name_in_redirect off;
+
+    client_max_body_size 10M;
+
+    gzip on;
+
+    add_header X-Content-Type-Options nosniff always;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/xingwang-website;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8612/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+}
+
+server {
+    listen 127.0.0.1:8443 ssl;
+    server_name pay.xingwangzhineng.com;
+    absolute_redirect off;
+    server_name_in_redirect off;
+
+    ssl_certificate /etc/letsencrypt/live/pay.xingwangzhineng.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pay.xingwangzhineng.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 10M;
+
+    add_header X-Content-Type-Options nosniff always;
+
+    location / {
+        proxy_pass http://127.0.0.1:8612/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+}

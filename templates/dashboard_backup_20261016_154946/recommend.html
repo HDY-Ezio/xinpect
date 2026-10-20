@@ -1,0 +1,115 @@
+{% extends "dashboard/base.html" %}
+{% block title %}推荐赚积分 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div style="max-width:720px;margin:0 auto;">
+    <!-- 顶部 Hero -->
+    <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:20px;padding:40px 32px;text-align:center;color:#fff;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">&#127873;</div>
+        <h1 style="font-size:24px;font-weight:700;margin:0 0 8px;">推荐好友，赚积分</h1>
+        <p style="font-size:14px;opacity:.9;margin:0;">分享你的专属推荐链接，好友首充你得积分奖励</p>
+    </div>
+
+    <!-- 推荐数据 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div style="background:var(--card-bg,#1a2236);border:1px solid var(--border-color,#2d3a52);border-radius:16px;padding:24px;text-align:center;">
+            <div style="font-size:36px;font-weight:700;color:#f59e0b;">{{ referral_stats.referred_count }}</div>
+            <div style="font-size:13px;color:var(--text-muted,#6b7a90);margin-top:4px;">已推荐好友</div>
+        </div>
+        <div style="background:var(--card-bg,#1a2236);border:1px solid var(--border-color,#2d3a52);border-radius:16px;padding:24px;text-align:center;">
+            <div style="font-size:36px;font-weight:700;color:#f59e0b;">{{ referral_stats.total_reward_credits }}</div>
+            <div style="font-size:13px;color:var(--text-muted,#6b7a90);margin-top:4px;">累计获得积分</div>
+        </div>
+    </div>
+
+    <!-- 推荐链接区域 -->
+    <div style="background:var(--card-bg,#1a2236);border:1px solid var(--border-color,#2d3a52);border-radius:16px;padding:24px;margin-bottom:24px;">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 16px;">你的专属推荐</h2>
+
+        <!-- 推荐码 -->
+        <div style="margin-bottom:16px;">
+            <label style="font-size:12px;color:var(--text-muted,#6b7a90);display:block;margin-bottom:6px;">推荐码</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <div style="flex:1;background:var(--bg-secondary,#0f172a);border:1px solid var(--border-color,#2d3a52);border-radius:10px;padding:12px 16px;font-family:monospace;font-size:20px;font-weight:700;letter-spacing:4px;color:#f59e0b;" id="ref-code">{{ referral_code }}</div>
+                <button onclick="_cp('ref-code','推荐码已复制')" style="padding:12px 16px;background:#f59e0b;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;">复制</button>
+            </div>
+        </div>
+
+        <!-- 推荐链接 -->
+        <div style="margin-bottom:16px;">
+            <label style="font-size:12px;color:var(--text-muted,#6b7a90);display:block;margin-bottom:6px;">推荐链接</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <div id="ref-link" style="flex:1;background:var(--bg-secondary,#0f172a);border:1px solid var(--border-color,#2d3a52);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text-primary,#e8ecf1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ request.host_url }}register?ref={{ referral_code }}</div>
+                <button onclick="_cp('ref-link','链接已复制')" style="padding:12px 16px;background:#fff;color:#f59e0b;border:1px solid #f59e0b;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;">复制链接</button>
+            </div>
+        </div>
+
+        <!-- 一键分享 -->
+        <button onclick="_cpPitch()" style="width:100%;padding:14px;background:#1e40af;color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:600;font-size:14px;">&#128231; 一键复制推荐语</button>
+    </div>
+
+    <!-- 奖励规则 -->
+    <div style="background:var(--card-bg,#1a2236);border:1px solid var(--border-color,#2d3a52);border-radius:16px;padding:24px;margin-bottom:24px;">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 16px;">&#127873; 双向奖励规则</h2>
+        <div style="font-size:13px;color:var(--text-muted,#6b7a90);line-height:1.8;">
+            <p style="margin:0 0 8px;">&#9989; <strong>好友福利：</strong>通过你的链接注册，好友立得 <strong style="color:#f59e0b;">50 积分</strong></p>
+            <p style="margin:0 0 12px;">&#9889; <strong>你的奖励：</strong>好友首次充值，你获得积分奖励</p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <tr style="border-bottom:1px solid var(--border-color,#2d3a52);">
+                    <td style="padding:8px 0;color:var(--text-muted);">好友购买月卡</td>
+                    <td style="padding:8px 0;text-align:right;font-weight:700;color:#f59e0b;">+100 积分</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border-color,#2d3a52);">
+                    <td style="padding:8px 0;color:var(--text-muted);">好友购买季卡</td>
+                    <td style="padding:8px 0;text-align:right;font-weight:700;color:#f59e0b;">+300 积分</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border-color,#2d3a52);">
+                    <td style="padding:8px 0;color:var(--text-muted);">好友购买半年卡</td>
+                    <td style="padding:8px 0;text-align:right;font-weight:700;color:#f59e0b;">+800 积分</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 0;color:var(--text-muted);">好友购买年卡</td>
+                    <td style="padding:8px 0;text-align:right;font-weight:700;color:#f59e0b;">+2000 积分</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function _cp(id, msg) {
+    var el = document.getElementById(id);
+    var text = el ? (el.textContent || el.innerText) : '';
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() { _toast(msg); }).catch(function() { _fb(text, msg); });
+    } else { _fb(text, msg); }
+}
+function _fb(t, msg) {
+    var ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); _toast(msg); } catch(e) { _toast('复制失败，请手动复制'); }
+    document.body.removeChild(ta);
+}
+function _cpPitch() {
+    var code = document.getElementById('ref-code').textContent;
+    var link = window.location.origin + '/register?ref=' + code;
+    var pitch = '推荐你用煋鉴代码质检，我自己项目一直在用。\n' +
+                '10大检测引擎+AI深度分析，扫一遍能找出安全漏洞、性能问题、架构隐患，比人工review快多了。\n' +
+                '通过我的链接注册你还能得50积分：' + link + '\n' +
+                '注册后充值我也有奖励，双赢～';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(pitch).then(function() { _toast('推荐语已复制，快去分享吧'); }).catch(function() { _fb(pitch, '推荐语已复制'); });
+    } else { _fb(pitch, '推荐语已复制'); }
+}
+function _toast(msg) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function() { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 2000);
+    setTimeout(function() { if (t.parentNode) t.remove(); }, 2300);
+}
+</script>
+{% endblock %}

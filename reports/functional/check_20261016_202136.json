@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-10-16T20:21:36.193274",
+  "port": 8620,
+  "overall": "pass",
+  "elapsed_seconds": 2.2,
+  "tests": [
+    {
+      "test": "health_endpoint",
+      "passed": true,
+      "detail": "health OK, version=5.163.0"
+    },
+    {
+      "test": "brains_loaded",
+      "passed": true,
+      "detail": "all 9 brains loaded: ['1', '2', '3', '4', '5', '6', '7', '8', '9']"
+    },
+    {
+      "test": "safe_code_no_fp",
+      "passed": true,
+      "detail": "safe code passed, brain2 issues=0 (no SQLi FP)"
+    },
+    {
+      "test": "unsafe_code_detected",
+      "passed": true,
+      "detail": "unsafe code detected: ['E2-BS-AUTH-003'] (1 issues)"
+    },
+    {
+      "test": "frontend_js_syntax",
+      "passed": true,
+      "detail": "all templates JS syntax OK"
+    },
+    {
+      "test": "frontend_jinja2",
+      "passed": true,
+      "detail": "all templates Jinja2 OK"
+    },
+    {
+      "test": "frontend_routes",
+      "passed": true,
+      "detail": "all 6 routes OK"
+    },
+    {
+      "test": "authenticated_routes",
+      "passed": true,
+      "detail": "all 4 authenticated routes OK (no 5xx)"
+    }
+  ]
+}

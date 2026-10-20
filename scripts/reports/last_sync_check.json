@@ -1,0 +1,42 @@
+{
+  "check_time": "2026-09-18T17:10:51.793075+08:00",
+  "blue_dir": "/opt/xinpect-scanner-blue",
+  "green_dir": "/opt/xinpect-scanner-green",
+  "sync_status": "fail",
+  "missing_in_green": [],
+  "extra_in_green": [],
+  "divergent_files": [],
+  "compile_errors": [
+    {
+      "file": "test_import.py",
+      "error": ""
+    },
+    {
+      "file": "engine/_archive/backup_20260901/b1_syntax_old.py",
+      "error": ""
+    },
+    {
+      "file": "engine/b2_security/business_logic/bl_idor.py",
+      "error": ""
+    },
+    {
+      "file": "ai_engine/ai_gateway_protection.py",
+      "error": ""
+    }
+  ],
+  "import_errors": [],
+  "summary": {
+    "blue_engine_files": 1592,
+    "green_engine_files": 1592,
+    "blue_core_root_files": 21,
+    "green_core_root_files": 21,
+    "total_checked": 1613,
+    "matched": 1613,
+    "diverged": 0,
+    "missing": 0,
+    "compile_checked": 1713,
+    "compile_failed": 4,
+    "import_tested": 20,
+    "import_failed": 0
+  }
+}

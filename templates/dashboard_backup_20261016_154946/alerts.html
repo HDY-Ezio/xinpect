@@ -1,0 +1,267 @@
+{% extends "dashboard/base.html" %}
+{% block extra_css %}
+<style>
+.alerts-container { /* padding inherited from dashboard-content */ }
+
+.alert-card {
+    background: var(--bg-card, #1a2236); border: 1px solid var(--border-color, #2d3a52);
+    border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+.alert-card h3 { font-size: 14px; font-weight: 600; color: var(--text-primary, #e8ecf1); margin: 0 0 14px 0; }
+
+/* 表单 */
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 160px; }
+.form-group label { display: block; font-size: 12px; color: var(--text-muted, #6b7a90); margin-bottom: 4px; }
+.form-group input, .form-group select {
+    width: 100%; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--border-color, #2d3a52);
+    background: #0f1729; color: var(--text-primary, #e8ecf1); font-size: 13px;
+    box-sizing: border-box;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: #FF6B35; }
+
+.btn { padding: 8px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.btn-primary { background: #FF6B35; color: #fff; }
+.btn-primary:hover { background: #e55a2b; }
+.btn-secondary { background: var(--border-color, #2d3a52); color: var(--text-secondary, #a0aec0); }
+.btn-danger { background: rgba(239,68,68,.15); color: #ef4444; }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+
+/* 规则列表 */
+.rule-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-radius: 10px; margin-bottom: 8px;
+    background: #0f1729; border: 1px solid var(--border-color, #2d3a52);
+}
+.rule-info { flex: 1; }
+.rule-name { font-size: 14px; font-weight: 600; color: var(--text-primary, #e8ecf1); }
+.rule-meta { font-size: 12px; color: var(--text-muted, #6b7a90); margin-top: 2px; }
+.rule-actions { display: flex; gap: 8px; }
+
+/* 历史列表 */
+.history-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 6px;
+    background: #0f1729; font-size: 13px;
+}
+.history-status {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.status-sent { background: #22c55e; }
+.status-failed { background: #ef4444; }
+.status-pending { background: #eab308; }
+.history-text { flex: 1; color: var(--text-secondary, #a0aec0); }
+.history-time { font-size: 11px; color: var(--text-muted, #6b7a90); }
+
+.empty-state {
+    text-align: center; padding: 40px 20px; color: var(--text-muted, #6b7a90); font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="alerts-container">
+    <h2 style="font-size:18px; font-weight:700; color:var(--text-primary, #e8ecf1); margin-bottom:6px;">🚨 高危告警</h2>
+    <p class="page-desc">当扫描发现严重问题时自动通知你。设置触发条件后，每次扫描完成会自动检查，满足条件就推送到 Webhook（飞书/钉钉/企微机器人）。</p>
+
+    <!-- 创建规则 -->
+    <div class="alert-card">
+        <h3>创建告警规则</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>规则名称</label>
+                <div style="font-size:11px;color:#4a5568;margin:2px 0 6px;">给告警取个名字，方便识别用途</div>
+                <input type="text" id="ruleName" placeholder="如：致命问题告警" value="高危告警">
+            </div>
+            <div class="form-group">
+                <label>通知渠道</label>
+                <div style="font-size:11px;color:#4a5568;margin:2px 0 6px;">目前支持 Webhook 机器人，邮件通知即将上线</div>
+                <select id="ruleChannel">
+                    <option value="webhook">Webhook</option>
+                    <option value="email">邮件（即将支持）</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>冷却时间（分钟）</label>
+                <div style="font-size:11px;color:#4a5568;margin:2px 0 6px;">同一规则触发后多久内不重复通知，避免刷屏</div>
+                <input type="number" id="ruleCooldown" value="60" min="5" max="1440">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:2;">
+                <label>Webhook URL</label>
+                    <div style="font-size:11px;color:#4a5568;margin:2px 0 6px;">从飞书/钉钉/企微群机器人设置中复制的地址</div>
+                <input type="url" id="ruleWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>触发条件</label>
+                <div style="font-size:11px;color:#4a5568;margin:2px 0 6px;">满足任一条件即触发通知</div>
+                <select id="ruleTrigger">
+                    <option value="critical_gte_1">出现致命问题（≥1）</option>
+                    <option value="high_gte_3">高危问题 ≥3 个</option>
+                    <option value="score_lt_50">得分低于 50</option>
+                    <option value="score_lt_70">得分低于 70</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+        </div>
+        <div style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="createRule()">创建规则</button>
+        </div>
+    </div>
+
+    <!-- 规则列表 -->
+    <div class="alert-card">
+        <h3>告警规则</h3>
+        <div id="rulesList">
+            <div class="empty-state">加载中...</div>
+        </div>
+    </div>
+
+    <!-- 告警历史 -->
+    <div class="alert-card">
+        <h3>告警历史</h3>
+        <div id="historyList">
+            <div class="empty-state">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const triggerMap = {
+    'critical_gte_1': { conditions: [{ field: 'severity_counts.critical', operator: '>=', value: 1 }], logic: 'any' },
+    'high_gte_3': { conditions: [{ field: 'severity_counts.high', operator: '>=', value: 3 }], logic: 'any' },
+    'score_lt_50': { conditions: [{ field: 'score', operator: '<', value: 50 }], logic: 'any' },
+    'score_lt_70': { conditions: [{ field: 'score', operator: '<', value: 70 }], logic: 'any' },
+};
+const triggerLabels = {
+    'critical_gte_1': '出现致命问题 ≥1',
+    'high_gte_3': '高危问题 ≥3',
+    'score_lt_50': '得分 < 50',
+    'score_lt_70': '得分 < 70',
+    'custom': '自定义',
+};
+
+function loadRules() {
+    fetch('/api/alerts').then(r => r.json()).then(data => {
+        if (!data.success) return;
+        const rules = data.rules || [];
+        const el = document.getElementById('rulesList');
+        if (!rules.length) {
+            el.innerHTML = '<div class="empty-state">暂无告警规则，创建一个吧</div>';
+            return;
+        }
+        el.innerHTML = rules.map(r => {
+            let triggerLabel = '自定义';
+            const tj = r.trigger_json || {};
+            const conds = tj.conditions || [];
+            if (conds.length === 1) {
+                const c = conds[0];
+                for (const [k, v] of Object.entries(triggerMap)) {
+                    if (k !== 'custom' && v.conditions[0].field === c.field && v.conditions[0].operator === c.operator && v.conditions[0].value === c.value) {
+                        triggerLabel = triggerLabels[k] || '自定义';
+                        break;
+                    }
+                }
+            }
+            return `<div class="rule-item">
+                <div class="rule-info">
+                    <div class="rule-name">${r.name} ${r.is_active ? '<span style="color:#22c55e;font-size:11px;">● 启用</span>' : '<span style="color:#6b7a90;font-size:11px;">○ 停用</span>'}</div>
+                    <div class="rule-meta">${r.channel} · ${triggerLabel} · 冷却 ${r.cooldown_minutes} 分钟${r.last_triggered_at ? ' · 上次触发 ' + r.last_triggered_at : ''}</div>
+                </div>
+                <div class="rule-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="testRule(${r.id})">测试</button>
+                    <button class="btn btn-secondary btn-sm" onclick="toggleRule(${r.id}, ${r.is_active ? 0 : 1})">${r.is_active ? '停用' : '启用'}</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteRule(${r.id})">删除</button>
+                </div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function loadHistory() {
+    fetch('/api/alerts/history').then(r => r.json()).then(data => {
+        if (!data.success) return;
+        const history = data.history || [];
+        const el = document.getElementById('historyList');
+        if (!history.length) {
+            el.innerHTML = '<div class="empty-state">暂无告警记录</div>';
+            return;
+        }
+        el.innerHTML = history.map(h => {
+            const statusClass = h.delivery_status === 'sent' ? 'status-sent' : (h.delivery_status === 'failed' ? 'status-failed' : 'status-pending');
+            return `<div class="history-item">
+                <div class="history-status ${statusClass}"></div>
+                <div class="history-text">${h.rule_name || '规则#'} — ${h.scan_id ? '扫描 ' + h.scan_id.substring(0, 8) : '测试'}</div>
+                <div class="history-time">${h.created_at || ''}</div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function createRule() {
+    const name = document.getElementById('ruleName').value || '高危告警';
+    const channel = document.getElementById('ruleChannel').value;
+    const webhook = document.getElementById('ruleWebhook').value;
+    const cooldown = parseInt(document.getElementById('ruleCooldown').value) || 60;
+    const triggerKey = document.getElementById('ruleTrigger').value;
+
+    if (channel === 'webhook' && !webhook) {
+        alert('请填写 Webhook URL');
+        return;
+    }
+
+    const trigger = triggerMap[triggerKey] || triggerMap['critical_gte_1'];
+    const channel_config = channel === 'webhook' ? { url: webhook } : {};
+
+    fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, channel, channel_config, trigger, cooldown_minutes: cooldown }),
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            alert('创建成功');
+            loadRules();
+            document.getElementById('ruleWebhook').value = '';
+        } else {
+            alert(data.error || '创建失败');
+        }
+    });
+}
+
+function testRule(id) {
+    fetch('/api/alerts/' + id + '/test', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.success ? '测试告警已发送！状态: ' + data.delivery_status : '测试失败: ' + (data.error || ''));
+            loadHistory();
+        });
+}
+
+function toggleRule(id, newActive) {
+    fetch('/api/alerts/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newActive }),
+    }).then(r => r.json()).then(data => {
+        if (data.success) loadRules();
+    });
+}
+
+function deleteRule(id) {
+    if (!confirm('确定删除此告警规则？')) return;
+    fetch('/api/alerts/' + id, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) loadRules();
+        });
+}
+
+// Init
+loadRules();
+loadHistory();
+</script>
+{% endblock %}

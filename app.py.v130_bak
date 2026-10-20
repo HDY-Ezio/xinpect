@@ -1,0 +1,1509 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+煋鉴 Xinpect 官网 v1.0 - Flask 后端
+单文件实现，MVP 阶段
+"""
+
+import os
+import re
+import io
+import zipfile
+import tarfile
+import json
+import uuid
+import sqlite3
+import random
+import hashlib
+from datetime import datetime, timedelta
+from functools import wraps
+
+from flask import (Flask, render_template, request, redirect, url_for,
+                   session, flash, jsonify, g, make_response)
+from werkzeug.security import generate_password_hash, check_password_hash
+
+try:
+    import requests as http_requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    print("WARNING: requests 库未安装，支付功能不可用")
+
+# ============================================================
+# 配置
+# ============================================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'xinpect.db')
+
+app = Flask(__name__)
+app.secret_key = os.environ.get('XINPECT_SECRET', 'xinpect-dev-secret-key-change-in-prod')
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20MB 总上传限制
+
+# 检测服务配置
+SCANNER_URL = os.environ.get('SCANNER_URL', 'http://localhost:8620/scan')
+# 门房服务（支付+用户权限中心）
+MENFANG_BASE_URL = os.environ.get('MENFANG_BASE_URL', 'http://127.0.0.1:8612')
+
+# 每日检测次数限制
+DAILY_LIMIT_FREE = 3       # 未登录用户
+DAILY_LIMIT_REGISTERED = 10  # 注册免费用户
+
+# ============================================================
+# 8 大脑维度定义
+# ============================================================
+
+BRAINS = [
+    {'id': '1', 'name': '语法规范检测', 'icon': '📐', 'desc': '检查代码语法错误、格式规范、命名风格一致性，确保代码符合语言最佳实践。'},
+    {'id': '2', 'name': '常见代码缺陷', 'icon': '🐛', 'desc': '发现空指针、资源泄漏、异常处理缺失、逻辑错误等常见代码缺陷。'},
+    {'id': '3', 'name': '基础安全扫描', 'icon': '🔒', 'desc': '检测 SQL 注入、XSS、CSRF、硬编码密钥等基础安全漏洞。'},
+    {'id': '4', 'name': '性能优化检测', 'icon': '⚡', 'desc': '识别性能瓶颈，如 N+1 查询、低效算法、不必要的循环、内存泄漏风险。'},
+    {'id': '5', 'name': '架构设计评估', 'icon': '🏗', 'desc': '评估模块耦合度、分层合理性、依赖关系、SOLID 原则遵循情况。'},
+    {'id': '6', 'name': '复杂度与可维护性', 'icon': '📊', 'desc': '圈复杂度、函数长度、嵌套层级、重复代码等可维护性指标分析。'},
+    {'id': '7', 'name': '最佳实践合规', 'icon': '✅', 'desc': '检查设计模式使用、测试覆盖、文档注释、代码可读性等最佳实践。'},
+    {'id': '8', 'name': '依赖与漏洞扫描', 'icon': '📦', 'desc': '扫描第三方依赖库版本，识别已知 CVE 漏洞和许可证风险。'},
+]
+
+BRAINS_MAP = {b['id']: b for b in BRAINS}
+
+# ============================================================
+# 数据库
+# ============================================================
+
+def get_db():
+    """获取数据库连接，每个请求一个连接"""
+    if 'db' not in g:
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+        g.db.execute('PRAGMA journal_mode=WAL')
+        g.db.execute('PRAGMA foreign_keys=ON')
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(exception):
+    """请求结束时关闭数据库连接"""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    """初始化数据库表"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.executescript('''
+        -- 用户表
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            is_vip INTEGER DEFAULT 0,
+            vip_expire_at TEXT,
+            bonus_credits INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        );
+
+        -- 扫描记录表
+        CREATE TABLE IF NOT EXISTS scans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scan_id TEXT UNIQUE NOT NULL,
+            user_id INTEGER,
+            title TEXT,
+            file_count INTEGER DEFAULT 0,
+            files_meta TEXT,          -- JSON: 文件名列表
+            results TEXT,             -- JSON: 完整检测结果
+            score INTEGER DEFAULT 100,
+            grade TEXT DEFAULT 'A',
+            issue_count INTEGER DEFAULT 0,
+            language TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
+        -- 订单表
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id TEXT UNIQUE NOT NULL,
+            user_id INTEGER NOT NULL,
+            plan_id TEXT,
+            plan_name TEXT,
+            order_type TEXT DEFAULT 'subscription',  -- subscription / topup
+            amount REAL DEFAULT 0,
+            status TEXT DEFAULT 'pending',  -- pending / paid / expired
+            pay_method TEXT,
+            paid_at TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
+        -- 每日使用量表（按 IP 或 user_id 统计）
+        CREATE TABLE IF NOT EXISTS daily_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            user_id INTEGER,
+            ip TEXT,
+            count INTEGER DEFAULT 0,
+            UNIQUE(date, user_id, ip)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_scans_user ON scans(user_id);
+        CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+        CREATE INDEX IF NOT EXISTS idx_scans_scan_id ON scans(scan_id);
+    ''')
+    # 列迁移：兼容已有数据库，补字段
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN bonus_credits INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE orders ADD COLUMN order_type TEXT DEFAULT 'subscription'")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE orders ADD COLUMN mf_order_id TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE users ADD COLUMN mf_password_hash TEXT")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+    conn.close()
+
+
+# ============================================================
+# 工具函数
+# ============================================================
+
+def login_required(f):
+    """登录装饰器"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id'):
+            flash('请先登录', 'warning')
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def get_current_user():
+    """获取当前登录用户"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return None
+    db = get_db()
+    return db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+
+
+def is_vip_user():
+    """判断当前用户是否为付费会员"""
+    user = get_current_user()
+    if not user:
+        return False
+    if user['is_vip']:
+        # 检查是否过期
+        if user['vip_expire_at']:
+            expire = datetime.strptime(user['vip_expire_at'], '%Y-%m-%d %H:%M:%S')
+            if expire > datetime.now():
+                return True
+            else:
+                # 过期了，更新状态
+                db = get_db()
+                db.execute('UPDATE users SET is_vip = 0 WHERE id = ?', (user['id'],))
+                db.commit()
+                return False
+        return True  # 没设置过期时间，永久有效
+    return False
+
+
+# ============================================================
+# 门房服务辅助函数（支付+权限中心）
+# ============================================================
+def _menfang_ensure_registered(email: str, password_hash: str) -> bool:
+    """
+    确保用户在门房服务中也注册了（用于支付对接）。
+    password_hash 是 sha256 hex（和门房一致）。
+    注册成功或已存在返回 True，失败返回 False（不阻塞网站流程）。
+    """
+    if not HAS_REQUESTS:
+        return False
+    try:
+        resp = http_requests.post(
+            f'{MENFANG_BASE_URL}/api/auth/register',
+            json={'email': email, 'password_hash': password_hash},
+            timeout=5
+        )
+        # 200=注册成功，409=已存在，都算成功
+        return resp.status_code in (200, 409)
+    except Exception as e:
+        print(f'[门房] 同步注册失败 {email}: {e}')
+        return False
+
+
+def _menfang_login_with_hash(email: str, password_hash: str) -> str:
+    """
+    用 sha256 密码哈希登录门房获取 token。成功返回 token，失败返回空字符串。
+    """
+    if not HAS_REQUESTS:
+        return ''
+    try:
+        resp = http_requests.post(
+            f'{MENFANG_BASE_URL}/api/auth/login',
+            json={'email': email, 'password_hash': password_hash},
+            timeout=5
+        )
+        data = resp.json()
+        if data.get('success'):
+            return data.get('token', '')
+    except Exception as e:
+        print(f'[门房] 登录失败 {email}: {e}')
+    return ''
+
+
+def _menfang_create_pay_order_with_token(email: str, token: str, plan: str, amount: int) -> dict:
+    """
+    用 token 调用门房创建支付订单（推荐方式，避免传递密码）。
+    返回: {success, order_id, qr_code_url, amount, message}
+    """
+    if not HAS_REQUESTS:
+        return {'success': False, 'message': '支付服务未就绪'}
+    try:
+        headers = {}
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+        resp = http_requests.post(
+            f'{MENFANG_BASE_URL}/api/pay/create',
+            json={
+                'email': email,
+                'plan': plan,
+                'amount': amount
+            },
+            headers=headers,
+            timeout=10
+        )
+        data = resp.json()
+        if data.get('success'):
+            return {
+                'success': True,
+                'order_id': data.get('order_id', ''),
+                'qr_code_url': data.get('qr_code_url', ''),
+                'amount': data.get('amount', amount)
+            }
+        else:
+            return {'success': False, 'message': data.get('message', '创建订单失败')}
+    except Exception as e:
+        print(f'[门房] 创建支付订单失败: {e}')
+        return {'success': False, 'message': '支付服务暂时不可用，请稍后重试'}
+
+
+def _menfang_create_pay_order_with_hash(email: str, password_hash: str, plan: str, amount: int) -> dict:
+    """
+    用 password_hash 直接调用门房创建支付订单（兜底方式，token 都不可用时用）。
+    返回: {success, order_id, qr_code_url, amount, message}
+    """
+    if not HAS_REQUESTS:
+        return {'success': False, 'message': '支付服务未就绪'}
+    try:
+        resp = http_requests.post(
+            f'{MENFANG_BASE_URL}/api/pay/create',
+            json={
+                'email': email,
+                'password_hash': password_hash,
+                'plan': plan,
+                'amount': amount
+            },
+            timeout=10
+        )
+        data = resp.json()
+        if data.get('success'):
+            return {
+                'success': True,
+                'order_id': data.get('order_id', ''),
+                'qr_code_url': data.get('qr_code_url', ''),
+                'amount': data.get('amount', amount)
+            }
+        else:
+            return {'success': False, 'message': data.get('message', '创建订单失败')}
+    except Exception as e:
+        print(f'[门房] 创建支付订单(hash方式)失败: {e}')
+        return {'success': False, 'message': '支付服务暂时不可用，请稍后重试'}
+
+
+def _menfang_get_order_status(order_id: str) -> dict:
+    """
+    查询门房订单支付状态。
+    返回: {found, status, plan, amount, paid_at}
+    """
+    if not HAS_REQUESTS:
+        return {'found': False, 'status': 'unknown'}
+    try:
+        resp = http_requests.get(
+            f'{MENFANG_BASE_URL}/api/pay/order-status/{order_id}',
+            timeout=5
+        )
+        if resp.status_code == 404:
+            return {'found': False, 'status': 'not_found'}
+        data = resp.json()
+        return {
+            'found': True,
+            'status': data.get('status', 'unknown'),
+            'plan': data.get('plan', ''),
+            'amount': data.get('amount', 0),
+            'paid_at': data.get('paid_at', '')
+        }
+    except Exception as e:
+        print(f'[门房] 查询订单状态失败 {order_id}: {e}')
+        return {'found': False, 'status': 'error'}
+
+
+def get_daily_usage():
+    """获取今日使用次数"""
+    db = get_db()
+    today = datetime.now().strftime('%Y-%m-%d')
+    user_id = session.get('user_id')
+    ip = request.remote_addr
+
+    if user_id:
+        row = db.execute(
+            'SELECT count FROM daily_usage WHERE date = ? AND user_id = ?',
+            (today, user_id)
+        ).fetchone()
+    else:
+        row = db.execute(
+            'SELECT count FROM daily_usage WHERE date = ? AND ip = ? AND user_id IS NULL',
+            (today, ip)
+        ).fetchone()
+
+    return row['count'] if row else 0
+
+
+def check_daily_limit():
+    """检查是否超过每日限制，返回 (是否允许, 剩余次数)"""
+    if is_vip_user():
+        return True, -1  # VIP 无限
+
+    usage = get_daily_usage()
+    limit = DAILY_LIMIT_REGISTERED if session.get('user_id') else DAILY_LIMIT_FREE
+    remaining = max(0, limit - usage)
+    return remaining > 0, remaining
+
+
+def increment_daily_usage():
+    """增加今日使用次数"""
+    db = get_db()
+    today = datetime.now().strftime('%Y-%m-%d')
+    user_id = session.get('user_id')
+    ip = request.remote_addr
+
+    if user_id:
+        db.execute('''
+            INSERT INTO daily_usage (date, user_id, ip, count)
+            VALUES (?, ?, ?, 1)
+            ON CONFLICT(date, user_id, ip)
+            DO UPDATE SET count = count + 1
+        ''', (today, user_id, ip))
+    else:
+        db.execute('''
+            INSERT INTO daily_usage (date, user_id, ip, count)
+            VALUES (?, NULL, ?, 1)
+            ON CONFLICT(date, user_id, ip)
+            DO UPDATE SET count = count + 1
+        ''', (today, ip))
+    db.commit()
+
+
+def score_to_grade(score):
+    """分数转等级"""
+    if score >= 90:
+        return 'A'
+    elif score >= 80:
+        return 'B'
+    elif score >= 70:
+        return 'C'
+    elif score >= 60:
+        return 'D'
+    else:
+        return 'F'
+
+
+def score_color(score):
+    """分数对应颜色"""
+    if score >= 80:
+        return '#10b981'  # success green
+    elif score >= 60:
+        return '#f59e0b'  # warning amber
+    else:
+        return '#ef4444'  # danger red
+
+
+def calculate_score(issues, available_brain_ids=None):
+    """
+    加权扣分制计算综合得分
+    
+    扣分规则：
+    - Blocker (critical): 每个 -10 分（不设上限）
+    - High: 每个 -5 分（不设上限）
+    - Medium: 每个 -3 分（最多扣 30 分）
+    - Low: 每个 -0.5 分（最多扣 20 分）
+    - score = max(0, 100 - 总扣分)
+    
+    参数:
+        issues: 问题列表，每个问题需要有 severity 字段
+        available_brain_ids: 可用的大脑 ID 列表（用于免费用户只计算 B1~B3）
+    """
+    if available_brain_ids:
+        issues = [i for i in issues if str(i.get('brain_id', '')) in available_brain_ids]
+
+    critical_count = sum(1 for i in issues if i.get('severity') == 'critical')
+    high_count = sum(1 for i in issues if i.get('severity') == 'high')
+    medium_count = sum(1 for i in issues if i.get('severity') == 'medium')
+    low_count = sum(1 for i in issues if i.get('severity') == 'low')
+
+    # 计算扣分
+    deduction_critical = critical_count * 10       # 不设上限
+    deduction_high = high_count * 5                # 不设上限
+    deduction_medium = min(medium_count * 3, 30)   # 最多扣 30 分
+    deduction_low = min(low_count * 0.5, 20)       # 最多扣 20 分
+
+    total_deduction = deduction_critical + deduction_high + deduction_medium + deduction_low
+    score = max(0, int(round(100 - total_deduction)))
+
+    return score
+
+
+def calculate_dimension_score(issues):
+    """计算单个维度的得分（使用同一套扣分公式）"""
+    return calculate_score(issues)
+
+
+def severity_label(severity):
+    """严重程度中文标签"""
+    labels = {
+        'critical': '严重',
+        'high': '高危',
+        'medium': '中等',
+        'low': '轻微',
+    }
+    return labels.get(severity, severity)
+
+
+# ============================================================
+# Mock 检测服务（等 scanner 开发完再接真实接口）
+# ============================================================
+
+MOCK_RULES = {
+    '1': [  # B1 语法规范
+        {'rule_id': 'B1001', 'title': '行长度超过 120 字符', 'severity': 'low',
+         'description': '代码行过长会降低可读性，建议拆分为多行。',
+         'suggestion': '将长行拆分为多行，使用括号或续行符保持代码清晰。'},
+        {'rule_id': 'B1002', 'title': '变量命名不符合规范', 'severity': 'low',
+         'description': '变量名应使用 snake_case 风格（Python）或 camelCase（JS）。',
+         'suggestion': '将变量名修改为符合语言约定的命名风格。'},
+        {'rule_id': 'B1003', 'title': '缺少函数文档字符串', 'severity': 'low',
+         'description': '公共函数应该有 docstring 说明其用途、参数和返回值。',
+         'suggestion': '为函数添加清晰的文档字符串。'},
+        {'rule_id': 'B1004', 'title': '缩进不一致', 'severity': 'medium',
+         'description': '代码中混用了空格和 Tab 缩进，或缩进数量不一致。',
+         'suggestion': '统一使用 4 空格（或项目约定的数量）进行缩进。'},
+    ],
+    '2': [  # B2 代码缺陷
+        {'rule_id': 'B2001', 'title': '可能的空指针引用', 'severity': 'high',
+         'description': '变量可能为 None/null，但在使用前未进行空值检查。',
+         'suggestion': '在使用前添加空值检查，或使用安全调用运算符。'},
+        {'rule_id': 'B2002', 'title': '异常被静默吞掉', 'severity': 'high',
+         'description': '捕获了异常但没有任何处理逻辑，可能掩盖严重问题。',
+         'suggestion': '至少记录日志，或重新抛出异常，不要静默吞掉。'},
+        {'rule_id': 'B2003', 'title': '资源未正确释放', 'severity': 'medium',
+         'description': '打开的文件/数据库连接/网络连接可能未被正确关闭。',
+         'suggestion': '使用 with 语句（Python）或 try-finally 确保资源释放。'},
+        {'rule_id': 'B2004', 'title': '除零风险', 'severity': 'critical',
+         'description': '除法运算的除数可能为零，会导致运行时崩溃。',
+         'suggestion': '在除法运算前检查除数是否为零。'},
+        {'rule_id': 'B2005', 'title': '逻辑表达式永真/永假', 'severity': 'medium',
+         'description': '条件表达式的结果总是 true 或总是 false，可能是逻辑错误。',
+         'suggestion': '检查条件表达式的逻辑是否正确。'},
+    ],
+    '3': [  # B3 安全扫描
+        {'rule_id': 'B3001', 'title': 'SQL 注入风险', 'severity': 'critical',
+         'description': '使用字符串拼接构造 SQL 查询，存在 SQL 注入漏洞。',
+         'suggestion': '使用参数化查询或 ORM，不要直接拼接 SQL 字符串。'},
+        {'rule_id': 'B3002', 'title': '硬编码敏感信息', 'severity': 'high',
+         'description': '代码中硬编码了密码、密钥、token 等敏感信息。',
+         'suggestion': '使用环境变量或密钥管理服务存储敏感信息。'},
+        {'rule_id': 'B3003', 'title': 'XSS 跨站脚本风险', 'severity': 'high',
+         'description': '用户输入未经转义直接输出到 HTML，可能导致 XSS 攻击。',
+         'suggestion': '对所有用户输入进行 HTML 转义后再输出。'},
+        {'rule_id': 'B3004', 'title': '不安全的随机数', 'severity': 'medium',
+         'description': '使用了不安全的伪随机数生成器用于安全场景。',
+         'suggestion': '在安全相关场景使用加密安全的随机数生成器。'},
+    ],
+    '4': [  # B4 性能优化
+        {'rule_id': 'B4001', 'title': '循环中重复计算', 'severity': 'medium',
+         'description': '在循环体内重复执行可以提升到循环外的计算。',
+         'suggestion': '将循环内不变的计算提升到循环外部。'},
+        {'rule_id': 'B4002', 'title': 'N+1 查询问题', 'severity': 'high',
+         'description': '在循环中执行数据库查询，可能导致严重的性能问题。',
+         'suggestion': '使用批量查询（IN 查询）或 JOIN 替代循环查询。'},
+        {'rule_id': 'B4003', 'title': '不必要的深拷贝', 'severity': 'low',
+         'description': '对大数据对象进行了不必要的深拷贝，消耗内存和时间。',
+         'suggestion': '评估是否真的需要深拷贝，考虑使用浅拷贝或引用。'},
+    ],
+    '5': [  # B5 架构设计
+        {'rule_id': 'B5001', 'title': '函数职责过多', 'severity': 'medium',
+         'description': '函数承担了过多职责，违反单一职责原则。',
+         'suggestion': '将函数拆分为多个小函数，每个函数只做一件事。'},
+        {'rule_id': 'B5002', 'title': '模块耦合度过高', 'severity': 'medium',
+         'description': '模块间依赖关系复杂，难以独立修改和测试。',
+         'suggestion': '引入抽象层，降低模块间的耦合度。'},
+        {'rule_id': 'B5003', 'title': '上帝类/上帝函数', 'severity': 'high',
+         'description': '单个类或函数承担了整个系统的大部分逻辑。',
+         'suggestion': '按职责拆分为多个类/函数，遵循单一职责原则。'},
+    ],
+    '6': [  # B6 复杂度
+        {'rule_id': 'B6001', 'title': '圈复杂度过高', 'severity': 'high',
+         'description': '函数的圈复杂度超过阈值（>15），难以理解和测试。',
+         'suggestion': '拆分复杂函数，减少条件分支和循环嵌套。'},
+        {'rule_id': 'B6002', 'title': '嵌套层级过深', 'severity': 'medium',
+         'description': '条件或循环嵌套超过 4 层，降低代码可读性。',
+         'suggestion': '使用提前返回、卫语句等方式减少嵌套。'},
+        {'rule_id': 'B6003', 'title': '重复代码片段', 'severity': 'medium',
+         'description': '检测到多处相似的代码片段，存在重复。',
+         'suggestion': '提取公共逻辑为函数或工具类，消除重复代码。'},
+    ],
+    '7': [  # B7 最佳实践
+        {'rule_id': 'B7001', 'title': '缺少单元测试', 'severity': 'low',
+         'description': '该函数/模块没有对应的单元测试。',
+         'suggestion': '为核心逻辑添加单元测试，确保代码质量。'},
+        {'rule_id': 'B7002', 'title': '魔法数字未命名', 'severity': 'low',
+         'description': '代码中出现未命名的魔法数字，含义不明确。',
+         'suggestion': '将魔法数字定义为有意义的常量。'},
+        {'rule_id': 'B7003', 'title': '函数参数过多', 'severity': 'medium',
+         'description': '函数参数超过 5 个，调用和维护成本高。',
+         'suggestion': '考虑使用配置对象或数据类封装参数。'},
+    ],
+    '8': [  # B8 依赖扫描
+        {'rule_id': 'B8001', 'title': '依赖版本存在已知漏洞', 'severity': 'critical',
+         'description': '检测到使用的第三方库版本存在 CVE 安全漏洞。',
+         'suggestion': '升级到最新的安全版本，或寻找替代方案。'},
+        {'rule_id': 'B8002', 'title': '依赖版本过旧', 'severity': 'medium',
+         'description': '使用的依赖库版本已过时，可能缺少重要更新。',
+         'suggestion': '升级依赖到较新的稳定版本。'},
+        {'rule_id': 'B8003', 'title': '许可证风险', 'severity': 'low',
+         'description': '依赖的许可证可能与项目许可证不兼容。',
+         'suggestion': '审查依赖许可证，确保与项目使用方式兼容。'},
+    ],
+}
+
+
+def mock_scan(files_dict, brain_ids, language='auto'):
+    """
+    模拟检测结果（等 scanner 开发完成替换为真实调用）
+    
+    参数:
+        files_dict: {file_path: content} 字典
+        brain_ids: 要运行的大脑 ID 列表
+        language: 编程语言
+    
+    返回:
+        dict: 检测结果
+    """
+    all_issues = []
+    file_paths = list(files_dict.keys())
+
+    # 模拟：每个大脑生成一些问题
+    for brain_id in brain_ids:
+        rules = MOCK_RULES.get(brain_id, [])
+        if not rules:
+            continue
+
+        # 随机生成 1-5 个问题
+        num_issues = random.randint(1, min(5, len(rules)))
+        selected_rules = random.sample(rules, num_issues)
+
+        for rule in selected_rules:
+            # 随机选择一个文件和行号
+            file_path = random.choice(file_paths) if file_paths else 'unknown'
+            content = files_dict.get(file_path, '')
+            lines = content.split('\n') if content else ['']
+            line_num = random.randint(1, max(1, len(lines)))
+
+            # 获取代码片段（前后各 2 行）
+            start_line = max(0, line_num - 2)
+            end_line = min(len(lines), line_num + 2)
+            snippet_lines = []
+            for i in range(start_line, end_line):
+                prefix = '> ' if i + 1 == line_num else '  '
+                snippet_lines.append(f"{prefix}{i+1:4d}: {lines[i]}")
+            code_snippet = '\n'.join(snippet_lines)
+
+            issue = {
+                'brain_id': brain_id,
+                'brain_name': BRAINS_MAP.get(brain_id, {}).get('name', ''),
+                'rule_id': rule['rule_id'],
+                'title': rule['title'],
+                'severity': rule['severity'],
+                'severity_label': severity_label(rule['severity']),
+                'description': rule['description'],
+                'suggestion': rule['suggestion'],
+                'file': file_path,
+                'line': line_num,
+                'code_snippet': code_snippet,
+            }
+            all_issues.append(issue)
+
+    # 按严重程度排序
+    severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+    all_issues.sort(key=lambda x: (severity_order.get(x['severity'], 99), x['brain_id']))
+
+    return {
+        'brains': brain_ids,
+        'language': language,
+        'issues': all_issues,
+        'file_count': len(files_dict),
+        'total_issues': len(all_issues),
+    }
+
+
+def call_scanner(files_dict, brain_ids, language='auto'):
+    """
+    调用 xinpect-scanner v5 检测服务
+    
+    scanner v5 返回格式:
+        {status, total_elapsed, results: {brain_id: {score, issues, ...}}}
+    每个 issue 字段: check_id, name, severity, file, line, message, suggestion
+    """
+    try:
+        import requests
+        resp = requests.post(SCANNER_URL, json={
+            'code_files': files_dict,
+            'brain_ids': brain_ids,
+        }, timeout=120)
+        resp.raise_for_status()
+        raw = resp.json()
+
+        # 格式适配：把按 brain 分组的 issues 拍平成前端需要的格式
+        all_issues = []
+        results_by_brain = raw.get('results', {})
+
+        for bid in brain_ids:
+            brain_result = results_by_brain.get(str(bid), {})
+            brain_issues = brain_result.get('issues', [])
+            brain_name = BRAINS_MAP.get(str(bid), {}).get('name', f'B{bid}')
+
+            for issue in brain_issues:
+                # 提取代码片段（从原文件内容里取）
+                file_path = issue.get('file', '')
+                line_num = issue.get('line', 0)
+                content = files_dict.get(file_path, '')
+                code_snippet = ''
+                if content and line_num:
+                    lines = content.split('\n')
+                    start = max(0, line_num - 3)
+                    end = min(len(lines), line_num + 2)
+                    snippet_lines = []
+                    for i in range(start, end):
+                        marker = '> ' if i + 1 == line_num else '  '
+                        snippet_lines.append(f"{marker}{i+1:4d}: {lines[i]}")
+                    code_snippet = '\n'.join(snippet_lines)
+
+                all_issues.append({
+                    'brain_id': str(bid),
+                    'brain_name': brain_name,
+                    'rule_id': issue.get('check_id', ''),
+                    'title': issue.get('name', issue.get('check_id', '')),
+                    'severity': issue.get('severity', 'medium'),
+                    'severity_label': severity_label(issue.get('severity', 'medium')),
+                    'description': issue.get('message', ''),
+                    'suggestion': issue.get('suggestion', ''),
+                    'file': file_path,
+                    'line': line_num,
+                    'code_snippet': code_snippet,
+                    'category': issue.get('category', ''),
+                })
+
+        # 按严重程度排序
+        sev_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
+        all_issues.sort(key=lambda x: (sev_order.get(x.get('severity', ''), 99),
+                                        str(x.get('brain_id', ''))))
+
+        return {
+            'brains': brain_ids,
+            'language': language,
+            'issues': all_issues,
+            'file_count': len(files_dict),
+            'total_issues': len(all_issues),
+            'scan_time': raw.get('total_elapsed', 0),
+            'version': raw.get('version', '5.0'),
+        }
+    except Exception as e:
+        app.logger.error(f'Scanner call failed: {e}')
+        import traceback
+        app.logger.error(traceback.format_exc())
+        # fallback 到 mock，保证网站可用
+        return mock_scan(files_dict, brain_ids, language)
+
+
+# ============================================================
+# 页面路由
+# ============================================================
+
+@app.route('/')
+def index():
+    """首页"""
+    return render_template('index.html', brains=BRAINS)
+
+
+@app.route('/upload')
+def upload_page():
+    """上传页"""
+    allowed, remaining = check_daily_limit()
+    return render_template('upload.html', daily_remaining=remaining)
+
+
+@app.route('/scan', methods=['POST'])
+def scan():
+    """发起检测（返回 JSON）"""
+    # 检查每日限制
+    allowed, remaining = check_daily_limit()
+    if not allowed:
+        return jsonify({'error': '今日检测次数已用完，请明天再试或升级会员'}), 429
+
+    # 收集文件
+    files_dict = {}
+
+    # 支持的代码文件扩展名
+    CODE_EXTS = {'.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.go', '.cpp', '.c',
+                 '.h', '.cs', '.php', '.rb', '.rs', '.swift', '.kt', '.wxml', '.wxss',
+                 '.vue', '.html', '.htm', '.scss', '.less', '.css', '.sass',
+                 '.json', '.yaml', '.yml', '.toml', '.ini', '.sh', '.bash'}
+
+    def _extract_archive(file_storage):
+        """从压缩包中提取代码文件，返回 {path: content} 字典"""
+        result = {}
+        filename = file_storage.filename.lower()
+        data = file_storage.read()
+
+        try:
+            if filename.endswith('.zip'):
+                with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                    for info in zf.infolist():
+                        if info.is_dir():
+                            continue
+                        # 跳过隐藏文件、__pycache__、node_modules 等
+                        name = info.filename
+                        if any(x in name for x in ('__pycache__', 'node_modules', '.git/',
+                                                    'dist/', 'build/', '.venv', 'venv/',
+                                                    '.DS_Store', 'Thumbs.db')):
+                            continue
+                        if name.startswith('.') or '/.' in name:
+                            continue
+                        ext = os.path.splitext(name)[1].lower()
+                        if ext in CODE_EXTS:
+                            try:
+                                with zf.open(info) as f:
+                                    content = f.read().decode('utf-8', errors='replace')
+                                # 去掉 zip 最外层目录前缀，让路径更干净
+                                parts = name.split('/', 1)
+                                display_name = parts[1] if len(parts) > 1 else parts[0]
+                                result[display_name] = content
+                            except:
+                                pass
+
+            elif filename.endswith(('.tar.gz', '.tgz', '.tar')):
+                with tarfile.open(fileobj=io.BytesIO(data), mode='r:*') as tf:
+                    for member in tf.getmembers():
+                        if not member.isfile():
+                            continue
+                        name = member.name
+                        if any(x in name for x in ('__pycache__', 'node_modules', '.git/',
+                                                    'dist/', 'build/', '.venv', 'venv/',
+                                                    '.DS_Store', 'Thumbs.db')):
+                            continue
+                        if name.startswith('.') or '/.' in name:
+                            continue
+                        ext = os.path.splitext(name)[1].lower()
+                        if ext in CODE_EXTS:
+                            try:
+                                f = tf.extractfile(member)
+                                if f:
+                                    content = f.read().decode('utf-8', errors='replace')
+                                    parts = name.split('/', 1)
+                                    display_name = parts[1] if len(parts) > 1 else parts[0]
+                                    result[display_name] = content
+                            except:
+                                pass
+        except Exception as e:
+            # 解压失败就跳过，不让整个扫描挂掉
+            pass
+
+        return result
+
+    # 方式1：上传文件（支持单文件、多文件、zip/tar.gz 压缩包）
+    uploaded_files = request.files.getlist('files')
+    if uploaded_files and uploaded_files[0].filename:
+        for f in uploaded_files:
+            if f and f.filename:
+                fname_lower = f.filename.lower()
+                # 压缩包：解压后扫描里面的代码文件
+                if fname_lower.endswith(('.zip', '.tar.gz', '.tgz', '.tar')):
+                    extracted = _extract_archive(f)
+                    files_dict.update(extracted)
+                else:
+                    # 普通代码文件：直接读
+                    content = f.read().decode('utf-8', errors='replace')
+                    files_dict[f.filename] = content
+
+    # 方式2：粘贴代码
+    code = request.form.get('code', '').strip()
+    if code:
+        filename = request.form.get('filename', 'code.txt') or 'code.txt'
+        files_dict[filename] = code
+
+    if not files_dict:
+        return jsonify({'error': '请上传文件或粘贴代码'}), 400
+
+    language = request.form.get('language', 'auto')
+
+    # 判断可用的大脑
+    vip = is_vip_user()
+    if vip:
+        brain_ids = ['1', '2', '3', '4', '5', '6', '7', '8']
+    else:
+        brain_ids = ['1', '2', '3']  # 免费用户只有 B1~B3
+
+    # 调用检测
+    results = call_scanner(files_dict, brain_ids, language)
+
+    # 计算得分（免费用户只按 B1~B3 计算）
+    score = calculate_score(results['issues'], available_brain_ids=(None if vip else ['1','2','3']))
+    grade = score_to_grade(score)
+
+    # 生成 scan_id
+    scan_id = hashlib.sha256(f"{uuid.uuid4()}{datetime.now().isoformat()}".encode()).hexdigest()[:32]
+
+    # 构建标题
+    first_file = list(files_dict.keys())[0] if files_dict else 'unknown'
+    if len(files_dict) > 1:
+        title = f"{first_file} 等 {len(files_dict)} 个文件"
+    else:
+        title = first_file
+
+    # 保存到数据库
+    user_id = session.get('user_id')
+    db = get_db()
+    db.execute('''
+        INSERT INTO scans (scan_id, user_id, title, file_count, files_meta,
+                          results, score, grade, issue_count, language)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        scan_id,
+        user_id,
+        title,
+        len(files_dict),
+        json.dumps(list(files_dict.keys()), ensure_ascii=False),
+        json.dumps(results, ensure_ascii=False),
+        score,
+        grade,
+        results['total_issues'],
+        language,
+    ))
+    db.commit()
+
+    # 增加使用次数
+    increment_daily_usage()
+
+    return jsonify({
+        'scan_id': scan_id,
+        'score': score,
+        'grade': grade,
+        'total_issues': results['total_issues'],
+    })
+
+
+@app.route('/report/<scan_id>')
+def report_page(scan_id):
+    """报告页"""
+    db = get_db()
+    scan = db.execute('SELECT * FROM scans WHERE scan_id = ?', (scan_id,)).fetchone()
+
+    if not scan:
+        flash('检测报告不存在', 'error')
+        return redirect(url_for('index'))
+
+    # 权限检查：如果是用户自己的检测，或者未登录用户的检测（通过 session 标记）
+    # MVP 阶段：公开可访问（方便分享），后续可加权限控制
+
+    results = json.loads(scan['results']) if scan['results'] else {'issues': []}
+    all_issues = results.get('issues', [])
+    vip = is_vip_user()
+
+    # 构建维度数据
+    dimensions = []
+    for brain in BRAINS:
+        brain_issues = [i for i in all_issues if str(i.get('brain_id')) == brain['id']]
+        is_locked = (not vip) and (brain['id'] not in ['1', '2', '3'])
+
+        if is_locked:
+            dimensions.append({
+                'id': brain['id'],
+                'name': brain['name'],
+                'score': '—',
+                'score_color': '#6b7280',
+                'issues_count': '🔒',
+                'locked': True,
+            })
+        else:
+            dim_score = calculate_dimension_score(brain_issues)
+            dimensions.append({
+                'id': brain['id'],
+                'name': brain['name'],
+                'score': dim_score,
+                'score_color': score_color(dim_score),
+                'issues_count': len(brain_issues),
+                'locked': False,
+            })
+
+    # 可见问题（免费用户只看 B1~B3）
+    if vip:
+        visible_issues = all_issues
+    else:
+        visible_issues = [i for i in all_issues if str(i.get('brain_id')) in ['1', '2', '3']]
+
+    # 计算综合得分（按可见维度计算）
+    score = scan['score']
+    grade = scan['grade']
+
+    created_at = scan['created_at']
+    try:
+        dt = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
+        created_at_str = dt.strftime('%Y-%m-%d %H:%M')
+    except:
+        created_at_str = created_at
+
+    return render_template(
+        'report.html',
+        scan_id=scan_id,
+        report_title=scan['title'],
+        score=score,
+        grade=grade,
+        file_count=scan['file_count'],
+        total_issues=scan['issue_count'],
+        created_at=created_at_str,
+        dimensions=dimensions,
+        visible_issues=visible_issues,
+        visible_issues_count=len(visible_issues),
+        is_vip=vip,
+    )
+
+
+@app.route('/report/<scan_id>/download')
+def download_report(scan_id):
+    """下载报告（Markdown 格式）"""
+    db = get_db()
+    scan = db.execute('SELECT * FROM scans WHERE scan_id = ?', (scan_id,)).fetchone()
+
+    if not scan:
+        flash('检测报告不存在', 'error')
+        return redirect(url_for('index'))
+
+    results = json.loads(scan['results']) if scan['results'] else {'issues': []}
+    all_issues = results.get('issues', [])
+    vip = is_vip_user()
+
+    if vip:
+        visible_issues = all_issues
+        visible_brains = BRAINS
+    else:
+        visible_issues = [i for i in all_issues if str(i.get('brain_id')) in ['1', '2', '3']]
+        visible_brains = [b for b in BRAINS if b['id'] in ['1', '2', '3']]
+
+    # 生成 Markdown
+    md_lines = []
+    md_lines.append(f'# 煋鉴 Xinpect 代码检测报告')
+    md_lines.append('')
+    md_lines.append(f'**检测名称：** {scan["title"]}')
+    md_lines.append(f'**检测时间：** {scan["created_at"]}')
+    md_lines.append(f'**文件数量：** {scan["file_count"]}')
+    md_lines.append(f'**综合得分：** {scan["score"]} / 100 ({scan["grade"]}级)')
+    md_lines.append(f'**问题总数：** {len(visible_issues)}')
+    if not vip:
+        md_lines.append(f'> ⚡ 免费版仅展示 B1~B3 结果，[升级专业版](https://xinpect.xingwangzhineng.com) 解锁全部 8 维度')
+    md_lines.append('')
+    md_lines.append('---')
+    md_lines.append('')
+
+    # 各维度得分
+    md_lines.append('## 各维度得分')
+    md_lines.append('')
+    md_lines.append('| 维度 | 名称 | 得分 | 问题数 |')
+    md_lines.append('|------|------|------|--------|')
+    for brain in BRAINS:
+        if vip or brain['id'] in ['1', '2', '3']:
+            brain_issues = [i for i in visible_issues if str(i.get('brain_id')) == brain['id']]
+            dim_score = calculate_dimension_score(brain_issues)
+            md_lines.append(f'| B{brain["id"]} | {brain["name"]} | {dim_score} | {len(brain_issues)} |')
+        else:
+            md_lines.append(f'| B{brain["id"]} | {brain["name"]} | 🔒 升级解锁 | - |')
+    md_lines.append('')
+
+    # 问题详情
+    md_lines.append('## 问题详情')
+    md_lines.append('')
+
+    if not visible_issues:
+        md_lines.append('🎉 **未检测到任何问题，代码质量优秀！**')
+    else:
+        # 按维度分组
+        for brain in visible_brains:
+            brain_issues = [i for i in visible_issues if str(i.get('brain_id')) == brain['id']]
+            if not brain_issues:
+                continue
+
+            md_lines.append(f'### B{brain["id"]} {brain["name"]}')
+            md_lines.append('')
+
+            for idx, issue in enumerate(brain_issues, 1):
+                sev_label = issue.get('severity_label', issue['severity'])
+                md_lines.append(f'#### [{sev_label}] {idx}. {issue["title"]}')
+                md_lines.append('')
+                md_lines.append(f'- **规则ID：** {issue["rule_id"]}')
+                md_lines.append(f'- **位置：** `{issue["file"]}:{issue["line"]}`')
+                md_lines.append('')
+                md_lines.append('**问题描述：**')
+                md_lines.append('')
+                md_lines.append(issue['description'])
+                md_lines.append('')
+
+                if issue.get('code_snippet'):
+                    md_lines.append('**问题代码：**')
+                    md_lines.append('')
+                    md_lines.append('```')
+                    md_lines.append(issue['code_snippet'])
+                    md_lines.append('```')
+                    md_lines.append('')
+
+                if issue.get('suggestion'):
+                    md_lines.append('**修复建议：**')
+                    md_lines.append('')
+                    md_lines.append(f'> {issue["suggestion"]}')
+                    md_lines.append('')
+
+            md_lines.append('---')
+            md_lines.append('')
+
+    md_lines.append('')
+    md_lines.append('---')
+    md_lines.append(f'*本报告由 [煋鉴 Xinpect](https://xinpect.xingwangzhineng.com) 自动生成*')
+
+    md_content = '\n'.join(md_lines)
+
+    # 生成响应
+    response = make_response(md_content)
+    response.headers['Content-Type'] = 'text/markdown; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename="xinpect-report-{scan_id[:8]}.md"'
+    return response
+
+
+# ============================================================
+# 认证路由
+# ============================================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """登录"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
+        errors = {}
+
+        if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+            errors['error_email'] = '请输入有效的邮箱地址'
+
+        if not password:
+            errors['error_password'] = '请输入密码'
+
+        if errors:
+            return render_template('login.html', email=email, **errors)
+
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+
+        if not user or not check_password_hash(user['password_hash'], password):
+            errors['error_password'] = '邮箱或密码错误'
+            return render_template('login.html', email=email, **errors)
+
+        # 登录成功
+        session['user_id'] = user['id']
+        session['user_email'] = user['email']
+        session['is_vip'] = bool(user['is_vip'])
+        session['bonus_credits'] = user['bonus_credits'] or 0
+
+        # 补写门房密码哈希（老用户没有）
+        mf_pwd_hash = user['mf_password_hash'] if user['mf_password_hash'] else None
+        if not mf_pwd_hash:
+            mf_pwd_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+            db.execute('UPDATE users SET mf_password_hash = ? WHERE id = ?', (mf_pwd_hash, user['id']))
+            db.commit()
+
+        # 同步登录门房，拿支付用的 token（失败不影响主流程）
+        mf_token = _menfang_login_with_hash(email, mf_pwd_hash)
+        if mf_token:
+            session['mf_token'] = mf_token
+        else:
+            # 可能是老用户，门房没注册过，尝试补注册再登录
+            _menfang_ensure_registered(email, mf_pwd_hash)
+            mf_token = _menfang_login_with_hash(email, mf_pwd_hash)
+            if mf_token:
+                session['mf_token'] = mf_token
+
+        flash('登录成功', 'success')
+
+        next_url = request.args.get('next')
+        if next_url and next_url.startswith('/'):
+            return redirect(next_url)
+        return redirect(url_for('dashboard_page'))
+
+    return render_template('login.html')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """注册"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        errors = {}
+
+        if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+            errors['error_email'] = '请输入有效的邮箱地址'
+
+        if len(password) < 6:
+            errors['error_password'] = '密码至少 6 位字符'
+
+        if password != confirm_password:
+            errors['error_confirm'] = '两次输入的密码不一致'
+
+        if errors:
+            return render_template('register.html', email=email, **errors)
+
+        db = get_db()
+
+        # 检查邮箱是否已注册
+        existing = db.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
+        if existing:
+            errors['error_email'] = '该邮箱已被注册'
+            return render_template('register.html', email=email, **errors)
+
+        # 创建用户
+        password_hash = generate_password_hash(password)
+        mf_pwd_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+        cursor = db.execute(
+            'INSERT INTO users (email, password_hash, mf_password_hash) VALUES (?, ?, ?)',
+            (email, password_hash, mf_pwd_hash)
+        )
+        db.commit()
+
+        user_id = cursor.lastrowid
+
+        # 同步注册到门房服务（用于支付，失败不影响主流程）
+        _menfang_ensure_registered(email, mf_pwd_hash)
+
+        # 自动登录
+        session['user_id'] = user_id
+        session['user_email'] = email
+        session['is_vip'] = False
+
+        flash('注册成功，欢迎使用煋鉴！', 'success')
+        return redirect(url_for('dashboard_page'))
+
+    return render_template('register.html')
+
+
+@app.route('/logout')
+def logout():
+    """登出"""
+    session.clear()
+    flash('已退出登录', 'info')
+    return redirect(url_for('index'))
+
+
+# ============================================================
+# 会员中心
+# ============================================================
+
+@app.route('/dashboard')
+@app.route('/dashboard/<page>')
+@login_required
+def dashboard_page(page='overview'):
+    """会员中心各页面"""
+    user = get_current_user()
+    vip = is_vip_user()
+    db = get_db()
+
+    # 通用上下文
+    context = {
+        'user_email': user['email'] if user else '',
+        'is_vip': vip,
+        'page': page,
+        'bonus_credits': user['bonus_credits'] if user else 0,
+    }
+
+    if page == 'overview':
+        # 概览页：统计数据 + 最近检测
+        today = datetime.now().strftime('%Y-%m-%d')
+        usage_row = db.execute(
+            'SELECT count FROM daily_usage WHERE date = ? AND user_id = ?',
+            (today, user['id'])
+        ).fetchone()
+        today_scans = usage_row['count'] if usage_row else 0
+
+        total_scans_row = db.execute(
+            'SELECT COUNT(*) as cnt, COALESCE(SUM(issue_count), 0) as issues FROM scans WHERE user_id = ?',
+            (user['id'],)
+        ).fetchone()
+
+        remaining = max(0, DAILY_LIMIT_REGISTERED - today_scans) if not vip else -1
+
+        vip_expire = ''
+        if vip and user['vip_expire_at']:
+            try:
+                vip_expire = user['vip_expire_at']
+            except:
+                vip_expire = '永久'
+
+        context['stats'] = {
+            'total_scans': total_scans_row['cnt'],
+            'today_scans': today_scans,
+            'remaining': remaining,
+            'total_issues': total_scans_row['issues'],
+        }
+        context['vip_expire'] = vip_expire
+
+        # 最近 5 条检测
+        recent = db.execute(
+            'SELECT scan_id, title, file_count, issue_count, score, grade, created_at '
+            'FROM scans WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
+            (user['id'],)
+        ).fetchall()
+        context['recent_scans'] = [dict(r) for r in recent]
+
+        return render_template('dashboard/overview.html', **context)
+
+    elif page == 'scans':
+        # 我的检测
+        scans = db.execute(
+            'SELECT scan_id, title, file_count, issue_count, score, grade, created_at '
+            'FROM scans WHERE user_id = ? ORDER BY created_at DESC',
+            (user['id'],)
+        ).fetchall()
+        context['scans'] = [dict(s) for s in scans]
+        return render_template('dashboard/scans.html', **context)
+
+    elif page == 'orders':
+        # 订单列表
+        orders = db.execute(
+            'SELECT order_id, plan_id, plan_name, amount, status, created_at '
+            'FROM orders WHERE user_id = ? ORDER BY created_at DESC',
+            (user['id'],)
+        ).fetchall()
+        context['orders'] = [dict(o) for o in orders]
+        return render_template('dashboard/orders.html', **context)
+
+    elif page == 'recharge':
+        # 充值页
+        return render_template('dashboard/recharge.html', **context)
+
+    else:
+        return redirect(url_for('dashboard_page', page='overview'))
+
+
+# ============================================================
+# JSON API
+# ============================================================
+
+@app.route('/api/pay/create', methods=['POST'])
+@login_required
+def api_pay_create():
+    """创建支付订单（对接门房真实微信支付）"""
+    data = request.get_json() or {}
+    plan_id = data.get('plan_id')
+    order_type = data.get('order_type', 'subscription')  # subscription / topup
+
+    # 网站套餐 → 门房套餐映射
+    subscription_plans = {
+        'monthly':     {'name': '月卡',   'amount': 99,  'mf_plan': 'monthly'},
+        'quarterly':   {'name': '季卡',   'amount': 249, 'mf_plan': 'quarterly'},
+        'half_year':   {'name': '半年卡', 'amount': 449, 'mf_plan': 'half-year'},
+        'yearly':      {'name': '年卡',   'amount': 799, 'mf_plan': 'yearly'},
+    }
+
+    topup_plans = {
+        'topup_1':  {'name': '次卡·1次',  'amount': 2,  'mf_plan': 'addon-1',  'credits': 1},
+        'topup_5':  {'name': '次卡·5次',  'amount': 9,  'mf_plan': 'addon-5',  'credits': 5},
+        'topup_10': {'name': '次卡·10次', 'amount': 16, 'mf_plan': 'addon-10', 'credits': 10},
+    }
+
+    if order_type == 'topup':
+        # 次卡仅限会员购买
+        if not is_vip_user():
+            return jsonify({'success': False, 'error': '次卡仅限会员购买，请先开通会员'}), 403
+        if plan_id not in topup_plans:
+            return jsonify({'success': False, 'error': '无效的次卡套餐'}), 400
+        plan = topup_plans[plan_id]
+    else:
+        if plan_id not in subscription_plans:
+            return jsonify({'success': False, 'error': '无效的套餐'}), 400
+        plan = subscription_plans[plan_id]
+
+    user = get_current_user()
+    email = user['email']
+    mf_token = session.get('mf_token', '')
+    mf_pwd_hash = user['mf_password_hash'] or ''
+
+    # 调门房创建真实支付订单（先试 token，失败就用密码哈希重登再试）
+    result = _menfang_create_pay_order_with_token(email, mf_token, plan['mf_plan'], plan['amount'])
+
+    # token 失效时用密码哈希重新登录再试
+    if not result['success'] and mf_pwd_hash and ('登录已过期' in result.get('message', '') or '会话' in result.get('message', '')):
+        new_token = _menfang_login_with_hash(email, mf_pwd_hash)
+        if new_token:
+            session['mf_token'] = new_token
+            result = _menfang_create_pay_order_with_token(email, new_token, plan['mf_plan'], plan['amount'])
+
+    # 还失败就用密码哈希直接调（最兜底的方式）
+    if not result['success'] and mf_pwd_hash:
+        result = _menfang_create_pay_order_with_hash(email, mf_pwd_hash, plan['mf_plan'], plan['amount'])
+
+    if not result['success']:
+        return jsonify({'success': False, 'error': result.get('message', '创建订单失败')}), 400
+
+    mf_order_id = result['order_id']
+
+    # 存本地订单（用门房的 order_id 作为关联）
+    db = get_db()
+    db.execute('''
+        INSERT INTO orders (order_id, user_id, plan_id, plan_name, order_type, amount, status, mf_order_id)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+    ''', (mf_order_id, user['id'], plan_id, plan['name'], order_type, plan['amount'], mf_order_id))
+    db.commit()
+
+    return jsonify({
+        'success': True,
+        'order_id': mf_order_id,
+        'amount': plan['amount'],
+        'qr_url': result.get('qr_code_url', ''),
+    })
+
+
+@app.route('/api/pay/status/<order_id>')
+@login_required
+def api_pay_status(order_id):
+    """查询支付状态（轮询门房真实订单状态）"""
+    user = get_current_user()
+    db = get_db()
+
+    order = db.execute(
+        'SELECT * FROM orders WHERE order_id = ? AND user_id = ?',
+        (order_id, user['id'])
+    ).fetchone()
+
+    if not order:
+        return jsonify({'status': 'not_found'}), 404
+
+    # 如果本地已是 paid，直接返回
+    if order['status'] == 'paid':
+        return jsonify({'status': 'paid'})
+
+    # 调门房查真实支付状态
+    mf_status = _menfang_get_order_status(order_id)
+
+    if not mf_status['found']:
+        return jsonify({'status': order['status']})
+
+    # 支付成功 → 开通权限
+    if mf_status['status'] == 'paid' and order['status'] != 'paid':
+        if order['order_type'] == 'topup':
+            # 次卡：加 bonus_credits
+            credits_map = {
+                'topup_1': 1,
+                'topup_5': 5,
+                'topup_10': 10,
+            }
+            credits = credits_map.get(order['plan_id'], 1)
+            db.execute('''
+                UPDATE orders SET status = 'paid', paid_at = datetime('now', 'localtime')
+                WHERE order_id = ?
+            ''', (order_id,))
+            db.execute('''
+                UPDATE users SET bonus_credits = COALESCE(bonus_credits, 0) + ? WHERE id = ?
+            ''', (credits, user['id']))
+            db.commit()
+            session['bonus_credits'] = (session.get('bonus_credits') or 0) + credits
+            return jsonify({'status': 'paid'})
+        else:
+            # 订阅卡：开 vip
+            days_map = {
+                'monthly': 30,
+                'quarterly': 90,
+                'half_year': 180,
+                'yearly': 365,
+            }
+            days = days_map.get(order['plan_id'], 30)
+            # 从门房的 paid_at 算起更准确，没有就用当前时间
+            vip_expire = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+
+            db.execute('''
+                UPDATE orders SET status = 'paid', paid_at = datetime('now', 'localtime')
+                WHERE order_id = ?
+            ''', (order_id,))
+            db.execute('''
+                UPDATE users SET is_vip = 1, vip_expire_at = ? WHERE id = ?
+            ''', (vip_expire, user['id']))
+            db.commit()
+
+            # 更新 session
+            session['is_vip'] = True
+
+            return jsonify({'status': 'paid'})
+
+    return jsonify({'status': mf_status.get('status', order['status'])})
+
+
+# ============================================================
+# 错误处理
+# ============================================================
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'error': '上传文件过大，总大小不能超过 20MB'}), 413
+
+
+@app.errorhandler(500)
+def server_error(e):
+    app.logger.exception('Server error')
+    return jsonify({'error': '服务器内部错误'}), 500
+
+
+# ============================================================
+# 启动
+# ============================================================
+
+if __name__ == '__main__':
+    init_db()
+    port = int(os.environ.get('PORT', 8621))
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    print('=' * 50)
+    print('煋鉴 Xinpect 官网 v1.1')
+    print('数据库:', DB_PATH)
+    print('端口:', port)
+    print('Debug:', debug)
+    print('=' * 50)
+    app.run(host='0.0.0.0', port=port, debug=debug)

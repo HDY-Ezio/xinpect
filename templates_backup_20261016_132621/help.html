@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}帮助中心 - 使用指南与常见问题 | 煋鉴 Xinpect{% endblock %}
+{% block meta_description %}煋鉴帮助中心：支持语言列表、免费版与会员版区别、AST深度检测说明、积分计费规则、API接入指南等常见问题解答。{% endblock %}
+{% block og_title %}帮助中心 - 使用指南与常见问题 | 煋鉴{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:60px 20px;max-width:900px;">
+    <div style="text-align:center;margin-bottom:48px;">
+        <h1 style="font-size:32px;margin-bottom:12px;">帮助中心</h1>
+        <p style="color:var(--text-secondary);font-size:16px;">常见问题解答与技术支持</p>
+    </div>
+
+    <!-- 联系支持 -->
+    <div class="info-card" style="margin-bottom:40px;border:1px solid var(--border-color);border-radius:16px;padding:32px;background:var(--bg-card);">
+        <h2 style="font-size:20px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">📧</span> 联系技术支持
+        </h2>
+        <p style="color:var(--text-secondary);margin-bottom:20px;line-height:1.7;">
+            遇到问题或有建议？随时通过邮件联系我们，工作日 24 小时内回复。<br>
+            <strong>会员用户享受优先技术支持</strong>，回复时效更快。
+        </p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <a href="mailto:hdyabcd@163.com?subject=煋鉴技术支持" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+                <span>✉️</span> 发送邮件
+            </a>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <code id="support-email" style="background:var(--bg-page);padding:10px 16px;border-radius:8px;font-size:14px;user-select:all;">hdyabcd@163.com</code>
+                <button onclick="copyEmail()" class="btn btn-primary" style="padding:8px 16px;font-size:13px;">📋 复制邮箱</button>
+                <span id="copy-tip" style="color:var(--success);font-size:13px;display:none;">✓ 已复制</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <h2 style="font-size:22px;margin-bottom:24px;">常见问题</h2>
+    
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">煋鉴支持哪些编程语言？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                目前支持 17种语言：Python、JavaScript、TypeScript、Java、Go、PHP、C/C++、C#、Ruby、Swift、Kotlin、Rust、Scala、Lua、Shell、SQL、HTML/CSS。同时支持 Vue、React、微信小程序等框架的自动识别。持续扩展中。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">免费版和会员版有什么区别？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                <strong>免费版</strong>：规范层扫描（700+条规则），无限次免费使用，不限文件数，适合轻度体验。<br>
+                <strong>会员版</strong>：E1~E9 全维度检测 + AI 深度分析 + 报告下载 + 批量检测 + 积分按行计费 + 优先技术支持。
+            </p>
+        </details>
+
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">什么是AST级深度检测？和普通正则检测有什么区别？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                AST（抽象语法树）级检测是煋鉴v6.0的核心升级。普通正则检测只能匹配代码表面模式，容易误报和漏报；AST检测先把代码解析成语法树，再基于语法结构进行语义分析，能精准识别变量作用域、污染传播、函数调用链等深层问题。<br><br>
+                煋鉴目前已有 700+ 条 AST 级深度规则，覆盖XSS注入、SSRF、SQL注入、命令注入、SSTI、JWT安全、异常吞没、性能瓶颈、作用域风险等高价值检测场景，检测精度远高于正则级。同时支持跨文件数据流追踪（Python/Java/JS/PHP/Go），SSRF检测覆盖5语言100%。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">什么是组件契组合规检测（E6）？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                E6 组件契组合规引擎是煋鉴专为前端/小程序团队打造的检测引擎，用于检查组件使用是否符合设计规范和契约约束。
+                <br><br>
+                <strong>检测范围包括：</strong>
+                <br>• 属性约束：组件必填属性、类型校验、枚举值合法性
+                <br>• 嵌套规则：父子组件的合法嵌套关系、禁止嵌套场景
+                <br>• 样式边界：样式穿透、全局污染、类名冲突等
+                <br><br>
+                <strong>免费版</strong>：提供 8 条基础组件契约规则（CC 规则引擎检测）。
+                <br><strong>会员版</strong>：额外解锁 AI 增强检测，支持自定义组件契约、深度语义校验。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">积分怎么算？够不够用？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                积分按<strong>代码行数</strong>计费：每 300 行 1 积分（完整版），不足300行按300行算。<br>
+                一个中等项目（约 5000 行代码）约消耗 17 积分。所有会员每月 300 积分，约可扫 17 个中等项目。不够用可以单独购买积分包。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">煋鉴的 9 大引擎架构是什么？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                煋鉴采用 9 大引擎并行扫描架构（E1~E9），共 2881+ 条检测规则，其中 700+ 条为 AST 级深度检测规则，将代码质量检测分为四个层级：
+                <br><br>
+                <strong>📐 规范层（代码骨架）</strong>：E1 语法格式 + E4 代码质量 + E5 架构合规
+                <br><strong>🧠 安全层（代码防线）</strong>：E2 安全与依赖审计 + E6 组件契约合规
+                <br><strong>⚡ 性能层（代码血脉）</strong>：E3 性能与可靠性 + E8 AI 健康保障
+                <br><strong>🔍 AI 智能层</strong>：E7 AI 语义降噪与幻觉检测
+                9 大引擎并行工作，全链路扫描仅需 ~150ms，真正实现极速检测。v6.0 全面升级 AST 级深度检测，覆盖安全、性能、质量、架构等 8 大方向，检测精度大幅提升。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">扫描安全吗？代码会被保存吗？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                我们非常重视代码安全。上传的代码仅用于扫描分析，扫描完成后临时文件会自动清理。报告数据加密存储，仅你本人可查看。我们不会将你的代码用于任何训练或第三方用途。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">支付支持哪些方式？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                支持微信支付，由门房支付系统提供安全支付通道。支付成功后会员/积分立即到账。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">可以开发票吗？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                可以。支付完成后，发送订单号和开票信息到 <a href="mailto:hdyabcd@163.com" style="color:var(--accent-orange);">hdyabcd@163.com</a>，我们会在 3 个工作日内开具电子发票。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">报告里发现的问题都是真的吗？会不会有误报？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                煋鉴采用规则引擎 + AI 验证的双层架构，误报率处于行业领先水平。但代码场景千差万别，仍可能存在少量误报。如果你认为某条是误报，欢迎邮件反馈，我们会持续优化规则。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">可以接入到我们的 CI/CD 流程吗？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                CI/CD 集成已上线，支持 API 扫描接口、Badge 状态徽章和 CLI 命令行工具。可通过 GitHub Actions / GitLab CI 自动触发扫描，详见 API 文档或邮件联系我们获取接入指南。
+            </p>
+        </details>
+    </div>
+
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">什么是跨文件数据流追踪？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                传统代码安全检测通常只在单个文件内分析，当危险数据通过 import 从一个模块传递到另一个模块时就会丢失追踪链路。煋鉴的跨文件数据流追踪支持 Python/Java/JS/PHP/Go 五种语言的 import 跨模块追踪，能够跟随数据流从 A文件 → B文件 → C文件 完整分析，不再一个文件一个孤岛。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">SSRF检测支持哪些语言和框架？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                煋鉴的 SSRF 检测已实现 5 语言全覆盖（v6.0）：
+                <br><br>
+                <strong>Python</strong>：requests / urllib / urllib3 / httpx<br>
+                <strong>Java</strong>：OkHttp / HttpClient / HttpURLConnection<br>
+                <strong>PHP</strong>：curl_exec / file_get_contents / fsockopen<br>
+                <strong>JavaScript</strong>：axios / fetch / http.request<br>
+                <strong>Go</strong>：net/http / gorequest<br><br>
+                共覆盖 20+ 危险函数，基于 AST 语义分析 + URL 白名单校验，精准识别 SSRF 漏洞。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">什么是 AI 语义降噪引擎？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                AI 语义降噪引擎（E7）是煋鉴的核心差异化能力。它通过大语言模型对规则引擎检出的问题进行二次语义分析，自动过滤误报和低优先级告警，Smart和Deep模式均包含此能力。
+            </p>
+        </details>
+
+    <div style="text-align:center;margin-top:48px;padding:32px;background:linear-gradient(135deg,rgba(255,107,53,0.08),rgba(245,158,11,0.08));border-radius:16px;">
+        <h3 style="margin-bottom:8px;">没找到答案？</h3>
+        <p style="color:var(--text-secondary);margin-bottom:20px;">发送邮件至以下邮箱，24 小时内回复</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+            <code style="background:rgba(255,255,255,0.8);padding:10px 16px;border-radius:8px;font-size:15px;font-weight:500;user-select:all;">hdyabcd@163.com</code>
+            <button onclick="copyEmail()" class="btn btn-orange" style="padding:8px 20px;">📋 复制邮箱</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+function copyEmail() {
+    const email = document.getElementById('support-email').textContent;
+    navigator.clipboard.writeText(email).then(() => {
+        const tip = document.getElementById('copy-tip');
+        tip.style.display = 'inline';
+        setTimeout(() => { tip.style.display = 'none'; }, 2000);
+    }).catch(() => {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = email;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        const tip = document.getElementById('copy-tip');
+        tip.style.display = 'inline';
+        setTimeout(() => { tip.style.display = 'none'; }, 2000);
+    });
+}
+</script>
+{% endblock %}

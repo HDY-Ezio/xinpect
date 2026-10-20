@@ -1,0 +1,273 @@
+{% extends "dashboard/base.html" %}
+{% block title %}仓库管理 - 煋鉴 Xinpect{% endblock %}
+
+{% block extra_css %}
+<style>
+.repo-hero {
+    background: linear-gradient(135deg, #1a1040 0%, #0f172a 100%);
+    border: 1px solid var(--border-color, #2d3a52);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+}
+.repo-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255,107,53,.12) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.repo-hero h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; position: relative; }
+.repo-hero p { color: var(--text-muted, #6b7a90); font-size: 14px; position: relative; }
+
+.gh-status-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-card, #1e2433); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 20px;
+    border: 1px solid var(--border-color, #2d3a52);
+}
+.gh-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.gh-status-dot.connected { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+.gh-status-dot.disconnected { background: #ef4444; }
+
+.repo-card {
+    background: var(--bg-card, #1e2433);
+    border: 1px solid var(--border-color, #2d3a52);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color .2s;
+}
+.repo-card:hover { border-color: #FF6B35; }
+.repo-card.enabled { border-left: 3px solid #22c55e; }
+
+.repo-info { flex: 1; min-width: 0; }
+.repo-name { font-weight: 600; font-size: 15px; color: var(--text-primary, #e0e0e0); margin-bottom: 4px; }
+.repo-meta { font-size: 12px; color: var(--text-muted, #6b7a90); display: flex; gap: 12px; flex-wrap: wrap; }
+.repo-meta span { display: flex; align-items: center; gap: 4px; }
+
+.repo-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+.btn-gh { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+.btn-gh-connect { background: #24292e; color: #fff; }
+.btn-gh-connect:hover { background: #3a3f47; }
+.btn-gh-enable { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e40; }
+.btn-gh-enable:hover { background: #22c55e30; }
+.btn-gh-disable { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+.btn-gh-disable:hover { background: #ef444430; }
+
+.scan-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    background: #FF6B3520; color: #FF6B35;
+}
+
+.loading-spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid var(--border-color); border-top-color: #FF6B35;
+    border-radius: 50%; animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+    text-align: center; padding: 48px 24px;
+    color: var(--text-muted, #6b7a90);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="repo-hero">
+    <h1>🔗 仓库管理</h1>
+    <p>连接 GitHub 仓库，每次 push 和 PR 自动触发代码质检</p>
+</div>
+
+<!-- GitHub 连接状态 -->
+<div class="gh-status-bar">
+    <div class="gh-status-dot {{ 'connected' if gh_connected else 'disconnected' }}"></div>
+    <div style="flex:1">
+        {% if gh_connected %}
+        <span style="font-weight:600">已连接 GitHub</span>
+        <span style="color:var(--text-muted);font-size:13px;margin-left:8px">@{{ gh_username }}</span>
+        {% else %}
+        <span style="font-weight:600;color:var(--text-muted)">未连接 GitHub</span>
+        {% endif %}
+    </div>
+    {% if gh_connected %}
+    <button class="btn-gh btn-gh-disable" onclick="disconnectGitHub()">断开连接</button>
+    {% else %}
+    <button class="btn-gh btn-gh-connect" onclick="window.location='/api/github/authorize'">连接 GitHub</button>
+    {% endif %}
+</div>
+
+{% if gh_connected %}
+<!-- 已启用的仓库 -->
+<div style="margin-bottom:24px">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">🟢 已启用的仓库</h3>
+    <div id="enabled-repos">
+        <div style="text-align:center;padding:20px;color:var(--text-muted)"><div class="loading-spinner"></div> 加载中...</div>
+    </div>
+</div>
+
+<!-- 可选仓库列表 -->
+<div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:700;margin:0">📦 我的 GitHub 仓库</h3>
+        <button class="btn-gh btn-gh-connect" onclick="loadGitHubRepos()" style="font-size:12px;padding:6px 12px">刷新列表</button>
+    </div>
+    <div id="github-repos">
+        <div style="text-align:center;padding:20px;color:var(--text-muted)"><div class="loading-spinner"></div> 加载中...</div>
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="icon">🔗</div>
+    <h3 style="font-weight:700;margin-bottom:8px;color:var(--text-primary)">连接 GitHub 开始使用</h3>
+    <p>授权后可以选择仓库开启自动扫描，每次 push 和 PR 都会自动触发代码质检</p>
+    <button class="btn-gh btn-gh-connect" style="margin-top:16px;padding:12px 32px;font-size:15px" onclick="window.location='/api/github/authorize'">
+        连接 GitHub
+    </button>
+</div>
+{% endif %}
+
+<script>
+// 加载已启用的仓库
+function loadEnabledRepos() {
+    fetch('/api/repos/list')
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('enabled-repos');
+            if (!el) return;
+            if (data.status !== 'ok' || !data.repos || data.repos.length === 0) {
+                el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);background:var(--bg-card,#1e2433);border-radius:12px;border:1px dashed var(--border-color,#2d3a52)"><div style="font-size:32px;margin-bottom:8px">📭</div>暂未启用任何仓库<br><span style="font-size:13px">在下方选择仓库开启自动扫描</span></div>';
+                return;
+            }
+            el.innerHTML = data.repos.map(r => `
+                <div class="repo-card enabled">
+                    <div class="repo-info">
+                        <div class="repo-name">${r.repo_full_name}</div>
+                        <div class="repo-meta">
+                            <span>🔍 扫描 ${r.scan_count || 0} 次</span>
+                            ${r.last_scan_at ? '<span>⏱ ' + r.last_scan_at + '</span>' : ''}
+                            <span>${r.auto_scan ? '✅ Push自动扫描' : ''} ${r.auto_pr_comment ? '✅ PR自动评论' : ''}</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button class="btn-gh btn-gh-disable" onclick="disableRepo(${r.id})">停用</button>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            const el = document.getElementById('enabled-repos');
+            if (el) el.innerHTML = '<div style="padding:16px;color:var(--text-muted);text-align:center">加载失败</div>';
+        });
+}
+
+// 加载 GitHub 仓库列表
+function loadGitHubRepos() {
+    const el = document.getElementById('github-repos');
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)"><div class="loading-spinner"></div> 加载中...</div>';
+    
+    fetch('/api/github/repos')
+        .then(r => r.json())
+        .then(data => {
+            if (data.status !== 'ok') {
+                el.innerHTML = '<div style="padding:16px;color:#ef4444;text-align:center">' + data.message + '</div>';
+                return;
+            }
+            if (!data.repos || data.repos.length === 0) {
+                el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted)">没有找到仓库</div>';
+                return;
+            }
+            // Get enabled repos to check status
+            fetch('/api/repos/list').then(r=>r.json()).then(enabled => {
+                const enabledSet = new Set((enabled.repos || []).map(r => r.repo_full_name));
+                el.innerHTML = data.repos.map(r => {
+                    const isEnabled = enabledSet.has(r.name);
+                    const langColor = {'JavaScript':'#f7df1e','Python':'#3776ab','Java':'#ed8b00','TypeScript':'#3178c6','Go':'#00add8','Vue':'#4fc08d','HTML':'#e34f26','CSS':'#1572b6'}[r.language] || '#888';
+                    return `
+                    <div class="repo-card">
+                        <div class="repo-info">
+                            <div class="repo-name">
+                                <a href="${r.url}" target="_blank" style="color:inherit;text-decoration:none">${r.name}</a>
+                                ${r.private ? '<span style="font-size:11px;background:#FF6B3520;color:#FF6B35;padding:1px 6px;border-radius:4px;margin-left:6px">Private</span>' : ''}
+                            </div>
+                            <div class="repo-meta">
+                                ${r.description ? '<span>' + r.description + '</span>' : ''}
+                                ${r.language ? '<span><span style="width:8px;height:8px;border-radius:50%;background:' + langColor + ';display:inline-block"></span> ' + r.language + '</span>' : ''}
+                                <span>🌿 ${r.default_branch}</span>
+                            </div>
+                        </div>
+                        <div class="repo-actions">
+                            ${isEnabled 
+                                ? '<span class="scan-badge">已启用</span>'
+                                : '<button class="btn-gh btn-gh-enable" onclick="enableRepo(\'' + r.name + '\')">启用自动扫描</button>'
+                            }
+                        </div>
+                    </div>`;
+                }).join('');
+            });
+        })
+        .catch(() => {
+            el.innerHTML = '<div style="padding:16px;color:#ef4444;text-align:center">加载失败，请检查 GitHub 连接</div>';
+        });
+}
+
+// 启用仓库
+function enableRepo(repoFullName) {
+    fetch('/api/repos/enable', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({repo_full_name: repoFullName})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            loadEnabledRepos();
+            loadGitHubRepos();
+        } else {
+            alert('启用失败: ' + (data.message || data.error || '未知错误'));
+        }
+    })
+    .catch(() => alert('网络错误'));
+}
+
+// 停用仓库
+function disableRepo(id) {
+    if (!confirm('确定停用此仓库的自动扫描？')) return;
+    fetch('/api/repos/' + id + '/disable', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            loadEnabledRepos();
+            loadGitHubRepos();
+        } else {
+            alert('停用失败: ' + (data.message || '未知错误'));
+        }
+    })
+    .catch(() => alert('网络错误'));
+}
+
+// 断开 GitHub
+function disconnectGitHub() {
+    if (!confirm('确定断开 GitHub 连接？已启用的仓库将停止自动扫描。')) return;
+    fetch('/api/github/disconnect', {method: 'POST'})
+    .then(r => r.json())
+    .then(() => window.location.reload())
+    .catch(() => alert('网络错误'));
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadEnabledRepos();
+    loadGitHubRepos();
+});
+</script>
+{% endblock %}

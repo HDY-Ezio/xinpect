@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}检测报告 - 煋鉴 Xinpect{% endblock %}
+
+{% block content %}
+<section class="section" style="padding: 32px 0;">
+    <div class="container">
+        <!-- 返回 -->
+        <div style="margin-bottom:20px;">
+            <a href="{{ url_for('upload_page') }}" style="color:var(--text-muted);font-size:14px;">← 返回上传</a>
+        </div>
+
+        <!-- 报告头部 -->
+        <div class="report-header">
+            <div class="report-top">
+                <!-- 得分圆环 -->
+                <div class="report-score-circle">
+                    <svg viewBox="0 0 140 140">
+                        <defs>
+                            <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#0EA5E9;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="score-bg" cx="70" cy="70" r="60"></circle>
+                        <circle class="score-fill" cx="70" cy="70" r="60" style="stroke-dasharray: 377; stroke-dashoffset: {{ 377 - (score / 100) * 377 }};"></circle>
+                    </svg>
+                    <div class="report-score-text">
+                        <div class="report-score-number">{{ score }}</div>
+                        <div class="report-score-label">综合得分</div>
+                    </div>
+                </div>
+
+                <!-- 等级 + 信息 -->
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+                        <span class="report-grade {{ grade }}">{{ grade }}</span>
+                        {% if not is_vip %}
+                        <span class="status-badge info">免费版 · 仅 B1~B3 计入得分</span>
+                        {% else %}
+                        <span class="status-badge success">专业版 · 全维度检测</span>
+                        {% endif %}
+                    </div>
+                    <h2 style="font-size:22px;font-weight:700;margin-bottom:8px;">{{ report_title }}</h2>
+                    <div class="report-meta">
+                        <div class="report-meta-item">
+                            <span>📄</span>
+                            <span>{{ file_count }} 个文件</span>
+                        </div>
+                        <div class="report-meta-item">
+                            <span>🐛</span>
+                            <span>共 {{ total_issues }} 个问题</span>
+                        </div>
+                        <div class="report-meta-item">
+                            <span>⏱</span>
+                            <span>{{ created_at }}</span>
+                        </div>
+                        <div class="report-meta-item">
+                            <span>🔖</span>
+                            <span>ID: {{ scan_id[:8] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-actions">
+                <a href="{{ url_for('download_report', scan_id=scan_id) }}" class="btn btn-primary">
+                    📥 下载 MD 报告 <span style="font-size:11px;opacity:.7;">(AI友好)</span>
+                </a>
+                <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">
+                    🔄 再测一次
+                </a>
+                {% if not is_vip %}
+                <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">
+                    ⚡ 升级解锁全维度
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 8 维度得分卡片 -->
+        <div class="dimensions-grid">
+            {% for dim in dimensions %}
+            <div class="dimension-card {% if dim.locked %}locked{% endif %} {% if loop.first %}active{% endif %}" data-brain="{{ dim.id }}">
+                <div class="dimension-header">
+                    <div class="dimension-brain">B{{ dim.id }}</div>
+                    <div class="dimension-title">{{ dim.name }}</div>
+                </div>
+                {% if dim.locked %}
+                <div class="dimension-locked-badge">
+                    <span>🔒</span>
+                    <span>升级解锁专业检测</span>
+                </div>
+                <div style="margin-top:8px;">
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" style="font-size:12px;color:var(--accent-orange);">查看详情 →</a>
+                </div>
+                {% else %}
+                <div class="dimension-score-row">
+                    <span class="dimension-score" style="color:{{ dim.score_color }};">{{ dim.score }}</span>
+                    <div class="dimension-score-bar">
+                        <div class="dimension-score-bar-fill" style="width:{{ dim.score }}%;background:{{ dim.score_color }};"></div>
+                    </div>
+                </div>
+                <div class="dimension-issues-count">{{ dim.issues_count }} 个问题</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 问题列表 -->
+        <div class="issues-section">
+            <div class="issues-header">
+                <div class="issues-title">
+                    问题列表 <span id="issues-count" style="color:var(--text-muted);font-weight:400;">({{ visible_issues_count }})</span>
+                </div>
+                <div class="issues-filters">
+                    <button class="filter-btn active" data-filter="all">全部</button>
+                    <button class="filter-btn critical" data-filter="critical">严重</button>
+                    <button class="filter-btn high" data-filter="high">高危</button>
+                    <button class="filter-btn medium" data-filter="medium">中等</button>
+                    <button class="filter-btn low" data-filter="low">轻微</button>
+                </div>
+            </div>
+
+            {% if visible_issues %}
+                {% for issue in visible_issues %}
+                <div class="issue-item" data-brain="{{ issue.brain_id }}" data-severity="{{ issue.severity }}">
+                    <div class="issue-header">
+                        <span class="issue-severity {{ issue.severity }}">{{ issue.severity_label }}</span>
+                        <span class="issue-title">{{ issue.title }}</span>
+                        <span class="issue-location">{{ issue.file }}:{{ issue.line }}</span>
+                        <span class="issue-toggle">▼</span>
+                    </div>
+                    <div class="issue-body">
+                        <div class="issue-desc">{{ issue.description }}</div>
+
+                        {% if issue.code_snippet %}
+                        <div class="issue-section-title">📝 问题代码</div>
+                        <pre class="issue-code">{{ issue.code_snippet }}</pre>
+                        {% endif %}
+
+                        {% if issue.suggestion %}
+                        <div class="issue-section-title">💡 修复建议</div>
+                        <div class="issue-suggestion">{{ issue.suggestion }}</div>
+                        {% endif %}
+
+                        <div style="margin-top:14px;display:flex;gap:12px;font-size:12px;color:var(--text-muted);">
+                            <span>检测维度：B{{ issue.brain_id }} {{ issue.brain_name }}</span>
+                            <span>规则ID：{{ issue.rule_id }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                {% if is_vip %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎉</div>
+                    <div class="empty-state-text">太棒了！未检测到任何问题</div>
+                    <a href="{{ url_for('upload_page') }}" class="btn btn-primary">检测更多代码</a>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔒</div>
+                    <div class="empty-state-text">免费版仅展示 B1~B3 基础维度问题<br>升级专业版解锁全部 8 维度检测</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">立即升级</a>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- 免费版升级引导 -->
+        {% if not is_vip %}
+        <div style="margin-top:24px;background:linear-gradient(135deg, rgba(255,107,53,0.1) 0%, rgba(245,158,11,0.05) 100%);border:1px solid rgba(255,107,53,0.3);border-radius:var(--radius-lg);padding:32px;display:flex;align-items:center;gap:32px;">
+            <div style="font-size:48px;">🚀</div>
+            <div style="flex:1;">
+                <h3 style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--accent-orange);">升级专业版，解锁完整检测能力</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">B4 性能优化 · B5 架构设计 · B6 复杂度 · B7 最佳实践 · B8 依赖扫描，5 大专业维度等你体验</p>
+                <div style="display:flex;gap:24px;font-size:14px;color:var(--text-secondary);flex-wrap:wrap;">
+                    <span>✓ 全部 8 维度检测</span>
+                    <span>✓ 无限检测次数</span>
+                    <span>✓ 完整报告下载</span>
+                    <span>✓ 优先技术支持</span>
+                </div>
+            </div>
+            <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange btn-lg">立即升级</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

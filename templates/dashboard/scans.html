@@ -1,0 +1,172 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}我的检测 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block extra_css %}
+<style>
+.diff-inline { display:none; }
+.diff-inline td { padding: 4px 0 16px !important; }
+.diff-summary-bar {
+    display:flex; gap:20px; flex-wrap:wrap; padding:14px 18px; border-radius:12px;
+    background:var(--bg-card,#FFFFFF); border:1px solid var(--border-color,#E2E8F0); margin-bottom:12px;
+}
+.diff-stat { text-align:center; min-width:70px; }
+.diff-stat .num { font-size:24px; font-weight:700; }
+.diff-stat .label { font-size:11px; color:var(--text-muted,#64748B); margin-top:2px; }
+.diff-stat.new .num { color:#ef4444; }
+.diff-stat.fixed .num { color:#22c55e; }
+.diff-stat.remaining .num { color:var(--text-secondary,#475569); }
+.diff-stat.score .num { color:#1A3A5C; }
+
+.diff-issue { padding:6px 12px; border-radius:6px; margin-bottom:4px; font-size:12px; border-left:3px solid transparent; color:var(--text-secondary,#475569); }
+.diff-issue.new-issue { background:rgba(239,68,68,.06); border-left-color:#ef4444; }
+.diff-issue.fixed-issue { background:rgba(34,197,94,.06); border-left-color:#22c55e; }
+.diff-section-title { font-size:13px; font-weight:600; margin:10px 0 6px; }
+.diff-section-title.new-title { color:#ef4444; }
+.diff-section-title.fixed-title { color:#22c55e; }
+.compare-btn-sm {
+    padding:4px 10px; border-radius:6px; border:1px solid var(--border-color,#E2E8F0);
+    background:transparent; color:var(--text-secondary,#475569); font-size:12px; cursor:pointer; transition:all .2s;
+}
+.compare-btn-sm:hover { border-color:#1A3A5C; color:#1A3A5C; }
+.compare-btn-sm.active { border-color:#1A3A5C; color:#1A3A5C; background:rgba(26,58,92,.1); }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>我的检测</h1>
+    <p>查看所有历史检测记录，点击「对比」可查看与上次扫描的差异</p>
+</div>
+
+{% if scans %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>检测名称</th>
+            <th>文件数</th>
+            <th>问题数</th>
+            <th>得分</th>
+            <th>等级</th>
+            <th>检测时间</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for scan in scans %}
+        <tr>
+            <td>{{ scan.title }}</td>
+            <td>{{ scan.file_count }}</td>
+            <td>
+                <span style="color:{% if scan.issue_count > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                    {{ scan.issue_count }}
+                </span>
+            </td>
+            <td>
+                <span style="color:{% if scan.score >= 85 %}#10b981{% elif scan.score >= 65 %}#0ea5e9{% elif scan.score >= 50 %}#6366f1{% elif scan.score >= 30 %}#f59e0b{% else %}#ef4444{% endif %};font-weight:600;">
+                    {{ scan.score }}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge grade-badge grade-{{ scan.grade|grade_base }}">
+                    {{ scan.grade }}级
+                </span>
+            </td>
+            <td style="color:var(--text-muted);font-size:13px;">{{ scan.created_at }}</td>
+            <td>
+                <a href="{{ url_for('report_page', scan_id=scan.scan_id) }}">查看报告</a>
+                {% if not loop.last %}
+                <button class="compare-btn-sm" onclick="toggleDiff('{{ scan.scan_id }}', this)" style="margin-left:8px;">对比</button>
+                {% endif %}
+            </td>
+        </tr>
+        <tr class="diff-inline" id="diff-{{ scan.scan_id }}">
+            <td colspan="7">
+                <div id="diff-content-{{ scan.scan_id }}" style="padding:4px 0;"></div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+    <div class="empty-state-icon">📭</div>
+    <div class="empty-state-text">还没有检测记录</div>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-primary">开始第一次检测</a>
+</div>
+{% endif %}
+
+<script>
+function toggleDiff(scanId, btn) {
+    var row = document.getElementById('diff-' + scanId);
+    var content = document.getElementById('diff-content-' + scanId);
+
+    if (row.style.display === 'table-row') {
+        row.style.display = 'none';
+        btn.classList.remove('active');
+        return;
+    }
+
+    btn.classList.add('active');
+    row.style.display = 'table-row';
+    if (content.dataset.loaded === 'true') return;
+
+    content.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted,#64748B);">加载中...</div>';
+
+    fetch('/api/scan/' + scanId + '/prev')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                content.innerHTML = '<div style="padding:16px;color:var(--text-muted,#64748B);">' + (data.error || '无对比数据') + '</div>';
+                return;
+            }
+            var d = data.diff;
+            var s = d.summary || {};
+            var scoreA = data.scan_a ? data.scan_a.score : '?';
+            var scoreB = data.scan_b ? data.scan_b.score : '?';
+            var scoreChange = s.score_change || 0;
+            var arrow = scoreChange >= 0 ? '↑' : '↓';
+            var color = scoreChange >= 0 ? '#22c55e' : '#ef4444';
+            var sign = scoreChange > 0 ? '+' : '';
+
+            var newCount = s.total_new || 0;
+            var fixedCount = s.total_fixed || 0;
+            var remainCount = s.total_remaining || 0;
+
+            var html = '<div class="diff-summary-bar">';
+            html += '<div class="diff-stat new"><div class="num">' + newCount + '</div><div class="label">新增问题</div></div>';
+            html += '<div class="diff-stat fixed"><div class="num">' + fixedCount + '</div><div class="label">已修复</div></div>';
+            html += '<div class="diff-stat remaining"><div class="num">' + remainCount + '</div><div class="label">仍存在</div></div>';
+            html += '<div class="diff-stat score"><div class="num" style="color:' + color + ';">' + scoreA + '→' + scoreB + ' (' + arrow + sign + scoreChange + ')</div><div class="label">得分变化</div></div>';
+            html += '</div>';
+
+            var newIssues = d.new_issues || [];
+            var fixedIssues = d.fixed_issues || [];
+
+            if (newIssues.length) {
+                html += '<div class="diff-section-title new-title">❌ 新增问题 (' + newIssues.length + ')</div>';
+                newIssues.slice(0, 15).forEach(function(i) {
+                    html += '<div class="diff-issue new-issue">' + (i.rule_id || i.check_id || '?') + ' — ' + i.file + ':' + i.line + ' ' + (i.title || '') + '</div>';
+                });
+                if (newIssues.length > 15) html += '<div style="font-size:11px;color:var(--text-muted,#64748B);padding:4px 12px;">还有 ' + (newIssues.length - 15) + ' 个...</div>';
+            }
+            if (fixedIssues.length) {
+                html += '<div class="diff-section-title fixed-title">✅ 已修复 (' + fixedIssues.length + ')</div>';
+                fixedIssues.slice(0, 15).forEach(function(i) {
+                    html += '<div class="diff-issue fixed-issue">' + (i.rule_id || i.check_id || '?') + ' — ' + i.file + ':' + i.line + ' ' + (i.title || '') + '</div>';
+                });
+                if (fixedIssues.length > 15) html += '<div style="font-size:11px;color:var(--text-muted,#64748B);padding:4px 12px;">还有 ' + (fixedIssues.length - 15) + ' 个...</div>';
+            }
+            if (!newCount && !fixedCount) {
+                html += '<div style="padding:12px;color:var(--text-muted,#64748B);font-size:13px;">两次扫描结果一致，无新增或修复</div>';
+            }
+
+            content.innerHTML = html;
+            content.dataset.loaded = 'true';
+        })
+        .catch(function() {
+            content.innerHTML = '<div style="padding:16px;color:var(--text-muted,#64748B);">加载失败，请重试</div>';
+        });
+}
+</script>
+{% endblock %}

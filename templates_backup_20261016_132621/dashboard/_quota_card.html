@@ -1,0 +1,238 @@
+{# 煋鉴 Dashboard - API配额卡片组件 #}
+{# 使用方式: {% include "dashboard/_quota_card.html" %} #}
+
+<div class="quota-card" id="quotaCard">
+    <div class="quota-header">
+        <h3>API配额</h3>
+        <span class="quota-tier" id="quotaTier">--</span>
+    </div>
+    
+    <div class="quota-stats">
+        <div class="quota-stat">
+            <span class="quota-stat-label">今日已用</span>
+            <span class="quota-stat-value" id="quotaUsed">--</span>
+        </div>
+        <div class="quota-stat">
+            <span class="quota-stat-label">总配额</span>
+            <span class="quota-stat-value" id="quotaLimit">--</span>
+        </div>
+        <div class="quota-stat">
+            <span class="quota-stat-label">剩余</span>
+            <span class="quota-stat-value" id="quotaRemaining">--</span>
+        </div>
+    </div>
+    
+    <div class="quota-progress-wrapper">
+        <div class="quota-progress-bar">
+            <div class="quota-progress-fill" id="quotaProgressFill" style="width: 0%"></div>
+        </div>
+        <span class="quota-progress-text" id="quotaProgressText">0%</span>
+    </div>
+    
+    <div class="quota-warning" id="quotaWarning" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7 4.5a1 1 0 112 0v3a1 1 0 11-2 0v-3zm1 6.5a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+        </svg>
+        <span id="quotaWarningText">配额即将用完</span>
+    </div>
+    
+    <div class="quota-footer">
+        <span class="quota-reset">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="opacity:0.5">
+                <path d="M8 3.5a.5.5 0 00-1 0V8a.5.5 0 00.252.434l3.5 2a.5.5 0 00.496-.868L8 7.636V3.5z"/>
+                <path d="M8 16A8 8 0 108 0a8 8 0 000 16zm7-8A7 7 0 111 8a7 7 0 0114 0z"/>
+            </svg>
+            距重置还有 <strong id="quotaResetTime">--</strong>
+        </span>
+        <a href="/dashboard/api-usage" class="quota-detail-link">详细统计 →</a>
+    </div>
+</div>
+
+<style>
+.quota-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.quota-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.quota-header h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, #1f2937);
+}
+.quota-tier {
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--accent-orange, #FF6B35);
+    font-weight: 500;
+}
+.quota-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.quota-stat {
+    text-align: center;
+}
+.quota-stat-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 4px;
+}
+.quota-stat-value {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary, #1f2937);
+}
+.quota-progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.quota-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.quota-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease, background 0.3s ease;
+}
+.quota-progress-text {
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+    color: var(--text-muted, #6b7280);
+}
+.quota-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.08);
+    color: #d97706;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+.quota-warning.danger {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+}
+.quota-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+}
+.quota-reset {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted, #6b7280);
+}
+.quota-reset strong {
+    color: var(--text-primary, #1f2937);
+}
+.quota-detail-link {
+    font-size: 13px;
+    color: var(--accent-orange, #FF6B35);
+    text-decoration: none;
+    font-weight: 500;
+}
+.quota-detail-link:hover {
+    text-decoration: underline;
+}
+
+/* 进度条颜色状态 */
+.quota-progress-fill.status-safe {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+.quota-progress-fill.status-warning {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+.quota-progress-fill.fill-danger {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+</style>
+
+<script>
+(function() {
+    function loadQuotaData() {
+        fetch('/api/user/api-usage/quota')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const q = data.data;
+                
+                // 更新数值
+                document.getElementById('quotaTier').textContent = q.tier_label;
+                document.getElementById('quotaUsed').textContent = q.used_today;
+                document.getElementById('quotaLimit').textContent = q.unlimited ? '∞' : q.daily_limit;
+                document.getElementById('quotaRemaining').textContent = q.unlimited ? '∞' : q.remaining;
+                document.getElementById('quotaResetTime').textContent = q.hours_until_reset + '小时';
+                
+                // 更新进度条
+                const pct = q.unlimited ? 0 : Math.min(q.usage_percent, 100);
+                const fill = document.getElementById('quotaProgressFill');
+                fill.style.width = pct + '%';
+                document.getElementById('quotaProgressText').textContent = pct.toFixed(0) + '%';
+                
+                // 颜色状态
+                fill.className = 'quota-progress-fill';
+                if (pct > 80) {
+                    fill.classList.add('status-danger');
+                } else if (pct > 50) {
+                    fill.classList.add('status-warning');
+                } else {
+                    fill.classList.add('status-safe');
+                }
+                
+                // 警告提示
+                const warning = document.getElementById('quotaWarning');
+                const warningText = document.getElementById('quotaWarningText');
+                if (q.unlimited) {
+                    warning.style.display = 'none';
+                } else if (q.remaining <= 0) {
+                    warning.style.display = 'flex';
+                    warning.classList.add('danger');
+                    warningText.textContent = '今日配额已用尽，请升级或明日再试';
+                } else if (pct > 80) {
+                    warning.style.display = 'flex';
+                    warning.classList.remove('danger');
+                    warningText.textContent = `配额即将用完，仅剩${q.remaining}次`;
+                } else {
+                    warning.style.display = 'none';
+                }
+            })
+            .catch(err => {
+                console.warn('配额数据加载失败:', err);
+            });
+    }
+    
+    // 页面加载时获取
+    loadQuotaData();
+    // 每5分钟刷新
+    setInterval(loadQuotaData, 5 * 60 * 1000);
+})();
+</script>

@@ -1,0 +1,229 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}申请开票 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>申请开票</h1>
+    <p>勾选已支付订单，填写开票信息后批量提交</p>
+</div>
+
+<!-- 开票表单 -->
+<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:24px;margin-bottom:24px;">
+    <form id="invoiceForm" onsubmit="submitInvoice(event)">
+
+        <!-- 订单多选列表 -->
+        <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text-primary);">
+                选择订单 <span style="color:var(--danger);">*</span>
+                <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:8px;">（可多选，支持批量开票）</span>
+            </label>
+            {% if available_orders %}
+            <div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;">
+                <!-- 全选 -->
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,0,0,.02);border-bottom:1px solid var(--border-color);">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-orange);">
+                    <label for="selectAll" style="font-size:13px;color:var(--text-muted);cursor:pointer;margin:0;">全选</label>
+                    <span style="margin-left:auto;font-size:13px;color:var(--text-muted);">
+                        已选 <strong id="selectedCount" style="color:var(--accent-orange);">0</strong> 笔，
+                        合计 <strong id="selectedTotal" style="color:var(--accent-orange);">¥0</strong>
+                    </span>
+                </div>
+                <!-- 订单列表 -->
+                <div style="max-height:280px;overflow-y:auto;">
+                    {% for order in available_orders %}
+                    <label class="order-row" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-color);cursor:pointer;transition:background .15s;">
+                        <input type="checkbox" name="order_ids" value="{{ order.order_id }}" data-amount="{{ order.amount }}" class="order-checkbox" onchange="updateSummary()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-orange);flex-shrink:0;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-family:monospace;font-size:13px;color:var(--text-primary);word-break:break-all;">{{ order.order_id }}</div>
+                            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ order.plan_name }}</div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0;">
+                            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">¥{{ order.amount }}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">{{ order.created_at }}</div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:14px;">
+                暂无可开票订单。已支付且未申请开票的订单将在此显示。
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 开票信息 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+            <div>
+                <label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">公司抬头 <span style="color:var(--danger);">*</span></label>
+                <input type="text" name="company_name" required placeholder="请输入公司全称" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px;box-sizing:border-box;">
+            </div>
+            <div>
+                <label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">纳税人识别号 <span style="color:var(--danger);">*</span></label>
+                <input type="text" name="tax_number" required placeholder="请输入纳税人识别号" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px;box-sizing:border-box;">
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">接收邮箱 <span style="color:var(--danger);">*</span></label>
+            <input type="email" name="email" required value="{{ user_email }}" placeholder="用于接收电子发票" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px;box-sizing:border-box;">
+        </div>
+
+        <button type="submit" id="submitBtn" {% if not available_orders %}disabled style="opacity:.5;"{% endif %} style="background:var(--accent-orange);color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
+            提交开票申请
+        </button>
+        <span id="submitMsg" style="margin-left:12px;font-size:13px;"></span>
+    </form>
+n<div style="margin-top:16px;padding:12px 16px;background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.15);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.8;">
+    <strong style="color:var(--text-primary);">📋 开票说明</strong><br>
+    · 提交申请后 <strong style="color:var(--accent-orange);">3个工作日</strong> 内为您开具电子发票<br>
+    · 发票将发送至您填写的邮箱，请注意查收<br>
+    · 如需增值税专用发票，请联系客服单独处理
+</div>
+</div>
+
+<!-- 开票记录 -->
+<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:24px;">
+    <h3 style="margin:0 0 16px;font-size:16px;color:var(--text-primary);">我的开票记录</h3>
+    {% if invoices %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>关联订单</th>
+                <th>合计金额</th>
+                <th>公司抬头</th>
+                <th>状态</th>
+                <th>申请时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr>
+                <td style="font-family:monospace;font-size:12px;max-width:260px;word-break:break-all;line-height:1.6;">
+                    {% set ids = inv.order_id.split(',') %}
+                    {% for oid in ids %}
+                    <div>{{ oid }}</div>
+                    {% endfor %}
+                </td>
+                <td style="font-weight:600;">¥{{ inv.amount }}</td>
+                <td>{{ inv.company_name }}</td>
+                <td>
+                    {% if inv.status == 'pending' %}
+                    <span style="color:var(--accent-orange);font-weight:500;">⏳ 待处理</span>
+                    {% elif inv.status == 'completed' %}
+                    <span style="color:var(--success);font-weight:500;">✅ 已开票</span>
+                    {% elif inv.status == 'rejected' %}
+                    <span style="color:var(--danger);font-weight:500;">❌ 已驳回</span>
+                    {% else %}
+                    {{ inv.status }}
+                    {% endif %}
+                </td>
+                <td style="color:var(--text-muted);font-size:13px;">{{ inv.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:32px 0;color:var(--text-muted);font-size:14px;">
+        暂无开票记录
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .order-row:hover { background: rgba(37,99,235,.04); }
+</style>
+
+<script>
+function toggleSelectAll(el) {
+    var boxes = document.querySelectorAll('.order-checkbox');
+    for (var i = 0; i < boxes.length; i++) {
+        boxes[i].checked = el.checked;
+    }
+    updateSummary();
+}
+
+function updateSummary() {
+    var boxes = document.querySelectorAll('.order-checkbox');
+    var count = 0, total = 0;
+    for (var i = 0; i < boxes.length; i++) {
+        if (boxes[i].checked) {
+            count++;
+            total += parseFloat(boxes[i].getAttribute('data-amount')) || 0;
+        }
+    }
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('selectedTotal').textContent = '¥' + total.toFixed(2);
+
+    // 更新全选状态
+    var selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.checked = (count > 0 && count === boxes.length);
+    }
+}
+
+function submitInvoice(e) {
+    e.preventDefault();
+    var btn = document.getElementById('submitBtn');
+    var msg = document.getElementById('submitMsg');
+
+    var boxes = document.querySelectorAll('.order-checkbox:checked');
+    if (boxes.length === 0) {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = '请至少选择一个订单';
+        return;
+    }
+
+    var orderIds = [];
+    for (var i = 0; i < boxes.length; i++) {
+        orderIds.push(boxes[i].value);
+    }
+
+    var form = document.getElementById('invoiceForm');
+    var companyName = form.querySelector('[name=company_name]').value.trim();
+    var taxNumber = form.querySelector('[name=tax_number]').value.trim();
+    var email = form.querySelector('[name=email]').value.trim();
+
+    if (!companyName || !taxNumber || !email) {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = '请填写完整的开票信息';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+    msg.textContent = '';
+
+    fetch('/api/invoice-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            order_ids: orderIds,
+            company_name: companyName,
+            tax_number: taxNumber,
+            email: email
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        btn.disabled = false;
+        btn.textContent = '提交开票申请';
+        if (res.success) {
+            msg.style.color = 'var(--success)';
+            msg.textContent = '申请已提交，请等待处理';
+            setTimeout(function() { location.reload(); }, 1200);
+        } else {
+            msg.style.color = 'var(--danger)';
+            msg.textContent = res.error || '提交失败';
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = '提交开票申请';
+        msg.style.color = 'var(--danger)';
+        msg.textContent = '网络错误，请重试';
+    });
+}
+</script>
+{% endblock %}

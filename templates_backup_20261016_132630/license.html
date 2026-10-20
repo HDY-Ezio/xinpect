@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>煋鉴 - 许可证管理</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1A2B4A;--accent:#FF6B35;--bg:#FFFFFF;--bg-alt:#F5F7FA;--text:#333333;--text-sec:#666666;--border:#E0E6ED;--success:#52C41A;--warn:#FAAD14;--error:#F5222D;--shadow:0 2px 8px rgba(0,0,0,0.08);--shadow-hover:0 4px 16px rgba(0,0,0,0.12)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6}
+a{text-decoration:none;color:inherit}
+/* NAV */
+.nav{background:var(--primary);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.nav-logo i{color:var(--accent)}
+.nav-links{display:flex;gap:24px}
+.nav-links a{color:rgba(255,255,255,0.7);font-size:14px;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.nav-links a.active{color:#fff}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-right a{color:rgba(255,255,255,0.8);font-size:14px;padding:6px 14px;border-radius:6px;transition:all .2s}
+/* PAGE */
+.page{max-width:900px;margin:0 auto;padding:40px 24px}
+/* TITLE SECTION */
+.page-title{margin-bottom:32px}
+.page-title h1{font-size:28px;color:var(--primary);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.page-title h1 i{color:var(--primary)}
+.deploy-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(82,196,26,0.1);color:var(--success);font-size:14px;font-weight:500;padding:6px 16px;border-radius:20px}
+.deploy-badge i{font-size:14px}
+/* VERSION PANEL */
+.version-panel{background:var(--bg-alt);border-radius:8px;padding:28px 32px;margin-bottom:24px}
+.version-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.version-item{display:flex;flex-direction:column;gap:4px}
+.version-label{font-size:12px;color:var(--text-sec);font-weight:500}
+.version-value{font-size:16px;color:var(--primary);font-weight:600}
+.version-value.latest{color:var(--success)}
+/* PLAN CARDS */
+.plan-section{margin-bottom:32px}
+.plan-section-title{font-size:18px;color:var(--primary);font-weight:600;margin-bottom:20px}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.plan-card{border:1px solid var(--border);border-radius:8px;padding:28px;transition:all .3s;position:relative;overflow:hidden}
+.plan-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px)}
+.plan-card.free{border-color:var(--border)}
+.plan-card.pro{border:2px solid var(--accent)}
+.plan-card.pro::before{content:'推荐';position:absolute;top:12px;right:-28px;background:var(--accent);color:#fff;font-size:11px;padding:2px 32px;transform:rotate(45deg);font-weight:600}
+.plan-name{font-size:16px;font-weight:600;color:var(--primary);margin-bottom:4px}
+.plan-desc{font-size:13px;color:var(--text-sec);margin-bottom:16px}
+.plan-price{font-size:32px;font-weight:800;color:var(--primary);margin-bottom:4px}
+.plan-price span{font-size:14px;font-weight:400;color:var(--text-sec)}
+.plan-price.free-price{color:var(--success)}
+.plan-features{list-style:none;margin:16px 0;padding:0}
+.plan-features li{font-size:14px;color:var(--text);padding:6px 0;display:flex;align-items:center;gap:8px}
+.plan-features li i{font-size:12px;color:var(--accent)}
+.plan-features li.disabled{color:var(--text-sec);opacity:0.5}
+.plan-features li.disabled i{color:var(--border)}
+.plan-btn{display:block;width:100%;text-align:center;padding:12px;border-radius:6px;font-size:14px;font-weight:600;margin-top:16px;transition:all .2s;cursor:pointer;border:none}
+.plan-btn-outline{border:1px solid var(--border);color:var(--text-sec);background:#fff}
+.plan-btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.plan-btn-accent{background:var(--accent);color:#fff}
+.plan-btn-accent:hover{background:#e55a28}
+/* CREDITS */
+.credits-card{background:#fff;border:2px solid var(--accent);border-radius:8px;padding:28px 32px;margin-bottom:32px;position:relative;overflow:hidden}
+.credits-card::after{content:'';position:absolute;top:0;right:0;width:120px;height:120px;background:radial-gradient(circle,rgba(255,107,53,0.06) 0%,transparent 70%);pointer-events:none}
+.credits-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.credits-title{font-size:18px;font-weight:600;color:var(--primary);display:flex;align-items:center;gap:8px}
+.credits-title i{color:var(--accent)}
+.credits-body{display:flex;align-items:center;gap:40px}
+.credits-main{flex:1}
+.credits-number{font-size:48px;font-weight:800;color:var(--accent);line-height:1}
+.credits-label{font-size:14px;color:var(--text-sec);margin-top:8px}
+.credits-bar{height:8px;background:var(--bg-alt);border-radius:4px;margin-top:16px;overflow:hidden}
+.credits-bar-fill{height:100%;width:72%;background:linear-gradient(90deg,var(--accent),#ff9a6c);border-radius:4px;transition:width .5s}
+.credits-stats{display:flex;gap:24px;margin-top:12px}
+.credits-stat{font-size:13px;color:var(--text-sec)}
+.credits-stat strong{color:var(--primary)}
+.credits-action{flex-shrink:0}
+.btn-recharge{background:var(--accent);color:#fff;padding:12px 32px;border-radius:6px;font-size:15px;font-weight:600;border:none;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.btn-recharge:hover{background:#e55a28;transform:translateY(-1px);box-shadow:0 4px 12px rgba(255,107,53,0.3)}
+/* USAGE GUIDE */
+.guide-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:28px 32px;margin-bottom:32px}
+.guide-title{font-size:18px;font-weight:600;color:var(--primary);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.guide-title i{color:var(--accent)}
+.guide-list{list-style:none;padding:0}
+.guide-list li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;font-size:14px;color:var(--text);border-bottom:1px solid var(--bg-alt)}
+.guide-list li:last-child{border-bottom:none}
+.guide-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:8px}
+.guide-list li code{background:var(--bg-alt);padding:2px 8px;border-radius:4px;font-size:13px;color:var(--primary);font-family:monospace}
+/* HISTORY */
+.history-card{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.history-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.history-title{font-size:16px;font-weight:600;color:var(--primary)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 24px;font-size:12px;color:var(--text-sec);font-weight:500;background:var(--bg-alt);border-bottom:1px solid var(--border)}
+td{padding:14px 24px;font-size:14px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-flex;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+.tag-success{background:rgba(82,196,26,0.1);color:var(--success)}
+.tag-warn{background:rgba(250,173,20,0.1);color:var(--warn)}
+.tag-info{background:rgba(24,144,255,0.1);color:var(--info)}
+/* MOBILE */
+@media(max-width:768px){
+.version-grid{grid-template-columns:1fr}
+.plan-cards{grid-template-columns:1fr}
+.credits-body{flex-direction:column;text-align:center}
+.credits-stats{justify-content:center}
+.nav-links{display:none}
+.page{padding:24px 16px}
+}
+</style>
+</head>
+<body>
+<!-- NAV -->
+<nav class="nav">
+<div class="nav-logo"><i class="fas fa-shield-halved"></i>煋鉴</div>
+<div class="nav-links">
+<a href="/">首页</a>
+<a href="/dashboard/overview">控制台</a>
+<a href="/report">报告</a>
+<a href="/license" class="active">许可证</a>
+<a href="/docs">文档</a>
+</div>
+<div class="nav-right">
+<a href="#"><i class="fas fa-bell"></i></a>
+<a href="#">黄先生</a>
+</div>
+</nav>
+<!-- PAGE -->
+<div class="page">
+<!-- TITLE -->
+<div class="page-title">
+<h1><i class="fas fa-key"></i>许可证管理</h1>
+<div style="margin-top:8px">
+<span class="deploy-badge"><i class="fas fa-check-circle"></i>已部署</span>
+</div>
+</div>
+<!-- VERSION -->
+<div class="version-panel">
+<div class="version-grid">
+<div class="version-item">
+<span class="version-label">当前版本</span>
+<span class="version-value">v6.0.2</span>
+</div>
+<div class="version-item">
+<span class="version-label">最新版本</span>
+<span class="version-value latest">v6.0.2 (最新)</span>
+</div>
+<div class="version-item">
+<span class="version-label">部署日期</span>
+<span class="version-value">2026-10-12</span>
+</div>
+<div class="version-item">
+<span class="version-label">部署方式</span>
+<span class="version-value">本地私有化</span>
+</div>
+<div class="version-item">
+<span class="version-label">引擎数量</span>
+<span class="version-value">9 个检测引擎</span>
+</div>
+<div class="version-item">
+<span class="version-label">检测规则</span>
+<span class="version-value">500+ 条规则</span>
+</div>
+</div>
+</div>
+<!-- CREDITS -->
+<div class="credits-card">
+<div class="credits-header">
+<div class="credits-title"><i class="fas fa-bolt"></i>积分余额</div>
+</div>
+<div class="credits-body">
+<div class="credits-main">
+<div class="credits-number">2,847</div>
+<div class="credits-label">剩余可用积分</div>
+<div class="credits-bar"><div class="credits-bar-fill"></div></div>
+<div class="credits-stats">
+<div class="credits-stat">已使用 <strong>1,153</strong></div>
+<div class="credits-stat">总计 <strong>4,000</strong></div>
+</div>
+</div>
+<div class="credits-action">
+<button class="btn-recharge"><i class="fas fa-plus-circle"></i>充值积分</button>
+</div>
+</div>
+</div>
+<!-- PLANS -->
+<div class="plan-section">
+<div class="plan-section-title">套餐方案</div>
+<div class="plan-cards">
+<!-- FREE -->
+<div class="plan-card free">
+<div class="plan-name">免费版</div>
+<div class="plan-desc">适合个人开发者和学习使用</div>
+<div class="plan-price free-price">免费</div>
+<ul class="plan-features">
+<li><i class="fas fa-check"></i>9大检测引擎</li>
+<li><i class="fas fa-check"></i>每月 4,000 积分</li>
+<li><i class="fas fa-check"></i>支持17种语言</li>
+<li><i class="fas fa-check"></i>基础检测报告</li>
+<li><i class="fas fa-check"></i>PDF导出</li>
+<li class="disabled"><i class="fas fa-times"></i>团队协作</li>
+<li class="disabled"><i class="fas fa-times"></i>自定义规则</li>
+<li class="disabled"><i class="fas fa-times"></i>优先技术支持</li>
+</ul>
+<button class="plan-btn plan-btn-outline">当前方案</button>
+</div>
+<!-- PRO -->
+<div class="plan-card pro">
+<div class="plan-name">专业版</div>
+<div class="plan-desc">适合开发团队和企业使用</div>
+<div class="plan-price">99<span>元/月</span></div>
+<ul class="plan-features">
+<li><i class="fas fa-check"></i>9大检测引擎</li>
+<li><i class="fas fa-check"></i>每月 50,000 积分</li>
+<li><i class="fas fa-check"></i>支持17种语言</li>
+<li><i class="fas fa-check"></i>完整检测报告</li>
+<li><i class="fas fa-check"></i>PDF导出</li>
+<li><i class="fas fa-check"></i>5人团队协作</li>
+<li><i class="fas fa-check"></i>自定义规则引擎</li>
+<li><i class="fas fa-check"></i>优先技术支持</li>
+</ul>
+<button class="plan-btn plan-btn-accent">升级专业版</button>
+</div>
+</div>
+</div>
+<!-- GUIDE -->
+<div class="guide-card">
+<div class="guide-title"><i class="fas fa-book-open"></i>使用说明</div>
+<ul class="guide-list">
+<li><div class="guide-dot"></div>每次扫描根据代码行数和选择的引擎数量消耗积分</li>
+<li><div class="guide-dot"></div>免费版每月自动重置积分为 4,000，不累计</li>
+<li><div class="guide-dot"></div>专业版可通过 <code>设置 → 规则配置</code> 自定义检测规则</li>
+<li><div class="guide-dot"></div>积分消耗顺序：免费额度 → 充值积分</li>
+<li><div class="guide-dot"></div>本地部署版支持离线使用，联网时自动同步积分</li>
+<li><div class="guide-dot"></div>如需更多积分或企业定制方案，请联系 <code>hdyabcd@163.com</code></li>
+</ul>
+</div>
+<!-- HISTORY -->
+<div class="history-card">
+<div class="history-header">
+<div class="history-title">积分变动记录</div>
+</div>
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>类型</th>
+<th>积分变动</th>
+<th>余额</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-10-15</td>
+<td><span class="tag tag-info">扫描消耗</span></td>
+<td style="color:var(--error)">-153</td>
+<td>2,847</td>
+<td>煋旺AI-Backend 全量扫描</td>
+</tr>
+<tr>
+<td>2026-10-14</td>
+<td><span class="tag tag-info">扫描消耗</span></td>
+<td style="color:var(--error)">-89</td>
+<td>3,000</td>
+<td>煋旺AI-Frontend 增量扫描</td>
+</tr>
+<tr>
+<td>2026-10-01</td>
+<td><span class="tag tag-success">月度重置</span></td>
+<td style="color:var(--success)">+4,000</td>
+<td>3,089</td>
+<td>10月免费积分发放</td>
+</tr>
+<tr>
+<td>2026-09-28</td>
+<td><span class="tag tag-info">扫描消耗</span></td>
+<td style="color:var(--error)">-267</td>
+<td>-911</td>
+<td>支付网关 安全扫描</td>
+</tr>
+<tr>
+<td>2026-09-25</td>
+<td><span class="tag tag-warn">充值</span></td>
+<td style="color:var(--success)">+2,000</td>
+<td>-644</td>
+<td>积分充值</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

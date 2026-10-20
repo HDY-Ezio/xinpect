@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}价格方案 - 煋鉴 Xinpect{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:64px;">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">价格方案</span>
+            <h2 class="section-title">选择适合你的方案</h2>
+            <p class="pricing-subtitle">免费体验基础检测，升级专业版解锁全部 8 维度AI能力 · 积分按行计费，用多少扣多少</p>
+        </div>
+
+        <!-- 4 档订阅会员 -->
+        <div class="recharge-plans" style="max-width:none;margin-bottom:24px;">
+            <!-- 免费版 -->
+            <div class="recharge-plan" style="cursor:default;">
+                <div class="recharge-plan-name">免费版</div>
+                <div class="recharge-plan-price" style="color:var(--text-primary);">
+                    <span class="currency">¥</span>0
+                </div>
+                <div class="recharge-plan-period">永久免费</div>
+                <div class="recharge-plan-desc">每日 3 次基础扫描<br>适合轻度体验</div>
+                <ul style="text-align:left;font-size:13px;color:var(--text-secondary);margin-bottom:20px;display:flex;flex-direction:column;gap:6px;">
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> B1~B3 基础检测</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 每日 3 次</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 规则引擎</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 30 文件上限</li>
+                    <li style="display:flex;gap:8px;color:var(--text-muted);text-decoration:line-through;"><span>✕</span> B4~B8 专业维度</li>
+                    <li style="display:flex;gap:8px;color:var(--text-muted);text-decoration:line-through;"><span>✕</span> AI 深度分析</li>
+                    <li style="display:flex;gap:8px;color:var(--text-muted);text-decoration:line-through;"><span>✕</span> 报告下载</li>
+                </ul>
+                <a href="{{ url_for('upload_page') }}" class="btn btn-secondary btn-block">免费使用</a>
+            </div>
+
+            <!-- 月卡 -->
+            <div class="recharge-plan" onclick="window.location.href='{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}'">
+                <div class="recharge-plan-name">月卡</div>
+                <div class="recharge-plan-price">
+                    <span class="currency">¥</span>99
+                </div>
+                <div class="recharge-plan-period">/ 月 · 300 积分</div>
+                <div class="recharge-plan-desc">约可扫 50 个中等项目<br>灵活便捷</div>
+                <ul style="text-align:left;font-size:13px;color:var(--text-secondary);margin-bottom:20px;display:flex;flex-direction:column;gap:6px;">
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> B1~B8 全维度</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 300 积分 / 月</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> AI 深度分析</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 报告下载</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 批量检测</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 邮件支持</li>
+                </ul>
+                <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-primary btn-block">开通</a>
+            </div>
+
+            <!-- 季卡 -->
+            <div class="recharge-plan" onclick="window.location.href='{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}'">
+                <div class="recharge-plan-name">季卡</div>
+                <div class="recharge-plan-price">
+                    <span class="currency">¥</span>249
+                </div>
+                <div class="recharge-plan-period">/ 季 · 350 积分/月（共 1,050）</div>
+                <div class="recharge-plan-desc">约可扫 175 个中等项目<br>性价比之选</div>
+                <ul style="text-align:left;font-size:13px;color:var(--text-secondary);margin-bottom:20px;display:flex;flex-direction:column;gap:6px;">
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> B1~B8 全维度</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 共 1,050 积分</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> AI 深度分析</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 报告下载</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 批量检测</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 优先技术支持</li>
+                </ul>
+                <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-primary btn-block">开通</a>
+            </div>
+
+            <!-- 年卡 推荐 -->
+            <div class="recharge-plan selected" onclick="window.location.href='{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}'" style="border-color:var(--accent-orange);background:linear-gradient(180deg, rgba(255,107,53,0.06) 0%, var(--bg-card) 100%);">
+                <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gradient-orange);color:white;padding:3px 14px;border-radius:100px;font-size:12px;font-weight:600;">最划算</div>
+                <div class="recharge-plan-name">年卡</div>
+                <div class="recharge-plan-price">
+                    <span class="currency">¥</span>799
+                </div>
+                <div class="recharge-plan-period">/ 年 · 500 积分/月（共 6,000）</div>
+                <div class="recharge-plan-desc">约可扫 1,000 个中等项目<br>超值优惠</div>
+                <ul style="text-align:left;font-size:13px;color:var(--text-secondary);margin-bottom:20px;display:flex;flex-direction:column;gap:6px;">
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> B1~B8 全维度</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 共 6,000 积分</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> AI 深度分析</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 报告下载</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> 批量检测</li>
+                    <li style="display:flex;gap:8px;"><span style="color:var(--success);">✓</span> VIP 专属支持</li>
+                </ul>
+                <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange btn-block">立即开通</a>
+            </div>
+        </div>
+
+        <div style="text-align:center;color:var(--text-muted);font-size:13px;margin-bottom:48px;">
+            💡 所有档位权限一致，均为全维度 + AI 分析，仅积分量不同 · 积分当月有效，月底清零
+        </div>
+
+        <!-- 积分包展示区 -->
+        <div class="credit-packs-section">
+            <div class="section-header">
+                <span class="section-tag">积分补充</span>
+                <h2 class="section-title" style="font-size:28px;">积分加量包</h2>
+                <p class="pricing-subtitle" style="margin-bottom:32px;">会员专属 · 用量不够随时加 · 多买多优惠</p>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;">
+                <div class="credit-pack-card">
+                    <div class="credit-pack-name">体验包</div>
+                    <div class="credit-pack-amount">100<span class="unit"> 积分</span></div>
+                    <div class="credit-pack-price">¥49</div>
+                    <div class="credit-pack-desc">约可扫 15 个<br>中等项目</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-secondary btn-block" style="font-size:13px;">购买</a>
+                </div>
+
+                <div class="credit-pack-card">
+                    <div class="credit-pack-name">基础包</div>
+                    <div class="credit-pack-amount">500<span class="unit"> 积分</span></div>
+                    <div class="credit-pack-price">¥199 <span style="text-decoration:line-through;color:var(--text-muted);font-size:12px;">¥245</span></div>
+                    <div class="credit-pack-desc">约可扫 80 个<br>中等项目</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-secondary btn-block" style="font-size:13px;">购买</a>
+                </div>
+
+                <div class="credit-pack-card" style="border-color:rgba(255,107,53,0.5);">
+                    <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:rgba(255,107,53,0.15);color:var(--accent-orange);padding:2px 12px;border-radius:100px;font-size:11px;font-weight:600;">热销</div>
+                    <div class="credit-pack-name">标准包</div>
+                    <div class="credit-pack-amount">2,000<span class="unit"> 积分</span></div>
+                    <div class="credit-pack-price">¥599 <span style="text-decoration:line-through;color:var(--text-muted);font-size:12px;">¥980</span></div>
+                    <div class="credit-pack-desc">约可扫 330 个<br>中等项目</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange btn-block" style="font-size:13px;">购买</a>
+                </div>
+
+                <div class="credit-pack-card">
+                    <div class="credit-pack-name">专业包</div>
+                    <div class="credit-pack-amount">5,000<span class="unit"> 积分</span></div>
+                    <div class="credit-pack-price">¥1,299 <span style="text-decoration:line-through;color:var(--text-muted);font-size:12px;">¥2,450</span></div>
+                    <div class="credit-pack-desc">约可扫 830 个<br>中等项目</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-secondary btn-block" style="font-size:13px;">购买</a>
+                </div>
+
+                <div class="credit-pack-card">
+                    <div class="credit-pack-name">企业包</div>
+                    <div class="credit-pack-amount">15,000<span class="unit"> 积分</span></div>
+                    <div class="credit-pack-price">¥2,999 <span style="text-decoration:line-through;color:var(--text-muted);font-size:12px;">¥7,350</span></div>
+                    <div class="credit-pack-desc">约可扫 2,500 个<br>中等项目</div>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-secondary btn-block" style="font-size:13px;">购买</a>
+                </div>
+            </div>
+
+            <div class="credit-pack-note">
+                📌 积分包需配合会员使用，不单独解锁会员权限；积分包积分与月度积分同时存在，优先消耗月度积分
+            </div>
+        </div>
+
+        <!-- 权益对比表 -->
+        <div class="pricing-compare">
+            <table>
+                <thead>
+                    <tr>
+                        <th>权益对比</th>
+                        <th>免费版</th>
+                        <th>月卡</th>
+                        <th>季卡</th>
+                        <th>半年卡</th>
+                        <th>年卡</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>检测维度</td>
+                        <td>B1~B3 基础</td>
+                        <td class="check">B1~B8 全维度</td>
+                        <td class="check">B1~B8 全维度</td>
+                        <td class="check">B1~B8 全维度</td>
+                        <td class="check">B1~B8 全维度</td>
+                    </tr>
+                    <tr>
+                        <td>AI 深度分析</td>
+                        <td class="cross">—</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                    </tr>
+                    <tr>
+                        <td>每月积分</td>
+                        <td>每日 3 次</td>
+                        <td>300</td>
+                        <td>350</td>
+                        <td>400</td>
+                        <td>500</td>
+                    </tr>
+                    <tr>
+                        <td>检测规则</td>
+                        <td>500+ 条</td>
+                        <td class="check">2,600+ 条</td>
+                        <td class="check">2,600+ 条</td>
+                        <td class="check">2,600+ 条</td>
+                        <td class="check">2,600+ 条</td>
+                    </tr>
+                    <tr>
+                        <td>文件数量上限</td>
+                        <td>30</td>
+                        <td class="check">不限</td>
+                        <td class="check">不限</td>
+                        <td class="check">不限</td>
+                        <td class="check">不限</td>
+                    </tr>
+                    <tr>
+                        <td>报告下载</td>
+                        <td class="cross">✕</td>
+                        <td class="check">✓ MD+HTML</td>
+                        <td class="check">✓ MD+HTML</td>
+                        <td class="check">✓ MD+HTML</td>
+                        <td class="check">✓ MD+HTML</td>
+                    </tr>
+                    <tr>
+                        <td>积分包购买</td>
+                        <td class="cross">✕</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                        <td class="check">✓</td>
+                    </tr>
+                    <tr>
+                        <td>技术支持</td>
+                        <td>社区</td>
+                        <td>邮件</td>
+                        <td>优先</td>
+                        <td>优先</td>
+                        <td>VIP 专属</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

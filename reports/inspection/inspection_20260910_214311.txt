@@ -1,0 +1,50 @@
+煋鉴每日质检报告 - 2026-09-10 21:43:11
+
+[1. 服务健康检查]
+  PASS: xinpect-website 运行状态
+  PASS: xinpect-scanner-green 运行状态
+  PASS: xinpect-pay 运行状态
+
+[2. 端口可用性检查]
+  PASS: 端口 8621 (website)
+  PASS: 端口 8620 (scanner-green)
+  FAIL: 端口 8610 (pay) NOT LISTENING
+  PASS: 端口 8001 (energy-valve)
+
+[3. 引擎模块语法检查 (py_compile)]
+  FAIL: Python文件语法编译 (1696 OK, 12 FAIL) 
+    /opt/xinpect-scanner-green/engine/b3_semantic/parsers/tree-sitter-python/test/tags/main.py:   File "/opt/xinpect-scanner-green/engine/b3_semantic/pars
+    /opt/xinpect-scanner-green/engine/b3_semantic/parsers/tree-sitter-python/test/highlight/keywords.py:   File "/opt/xinpect-scanner-green/engine/b3_sema
+    /opt/xinpect-scanner-green/engine/b3_semantic/parsers/tree-sitter-python/test/highlight/pattern_matching.py:   File "/opt/xinpect-scanner-green/engine
+    /opt/xinpect-scanner-green/engine/b3_semantic/parsers/tree-sitter-python/examples/python2-grammar.py:   File "/opt/xinpect-scanner-green/engine/b3_sem
+    /opt/xinpect-scanner-green/engine/b3_semantic/parsers/tree-sitter-python/examples/multiple-newlines.py:   File "/opt/xinpect-scanner-green/engine/b3_s
+
+[4. xss_vectors.py 语法验证]
+  PASS: xss_vectors.py 语法
+
+[5. SSRF constants.py 完整性检查]
+  PASS: constants.py 必需变量 (8/8)
+
+[6. 积分竞态修复回归]
+  PASS: scoring.py BEGIN IMMEDIATE 事务
+
+[7. 退款逻辑修复回归]
+  FAIL: 退款无vip限制 退款逻辑中仍存在is_vip限制
+  PASS: 退款重试机制
+
+[8. 启动日志WARNING检查]
+  WARN: 启动日志存在告警 (4条)
+    Sep 10 19:00:06 VM-0-15-ubuntu python3[3101122]: 2026-09-10 19:00:06,495 [WARNING] engine.b3_semantic.registry: Failed t
+    Sep 10 19:04:44 VM-0-15-ubuntu python3[3103033]: 2026-09-10 19:04:44,754 [WARNING] engine.b3_semantic.registry: Failed t
+    Sep 10 19:31:31 VM-0-15-ubuntu python3[3111545]: 2026-09-10 19:31:31,698 [WARNING] engine.b3_semantic.registry: Failed t
+
+[9. 系统资源检查]
+  PASS: 磁盘使用率 57%
+  PASS: 可用内存占比 61%
+  PASS: CPU负载 0.19
+
+[10. 数据库完整性]
+  WARN: 数据库文件不存在 
+
+总计: 13 通过, 3 失败, 2 警告
+结论: HAS ISSUES ❌

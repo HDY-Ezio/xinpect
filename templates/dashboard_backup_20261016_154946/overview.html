@@ -1,0 +1,553 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}概览 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>概览</h1>
+    <p>查看你的会员状态和检测统计</p>
+</div>
+
+<!-- 会员状态卡片 -->
+<div class="vip-card">
+    <div class="vip-info">
+        {% if is_vip %}
+        <h3>⚡ 专业版会员</h3>
+        <p>有效期至：{{ vip_expire or '永久' }} · 享受全部 9 大引擎检测 · 积分按行计费</p>
+        {% else %}
+        <h3>🎯 免费版用户</h3>
+        <p>当前可使用 规范层检测（700+条规则） · 无限次免费 · 升级解锁全部 9 大引擎</p>
+        {% endif %}
+    </div>
+    {% if not is_vip %}
+    <a href="{{ url_for('dashboard_page', page='recharge') }}" class="btn btn-orange btn-lg">立即升级</a>
+    {% else %}
+    <a href="{{ url_for('dashboard_page', page='recharge') }}" class="btn btn-primary">续费 / 充值</a>
+    {% endif %}
+</div>
+
+<!-- 统计卡片 -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">总检测次数</div>
+        <div class="stat-value primary">{{ stats.total_scans or 0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">今日检测</div>
+        <div class="stat-value success">{{ stats.today_scans or 0 }}</div>
+    </div>
+    {% if is_vip %}
+    <div class="stat-card">
+        <div class="stat-label">积分余额</div>
+        <div class="credit-stat-value">{{ credit_balance or 0 }}</div>
+    </div>
+    {% else %}
+    <div class="stat-card">
+        <div class="stat-label">今日剩余</div>
+        <div class="stat-value warning">无限次</div>
+    </div>
+    {% endif %}
+    <div class="stat-card">
+        <div class="stat-label">累计发现问题</div>
+        <div class="stat-value" style="color:#FF6B35;">{{ stats.total_issues or 0 }}</div>
+    </div>
+</div>
+
+{% if is_vip and credit_info %}
+<!-- 积分池详情 -->
+
+<!-- P2-03: 趋势图 + 合规状态 -->
+{% include "dashboard/_quota_card.html" %}
+
+<div id="dashboard-enhance" style="margin:24px 0;display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+    <!-- 分数趋势图 -->
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="margin:0;font-size:16px;font-weight:600;color:#1f2937;">📈 质量趋势</h3>
+            <div style="display:flex;gap:8px;">
+                <button onclick="loadDashSummary(7)" class="dash-period-btn" id="btn-7d">7天</button>
+                <button onclick="loadDashSummary(30)" class="dash-period-btn active" id="btn-30d">30天</button>
+            </div>
+        </div>
+        <canvas id="scoreTrendChart" height="180"></canvas>
+        <div id="trend-empty" style="display:none;text-align:center;padding:40px 0;color:#9ca3af;">
+            <div style="font-size:32px;margin-bottom:8px;">📊</div>
+            <div>暂无趋势数据，多扫几次就有了</div>
+        </div>
+    </div>
+    <!-- 合规状态 + 来源分布 -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- 合规状态 -->
+        <div id="compliance-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;">
+            <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#1f2937;">🛡️ 合规状态</h3>
+            <div id="compliance-content" style="text-align:center;padding:12px 0;">
+                <div style="font-size:14px;color:#9ca3af;">加载中...</div>
+            </div>
+        </div>
+        <!-- 来源分布 -->
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;flex:1;">
+            <h3 style="margin:0 0 12px;font-size:16px;font-weight:600;color:#1f2937;">📡 扫描来源</h3>
+            <div id="source-content">
+                <div style="font-size:14px;color:#9ca3af;text-align:center;padding:12px 0;">加载中...</div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+.dash-period-btn {
+    padding: 4px 12px; border-radius: 6px; border: 1px solid #d1d5db;
+    background: #fff; color: #6b7280; font-size: 13px; cursor: pointer;
+}
+.dash-period-btn.active { background: #FF6B35; color: #fff; border-color: #FF6B35; }
+@media (max-width: 768px) {
+    #dashboard-enhance { grid-template-columns: 1fr !important; }
+}
+</style>
+
+<div class="credit-pools-section" style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px 28px;margin:20px 0;">
+    <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#1f2937;">
+        💰 积分池详情
+        <span style="font-size:13px;font-weight:400;color:#6b7280;margin-left:8px;">总余额 {{ credit_info.total_balance }}</span>
+    </h3>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+        <!-- 会员积分池 -->
+        <div style="background:linear-gradient(135deg,#fff5f0,#ffeee0);border:1px solid #ffd6c0;border-radius:12px;padding:18px 20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <span style="font-size:13px;color:#c2410c;font-weight:500;">🎫 会员积分（当月）</span>
+                <span style="font-size:20px;font-weight:700;color:#FF6B35;">{{ credit_info.subscription_balance }}</span>
+            </div>
+            {% if credit_info.subscription %}
+            <div style="font-size:12px;color:#c2410c;">
+                <div>📅 下次刷新：{{ credit_info.subscription_refresh_at or '—' }}</div>
+                {% if credit_info.subscription.subscription_plan %}
+                <div>🏷 套餐：{{ {'monthly':'月卡(300积分/月)','quarterly':'季卡(300积分/月)','half_year':'半年卡(300积分/月)','yearly':'年卡(300积分/月)'}.get(credit_info.subscription.subscription_plan, '') }}</div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="font-size:12px;color:#fdba74;">暂无会员积分池</div>
+            {% endif %}
+        </div>
+
+        <!-- 积分包池 -->
+        <div style="background:linear-gradient(135deg,#fefce8,#fef3c7);border:1px solid #fde68a;border-radius:12px;padding:18px 20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <span style="font-size:13px;color:#92400e;font-weight:500;">📦 积分包</span>
+                <span style="font-size:20px;font-weight:700;color:#d97706;">{{ credit_info.pack_balance }}</span>
+            </div>
+            {% if credit_info.packs %}
+            <div style="font-size:12px;color:#b45309;">
+                {% if credit_info.pack_nearest_expire_at %}
+                <div>⏰ 最近到期：{{ credit_info.pack_nearest_expire_at }}</div>
+                {% endif %}
+                <div>📊 共 {{ credit_info.packs|length }} 个积分包</div>
+            </div>
+            {% else %}
+            <div style="font-size:12px;color:#d97706;">暂无积分包 · <a href="{{ url_for('dashboard_page', page='recharge') }}" style="color:#d97706;text-decoration:underline;">购买积分包</a></div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if credit_info.total_balance < 50 %}
+    <div style="margin-top:14px;padding:10px 16px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#92400e;">
+        ⚠️ 积分余额不足50，建议<a href="{{ url_for('dashboard_page', page='recharge') }}" style="color:#b45309;font-weight:600;text-decoration:underline;">充值积分包</a>以确保服务不中断
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if is_vip %}
+<!-- AI代码扫描功能推荐 -->
+<div class="ai-scan-promo">
+    <div class="ai-scan-promo-badge">Agent 开放接口</div>
+    <div class="ai-scan-promo-content">
+        <div class="ai-scan-promo-left">
+            <h2>🤖 让你的 AI 助手也能调用煋鉴</h2>
+            <p class="ai-scan-promo-desc">把煋鉴扫描能力开放给你的 AI 助手（Agent），以后写代码时它会自动帮你扫描安全漏洞。</p>
+            
+            <div class="ai-scan-scenarios">
+                <div class="ai-scan-scenario">
+                    <span class="scenario-icon">💬</span>
+                    <div>
+                        <strong>场景1：用AI写代码时</strong>
+                        <p>"帮我写一个登录模块" → AI写完后自动调用扫描 → 告诉你有没有安全问题</p>
+                    </div>
+                </div>
+                <div class="ai-scan-scenario">
+                    <span class="scenario-icon">🔍</span>
+                    <div>
+                        <strong>场景2：让AI检查现有代码</strong>
+                        <p>"帮我检查这段代码的安全性" → AI自动调用扫描 → 返回漏洞报告</p>
+                    </div>
+                </div>
+                <div class="ai-scan-scenario">
+                    <span class="scenario-icon">🚀</span>
+                    <div>
+                        <strong>场景3：代码审查/上线前</strong>
+                        <p>"帮我做代码审查" → AI自动扫描 → 给出安全评分和修复建议</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ai-scan-promo-steps">
+                <span class="step-label">只需3步：</span>
+                <span class="step-item">① 复制指令</span>
+                <span class="step-arrow">→</span>
+                <span class="step-item">② 发给AI助手</span>
+                <span class="step-arrow">→</span>
+                <span class="step-item">③ 自动扫描</span>
+            </div>
+        </div>
+        
+        <div class="ai-scan-promo-right">
+            <div class="ai-scan-promo-cta">
+                <a href="{{ url_for('dashboard_page', page='api-keys') }}" class="btn btn-orange btn-lg">
+                    <i class="fas fa-rocket"></i> 立即开启
+                </a>
+                <span class="cta-hint">支持扣子/ChatGPT/通义等所有主流AI平台</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.ai-scan-promo {
+    background: linear-gradient(135deg, #fff5f0 0%, #ffeee0 100%);
+    border: 1px solid #ffe0cc;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin: 24px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-scan-promo::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.ai-scan-promo-badge {
+    display: inline-block;
+    background: #FF6B35;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+
+.ai-scan-promo-content {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+
+.ai-scan-promo-left {
+    flex: 1;
+}
+
+.ai-scan-promo-left h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+}
+
+.ai-scan-promo-desc {
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+}
+
+.ai-scan-scenarios {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.ai-scan-scenario {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.scenario-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.ai-scan-scenario strong {
+    font-size: 14px;
+    color: #333;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.ai-scan-scenario p {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.ai-scan-promo-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.step-label {
+    font-size: 13px;
+    color: #999;
+    margin-right: 4px;
+}
+
+.step-item {
+    background: white;
+    border: 1px solid #ffe0cc;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: #FF6B35;
+    font-weight: 500;
+}
+
+.step-arrow {
+    color: #ccc;
+    font-size: 12px;
+}
+
+.ai-scan-promo-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-height: 200px;
+}
+
+.ai-scan-promo-cta {
+    text-align: center;
+}
+
+.ai-scan-promo-cta .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.cta-hint {
+    display: block;
+    font-size: 11px;
+    color: #999;
+    margin-top: 8px;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .ai-scan-promo { padding: 20px; }
+    .ai-scan-promo-content { flex-direction: column; gap: 20px; }
+    .ai-scan-promo-right { min-height: auto; }
+    .ai-scan-promo-cta .btn { width: 100%; justify-content: center; }
+}
+</style>
+{% endif %}
+
+<!-- 最近检测 -->
+<div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="font-size:18px;font-weight:600;">最近检测</h2>
+        <a href="{{ url_for('dashboard_page', page='scans') }}" style="font-size:14px;">查看全部 →</a>
+    </div>
+
+    {% if recent_scans %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>检测名称</th>
+                <th>文件数</th>
+                {% if is_vip %}<th style="text-align:center;">积分消耗</th>{% endif %}
+                <th>问题数</th>
+                <th>得分</th>
+                <th>检测时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scan in recent_scans %}
+            <tr>
+                <td>{{ scan.title }}</td>
+                <td>{{ scan.file_count }}</td>
+                {% if is_vip %}<td style="text-align:center;color:var(--accent-orange);font-weight:600;">−{{ scan.credits_spent or 0 }}</td>{% endif %}
+                <td><span style="color:{% if scan.issue_count > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ scan.issue_count }}</span></td>
+                <td>
+                    <span style="color:{% if scan.score >= 85 %}#10b981{% elif scan.score >= 65 %}#0ea5e9{% elif scan.score >= 50 %}#6366f1{% elif scan.score >= 30 %}#f59e0b{% else %}#ef4444{% endif %};font-weight:600;">
+                        {{ scan.score }}
+                    </span>
+                </td>
+                <td style="color:var(--text-muted);font-size:13px;">{{ scan.created_at }}</td>
+                <td><a href="{{ url_for('report_page', scan_id=scan.scan_id) }}">查看报告</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-text">还没有检测记录</div>
+        <a href="{{ url_for('upload_page') }}" class="btn btn-primary">开始第一次检测</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function() {
+    // 千分位格式化积分余额和统计数字
+    function formatNum(el) {
+        var text = el.textContent.trim();
+        var num = parseInt(text);
+        if (!isNaN(num)) {
+            el.textContent = num.toLocaleString('en-US');
+        }
+    }
+    var creditEl = document.querySelector('.credit-stat-value');
+    if (creditEl) formatNum(creditEl);
+
+    document.querySelectorAll('.stat-value').forEach(function(el) {
+        formatNum(el);
+    });
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+var trendChart = null;
+var currentDays = 30;
+
+function loadDashSummary(days) {
+    currentDays = days;
+    document.querySelectorAll('.dash-period-btn').forEach(function(b) { b.classList.remove('active'); });
+    var btn = document.getElementById('btn-' + days + 'd');
+    if (btn) btn.classList.add('active');
+
+    fetch('/api/dashboard/summary?days=' + days)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status !== 'ok') return;
+            renderTrend(data.trend);
+            renderCompliance(data.compliance);
+            renderSources(data.sources);
+        })
+        .catch(function(e) { console.log('dashboard summary error:', e); });
+}
+
+function renderTrend(trend) {
+    var canvas = document.getElementById('scoreTrendChart');
+    var emptyEl = document.getElementById('trend-empty');
+    if (!trend || trend.length === 0) {
+        canvas.style.display = 'none';
+        emptyEl.style.display = 'block';
+        return;
+    }
+    canvas.style.display = 'block';
+    emptyEl.style.display = 'none';
+
+    var labels = trend.map(function(t) { return t.date.slice(5); });
+    var scores = trend.map(function(t) { return t.avg_score; });
+
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '平均评分',
+                data: scores,
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249,115,22,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: '#f97316',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, ticks: { stepSize: 20 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderCompliance(c) {
+    var el = document.getElementById('compliance-content');
+    if (!c || c.latest_score === null) {
+        el.innerHTML = '<div style="color:#9ca3af;">暂无数据</div>';
+        return;
+    }
+    var statusColors = { pass: '#10b981', warn: '#f59e0b', fail: '#ef4444' };
+    var statusLabels = { pass: '合规', warn: '注意', fail: '不合规' };
+    var statusBg = { pass: '#ecfdf5', warn: '#fffbeb', fail: '#fef2f2' };
+    var color = statusColors[c.status] || '#6b7280';
+    var bg = statusBg[c.status] || '#f9fafb';
+    var label = statusLabels[c.status] || '未知';
+
+    el.innerHTML =
+        '<div style="background:' + bg + ';border-radius:12px;padding:16px;margin-bottom:12px;">' +
+        '  <div style="font-size:28px;font-weight:700;color:' + color + ';">' + c.latest_score + ' <span style="font-size:16px;">(' + (c.latest_grade || '') + ')</span></div>' +
+        '  <div style="font-size:13px;color:' + color + ';font-weight:500;margin-top:4px;">● ' + label + '</div>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:13px;color:#6b7280;">' +
+        '  <span>7日均分: <b>' + (c.week_avg || '-') + '</b></span>' +
+        '  <span>问题数: <b>' + (c.latest_issues || 0) + '</b></span>' +
+        '</div>';
+}
+
+function renderSources(sources) {
+    var el = document.getElementById('source-content');
+    if (!sources || sources.length === 0) {
+        el.innerHTML = '<div style="color:#9ca3af;text-align:center;font-size:13px;">暂无数据</div>';
+        return;
+    }
+    var total = sources.reduce(function(s, x) { return s + x.count; }, 0);
+    var html = '';
+    var colors = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
+    sources.forEach(function(s, i) {
+        var pct = total > 0 ? Math.round(s.count / total * 100) : 0;
+        var color = colors[i % colors.length];
+        html += '<div style="margin-bottom:10px;">' +
+            '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">' +
+            '  <span style="color:#374151;">' + s.label + '</span>' +
+            '  <span style="color:#6b7280;">' + s.count + '次 (' + pct + '%)</span>' +
+            '</div>' +
+            '<div style="height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden;">' +
+            '  <div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;"></div>' +
+            '</div></div>';
+    });
+    el.innerHTML = html;
+}
+
+// 页面加载后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashSummary(30);
+});
+</script>
+{% endblock %}

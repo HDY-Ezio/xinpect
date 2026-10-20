@@ -1,0 +1,916 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}CI/CD 集成配置 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 页面头部 */
+    .ci-hero {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+    .ci-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%; right: -20%;
+        width: 300px; height: 300px;
+        background: radial-gradient(circle, rgba(26,58,92,.12) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    .ci-hero h1 {
+        font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary, #1A2B4A);
+        position: relative;
+    }
+    .ci-hero p {
+        color: var(--text-secondary, #6B7B94); font-size: 14px;
+        position: relative;
+    }
+    .ci-hero .badge-row {
+        display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+        position: relative;
+    }
+    .ci-hero .platform-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+        background: rgba(26,43,74,.04); border: 1px solid rgba(26,43,74,.1);
+        color: var(--text-secondary, #6B7B94);
+    }
+    .ci-hero .platform-badge.active {
+        background: rgba(26,58,92,.1); border-color: rgba(26,58,92,.3);
+        color: #1A3A5C;
+    }
+
+    /* 设置面板 */
+    .settings-panel {
+        background: var(--bg-card, #FFFFFF);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+    .settings-panel h2 {
+        font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary, #1A2B4A);
+        display: flex; align-items: center; gap: 8px;
+    }
+
+    /* 表单 */
+    .form-group { margin-bottom: 20px; }
+    .form-label {
+        display: block; font-size: 13px; font-weight: 600;
+        color: var(--text-secondary, #6B7B94); margin-bottom: 8px;
+    }
+    .form-hint {
+        font-size: 12px; color: var(--text-muted, #94A3B8); margin-top: 4px;
+    }
+    .form-select, .form-input, .form-textarea {
+        width: 100%; padding: 10px 14px;
+        background: var(--bg-primary, #FFFFFF);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 8px; color: var(--text-primary, #1A2B4A);
+        font-size: 14px; outline: none; transition: border-color .2s;
+    }
+    .form-select:focus, .form-input:focus, .form-textarea:focus {
+        border-color: var(--accent-orange, #1A3A5C);
+    }
+    .form-textarea { min-height: 80px; resize: vertical; font-family: monospace; font-size: 13px; }
+
+    /* 扫描档位选择 */
+    .mode-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 768px) { .mode-cards { grid-template-columns: repeat(2, 1fr); } }
+    .mode-card {
+        background: var(--bg-primary, #F8FAFC);
+        border: 2px solid var(--border-color, #E2E8F0);
+        border-radius: 10px; padding: 16px; cursor: pointer;
+        transition: all .2s; text-align: center;
+    }
+    .mode-card:hover { border-color: rgba(26,58,92,.4); }
+    .mode-card.selected { border-color: var(--accent-orange, #1A3A5C); background: rgba(26,58,92,.05); }
+    .mode-card.disabled { opacity: .4; cursor: not-allowed; }
+    .mode-card .mode-icon { font-size: 24px; margin-bottom: 6px; }
+    .mode-card .mode-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary, #1A2B4A); }
+    .mode-card .mode-desc { font-size: 11px; color: var(--text-muted, #94A3B8); }
+    .mode-card .mode-engine { font-size: 10px; color: var(--accent-orange, #1A3A5C); margin-top: 4px; }
+    .mode-card .mode-cost { font-size: 11px; color: var(--success, #22c55e); margin-top: 2px; }
+
+    /* 阈值滑块 */
+    .threshold-row { display: flex; align-items: center; gap: 16px; }
+    .threshold-slider {
+        flex: 1; -webkit-appearance: none; appearance: none;
+        height: 6px; border-radius: 3px;
+        background: var(--border-color, #E2E8F0); outline: none;
+    }
+    .threshold-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 20px; height: 20px; border-radius: 50%;
+        background: var(--accent-orange, #1A3A5C); cursor: pointer;
+    }
+    .threshold-value {
+        min-width: 48px; text-align: center; font-size: 20px; font-weight: 800;
+        color: var(--accent-orange, #1A3A5C);
+    }
+
+    /* Toggle */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .toggle-switch {
+        position: relative; width: 44px; height: 24px; cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: var(--border-color, #CBD5E1); border-radius: 24px;
+        transition: .3s;
+    }
+    .toggle-slider::before {
+        content: ''; position: absolute;
+        width: 18px; height: 18px; left: 3px; bottom: 3px;
+        background: #fff; border-radius: 50%; transition: .3s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent-orange, #1A3A5C); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* 保存按钮 */
+    .save-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 12px 32px; border-radius: 10px; border: none;
+        background: var(--accent-orange, #1A3A5C); color: #fff;
+        font-size: 14px; font-weight: 700; cursor: pointer;
+        transition: all .2s;
+    }
+    .save-btn:hover { background: #e55a2b; transform: translateY(-1px); }
+    .save-btn:active { transform: translateY(0); }
+
+    /* API Key 列表 */
+    .api-key-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px; background: var(--bg-primary, #F8FAFC);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 8px; margin-bottom: 8px;
+    }
+    .api-key-name { font-weight: 600; font-size: 14px; }
+    .api-key-value {
+        font-family: monospace; font-size: 12px; color: var(--text-muted, #94A3B8);
+        margin-top: 2px;
+    }
+    .api-key-status {
+        font-size: 11px; padding: 2px 8px; border-radius: 4px;
+    }
+    .api-key-status.active { background: rgba(34,197,94,.1); color: var(--success, #22c55e); }
+    .api-key-status.inactive { background: rgba(100,116,139,.1); color: var(--text-muted, #94A3B8); }
+
+    /* 代码块 */
+    .code-block {
+        background: var(--bg-primary, #F1F5F9);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 10px; padding: 16px; margin: 12px 0;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 12px; line-height: 1.6;
+        overflow-x: auto; white-space: pre;
+        color: var(--text-secondary, #475569);
+        position: relative;
+    }
+    .code-block .copy-btn {
+        position: absolute; top: 8px; right: 8px;
+        padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color, #E2E8F0);
+        background: transparent; color: var(--text-muted, #94A3B8);
+        font-size: 11px; cursor: pointer; transition: all .2s;
+    }
+    .code-block .copy-btn:hover { border-color: var(--accent-orange, #1A3A5C); color: var(--accent-orange, #1A3A5C); }
+
+    /* Toast */
+    .toast {
+        position: fixed; bottom: 24px; right: 24px;
+        padding: 12px 24px; border-radius: 10px;
+        font-size: 14px; font-weight: 600;
+        transform: translateY(100px); opacity: 0;
+        transition: all .3s; z-index: 9999;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--success, #22c55e); color: #fff; }
+    .toast.error { background: var(--danger, #ef4444); color: #fff; }
+
+    /* 积分显示 */
+    .balance-display {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; border-radius: 20px;
+        background: rgba(26,58,92,.1); border: 1px solid rgba(26,58,92,.2);
+        font-size: 13px; font-weight: 600; color: var(--accent-orange, #1A3A5C);
+    }
+
+    /* 接入指南标签页 */
+    .guide-tabs {
+        display: flex; gap: 4px; margin-bottom: 20px;
+        background: var(--bg-primary, #F1F5F9);
+        border-radius: 10px; padding: 4px;
+        border: 1px solid var(--border-color, #E2E8F0);
+    }
+    .guide-tab {
+        flex: 1; padding: 10px 16px; border-radius: 8px; border: none;
+        background: transparent; color: var(--text-muted, #94A3B8);
+        font-size: 13px; font-weight: 600; cursor: pointer;
+        transition: all .2s; text-align: center;
+    }
+    .guide-tab:hover { color: var(--text-primary, #1A2B4A); }
+    .guide-tab.active {
+        background: var(--accent-orange, #1A3A5C); color: #fff;
+    }
+    .guide-content { display: none; }
+    .guide-content.active { display: block; }
+
+    /* 步骤指示器 */
+    .step-list { counter-reset: step; list-style: none; padding: 0; }
+    .step-list li {
+        counter-increment: step;
+        position: relative; padding: 12px 0 12px 48px;
+        border-bottom: 1px solid var(--border-color, #E2E8F0);
+        font-size: 13px; color: var(--text-secondary, #6B7B94);
+    }
+    .step-list li:last-child { border-bottom: none; }
+    .step-list li::before {
+        content: counter(step);
+        position: absolute; left: 0; top: 12px;
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(26,58,92,.1); border: 1px solid rgba(26,58,92,.3);
+        color: var(--accent-orange, #1A3A5C);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: 700;
+    }
+    .step-list li strong { color: var(--text-primary, #1A2B4A); }
+
+    /* 下载卡片 */
+    .download-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+    .download-card {
+        background: var(--bg-primary, #F8FAFC);
+        border: 1px solid var(--border-color, #E2E8F0);
+        border-radius: 10px; padding: 16px;
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        text-decoration: none; color: var(--text-primary, #1A2B4A);
+        transition: all .2s; cursor: pointer;
+    }
+    .download-card:hover { border-color: var(--accent-orange, #1A3A5C); transform: translateY(-2px); }
+    .download-card .icon { font-size: 28px; }
+    .download-card .name { font-size: 14px; font-weight: 600; }
+    .download-card .desc { font-size: 11px; color: var(--text-muted, #94A3B8); text-align: center; }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>CI/CD 集成</h1>
+    <p>将煋鉴代码质检接入你的开发流程，每次提交自动扫描，质量不达标自动拦截</p>
+</div>
+
+<!-- Hero -->
+<div class="ci-hero">
+    <h1>CI/CD 代码质量守护</h1>
+    <p>支持 GitHub Actions、GitLab CI、Jenkins 等主流平台，三步完成接入</p>
+    <div class="badge-row">
+        <span class="platform-badge active">GitHub Actions</span>
+        <span class="platform-badge active">GitLab CI</span>
+        <span class="platform-badge active">Jenkins</span>
+        <span class="platform-badge active">CLI 命令行</span>
+    </div>
+    {% if balance is not none %}
+    <div style="margin-top:16px;position:relative;">
+        <span class="balance-display">⚡ 当前积分: {{ balance }}</span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 扫描配置 -->
+<div class="settings-panel">
+    <h2>⚙️ 默认扫描设置</h2>
+
+    <form id="ciConfigForm">
+        <!-- 扫描档位 -->
+        <div class="form-group">
+            <div class="form-label">默认扫描档位</div>
+            <div class="mode-cards" id="modeCards">
+                <div class="mode-card" data-mode="free" onclick="selectMode('free')">
+                    <div class="mode-icon">🆓</div>
+                    <div class="mode-name">免费扫描</div>
+                    <div class="mode-desc">基础规则检测</div>
+                    <div class="mode-engine">E1-E5 规则引擎</div>
+                    <div class="mode-cost">永久免费</div>
+                </div>
+                <div class="mode-card" data-mode="quick" onclick="selectMode('quick')">
+                    <div class="mode-icon">⚡</div>
+                    <div class="mode-name">快速扫描</div>
+                    <div class="mode-desc">规则+快速分析</div>
+                    <div class="mode-engine">E1-E6 引擎</div>
+                    <div class="mode-cost">0.3积分/百行</div>
+                </div>
+                <div class="mode-card {% if not is_vip %}disabled{% endif %}" data-mode="smart" onclick="selectMode('smart')">
+                    <div class="mode-icon">🧠</div>
+                    <div class="mode-name">智能扫描</div>
+                    <div class="mode-desc">AI 浅层分析</div>
+                    <div class="mode-engine">E1-E7 全引擎</div>
+                    <div class="mode-cost">0.3积分/百行+AI</div>
+                    {% if not is_vip %}<div style="font-size:10px;color:var(--danger);margin-top:4px;">会员专享</div>{% endif %}
+                </div>
+                <div class="mode-card {% if not is_vip %}disabled{% endif %}" data-mode="deep" onclick="selectMode('deep')">
+                    <div class="mode-icon">🔬</div>
+                    <div class="mode-name">深度扫描</div>
+                    <div class="mode-desc">AI 深度分析</div>
+                    <div class="mode-engine">E1-E7 全引擎深度</div>
+                    <div class="mode-cost">0.3积分/百行+AI</div>
+                    {% if not is_vip %}<div style="font-size:10px;color:var(--danger);margin-top:4px;">会员专享</div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 质量门禁阈值 -->
+        <div class="form-group">
+            <div class="form-label">质量门禁阈值（低于此分流水线失败）</div>
+            <div class="threshold-row">
+                <input type="range" class="threshold-slider" id="thresholdSlider" min="0" max="100" value="{{ config.get('default_threshold', 60) }}" oninput="updateThreshold(this.value)">
+                <div class="threshold-value" id="thresholdValue">{{ config.get('default_threshold', 60) }}</div>
+            </div>
+            <div class="form-hint">建议：开发环境 60 分，生产环境 80 分，安全审计 90 分</div>
+        </div>
+
+        <!-- 忽略模式 -->
+        <div class="form-group">
+            <div class="form-label">忽略文件模式（可选，逗号分隔）</div>
+            <textarea class="form-textarea" id="ignorePatterns" placeholder="例: tests/**, vendor/**, node_modules/**, *.test.py">{{ config.get('ignore_patterns', []) | join(', ') if config.get('ignore_patterns') else '' }}</textarea>
+            <div class="form-hint">支持通配符 * 和 **，如 tests/** 匹配 tests 目录下所有文件</div>
+        </div>
+
+        <!-- 自动分享 -->
+        <div class="form-group">
+            <div class="toggle-row">
+                <div>
+                    <div class="form-label" style="margin-bottom:0;">自动生成分享链接</div>
+                    <div class="form-hint">每次 CI 扫描后自动生成可分享的报告链接</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoShare" {% if config.get('auto_share') %}checked{% endif %}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- CI 失败门禁规则 -->
+        <div class="form-group">
+            <div class="form-label">🚧 CI 失败门禁规则</div>
+            <div class="form-hint" style="margin-bottom:12px;">配置哪些情况会导致 CI 流水线判定失败（passed=false）</div>
+            
+            <div class="toggle-row" style="margin-bottom:12px;">
+                <div>
+                    <div class="form-label" style="margin-bottom:0;font-size:13px;">发现严重问题（critical）时失败</div>
+                    <div class="form-hint" style="font-size:11px;">有任何 critical/error/fatal 级别问题时，无论总分多高都判定失败</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="failOnCritical" {% if config.get('fail_on_critical', True) %}checked{% endif %}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row" style="margin-bottom:12px;">
+                <div>
+                    <div class="form-label" style="margin-bottom:0;font-size:13px;">警告问题超限时失败</div>
+                    <div class="form-hint" style="font-size:11px;">warning 级别问题超过设定数量时判定失败（0 表示不限制）</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="failOnWarning" {% if config.get('fail_on_warning', False) %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <input type="number" id="failMaxWarnings" min="0" max="100" value="{{ config.get('fail_max_warnings', 0) }}"
+                           style="width:60px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;text-align:center;"
+                           placeholder="0">
+                    <span style="font-size:12px;color:#57606a;">个</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="save-btn">💾 保存配置</button>
+    </form>
+</div>
+
+<!-- API Keys -->
+<div class="settings-panel">
+    <h2>🔑 API Keys</h2>
+    {% if api_keys %}
+        {% for key in api_keys %}
+        <div class="api-key-item">
+            <div>
+                <div class="api-key-name">{{ key[1] or 'default' }}</div>
+                <div class="api-key-value">{{ key[0][:16] }}...{{ key[0][-6:] }}</div>
+                {% if key[3] %}<div class="form-hint">最后使用: {{ key[3] }}</div>{% endif %}
+            </div>
+            <span class="api-key-status {% if key[2] %}active{% else %}inactive{% endif %}">
+                {% if key[2] %}✅ 启用{% else %}⏸ 停用{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color:var(--text-muted);font-size:14px;">暂无 API Key，请前往 <a href="{{ url_for('dashboard_page', page='api-keys') }}" style="color:var(--accent-orange);">Agent 接入</a> 页面创建</p>
+    {% endif %}
+</div>
+
+<!-- 接入指南 -->
+<div class="settings-panel">
+    <h2>📖 接入指南</h2>
+
+    <!-- 标签页切换 -->
+    <div class="guide-tabs">
+        <button class="guide-tab active" onclick="switchTab('github')">GitHub Actions</button>
+        <button class="guide-tab" onclick="switchTab('gitlab')">GitLab CI</button>
+        <button class="guide-tab" onclick="switchTab('cli')">CLI 命令行</button>
+        <button class="guide-tab" onclick="switchTab('api')">REST API</button>
+    </div>
+
+    <!-- GitHub Actions -->
+    <div class="guide-content active" id="tab-github">
+        <ol class="step-list">
+            <li>
+                <strong>获取 API Key</strong><br>
+                在上方「API Keys」区域复制你的 API Key，或前往 <a href="{{ url_for('dashboard_page', page='api-keys') }}" style="color:var(--accent-orange);">Agent 接入</a> 页面创建新的 Key
+            </li>
+            <li>
+                <strong>添加 Secrets</strong><br>
+                在 GitHub 仓库中进入 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">Settings → Secrets and variables → Actions</code>，点击 <strong>New repository secret</strong>，添加：
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>Name: XINPECT_API_KEY
+Value: 你的煋鉴 API Key</div>
+            </li>
+            <li>
+                <strong>创建 Workflow 文件</strong><br>
+                在仓库中创建 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">.github/workflows/xinpect.yml</code>，复制以下内容：
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>name: 煋鉴代码扫描
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: xinpect-${% raw %}{{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+env:
+  XINPECT_SCAN_MODE: {{ config.get('default_scan_mode', 'quick') }}
+  XINPECT_THRESHOLD: "{{ config.get('default_threshold', 60) }}"
+  XINPECT_FAIL_ON_BELOW: "true"
+
+jobs:
+  xinpect-scan:
+    name: 煋鉴代码扫描
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 收集代码文件
+        id: collect
+        run: |
+          python3 -c "
+          import json, os, sys
+
+          extensions = {
+              '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go',
+              '.c', '.cpp', '.h', '.hpp', '.cs', '.rb', '.php',
+              '.swift', '.kt', '.scala', '.rs', '.vue', '.svelte',
+              '.html', '.css', '.scss', '.sql', '.sh', '.yaml', '.yml'
+          }
+          ignore_dirs = {
+              'node_modules', '.git', '__pycache__', '.venv', 'venv',
+              'dist', 'build', '.next', '.nuxt', 'target', 'vendor',
+          }
+
+          files = {}
+          for root, dirs, filenames in os.walk('.'):
+              dirs[:] = [d for d in dirs if d not in ignore_dirs]
+              for fn in filenames:
+                  if os.path.splitext(fn)[1].lower() in extensions:
+                      fp = os.path.join(root, fn)
+                      rp = os.path.relpath(fp, '.')
+                      try:
+                          sz = os.path.getsize(fp)
+                          if 0 < sz <= 512000:
+                              with open(fp, 'r', encoding='utf-8', errors='ignore') as f:
+                                  files[rp] = f.read()
+                      except: pass
+                      if len(files) >= 200: break
+              if len(files) >= 200: break
+
+          if files:
+              with open('/tmp/xinpect_files.json', 'w') as f:
+                  json.dump(files, f)
+              print(f'Collected {len(files)} files')
+          "
+
+      - name: 执行煋鉴扫描
+        id: scan
+        if: steps.collect.outcome == 'success'
+        env:
+          XINPECT_API_KEY: ${% raw %}{{ secrets.XINPECT_API_KEY }}{% endraw %}
+        run: |
+          python3 -c "
+          import json, sys, urllib.request
+
+          with open('/tmp/xinpect_files.json') as f:
+              code_files = json.load(f)
+
+          payload = json.dumps({
+              'code_files': code_files,
+              'scan_mode': '${% raw %}{{ env.XINPECT_SCAN_MODE }}{% endraw %}',
+              'threshold': int('${% raw %}{{ env.XINPECT_THRESHOLD }}{% endraw %}'),
+              'repo': '${% raw %}{{ github.repository }}{% endraw %}',
+              'branch': '${% raw %}{{ github.ref_name }}{% endraw %}',
+              'commit_sha': '${% raw %}{{ github.sha }}{% endraw %}',
+          }).encode()
+
+          req = urllib.request.Request(
+              'https://xinpect.xingwangzhineng.com/api/ci/scan',
+              data=payload,
+              headers={
+                  'Content-Type': 'application/json',
+                  'X-API-Key': '${% raw %}{{ secrets.XINPECT_API_KEY }}{% endraw %}',
+                  'X-Requested-With': 'XMLHttpRequest',
+              }
+          )
+          with urllib.request.urlopen(req, timeout=300) as resp:
+              result = json.loads(resp.read())
+              with open('/tmp/xinpect_result.json', 'w') as f:
+                  json.dump(result, f)
+              print(f'Score: {result.get(\"score\")}')
+              print(f'Passed: {result.get(\"passed\")}')
+              print(f'Report: {result.get(\"report_url\")}')
+
+      - name: 质量门禁检查
+        if: steps.scan.outputs.skipped != 'true'
+        run: |
+          python3 -c "
+          import json, sys
+          with open('/tmp/xinpect_result.json') as f:
+              r = json.load(f)
+          if not r.get('passed'):
+              print(f'::error::质量门禁未通过! 评分 {r[\"score\"]} 低于阈值')
+              print(f'报告: {r[\"report_url\"]}')
+              sys.exit(1)
+          print(f'✅ 煋鉴质量门禁通过 (评分: {r[\"score\"]})')
+          "</div>
+            </li>
+            <li>
+                <strong>完成！</strong><br>
+                推送代码或提交 PR 时会自动触发扫描。扫描结果会作为 CI 检查项显示，不通过门禁阈值的提交会被拦截。
+            </li>
+        </ol>
+    </div>
+
+    <!-- GitLab CI -->
+    <div class="guide-content" id="tab-gitlab">
+        <ol class="step-list">
+            <li>
+                <strong>获取 API Key</strong><br>
+                在上方「API Keys」区域复制你的 API Key
+            </li>
+            <li>
+                <strong>添加 CI 变量</strong><br>
+                在 GitLab 项目中进入 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">Settings → CI/CD → Variables</code>，添加：
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>XINPECT_API_KEY    = 你的煋鉴 API Key    (Masked: ✅, Protected: ❌)
+XINPECT_SCAN_MODE   = {{ config.get('default_scan_mode', 'quick') }}
+XINPECT_THRESHOLD   = {{ config.get('default_threshold', 60) }}</div>
+            </li>
+            <li>
+                <strong>配置 .gitlab-ci.yml</strong><br>
+                在项目根目录创建或编辑 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">.gitlab-ci.yml</code>，添加：
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>xinpect-scan:
+  stage: test
+  image: python:3.11-slim
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^(main|master|develop)$/'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(main|master|develop)$/'
+    - when: manual
+      allow_failure: true
+  timeout: 10m
+
+  script:
+    # 收集代码文件
+    - |
+      python3 -c "
+      import json, os, sys
+      extensions = {'.py','.js','.ts','.jsx','.tsx','.java','.go',
+          '.c','.cpp','.h','.hpp','.cs','.rb','.php',
+          '.swift','.kt','.scala','.rs','.vue','.svelte',
+          '.html','.css','.scss','.sql','.sh','.yaml','.yml'}
+      ignore_dirs = {'node_modules','.git','__pycache__','.venv',
+          'venv','dist','build','.next','target','vendor'}
+      files = {}
+      for root, dirs, fnames in os.walk('.'):
+          dirs[:] = [d for d in dirs if d not in ignore_dirs]
+          for fn in fnames:
+              if os.path.splitext(fn)[1].lower() in extensions:
+                  fp = os.path.join(root, fn)
+                  rp = os.path.relpath(fp, '.')
+                  try:
+                      sz = os.path.getsize(fp)
+                      if 0 < sz <= 512000:
+                          with open(fp,'r',encoding='utf-8',errors='ignore') as f:
+                              files[rp] = f.read()
+                  except: pass
+                  if len(files) >= 200: break
+          if len(files) >= 200: break
+      with open('/tmp/xinpect_files.json','w') as f:
+          json.dump(files, f)
+      print(f'Collected {len(files)} files')
+      "
+    # 执行扫描
+    - |
+      python3 -c "
+      import json, sys, urllib.request, os
+      with open('/tmp/xinpect_files.json') as f:
+          code_files = json.load(f)
+      payload = json.dumps({
+          'code_files': code_files,
+          'scan_mode': os.environ.get('XINPECT_SCAN_MODE','quick'),
+          'threshold': int(os.environ.get('XINPECT_THRESHOLD','60')),
+          'repo': os.environ.get('CI_PROJECT_PATH',''),
+          'branch': os.environ.get('CI_COMMIT_REF_NAME',''),
+          'commit_sha': os.environ.get('CI_COMMIT_SHA',''),
+      }).encode()
+      req = urllib.request.Request(
+          'https://xinpect.xingwangzhineng.com/api/ci/scan',
+          data=payload,
+          headers={
+              'Content-Type': 'application/json',
+              'X-API-Key': os.environ['XINPECT_API_KEY'],
+              'X-Requested-With': 'XMLHttpRequest',
+          })
+      with urllib.request.urlopen(req, timeout=300) as resp:
+          result = json.loads(resp.read())
+          with open('/tmp/xinpect_result.json','w') as f:
+              json.dump(result, f)
+          score = result.get('score', 0)
+          passed = result.get('passed', False)
+          print(f'Score: {score}, Passed: {passed}')
+          print(f'Report: {result.get(\"report_url\",\"\")}')
+          if not passed:
+              sys.exit(1)
+      "
+
+  artifacts:
+    when: always
+    paths:
+      - /tmp/xinpect_result.json
+    expire_in: 30 days</div>
+            </li>
+            <li>
+                <strong>完成！</strong><br>
+                推送到 main/master/develop 分支或创建 Merge Request 时自动触发扫描。也可在 Pipeline 页面手动触发。
+            </li>
+        </ol>
+    </div>
+
+    <!-- CLI -->
+    <div class="guide-content" id="tab-cli">
+        <ol class="step-list">
+            <li>
+                <strong>下载 CLI 工具</strong><br>
+                下载煋鉴命令行扫描工具，支持 Python 3.7+，无需额外依赖：
+                <div class="download-cards">
+                    <a class="download-card" href="/static/ci-templates/xinpect-cli.py" download>
+                        <div class="icon">🐍</div>
+                        <div class="name">xinpect-cli.py</div>
+                        <div class="desc">Python CLI 工具 (无需安装)</div>
+                    </a>
+                </div>
+            </li>
+            <li>
+                <strong>配置 API Key</strong>
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button># 方式一：环境变量
+export XINPECT_API_KEY=你的API_Key
+
+# 方式二：命令行参数
+python xinpect-cli.py --api-key 你的API_Key</div>
+            </li>
+            <li>
+                <strong>执行扫描</strong>
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button># 扫描当前目录（使用默认 quick 模式）
+python xinpect-cli.py
+
+# 扫描指定目录
+python xinpect-cli.py --path /path/to/project
+
+# 使用深度扫描模式
+python xinpect-cli.py --mode deep
+
+# 设置质量门禁（低于 70 分返回非零退出码）
+python xinpect-cli.py --threshold 70 --fail-on-below
+
+# 忽略测试文件
+python xinpect-cli.py --ignore "tests,docs,mock"
+
+# 输出 JSON 格式结果
+python xinpect-cli.py --json</div>
+            </li>
+            <li>
+                <strong>集成到任意 CI 系统</strong><br>
+                CLI 工具适用于 Jenkins、CircleCI、Azure DevOps 或任何支持 Python 的 CI 系统。只需在流水线中调用：
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button># Jenkins Pipeline 示例
+stage('Code Quality') {
+    steps {
+        sh 'python xinpect-cli.py --path src --mode quick --fail-on-below --threshold 60'
+    }
+}</div>
+            </li>
+        </ol>
+    </div>
+
+    <!-- REST API -->
+    <div class="guide-content" id="tab-api">
+        <ol class="step-list">
+            <li>
+                <strong>API 概览</strong><br>
+                煋鉴提供 RESTful API，可以集成到任何自定义工作流：
+                <div style="margin-top:12px;">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                            <th style="text-align:left;padding:8px;color:var(--accent-orange);">接口</th>
+                            <th style="text-align:left;padding:8px;color:var(--accent-orange);">方法</th>
+                            <th style="text-align:left;padding:8px;color:var(--accent-orange);">说明</th>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                            <td style="padding:8px;font-family:monospace;font-size:12px;">/api/ci/scan</td>
+                            <td style="padding:8px;">POST</td>
+                            <td style="padding:8px;">提交代码文件进行扫描</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                            <td style="padding:8px;font-family:monospace;font-size:12px;">/api/scan/github</td>
+                            <td style="padding:8px;">POST</td>
+                            <td style="padding:8px;">通过 GitHub 仓库 URL 扫描</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                            <td style="padding:8px;font-family:monospace;font-size:12px;">/api/ci/config</td>
+                            <td style="padding:8px;">GET/POST</td>
+                            <td style="padding:8px;">获取/更新 CI 配置</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                            <td style="padding:8px;font-family:monospace;font-size:12px;">/api/scan/{id}/share</td>
+                            <td style="padding:8px;">POST</td>
+                            <td style="padding:8px;">生成分享链接</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:8px;font-family:monospace;font-size:12px;">/api/badge/{id}.svg</td>
+                            <td style="padding:8px;">GET</td>
+                            <td style="padding:8px;">获取评分徽章 SVG</td>
+                        </tr>
+                    </table>
+                </div>
+            </li>
+            <li>
+                <strong>请求示例</strong>
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>curl -X POST "https://xinpect.xingwangzhineng.com/api/ci/scan" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: 你的API_Key" \
+  -H "X-Requested-With: XMLHttpRequest" \
+  -d '{
+    "code_files": {
+      "src/main.py": "文件内容...",
+      "src/utils.py": "文件内容..."
+    },
+    "scan_mode": "quick",
+    "threshold": 60,
+    "repo": "my-project",
+    "branch": "main",
+    "commit_sha": "abc123"
+  }'</div>
+            </li>
+            <li>
+                <strong>响应示例</strong>
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>{
+  "status": "ok",
+  "scan_id": "ci_abc123",
+  "score": 85,
+  "passed": true,
+  "issues": {
+    "total": 3,
+    "critical": 0,
+    "warning": 2,
+    "info": 1
+  },
+  "scan_mode": "quick",
+  "report_url": "https://xinpect.xingwangzhineng.com/report/ci_abc123",
+  "badge_markdown": "[![煋鉴评分](.../api/badge/ci_abc123.svg)](...)",
+  "elapsed": 2.35,
+  "file_count": 12
+}</div>
+            </li>
+            <li>
+                <strong>添加评分徽章到 README</strong>
+                <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>[![煋鉴评分](https://xinpect.xingwangzhineng.com/api/badge/{scan_id}.svg)](https://xinpect.xingwangzhineng.com/report/{scan_id})</div>
+            </li>
+        </ol>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 扫描档位选择
+    let currentMode = '{{ config.get("default_scan_mode", "quick") }}';
+
+    function selectMode(mode) {
+        const card = document.querySelector('.mode-card[data-mode="' + mode + '"]');
+        if (card.classList.contains('disabled')) return;
+        currentMode = mode;
+        document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+    }
+
+    // 初始化选中
+    document.addEventListener('DOMContentLoaded', function() {
+        selectMode(currentMode);
+    });
+
+    // 阈值滑块
+    function updateThreshold(val) {
+        document.getElementById('thresholdValue').textContent = val;
+    }
+
+    // 标签页切换
+    function switchTab(tab) {
+        document.querySelectorAll('.guide-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.guide-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    // 保存配置
+    document.getElementById('ciConfigForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const data = {
+            default_scan_mode: currentMode,
+            default_threshold: parseInt(document.getElementById('thresholdSlider').value),
+            ignore_patterns: document.getElementById('ignorePatterns').value
+                .split(',').map(s => s.trim()).filter(s => s),
+            auto_share: document.getElementById('autoShare').checked,
+            fail_on_critical: document.getElementById('failOnCritical').checked,
+            fail_on_warning: document.getElementById('failOnWarning').checked,
+            fail_max_warnings: parseInt(document.getElementById('failMaxWarnings').value) || 0
+        };
+
+        fetch('/api/ci/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(resp => {
+            if (resp.status === 'ok') {
+                showToast('配置已保存', 'success');
+            } else {
+                showToast('保存失败: ' + (resp.message || '未知错误'), 'error');
+            }
+        })
+        .catch(err => showToast('网络错误: ' + err, 'error'));
+    });
+
+    // Toast 提示
+    function showToast(msg, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // 复制代码
+    function copyCode(btn) {
+        const block = btn.parentElement;
+        const text = block.textContent.replace('复制', '').trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = '已复制!';
+                setTimeout(() => btn.textContent = '复制', 2000);
+            }).catch(function() {
+                var ta = document.createElement('textarea');
+                ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); btn.textContent = '已复制!'; } catch(e) { alert('复制失败，请手动复制'); }
+                document.body.removeChild(ta);
+                setTimeout(() => btn.textContent = '复制', 2000);
+            });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); btn.textContent = '已复制!'; } catch(e) { alert('复制失败，请手动复制'); }
+            document.body.removeChild(ta);
+            setTimeout(() => btn.textContent = '复制', 2000);
+        }
+    }
+</script>
+{% endblock %}

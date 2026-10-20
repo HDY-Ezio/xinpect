@@ -1,0 +1,267 @@
+{% extends "dashboard/base.html" %}
+{% block extra_css %}
+<style>
+.compare-container { /* padding inherited from dashboard-content */ }
+
+/* 选择器 */
+.compare-selectors {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px;
+    align-items: end; margin-bottom: 24px;
+}
+@media (max-width: 768px) {
+    .compare-selectors { grid-template-columns: 1fr; }
+}
+.selector-group label {
+    display: block; font-size: 12px; color: var(--text-muted, #64748B);
+    margin-bottom: 6px; font-weight: 500;
+}
+.selector-group select {
+    width: 100%; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--border-color, #E2E8F0);
+    background: var(--bg-card, #FFFFFF); color: var(--text-primary, #0F172A);
+    font-size: 13px; cursor: pointer;
+}
+.selector-group select:focus { outline: none; border-color: #1A3A5C; }
+.compare-arrow {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: var(--text-muted, #64748B); padding-bottom: 8px;
+}
+.compare-btn {
+    grid-column: 1 / -1; justify-self: center;
+    padding: 10px 32px; border-radius: 10px; border: none;
+    background: #1A3A5C; color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+}
+.compare-btn:hover { background: #e55a2b; }
+.compare-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* 摘要条 */
+.diff-summary {
+    display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;
+    padding: 16px 20px; border-radius: 12px;
+    background: var(--bg-card, #FFFFFF); border: 1px solid var(--border-color, #E2E8F0);
+}
+.diff-stat {
+    display: flex; flex-direction: column; align-items: center; min-width: 80px;
+}
+.diff-stat .num { font-size: 28px; font-weight: 700; }
+.diff-stat .label { font-size: 11px; color: var(--text-muted, #64748B); margin-top: 2px; }
+.diff-stat.new .num { color: #ef4444; }
+.diff-stat.fixed .num { color: #22c55e; }
+.diff-stat.remaining .num { color: var(--text-secondary, #475569); }
+.diff-stat.score .num { color: #1A3A5C; }
+
+/* 问题列表 */
+.diff-sections { display: flex; flex-direction: column; gap: 20px; }
+.diff-section h3 {
+    font-size: 14px; font-weight: 600; margin: 0 0 10px 0;
+    display: flex; align-items: center; gap: 8px;
+}
+.diff-section h3 .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; padding: 0 6px;
+}
+.section-new h3 .badge { background: rgba(239,68,68,.15); color: #ef4444; }
+.section-fixed h3 .badge { background: rgba(34,197,94,.15); color: #22c55e; }
+.section-remaining h3 .badge { background: rgba(148,163,184,.15); color: #94a3b8; }
+
+.issue-item {
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 6px;
+    font-size: 13px; line-height: 1.5;
+    border-left: 3px solid transparent;
+}
+.section-new .issue-item {
+    background: rgba(239,68,68,.06); border-left-color: #ef4444;
+}
+.section-fixed .issue-item {
+    background: rgba(34,197,94,.06); border-left-color: #22c55e;
+}
+.section-remaining .issue-item {
+    background: rgba(148,163,184,.04); border-left-color: #4a5568;
+}
+.issue-item .issue-title { font-weight: 600; color: var(--text-primary, #0F172A); }
+.issue-item .issue-meta { font-size: 11px; color: var(--text-muted, #64748B); margin-top: 2px; }
+.issue-item .sev-tag {
+    display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    font-weight: 600; margin-right: 6px;
+}
+.sev-critical { background: rgba(239,68,68,.2); color: #ef4444; }
+.sev-high { background: rgba(249,115,22,.2); color: #f97316; }
+.sev-medium { background: rgba(234,179,8,.2); color: #eab308; }
+.sev-low { background: rgba(34,197,94,.2); color: #22c55e; }
+
+/* 空态 */
+.compare-empty {
+    text-align: center; padding: 60px 20px; color: var(--text-muted, #64748B);
+}
+.compare-empty .icon { font-size: 48px; margin-bottom: 12px; opacity: .5; }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="compare-container">
+    <h2 style="font-size:18px; font-weight:700; color:var(--text-primary, #0F172A); margin-bottom:6px;">🔀 扫描对比</h2>
+    <p class="page-desc">选择两次扫描结果对比，查看新增问题、已修复问题和持续存在的问题。行号变化不算新增。</p>
+
+    <!-- 选择器 -->
+    <div class="compare-selectors">
+        <div class="selector-group">
+            <label>基线扫描（旧）</label>
+            <select id="scanA"><option value="">加载中...</option></select>
+        </div>
+        <div class="compare-arrow">→</div>
+        <div class="selector-group">
+            <label>对比扫描（新）</label>
+            <select id="scanB"><option value="">加载中...</option></select>
+        </div>
+        <button class="compare-btn" id="compareBtn" onclick="doCompare()">开始对比</button>
+    </div>
+
+    <!-- 结果区域 -->
+    <div id="resultArea">
+        <div class="compare-empty">
+            <div class="icon">🔀</div>
+            <div>选择两次扫描进行对比，查看新增/修复/仍存在的问题</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const sevLabels = { critical: '致命', high: '高危', medium: '中危', low: '低危', info: '提示' };
+const sevClasses = { critical: 'sev-critical', high: 'sev-high', medium: 'sev-medium', low: 'sev-low', info: 'sev-low' };
+
+// 加载扫描列表
+function loadScanList() {
+    fetch('/api/scan/list?limit=50')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const scans = data.scans || [];
+            const selA = document.getElementById('scanA');
+            const selB = document.getElementById('scanB');
+            
+            selA.innerHTML = '<option value="">选择基线扫描...</option>';
+            selB.innerHTML = '<option value="">选择对比扫描...</option>';
+            
+            scans.forEach((s, i) => {
+                const label = `${s.created_at.substring(0, 16)} | ${s.score}分 ${s.grade} | ${s.title || '未命名'}`;
+                selA.innerHTML += `<option value="${s.scan_id}">${label}</option>`;
+                selB.innerHTML += `<option value="${s.scan_id}">${label}</option>`;
+            });
+            
+            // 默认选中最近两次
+            if (scans.length >= 2) {
+                selA.value = scans[1].scan_id;
+                selB.value = scans[0].scan_id;
+            }
+        });
+}
+
+function doCompare() {
+    const scanA = document.getElementById('scanA').value;
+    const scanB = document.getElementById('scanB').value;
+    if (!scanA || !scanB) { alert('请选择两次扫描'); return; }
+    if (scanA === scanB) { alert('请选择不同的扫描进行对比'); return; }
+
+    const btn = document.getElementById('compareBtn');
+    btn.disabled = true;
+    btn.textContent = '对比中...';
+    
+    document.getElementById('resultArea').innerHTML = '<div class="compare-empty">加载中...</div>';
+    
+    fetch(`/api/scan/diff?a=${scanA}&b=${scanB}`)
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = '开始对比';
+            
+            if (!data.success) {
+                document.getElementById('resultArea').innerHTML = `<div class="compare-empty">${data.error || '对比失败'}</div>`;
+                return;
+            }
+            renderDiff(data);
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.textContent = '开始对比';
+            document.getElementById('resultArea').innerHTML = `<div class="compare-empty">加载失败，请重试</div>`;
+        });
+}
+
+function renderDiff(data) {
+    const d = data.diff;
+    const s = d.summary;
+    const a = data.scan_a;
+    const b = data.scan_b;
+    
+    let html = '';
+    
+    // 摘要条
+    html += '<div class="diff-summary">';
+    html += `<div class="diff-stat new"><div class="num">${s.total_new}</div><div class="label">新增问题</div></div>`;
+    html += `<div class="diff-stat fixed"><div class="num">${s.total_fixed}</div><div class="label">已修复</div></div>`;
+    html += `<div class="diff-stat remaining"><div class="num">${s.total_remaining}</div><div class="label">仍存在</div></div>`;
+    html += `<div class="diff-stat score"><div class="num">${s.score_change > 0 ? '+' : ''}${s.score_change}</div><div class="label">得分变化</div></div>`;
+    html += `<div class="diff-stat"><div class="num" style="color:var(--text-secondary)">${a.score} → ${b.score}</div><div class="label">分数</div></div>`;
+    html += '</div>';
+    
+    // 问题列表
+    html += '<div class="diff-sections">';
+    
+    // 新增
+    if (d.new_issues.length > 0) {
+        html += '<div class="diff-section section-new">';
+        html += `<h3><span class="badge">${d.new_issues.length}</span> 新增问题</h3>`;
+        d.new_issues.forEach(issue => {
+            html += renderIssue(issue, 'new');
+        });
+        html += '</div>';
+    }
+    
+    // 已修复
+    if (d.fixed_issues.length > 0) {
+        html += '<div class="diff-section section-fixed">';
+        html += `<h3><span class="badge">${d.fixed_issues.length}</span> 已修复</h3>`;
+        d.fixed_issues.forEach(issue => {
+            html += renderIssue(issue, 'fixed');
+        });
+        html += '</div>';
+    }
+    
+    // 仍存在
+    if (d.remaining_issues.length > 0) {
+        html += '<div class="diff-section section-remaining">';
+        html += `<h3><span class="badge">${d.remaining_issues.length}</span> 仍存在</h3>`;
+        d.remaining_issues.slice(0, 20).forEach(issue => {
+            html += renderIssue(issue, 'remaining');
+        });
+        if (d.remaining_issues.length > 20) {
+            html += `<div style="text-align:center;padding:8px;font-size:12px;color:var(--text-muted)">还有 ${d.remaining_issues.length - 20} 个问题未显示</div>`;
+        }
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    
+    document.getElementById('resultArea').innerHTML = html;
+}
+
+function renderIssue(issue, type) {
+    const sev = issue.severity || 'medium';
+    const sevLabel = sevLabels[sev] || sev;
+    const sevClass = sevClasses[sev] || 'sev-medium';
+    
+    let html = '<div class="issue-item">';
+    html += `<span class="sev-tag ${sevClass}">${sevLabel}</span>`;
+    html += `<span class="issue-title">${issue.title || issue.check_id || '未知问题'}</span>`;
+    html += `<div class="issue-meta">${issue.file || ''}${issue.line ? ':' + issue.line : ''}`;
+    if (issue.check_id) html += ` · ${issue.check_id}`;
+    html += '</div></div>';
+    return html;
+}
+
+// 初始化
+loadScanList();
+</script>
+{% endblock %}

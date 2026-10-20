@@ -1,0 +1,223 @@
+# =============================================================
+# 煋鉴 Xinpect - GitHub Action 代码安全扫描
+# =============================================================
+# 使用方法：
+#   1. 将此文件放到仓库的 .github/workflows/ 目录下
+#   2. 在仓库 Settings > Secrets > Actions 中添加：
+#      - XINPECT_API_KEY: 你的煋鉴 API Key（在 https://xinpect.xingwangzhineng.com/dashboard/api-keys 获取）
+#   3. 推送代码或提交 PR 时自动触发扫描
+#
+# 可选环境变量（在 env 部分或步骤级别设置）：
+#   XINPECT_SCAN_MODE: 扫描档位 (free/quick/smart/deep)，默认 quick
+#   XINPECT_THRESHOLD: 质量门禁阈值 (0-100)，默认 60
+#   XINPECT_FAIL_ON_BELOW: 低于阈值时是否让 CI 失败 (true/false)，默认 true
+# =============================================================
+
+name: 煋鉴代码扫描
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+# 并发控制：同一 PR 只保留最新扫描
+concurrency:
+  group: xinpect-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XINPECT_SCAN_MODE: quick
+  XINPECT_THRESHOLD: "60"
+  XINPECT_FAIL_ON_BELOW: "true"
+
+jobs:
+  xinpect-scan:
+    name: 煋鉴代码扫描
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 收集代码文件
+        id: collect
+        run: |
+          python3 -c "
+          import json, os, glob, sys
+
+          # 支持的语言扩展
+          extensions = {
+              '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.go',
+              '.c', '.cpp', '.h', '.hpp', '.cs', '.rb', '.php',
+              '.swift', '.kt', '.scala', '.rs', '.vue', '.svelte',
+              '.html', '.css', '.scss', '.sql', '.sh', '.yaml', '.yml'
+          }
+
+          # 忽略的目录
+          ignore_dirs = {
+              'node_modules', '.git', '__pycache__', '.venv', 'venv',
+              'dist', 'build', '.next', '.nuxt', 'target', 'vendor',
+              '.tox', '.mypy_cache', '.pytest_cache', 'coverage',
+              '.github', '.idea', '.vscode'
+          }
+
+          files = {}
+          max_files = 200
+          max_file_kb = 500
+
+          for root, dirs, filenames in os.walk('.'):
+              # 过滤忽略目录
+              dirs[:] = [d for d in dirs if d not in ignore_dirs
+                         and not d.startswith('.') and d != 'test' * 100]
+
+              for fn in filenames:
+                  ext = os.path.splitext(fn)[1].lower()
+                  if ext not in extensions:
+                      continue
+                  filepath = os.path.join(root, fn)
+                  relpath = os.path.relpath(filepath, '.')
+
+                  try:
+                      size = os.path.getsize(filepath)
+                      if size > max_file_kb * 1024 or size == 0:
+                          continue
+                      with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                          content = f.read()
+                      if content.strip():
+                          files[relpath] = content
+                  except Exception:
+                      continue
+
+                  if len(files) >= max_files:
+                      break
+              if len(files) >= max_files:
+                  break
+
+          if not files:
+              print('No scannable files found, skipping.')
+              sys.exit(0)
+
+          # 写入临时文件
+          with open('/tmp/xinpect_files.json', 'w') as f:
+              json.dump(files, f)
+
+          total_lines = sum(c.count(chr(10)) + 1 for c in files.values())
+          print(f'Collected {len(files)} files, {total_lines} lines')
+          print(f'::notice::煋鉴扫描: {len(files)} 个文件, {total_lines} 行代码')
+          "
+
+      - name: 执行煋鉴扫描
+        id: scan
+        if: steps.collect.outcome == 'success'
+        env:
+          XINPECT_API_KEY: ${{ secrets.XINPECT_API_KEY }}
+        run: |
+          if [ ! -f /tmp/xinpect_files.json ]; then
+            echo "No files to scan"
+            echo "skipped=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "skipped=false" >> $GITHUB_OUTPUT
+
+          # 构建请求
+          python3 -c "
+          import json, sys, urllib.request
+
+          with open('/tmp/xinpect_files.json') as f:
+              code_files = json.load(f)
+
+          payload = json.dumps({
+              'code_files': code_files,
+              'scan_mode': '${{ env.XINPECT_SCAN_MODE }}',
+              'threshold': int('${{ env.XINPECT_THRESHOLD }}'),
+              'repo': '${{ github.repository }}',
+              'branch': '${{ github.ref_name }}',
+              'commit_sha': '${{ github.sha }}',
+          }).encode()
+
+          req = urllib.request.Request(
+              'https://xinpect.xingwangzhineng.com/api/ci/scan',
+              data=payload,
+              headers={
+                  'Content-Type': 'application/json',
+                  'X-API-Key': '${{ secrets.XINPECT_API_KEY }}',
+                  'X-Requested-With': 'XMLHttpRequest',
+              }
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=300) as resp:
+                  result = json.loads(resp.read())
+                  with open('/tmp/xinpect_result.json', 'w') as f:
+                      json.dump(result, f)
+                  print(f'Score: {result.get(\"score\", \"?\")}')
+                  print(f'Passed: {result.get(\"passed\", \"?\")}')
+                  print(f'Report: {result.get(\"report_url\", \"\")}')
+          except urllib.error.HTTPError as e:
+              body = e.read().decode()
+              print(f'Scan failed: {e.code} - {body}')
+              sys.exit(1)
+          "
+
+          # 读取结果
+          python3 -c "
+          import json
+          with open('/tmp/xinpect_result.json') as f:
+              r = json.load(f)
+          print(f'score={r.get(\"score\", 0)}' + '>>' + '$GITHUB_OUTPUT')
+          print(f'passed={str(r.get(\"passed\", False)).lower()}' + '>>' + '$GITHUB_OUTPUT')
+          print(f'report_url={r.get(\"report_url\", \"\")}' + '>>' + '$GITHUB_OUTPUT')
+          print(f'badge_md={r.get(\"badge_markdown\", \"\")}' + '>>' + '$GITHUB_OUTPUT')
+          issues = r.get('issues', {})
+          print(f'issues_total={issues.get(\"total\", 0)}' + '>>' + '$GITHUB_OUTPUT')
+          print(f'issues_critical={issues.get(\"critical\", 0)}' + '>>' + '$GITHUB_OUTPUT')
+          " >> $GITHUB_OUTPUT
+
+      - name: 生成 PR 评论
+        if: github.event_name == 'pull_request' && steps.scan.outputs.skipped != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = '${{ steps.scan.outputs.score }}';
+            const passed = '${{ steps.scan.outputs.passed }}' === 'true';
+            const reportUrl = '${{ steps.scan.outputs.report_url }}';
+            const issuesTotal = '${{ steps.scan.outputs.issues_total }}';
+            const issuesCritical = '${{ steps.scan.outputs.issues_critical }}';
+
+            const emoji = passed ? '✅' : '❌';
+            const status = passed ? '通过' : '未通过';
+
+            const body = `## ${emoji} 煋鉴代码扫描${status}
+
+            | 项目 | 结果 |
+            |------|------|
+            | 质量评分 | **${score}/100** |
+            | 门禁状态 | ${passed ? '✅ 通过' : '❌ 未通过 (阈值: ${{ env.XINPECT_THRESHOLD }})'} |
+            | 问题总数 | ${issuesTotal} |
+            | 严重问题 | ${issuesCritical} |
+            | 详细报告 | [查看完整报告](${reportUrl}) |
+
+            ---
+            <sub>由 <a href="https://xinpect.xingwangzhineng.com">煋鉴 Xinpect</a> 自动扫描</sub>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: 质量门禁检查
+        if: steps.scan.outputs.skipped != 'true' && env.XINPECT_FAIL_ON_BELOW == 'true'
+        run: |
+          if [ "${{ steps.scan.outputs.passed }}" != "true" ]; then
+            echo "::error::煋鉴质量门禁未通过！评分 ${{ steps.scan.outputs.score }} 低于阈值 ${{ env.XINPECT_THRESHOLD }}"
+            echo "详细报告: ${{ steps.scan.outputs.report_url }}"
+            exit 1
+          fi
+          echo "✅ 煋鉴质量门禁通过 (评分: ${{ steps.scan.outputs.score }})"

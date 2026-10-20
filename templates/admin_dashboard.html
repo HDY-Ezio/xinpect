@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}煋鉴平台看板{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:24px 16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+    <div>
+      <h1 style="font-size:24px;font-weight:700;color:#1a1a1a;">煋鉴平台看板</h1>
+      <p style="font-size:13px;color:#888;margin-top:4px;">实时扫描数据与质量概览</p>
+    </div>
+    <select id="daysRange" onchange="loadStats()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+      <option value="7">最近7天</option>
+      <option value="30" selected>最近30天</option>
+      <option value="90">最近90天</option>
+    </select>
+  </div>
+
+  <!-- KPI Cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:13px;color:#888;">总扫描次数</div>
+      <div id="kpi-total" style="font-size:28px;font-weight:700;color:#1A3A5C;margin-top:4px;">-</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:13px;color:#888;">今日扫描</div>
+      <div id="kpi-today" style="font-size:28px;font-weight:700;color:#4CAF50;margin-top:4px;">-</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:13px;color:#888;">活跃用户数</div>
+      <div id="kpi-users" style="font-size:28px;font-weight:700;color:#2196F3;margin-top:4px;">-</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:13px;color:#888;">平均得分</div>
+      <div id="kpi-avg" style="font-size:28px;font-weight:700;color:#9C27B0;margin-top:4px;">-</div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">质量趋势</div>
+      <canvas id="trendChart" height="220"></canvas>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">等级分布</div>
+      <canvas id="gradeChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">扫描来源</div>
+      <canvas id="sourceChart" height="220"></canvas>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">编程语言 TOP 10</div>
+      <canvas id="langChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Top Users -->
+  <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+    <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">活跃用户 TOP 5</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="border-bottom:1px solid #eee;text-align:left;">
+        <th style="padding:8px 0;color:#888;">排名</th>
+        <th style="padding:8px 0;color:#888;">用户</th>
+        <th style="padding:8px 0;color:#888;">扫描次数</th>
+        <th style="padding:8px 0;color:#888;">平均得分</th>
+      </tr></thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let trendChart, gradeChart, sourceChart, langChart;
+
+function loadStats() {
+    var days = document.getElementById('daysRange').value;
+    fetch('/api/admin/platform-stats?days=' + days)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var s = data.summary;
+            document.getElementById('kpi-total').textContent = s.total_scans;
+            document.getElementById('kpi-today').textContent = s.today_scans;
+            document.getElementById('kpi-users').textContent = s.total_users;
+            document.getElementById('kpi-avg').textContent = s.avg_score;
+
+            // Trend chart
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(document.getElementById('trendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.trend.map(function(t) { return t.date.slice(5); }),
+                    datasets: [
+                        { label: '平均得分', data: data.trend.map(function(t) { return t.avg_score; }), borderColor: '#1A3A5C', backgroundColor: 'rgba(26,58,92,0.1)', fill: true, tension: 0.3, yAxisID: 'y' },
+                        { label: '扫描次数', data: data.trend.map(function(t) { return t.count; }), borderColor: '#2196F3', type: 'bar', backgroundColor: 'rgba(33,150,243,0.3)', yAxisID: 'y1', barPercentage: 0.4 }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { min: 60, max: 100, position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true } } }
+            });
+
+            // Grade pie
+            if (gradeChart) gradeChart.destroy();
+            var gradeColors = { A: '#4CAF50', B: '#8BC34A', C: '#FF9800', D: '#f44336' };
+            gradeChart = new Chart(document.getElementById('gradeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data.grades),
+                    datasets: [{ data: Object.values(data.grades), backgroundColor: Object.keys(data.grades).map(function(g) { return gradeColors[g] || '#ccc'; }) }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Source pie
+            if (sourceChart) sourceChart.destroy();
+            var sourceLabels = { upload: '网页上传', github: 'GitHub', ci: 'CI/CD' };
+            sourceChart = new Chart(document.getElementById('sourceChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data.sources).map(function(k) { return sourceLabels[k] || k; }),
+                    datasets: [{ data: Object.values(data.sources), backgroundColor: ['#1A3A5C', '#2196F3', '#9C27B0'] }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Language bar
+            if (langChart) langChart.destroy();
+            langChart = new Chart(document.getElementById('langChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data.languages),
+                    datasets: [{ label: '扫描次数', data: Object.values(data.languages), backgroundColor: 'rgba(26,58,92,0.7)', borderRadius: 4 }]
+                },
+                options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            // User table
+            var tbody = document.getElementById('userTable');
+            tbody.innerHTML = '';
+            data.top_users.forEach(function(u, i) {
+                var tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #f5f5f5';
+                tr.innerHTML = '<td style="padding:10px 0;font-weight:600;color:#1A3A5C;">#' + (i+1) + '</td><td style="padding:10px 0;">' + u.email + '</td><td style="padding:10px 0;">' + u.scans + '</td><td style="padding:10px 0;">' + u.avg_score + '</td>';
+                tbody.appendChild(tr);
+            });
+        });
+}
+
+loadStats();
+</script>
+</div>
+{% endblock %}

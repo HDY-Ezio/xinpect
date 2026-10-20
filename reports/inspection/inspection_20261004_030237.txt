@@ -1,0 +1,50 @@
+煋鉴每日质检报告 - 2026-10-04 03:02:37
+
+[1. 服务健康检查]
+  PASS: xinpect-website 运行状态
+  PASS: xinpect-scanner-green 运行状态
+  PASS: xinpect-scanner-blue 运行状态
+  PASS: xinpect-pay 运行状态
+
+[2. 端口可用性检查]
+  PASS: 端口 8621 (website)
+  PASS: 端口 8620 (scanner-green)
+  PASS: 端口 8622 (scanner-blue)
+  PASS: 端口 8765 (pay)
+  PASS: 端口 8001 (energy-valve)
+
+[3. 引擎模块语法检查 (py_compile)]
+  PASS: Python文件语法编译 (1683 OK, 0 FAIL)
+
+[4. xss_vectors.py 语法验证]
+  PASS: xss_vectors.py 语法
+
+[5. SSRF constants.py 完整性检查]
+  PASS: constants.py 必需变量 (8/8)
+
+[6. 积分竞态修复回归]
+  PASS: scoring.py BEGIN IMMEDIATE 事务
+
+[7. 退款逻辑修复回归]
+  PASS: 退款重试机制
+  PASS: 退款无VIP拦截
+
+[8. 启动日志WARNING检查（仅最近启动）]
+  PASS: 最近启动日志无WARNING/ERROR
+
+[8b. 服务可靠性检查（近24h故障计数）]
+  PASS: xinpect-website 稳定运行 | 24h故障0次 | 累计重启0次
+  PASS: xinpect-scanner-green 稳定运行 | 24h故障0次 | 累计重启0次
+  PASS: xinpect-scanner-blue 稳定运行 | 24h故障0次 | 累计重启0次
+  PASS: xinpect-pay 稳定运行 | 24h故障0次 | 累计重启0次
+
+[9. 系统资源检查]
+  PASS: 磁盘使用率 55%
+  PASS: 可用内存占比 35%
+  PASS: CPU负载 1.4
+
+[10. 数据库完整性]
+  PASS: 数据库完整性 (xinpect.db)
+
+总计: 24 通过, 0 失败, 0 警告
+结论: ALL CLEAR ✅

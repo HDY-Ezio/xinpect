@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 煋鉴 Xinpect{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="container-sm">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo" style="justify-content:center;margin-bottom:16px;">
+                    <div class="logo-icon">X</div>
+                    <span class="logo-text">煋鉴 Xinpect</span>
+                </div>
+                <h2>创建账号</h2>
+                <p>注册即享每日 10 次免费检测</p>
+            </div>
+
+            <div id="invite-banner" style="display:none;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:1px solid #93C5FD;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">
+                <span style="font-size:13px;color:#92400e;">&#127873; 你正在通过好友邀请注册，充值即享推荐奖励！</span>
+            </div>
+
+            <form method="POST" action="{{ url_for('register') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label class="form-label">邮箱地址</label>
+                    <input type="email" name="email" class="form-input {% if error_email %}error{% endif %}" placeholder="your@email.com" value="{{ email or '' }}" required>
+                    {% if error_email %}
+                    <div class="form-error">{{ error_email }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" name="password" class="form-input {% if error_password %}error{% endif %}" placeholder="至少 6 位字符" required>
+                    <div class="form-hint">密码至少 6 位，建议包含字母和数字</div>
+                    {% if error_password %}
+                    <div class="form-error">{{ error_password }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">确认密码</label>
+                    <input type="password" name="confirm_password" class="form-input {% if error_confirm %}error{% endif %}" placeholder="再次输入密码" required>
+                    {% if error_confirm %}
+                    <div class="form-error">{{ error_confirm }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group" id="ref-code-group" style="display:none;">
+                    <label class="form-label">推荐码 <span style="color:var(--text-muted);font-weight:400;font-size:12px;">（选填）</span></label>
+                    <input type="text" name="ref_code" class="form-input" placeholder="如好友推荐，请输入6位推荐码" maxlength="10" style="text-transform:uppercase;letter-spacing:2px;font-family:monospace;">
+                    <div class="form-hint">好友推荐码为空时可不填，直接注册即可</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-block">注册</button>
+            </form>
+
+            <div class="auth-footer">
+                已有账号？<a href="{{ url_for('login') }}">立即登录</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function() {
+    // 显示邀请横幅 + 推荐码区域
+    var params = new URLSearchParams(window.location.search);
+    var ref = params.get('ref');
+    var refGroup = document.getElementById('ref-code-group');
+    var refInput = refGroup ? refGroup.querySelector('input') : null;
+    if (ref) {
+        var banner = document.getElementById('invite-banner');
+        if (banner) banner.style.display = 'block';
+        // 存 cookie（30天）
+        document.cookie = 'ref_code=' + ref + ';max-age=' + (30*24*3600) + ';path=/';
+        // 显示推荐码区域并预填
+        if (refGroup) { refGroup.style.display = 'block'; }
+        if (refInput) { refInput.value = ref.toUpperCase(); refInput.readOnly = true; }
+    } else {
+        // 没有URL参数，检查是否有cookie
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var c = cookies[i].trim();
+            if (c.indexOf('ref_code=') === 0) {
+                var code = c.substring(9);
+                if (code) {
+                    if (refGroup) { refGroup.style.display = 'block'; }
+                    if (refInput) { refInput.value = code.toUpperCase(); refInput.readOnly = true; }
+                    var banner = document.getElementById('invite-banner');
+                    if (banner) banner.style.display = 'block';
+                    break;
+                }
+            }
+        }
+    }
+    // 如果没有cookie也没有URL参数，也显示推荐码输入框让用户手动填
+    if (!ref && refGroup) {
+        refGroup.style.display = 'block';
+    }
+})();
+</script>
+{% endblock %}

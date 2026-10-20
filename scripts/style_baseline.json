@@ -1,0 +1,24 @@
+{
+  "baseline_date": "2026-10-16",
+  "baseline_total": 146,
+  "files": {
+    "admin_dashboard.html": 20,
+    "base.html": 11,
+    "dashboard/account.html": 23,
+    "dashboard/alerts.html": 6,
+    "dashboard/api_usage.html": 4,
+    "dashboard/base.html": 10,
+    "dashboard/benchmark.html": 3,
+    "dashboard/ci_setup.html": 1,
+    "dashboard/gates.html": 1,
+    "dashboard/overview.html": 26,
+    "dashboard/recharge.html": 1,
+    "dashboard/recommend.html": 10,
+    "dashboard/repos.html": 4,
+    "dashboard/team.html": 1,
+    "dashboard/team_detail.html": 1,
+    "dashboard/team_settings.html": 4,
+    "register.html": 1,
+    "upload.html": 19
+  }
+}

@@ -1,0 +1,178 @@
+{% extends "dashboard/base.html" %}
+{% block title %}基准测试{% endblock %}
+{% block page_title %}基准测试 (Benchmark){% endblock %}
+{% block page_desc %}标注集管理与检测能力评估{% endblock %}
+
+{% block content %}
+<style>
+.bench-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.bench-card { background: #fff; border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.bench-card .value { font-size: 2.2rem; font-weight: 700; color: #1A3A5C; }
+.bench-card .label { font-size: 0.85rem; color: #666; margin-top: 4px; }
+.bench-section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.bench-section h3 { font-size: 1.1rem; margin-bottom: 16px; color: #333; }
+.bench-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.bench-table th, .bench-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+.bench-table th { background: #fafafa; font-weight: 600; color: #555; }
+.bench-table tr:hover { background: #fff8f5; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+.badge-tp { background: #e6f7ee; color: #1a9a54; }
+.badge-fp { background: #fff3e0; color: #e67700; }
+.btn-run { background: #1A3A5C; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+.btn-run:hover { background: #e55a2b; }
+.btn-run:disabled { background: #ccc; cursor: not-allowed; }
+#run-status { margin-left: 12px; color: #666; font-size: 0.85rem; }
+</style>
+
+<div class="bench-grid">
+    <div class="bench-card">
+        <div class="value" id="stat-precision">--</div>
+        <div class="label">准确率 (Precision)</div>
+    </div>
+    <div class="bench-card">
+        <div class="value" id="stat-recall">--</div>
+        <div class="label">召回率 (Recall)</div>
+    </div>
+    <div class="bench-card">
+        <div class="value" id="stat-f1">--</div>
+        <div class="label">F1 Score</div>
+    </div>
+    <div class="bench-card">
+        <div class="value" id="stat-fpr">--</div>
+        <div class="label">误报率 (FPR)</div>
+    </div>
+</div>
+
+<div class="bench-section">
+    <h3>📊 标注集概览</h3>
+    <div id="dataset-stats">加载中...</div>
+</div>
+
+<div class="bench-section">
+    <h3>📈 按严重级别</h3>
+    <table class="bench-table" id="severity-table">
+        <thead><tr><th>级别</th><th>准确率</th><th>召回率</th><th>F1</th><th>TP</th><th>FP</th><th>FN</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="bench-section">
+    <h3>🌐 按语言</h3>
+    <table class="bench-table" id="language-table">
+        <thead><tr><th>语言</th><th>准确率</th><th>召回率</th><th>F1</th><th>TP</th><th>FP</th><th>FN</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="bench-section">
+    <h3>🕐 历史趋势</h3>
+    <table class="bench-table" id="history-table">
+        <thead><tr><th>运行名称</th><th>样本数</th><th>准确率</th><th>召回率</th><th>F1</th><th>误报率</th><th>时间</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="bench-section">
+    <h3>🚀 操作</h3>
+    <button class="btn-run" id="btn-run" onclick="runBenchmark()">运行 Benchmark</button>
+    <span id="run-status"></span>
+</div>
+
+<script>
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+
+function loadLatest() {
+    fetch('/api/v1/benchmark/latest')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (!d.available) return;
+        document.getElementById('stat-precision').textContent = pct(d.precision_score);
+        document.getElementById('stat-recall').textContent = pct(d.recall_score);
+        document.getElementById('stat-f1').textContent = pct(d.f1_score);
+        document.getElementById('stat-fpr').textContent = pct(d.false_positive_rate);
+
+        if (d.by_severity) {
+            var tbody = document.querySelector('#severity-table tbody');
+            tbody.innerHTML = '';
+            Object.keys(d.by_severity).sort().forEach(function(sev) {
+                var m = d.by_severity[sev];
+                tbody.innerHTML += '<tr><td><strong>' + sev + '</strong></td><td>' +
+                    pct(m.precision) + '</td><td>' + pct(m.recall) + '</td><td>' +
+                    pct(m.f1) + '</td><td>' + m.tp + '</td><td>' + m.fp + '</td><td>' + m.fn + '</td></tr>';
+            });
+        }
+
+        if (d.by_language) {
+            var tbody2 = document.querySelector('#language-table tbody');
+            tbody2.innerHTML = '';
+            Object.keys(d.by_language).sort().forEach(function(lang) {
+                var m = d.by_language[lang];
+                tbody2.innerHTML += '<tr><td><strong>' + lang + '</strong></td><td>' +
+                    pct(m.precision) + '</td><td>' + pct(m.recall) + '</td><td>' +
+                    pct(m.f1) + '</td><td>' + m.tp + '</td><td>' + m.fp + '</td><td>' + m.fn + '</td></tr>';
+            });
+        }
+    });
+}
+
+function loadDatasetStats() {
+    fetch('/api/v1/benchmark/stats')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.total === 0) { document.getElementById('dataset-stats').textContent = '标注集为空'; return; }
+        var html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">';
+        html += '<div><strong style="font-size:1.5rem;color:#333">' + d.total + '</strong><br><small style="color:#666">总样本</small></div>';
+        html += '<div><strong style="font-size:1.5rem;color:#1a9a54">' + d.true_positive + '</strong><br><small style="color:#666">True Positive</small></div>';
+        html += '<div><strong style="font-size:1.5rem;color:#e67700">' + d.false_positive + '</strong><br><small style="color:#666">False Positive</small></div>';
+        html += '</div>';
+        html += '<div style="margin-top:16px"><strong>语言分布: </strong>';
+        var langs = d.by_language || {};
+        Object.keys(langs).forEach(function(k) { html += '<span class="badge badge-tp">' + k + ' ' + langs[k] + '</span> '; });
+        html += '</div>';
+        html += '<div style="margin-top:8px"><strong>漏洞类型: </strong>';
+        var types = d.by_issue_type || {};
+        Object.keys(types).forEach(function(k) { html += '<span class="badge badge-fp">' + k + ' ' + types[k] + '</span> '; });
+        html += '</div>';
+        document.getElementById('dataset-stats').innerHTML = html;
+    });
+}
+
+function loadHistory() {
+    fetch('/api/v1/benchmark/results?limit=10')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        var tbody = document.querySelector('#history-table tbody');
+        tbody.innerHTML = '';
+        d.results.forEach(function(r) {
+            tbody.innerHTML += '<tr><td>' + r.run_name + '</td><td>' + r.total_samples +
+                '</td><td>' + pct(r.precision_score) + '</td><td>' + pct(r.recall_score) +
+                '</td><td>' + pct(r.f1_score) + '</td><td>' + pct(r.false_positive_rate) +
+                '</td><td>' + r.created_at + '</td></tr>';
+        });
+    });
+}
+
+function runBenchmark() {
+    var btn = document.getElementById('btn-run');
+    var status = document.getElementById('run-status');
+    btn.disabled = true;
+    status.textContent = '运行中...';
+    fetch('/api/v1/benchmark/run', {method: 'POST'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        status.textContent = '完成!';
+        btn.disabled = false;
+        loadLatest();
+        loadHistory();
+    })
+    .catch(function(e) {
+        status.textContent = '失败: ' + e.message;
+        btn.disabled = false;
+    });
+}
+
+loadLatest();
+loadDatasetStats();
+loadHistory();
+</script>
+{% endblock %}

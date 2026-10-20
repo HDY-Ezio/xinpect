@@ -1,0 +1,825 @@
+<!-- 
+  煋鉴新用户引导系统 (Onboarding)
+  文件路径: /opt/xinpect-website/templates/onboarding.html
+  品牌色: #FF6B35 (橙色)
+  设计: 3步引导流程 + 响应式 + 动画过渡
+-->
+<div id="onboarding-overlay" class="onboarding-overlay" style="display:none;">
+  <div class="onboarding-container">
+    <!-- 步骤指示器 -->
+    <div class="onboarding-stepper">
+      <div class="step-dot active" data-step="1"></div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="2"></div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="3"></div>
+    </div>
+
+    <!-- Step 1: 欢迎页 -->
+    <div class="onboarding-step active" id="onboard-step-1">
+      <div class="onboarding-icon">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <rect width="64" height="64" rx="16" fill="#FF6B35" fill-opacity="0.1"/>
+          <path d="M32 16L44 24V40L32 48L20 40V24L32 16Z" stroke="#FF6B35" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M32 28C34.2091 28 36 26.2091 36 24C36 21.7909 34.2091 20 32 20C29.7909 20 28 21.7909 28 24C28 26.2091 29.7909 28 32 28Z" fill="#FF6B35"/>
+          <path d="M26 36H38" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+          <path d="M28 40H36" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="onboarding-title">欢迎使用煋鉴！</h1>
+      <p class="onboarding-desc">AI驱动的代码质量扫描工具，5秒发现代码问题</p>
+      <div class="onboarding-features">
+        <div class="feature-item">
+          <span class="feature-icon">🔍</span>
+          <span>8大引擎并行检测</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🛡️</span>
+          <span>2400+检测规则</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">⚡</span>
+          <span>支持17种编程语言</span>
+        </div>
+      </div>
+      <button class="onboarding-btn primary" onclick="goToStep(2)">
+        开始体验
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M6 3L11 8L6 13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Step 2: 选择扫描方式 -->
+    <div class="onboarding-step" id="onboard-step-2">
+      <h2 class="onboarding-title">选择你的扫描方式</h2>
+      <p class="onboarding-desc">三种方式，选最适合你的</p>
+      
+      <div class="scan-method-cards">
+        <!-- 上传文件 -->
+        <div class="method-card" onclick="selectScanMethod('upload')">
+          <div class="method-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="8" fill="#FF6B35" fill-opacity="0.1"/>
+              <path d="M16 10V22M16 10L12 14M16 10L20 14" stroke="#FF6B35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 22H22" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="method-content">
+            <h3>上传代码文件</h3>
+            <p>上传单个文件或压缩包，立即扫描</p>
+          </div>
+          <span class="method-arrow">→</span>
+        </div>
+
+        <!-- CI/CD集成 -->
+        <div class="method-card" onclick="selectScanMethod('cicd')">
+          <div class="method-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="8" fill="#FF6B35" fill-opacity="0.1"/>
+              <path d="M10 16C10 12.6863 12.6863 10 16 10C19.3137 10 22 12.6863 22 16C22 19.3137 19.3137 22 16 22" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+              <path d="M16 22C16 22 14 20 14 18" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="16" cy="16" r="2" fill="#FF6B35"/>
+            </svg>
+          </div>
+          <div class="method-content">
+            <h3>CI/CD 集成</h3>
+            <p>集成到 GitHub/GitLab，自动扫描每次提交</p>
+          </div>
+          <span class="method-arrow">→</span>
+        </div>
+
+        <!-- 命令行工具 -->
+        <div class="method-card" onclick="selectScanMethod('cli')">
+          <div class="method-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="8" fill="#FF6B35" fill-opacity="0.1"/>
+              <rect x="8" y="10" width="16" height="12" rx="2" stroke="#FF6B35" stroke-width="2"/>
+              <path d="M11 15L13 17L11 19" stroke="#FF6B35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15 19H19" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="method-content">
+            <h3>命令行工具</h3>
+            <p>使用 CLI 工具在本地扫描</p>
+          </div>
+          <span class="method-arrow">→</span>
+        </div>
+      </div>
+
+      <div class="onboarding-actions">
+        <button class="onboarding-btn ghost" onclick="skipOnboarding()">跳过，稍后再设置</button>
+      </div>
+    </div>
+
+    <!-- Step 3: 完成引导 -->
+    <div class="onboarding-step" id="onboard-step-3">
+      <div class="onboarding-icon success">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="24" fill="#10B981" fill-opacity="0.1"/>
+          <path d="M24 32L30 38L40 26" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 class="onboarding-title">太棒了，准备就绪！</h2>
+      <p class="onboarding-desc">你可以随时上传代码开始扫描</p>
+      
+      <div class="onboarding-tips">
+        <div class="tip-item">
+          <span class="tip-dot"></span>
+          扫描报告会自动保存，随时查看历史
+        </div>
+        <div class="tip-item">
+          <span class="tip-dot"></span>
+          支持 Python / Java / Go / JS 等 17 种语言
+        </div>
+        <div class="tip-item">
+          <span class="tip-dot"></span>
+          设置中可重新体验引导流程
+        </div>
+      </div>
+
+      <div class="onboarding-actions">
+        <button class="onboarding-btn primary" onclick="goToDashboard()">
+          开始扫描
+        </button>
+        <button class="onboarding-btn outline" onclick="goToDashboard()">
+          探索更多功能
+        </button>
+      </div>
+    </div>
+
+    <!-- 关闭按钮 -->
+    <button class="onboarding-close" onclick="skipOnboarding()" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- 轻量提示（非首次登录但未扫描过） -->
+<div id="onboarding-nudge" class="onboarding-nudge" style="display:none;">
+  <div class="nudge-content">
+    <span class="nudge-icon">👋</span>
+    <span class="nudge-text">上传你的第一个代码文件，开始体验煋鉴</span>
+    <a href="/upload" class="nudge-btn">立即上传 →</a>
+    <button class="nudge-dismiss" onclick="dismissNudge()" aria-label="不再显示">×</button>
+  </div>
+</div>
+
+<style>
+/* ============================================================
+   煋鉴新用户引导系统样式
+   品牌色: #FF6B35
+   ============================================================ */
+
+/* --- 遮罩层 --- */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+  padding: 20px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- 容器 --- */
+.onboarding-container {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- 步骤指示器 --- */
+.onboarding-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 32px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-color, #e5e7eb);
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  background: #FF6B35;
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.2);
+}
+
+.step-dot.completed {
+  background: #10B981;
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border-color, #e5e7eb);
+  transition: background 0.3s ease;
+}
+
+.step-line.completed {
+  background: #10B981;
+}
+
+/* --- 步骤内容 --- */
+.onboarding-step {
+  display: none;
+  text-align: center;
+  animation: fadeStep 0.3s ease;
+}
+
+.onboarding-step.active {
+  display: block;
+}
+
+@keyframes fadeStep {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- 图标 --- */
+.onboarding-icon {
+  margin-bottom: 20px;
+  display: inline-block;
+}
+
+/* --- 标题 --- */
+.onboarding-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.onboarding-desc {
+  font-size: 15px;
+  color: var(--text-secondary, #6b7280);
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+/* --- 特性列表 (Step 1) --- */
+.onboarding-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-primary, #111827);
+}
+
+.feature-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* --- 扫描方式卡片 (Step 2) --- */
+.scan-method-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.method-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.method-card:hover {
+  border-color: #FF6B35;
+  background: rgba(255, 107, 53, 0.03);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.1);
+}
+
+.method-icon {
+  flex-shrink: 0;
+}
+
+.method-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.method-content h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 2px;
+}
+
+.method-content p {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.method-arrow {
+  color: var(--text-secondary, #6b7280);
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.method-card:hover .method-arrow {
+  transform: translateX(3px);
+  color: #FF6B35;
+}
+
+/* --- 完成页提示 (Step 3) --- */
+.onboarding-tips {
+  text-align: left;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 12px;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  padding: 6px 0;
+}
+
+.tip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FF6B35;
+  flex-shrink: 0;
+}
+
+/* --- 按钮 --- */
+.onboarding-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.onboarding-btn.primary {
+  background: #FF6B35;
+  color: #fff;
+}
+
+.onboarding-btn.primary:hover {
+  background: #e55a2b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.onboarding-btn.outline {
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.onboarding-btn.outline:hover {
+  border-color: #FF6B35;
+  color: #FF6B35;
+}
+
+.onboarding-btn.ghost {
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+.onboarding-btn.ghost:hover {
+  color: var(--text-primary, #111827);
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* --- 关闭按钮 --- */
+.onboarding-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.onboarding-close:hover {
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+/* --- 轻量提示条 --- */
+.onboarding-nudge {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  animation: slideUpNudge 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpNudge {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.nudge-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+}
+
+.nudge-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.nudge-text {
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+}
+
+.nudge-btn {
+  color: #FF6B35;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nudge-btn:hover {
+  text-decoration: underline;
+}
+
+.nudge-dismiss {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nudge-dismiss:hover {
+  background: var(--bg-secondary, #f3f4f6);
+}
+
+/* --- 响应式设计 --- */
+@media (max-width: 640px) {
+  .onboarding-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .onboarding-container {
+    padding: 28px 20px;
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .onboarding-title {
+    font-size: 20px;
+  }
+
+  .onboarding-desc {
+    font-size: 14px;
+  }
+
+  .method-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .method-content h3 {
+    font-size: 13px;
+  }
+
+  .method-content p {
+    font-size: 12px;
+  }
+
+  .onboarding-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nudge-content {
+    padding: 10px 12px;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .nudge-text {
+    font-size: 13px;
+  }
+}
+
+/* --- 暗色模式适配 --- */
+@media (prefers-color-scheme: dark) {
+  .onboarding-container {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .onboarding-title {
+    color: #f9fafb;
+  }
+
+  .onboarding-desc {
+    color: #9ca3af;
+  }
+
+  .feature-item {
+    background: #111827;
+    color: #f9fafb;
+  }
+
+  .method-card {
+    border-color: #374151;
+  }
+
+  .method-card:hover {
+    background: rgba(255, 107, 53, 0.05);
+  }
+
+  .method-content h3 {
+    color: #f9fafb;
+  }
+
+  .onboarding-tips {
+    background: #111827;
+  }
+
+  .nudge-content {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .nudge-text {
+    color: #f9fafb;
+  }
+}
+</style>
+
+<script>
+/* ============================================================
+   煋鉴新用户引导系统 JS 逻辑
+   ============================================================ */
+
+(function() {
+  'use strict';
+
+  let currentStep = 1;
+  const totalSteps = 3;
+
+  /**
+   * 初始化引导系统
+   * 在 Dashboard 加载完成后调用
+   */
+  window.initOnboarding = async function() {
+    try {
+      const resp = await fetch('/api/user/onboarding/status', {
+        credentials: 'include'
+      });
+      
+      if (!resp.ok) return;
+      
+      const data = await resp.json();
+      
+      // 首次登录 → 显示完整引导
+      if (data.first_login && !data.onboarding_completed) {
+        showOnboarding();
+      }
+      // 非首次但从未扫描 → 显示轻量提示
+      else if (!data.onboarding_completed && data.scan_count === 0) {
+        // 检查用户是否已关闭过提示
+        const dismissed = localStorage.getItem('onboarding_nudge_dismissed');
+        if (!dismissed) {
+          showNudge();
+        }
+      }
+    } catch (e) {
+      console.warn('Onboarding init failed:', e);
+    }
+  };
+
+  /** 显示全屏引导 */
+  function showOnboarding() {
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      currentStep = 1;
+      updateStepper();
+    }
+  }
+
+  /** 显示轻量提示 */
+  function showNudge() {
+    const nudge = document.getElementById('onboarding-nudge');
+    if (nudge) {
+      nudge.style.display = 'block';
+    }
+  }
+
+  /** 跳转到指定步骤 */
+  window.goToStep = function(step) {
+    if (step < 1 || step > totalSteps) return;
+
+    // 隐藏当前步骤
+    const currentEl = document.getElementById('onboard-step-' + currentStep);
+    if (currentEl) currentEl.classList.remove('active');
+
+    // 标记完成
+    if (step > currentStep) {
+      const dots = document.querySelectorAll('.step-dot');
+      const lines = document.querySelectorAll('.step-line');
+      if (dots[currentStep - 1]) dots[currentStep - 1].classList.add('completed');
+      if (lines[currentStep - 1]) lines[currentStep - 1].classList.add('completed');
+    }
+
+    currentStep = step;
+
+    // 显示新步骤
+    const newEl = document.getElementById('onboard-step-' + step);
+    if (newEl) newEl.classList.add('active');
+
+    updateStepper();
+  };
+
+  /** 更新步骤指示器 */
+  function updateStepper() {
+    const dots = document.querySelectorAll('.step-dot');
+    dots.forEach((dot, idx) => {
+      dot.classList.remove('active');
+      if (idx + 1 === currentStep) {
+        dot.classList.add('active');
+      }
+    });
+  }
+
+  /** 选择扫描方式 */
+  window.selectScanMethod = function(method) {
+    // 标记引导完成
+    completeOnboarding();
+    
+    // 根据选择跳转
+    switch (method) {
+      case 'upload':
+        completeOnboarding();
+        window.location.href = '/upload';
+        break;
+      case 'cicd':
+        completeOnboarding();
+        window.location.href = '/ci-setup';
+        break;
+      case 'cli':
+        completeOnboarding();
+        window.location.href = '/help#cli';
+        break;
+    }
+  };
+
+  /** 标记引导完成 */
+  async function completeOnboarding() {
+    try {
+      await fetch('/api/user/onboarding/complete', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (e) {
+      console.warn('Failed to mark onboarding complete:', e);
+    }
+  }
+
+  /** 跳过后进入 Dashboard */
+  window.skipOnboarding = function() {
+    completeOnboarding();
+    closeOnboarding();
+  };
+
+  /** 关闭引导遮罩 */
+  function closeOnboarding() {
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
+  }
+
+  /** 进入 Dashboard */
+  window.goToDashboard = function() {
+    completeOnboarding();
+    closeOnboarding();
+    // 已在 dashboard 页面，无需跳转
+  };
+
+  /** 关闭轻量提示 */
+  window.dismissNudge = function() {
+    const nudge = document.getElementById('onboarding-nudge');
+    if (nudge) {
+      nudge.style.display = 'none';
+    }
+    localStorage.setItem('onboarding_nudge_dismissed', 'true');
+    // 同时标记引导完成，避免下次还提示
+    completeOnboarding();
+  };
+
+  /** ESC 键关闭引导 */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('onboarding-overlay');
+      if (overlay && overlay.style.display !== 'none') {
+        skipOnboarding();
+      }
+    }
+  });
+
+  // 页面加载后初始化
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOnboarding);
+  } else {
+    initOnboarding();
+  }
+})();
+</script>

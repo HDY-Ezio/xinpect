@@ -1,0 +1,7 @@
+{
+  "id": "xinpect-website_1791726619",
+  "service": "xinpect-website",
+  "status": "degraded",
+  "message": "HTTP 检查失败: Remote end closed connection without response",
+  "timestamp": "2026-10-11T21:50:19.440448"
+}

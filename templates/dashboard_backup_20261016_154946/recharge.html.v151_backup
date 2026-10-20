@@ -1,0 +1,264 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}充值会员 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>充值中心</h1>
+    <p>选择适合你的套餐，升级专业版</p>
+</div>
+
+<!-- Tab 切换 -->
+<div class="recharge-tabs">
+    <button class="recharge-tab active" data-tab="subscription">订阅会员</button>
+    <button class="recharge-tab" data-tab="credit-pack">积分包</button>
+</div>
+
+<!-- 订阅卡 -->
+<div class="recharge-panel active" id="panel-subscription">
+<div class="recharge-plans">
+    <div class="recharge-plan" data-plan="monthly" data-type="subscription">
+        <div class="recharge-plan-name">月卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>99</div>
+        <div class="recharge-plan-period">/ 月 · 300 积分/月</div>
+        <div class="recharge-plan-desc">约可扫 50 个中等项目<br>灵活便捷</div>
+        <button class="btn btn-secondary btn-block">选择</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="quarterly" data-type="subscription">
+        <div class="recharge-plan-name">季卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>249</div>
+        <div class="recharge-plan-period">/ 季 · 350 积分/月（共 1,050）</div>
+        <div class="recharge-plan-desc">省 ¥48，性价比之选<br>适合持续开发</div>
+        <button class="btn btn-secondary btn-block">选择</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="half_year" data-type="subscription">
+        <div class="recharge-plan-name">半年卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>449</div>
+        <div class="recharge-plan-period">/ 半年 · 400 积分/月（共 2,400）</div>
+        <div class="recharge-plan-desc">省 ¥145，超值之选<br>适合长期项目</div>
+        <button class="btn btn-secondary btn-block">选择</button>
+    </div>
+
+    <div class="recharge-plan selected" data-plan="yearly" data-type="subscription">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gradient-orange);color:white;padding:3px 14px;border-radius:100px;font-size:12px;font-weight:600;">最划算</div>
+        <div class="recharge-plan-name">年卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>799</div>
+        <div class="recharge-plan-period">/ 年 · 500 积分/月（共 6,000）</div>
+        <div class="recharge-plan-desc">省 ¥389，超值优惠<br>适合团队/重度用户</div>
+        <button class="btn btn-orange btn-block">选择</button>
+    </div>
+</div>
+<div style="text-align:center;margin-top:8px;color:var(--text-muted);font-size:13px;">
+    💡 所有档位权限一致，均为全维度 + AI 分析，仅积分量不同；积分当月有效，月底清零
+</div>
+</div>
+
+<!-- 积分包 -->
+<div class="recharge-panel" id="panel-credit-pack">
+{% if not is_vip %}
+<div style="text-align:center;padding:48px 24px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+    <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+    <h3 style="font-size:20px;font-weight:600;margin-bottom:12px;">积分包仅限会员购买</h3>
+    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:24px;">请先开通订阅会员，即可购买积分加量包，积分当月有效</p>
+    <button class="btn btn-orange" onclick="document.querySelector('[data-tab=subscription]').click()">开通会员</button>
+</div>
+{% else %}
+<div class="recharge-plans">
+    <div class="recharge-plan" data-plan="credit_100" data-type="credit_pack">
+        <div class="recharge-plan-name">体验包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>49
+        </div>
+        <div class="recharge-plan-period">100 积分</div>
+        <div class="recharge-plan-desc">约可扫 15 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">选择</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="credit_500" data-type="credit_pack">
+        <div class="recharge-plan-name">基础包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>199
+        </div>
+        <div class="recharge-plan-period">500 积分</div>
+        <div class="recharge-plan-desc">约可扫 80 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">选择</button>
+    </div>
+
+    <div class="recharge-plan selected" data-plan="credit_2000" data-type="credit_pack">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gradient-orange);color:white;padding:3px 14px;border-radius:100px;font-size:12px;font-weight:600;">热销</div>
+        <div class="recharge-plan-name">标准包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>599
+        </div>
+        <div class="recharge-plan-period">2,000 积分</div>
+        <div class="recharge-plan-desc">约可扫 330 个<br>中等项目</div>
+        <button class="btn btn-orange btn-block">选择</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="credit_5000" data-type="credit_pack">
+        <div class="recharge-plan-name">专业包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>1,299
+        </div>
+        <div class="recharge-plan-period">5,000 积分</div>
+        <div class="recharge-plan-desc">约可扫 830 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">选择</button>
+    </div>
+</div>
+<div style="text-align:center;margin-top:16px;color:var(--text-secondary);font-size:13px;">
+    💡 积分包积分与月度积分同时存在，优先消耗月度积分；积分当月有效，月底清零
+</div>
+{% endif %}
+</div>
+
+<div style="text-align:center;margin-top:32px;">
+    <p style="color:var(--text-secondary);margin-bottom:16px;font-size:14px;">
+        支付后自动开通权益，支持微信 / 支付宝扫码支付
+    </p>
+    <button class="btn btn-orange btn-lg" id="pay-btn" data-plan="yearly" data-type="subscription">
+        立即支付
+    </button>
+</div>
+
+<!-- 权益说明 -->
+<div style="margin-top:48px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:28px;">
+    <h3 style="font-size:18px;font-weight:600;margin-bottom:20px;">专业版权益</h3>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">B1 ~ B8 全部 8 维度检测</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">2600+ 条检测规则</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">AI 深度分析</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">检测报告下载（Markdown+HTML）</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">批量文件检测</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">API 接入支持</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">历史检测记录永久保存</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">优先技术支持</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function() {
+    // Tab 切换
+    const tabs = document.querySelectorAll('.recharge-tab');
+    const panels = document.querySelectorAll('.recharge-panel');
+    const payBtn = document.getElementById('pay-btn');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + target).classList.add('active');
+
+            // 重置 pay-btn 到当前 tab 的第一个选中项
+            const activePanel = document.getElementById('panel-' + target);
+            const selected = activePanel.querySelector('.recharge-plan.selected');
+            if (selected && payBtn) {
+                payBtn.dataset.plan = selected.dataset.plan;
+                payBtn.dataset.type = selected.dataset.type;
+                payBtn.disabled = false;
+            } else {
+                // 非会员积分包页，隐藏支付按钮
+                if (target === 'credit-pack' && !activePanel.querySelector('.recharge-plan')) {
+                    payBtn.style.display = 'none';
+                }
+            }
+            if (target === 'subscription' || activePanel.querySelector('.recharge-plan')) {
+                payBtn.style.display = '';
+            }
+        });
+    });
+
+    // 套餐选择
+    document.querySelectorAll('.recharge-plan').forEach(plan => {
+        plan.addEventListener('click', () => {
+            const type = plan.dataset.type;
+            document.querySelectorAll('.recharge-plan[data-type="' + type + '"]').forEach(p => {
+                p.classList.remove('selected');
+                const btn = p.querySelector('button');
+                if (btn) {
+                    btn.classList.remove('btn-orange');
+                    btn.classList.add('btn-secondary');
+                }
+            });
+            plan.classList.add('selected');
+            const btn = plan.querySelector('button');
+            if (btn) {
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-orange');
+            }
+            if (payBtn) {
+                payBtn.dataset.plan = plan.dataset.plan;
+                payBtn.dataset.type = plan.dataset.type;
+                payBtn.disabled = false;
+            }
+        });
+    });
+
+    // 支付按钮
+    if (payBtn) {
+        payBtn.addEventListener('click', function() {
+            var planId = payBtn.dataset.plan;
+            var orderType = payBtn.dataset.type || 'subscription';
+            payBtn.disabled = true;
+            payBtn.textContent = '创建订单中...';
+
+            fetch('/api/pay/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({plan_id: planId, order_type: orderType})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    payBtn.disabled = false;
+                    payBtn.textContent = '立即支付';
+                    if (typeof showPaymentModal === 'function') {
+                        showPaymentModal(data.order_id, data.qr_url, (data.amount / 100).toFixed(2));
+                    } else {
+                        alert('支付组件加载中，请稍候重试');
+                    }
+                } else {
+                    alert(data.error || '创建订单失败');
+                    payBtn.disabled = false;
+                    payBtn.textContent = '立即支付';
+                }
+            })
+            .catch(function() {
+                alert('网络错误，请重试');
+                payBtn.disabled = false;
+                payBtn.textContent = '立即支付';
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

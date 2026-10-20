@@ -1,0 +1,7 @@
+{
+  "id": "xinpect-website_1791801918",
+  "service": "xinpect-website",
+  "status": "degraded",
+  "message": "HTTP 检查失败: <urlopen error [Errno 111] Connection refused>",
+  "timestamp": "2026-10-12T18:45:18.076934"
+}

@@ -1,0 +1,9 @@
+{
+  "timestamp": "${TIMESTAMP}",
+  "files_scanned": 45,
+  "total_issues": 0,
+  "severity_counts": {},
+  "critical_high_count": 0,
+  "issues": [],
+  "passed": true
+}

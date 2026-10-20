@@ -1,0 +1,302 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}充值会员 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>充值中心</h1>
+    <p>选择适合你的套餐，升级专业版</p>
+</div>
+
+<!-- Tab 切换 -->
+<div class="recharge-tabs">
+    <button class="recharge-tab active" data-tab="subscription">订阅会员</button>
+    <button class="recharge-tab" data-tab="credit-pack">积分包</button>
+</div>
+
+<!-- 订阅卡 -->
+<div class="recharge-panel active" id="panel-subscription">
+<div class="recharge-plans">
+    <div class="recharge-plan" data-plan="monthly" data-type="subscription">
+        <div class="recharge-plan-name">月卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>99</div>
+        <div class="recharge-plan-period">/ 月 · 300 积分/月</div>
+        <div class="recharge-plan-desc">约可扫 17 个中等项目<br>灵活便捷</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="quarterly" data-type="subscription">
+        <div class="recharge-plan-name">季卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>269</div>
+        <div class="recharge-plan-period">/ 季 · 300 积分/月（共 900）</div>
+        <div class="recharge-plan-desc">省 ¥28，性价比之选<br>适合持续开发</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="half_year" data-type="subscription">
+        <div class="recharge-plan-name">半年卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>499</div>
+        <div class="recharge-plan-period">/ 半年 · 300 积分/月（共 1,800）</div>
+        <div class="recharge-plan-desc">省 ¥95，超值之选<br>适合长期项目</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan selected" data-plan="yearly" data-type="subscription">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gradient-orange);color:white;padding:3px 14px;border-radius:100px;font-size:12px;font-weight:600;">最划算</div>
+        <div class="recharge-plan-name">年卡</div>
+        <div class="recharge-plan-price"><span class="currency">¥</span>899</div>
+        <div class="recharge-plan-period">/ 年 · 300 积分/月（共 3,600）</div>
+        <div class="recharge-plan-desc">省 ¥289，超值优惠<br>适合团队/重度用户</div>
+        <button class="btn btn-orange btn-block">立即支付</button>
+    </div>
+</div>
+<div style="text-align:center;margin-top:8px;color:var(--text-muted);font-size:13px;">
+    💡 所有档位权限一致，均为全维度 + AI 分析，仅积分量不同；积分按月刷新，刷新时间跟充值时间挂钩
+</div>
+</div>
+
+<!-- 积分包 -->
+<div class="recharge-panel" id="panel-credit-pack">
+{% if not is_vip %}
+<div style="text-align:center;padding:48px 24px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+    <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+    <h3 style="font-size:20px;font-weight:600;margin-bottom:12px;">积分包仅限会员购买</h3>
+    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:24px;">请先开通订阅会员，即可购买积分加量包，积分有效期1年</p>
+    <button class="btn btn-orange" onclick="document.querySelector('[data-tab=subscription]').click()">开通会员</button>
+</div>
+{% else %}
+<div class="recharge-plans">
+    <div class="recharge-plan" data-plan="credit-100" data-type="credit_pack">
+        <div class="recharge-plan-name">体验包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>49
+        </div>
+        <div class="recharge-plan-period">100 积分</div>
+        <div class="recharge-plan-desc">约可扫 5 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="credit-500" data-type="credit_pack">
+        <div class="recharge-plan-name">基础包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>199
+        </div>
+        <div class="recharge-plan-period">500 积分</div>
+        <div class="recharge-plan-desc">约可扫 29 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="credit-2000" data-type="credit_pack">
+        <div class="recharge-plan-name">标准包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>599
+        </div>
+        <div class="recharge-plan-period">2,000 积分</div>
+        <div class="recharge-plan-desc">约可扫 117 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan" data-plan="credit-5000" data-type="credit_pack">
+        <div class="recharge-plan-name">专业包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>1,299
+        </div>
+        <div class="recharge-plan-period">5,000 积分</div>
+        <div class="recharge-plan-desc">约可扫 294 个<br>中等项目</div>
+        <button class="btn btn-secondary btn-block">立即支付</button>
+    </div>
+
+    <div class="recharge-plan selected" data-plan="credit-15000" data-type="credit_pack">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gradient-orange);color:white;padding:3px 14px;border-radius:100px;font-size:12px;font-weight:600;">最划算</div>
+        <div class="recharge-plan-name">企业包</div>
+        <div class="recharge-plan-price" style="font-size:32px;">
+            <span class="currency">¥</span>2,999
+        </div>
+        <div class="recharge-plan-period">15,000 积分</div>
+        <div class="recharge-plan-desc">约可扫 882 个<br>中等项目 <span style="color:#ef4444;font-size:12px;font-weight:600;">省¥1,301</span></div>
+        <button class="btn btn-orange btn-block">立即支付</button>
+    </div>
+</div>
+<div style="text-align:center;margin-top:16px;color:var(--text-secondary);font-size:13px;">
+    💡 积分包积分与月度积分同时存在，优先消耗月度积分；积分按月刷新，刷新时间跟充值时间挂钩
+</div>
+{% endif %}
+</div>
+
+<!-- 权益说明 -->
+<div style="margin-top:48px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:28px;">
+    <h3 style="font-size:18px;font-weight:600;margin-bottom:20px;">专业版权益</h3>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">E1~E9 全部 9 大引擎检测</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">1600+ 有效规则</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">AI 深度分析</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">检测报告下载（Markdown+HTML）</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">批量文件检测</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">API 接入支持</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">历史检测记录永久保存</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:14px;">优先技术支持</span>
+        </div>
+    </div>
+</div>
+
+<!-- 支付弹窗 -->
+<div id="payModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card);border-radius:16px;padding:32px;width:360px;max-width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--text-primary);">微信扫码支付</div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;">订单号：<span id="payOrderId" style="font-family:monospace;"></span></div>
+        <div style="font-size:32px;font-weight:800;color:var(--accent-orange);margin-bottom:20px;">¥<span id="payAmount">0</span></div>
+        <div id="payQrBox" style="width:220px;height:220px;margin:0 auto 20px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <img id="payQrImg" src="" alt="支付二维码" style="width:100%;height:100%;object-fit:contain;" />
+        </div>
+        <div id="paySuccessBox" style="display:none;margin:20px 0;">
+            <div style="width:80px;height:80px;margin:0 auto 16px;border-radius:50%;background:var(--success-bg,#e6f7ef);display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--success,#00b578);">✓</div>
+            <div style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">支付成功</div>
+            <div style="font-size:14px;color:var(--text-secondary);">积分已到账，感谢您的支持！</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:20px;">请使用微信扫一扫，扫描二维码完成支付<br/>支付成功后页面将自动刷新</div>
+        <button id="payCloseBtn" onclick="closePaymentModal()" style="width:100%;padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);border-radius:8px;cursor:pointer;font-size:14px;">关闭</button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+(function() {
+    // Tab 切换
+    const tabs = document.querySelectorAll('.recharge-tab');
+    const panels = document.querySelectorAll('.recharge-panel');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + target).classList.add('active');
+        });
+    });
+
+    // 每张卡的"立即支付"按钮：直接创建订单并弹出支付
+    document.querySelectorAll('.recharge-plan').forEach(plan => {
+        const btn = plan.querySelector('button');
+        if (!btn) return;
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const planId = plan.dataset.plan;
+            const orderType = plan.dataset.type || 'subscription';
+
+            btn.disabled = true;
+            btn.textContent = '创建订单中...';
+
+            fetch('/api/pay/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({plan_id: planId, order_type: orderType})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    btn.disabled = false;
+                    btn.textContent = '立即支付';
+                    showPaymentModal(data.order_id, data.qr_url, Math.round(Number(data.amount)));
+                } else {
+                    alert(data.error || '创建订单失败');
+                    btn.disabled = false;
+                    btn.textContent = '立即支付';
+                }
+            })
+            .catch(function(err) {
+                alert('网络错误，请重试');
+                btn.disabled = false;
+                btn.textContent = '立即支付';
+            });
+        });
+    });
+
+    // 支付弹窗函数
+    function showPaymentModal(orderId, qrUrl, amount) {
+        document.getElementById('payOrderId').textContent = orderId;
+        document.getElementById('payAmount').textContent = amount;
+        document.getElementById('payQrImg').src = qrUrl;
+        const modal = document.getElementById('payModal');
+        modal.style.display = 'flex';
+        startPayPolling(orderId);
+    }
+    function closePaymentModal() {
+        const modal = document.getElementById('payModal');
+        modal.style.display = 'none';
+        stopPayPolling();
+        // 重置二维码区域（下次打开时恢复）
+        const qrBox = document.getElementById('payQrBox');
+        const successBox = document.getElementById('paySuccessBox');
+        if (qrBox) qrBox.style.display = 'flex';
+        if (successBox) successBox.style.display = 'none';
+        const closeBtn = document.getElementById('payCloseBtn');
+        if (closeBtn) { closeBtn.textContent = '关闭'; closeBtn.onclick = closePaymentModal; }
+    }
+    function showPaySuccess() {
+        const qrBox = document.getElementById('payQrBox');
+        const successBox = document.getElementById('paySuccessBox');
+        const closeBtn = document.getElementById('payCloseBtn');
+        if (qrBox) qrBox.style.display = 'none';
+        if (successBox) successBox.style.display = 'block';
+        if (closeBtn) {
+            closeBtn.textContent = '完成';
+            closeBtn.onclick = function() {
+                closePaymentModal();
+                location.reload();
+            };
+        }
+    }
+    // 支付状态轮询
+    let _payPollTimer = null;
+    function startPayPolling(orderId) {
+        stopPayPolling();
+        _payPollTimer = setInterval(function() {
+            fetch('/api/pay/status/' + encodeURIComponent(orderId))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success && data.status === 'paid') {
+                    stopPayPolling();
+                    showPaySuccess();
+                }
+            })
+            .catch(function() {});
+        }, 3000);
+    }
+    function stopPayPolling() {
+        if (_payPollTimer) {
+            clearInterval(_payPollTimer);
+            _payPollTimer = null;
+        }
+    }
+    // 暴露到全局供onclick调用
+    window.closePaymentModal = closePaymentModal;
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,1255 @@
+{% extends "base.html" %}
+
+{% block title %}免费在线代码检测 - 上传代码即刻扫描 | 煋鉴 Xinpect{% endblock %}
+{% block meta_description %}免费在线代码质量检测，支持上传文件、粘贴代码、GitHub仓库三种方式，覆盖Python/Java/Go/JS等17种语言，秒级返回检测报告，规范层无限次免费使用。{% endblock %}
+{% block meta_keywords %}免费代码检测,在线代码扫描,代码审查工具,免费静态分析,上传代码检测,GitHub代码扫描{% endblock %}
+{% block og_title %}免费在线代码检测 - 上传/粘贴/GitHub仓库 即刻扫描 | 煋鉴{% endblock %}
+
+
+{% block extra_css %}
+<style>
+/* 3D 按压按钮 */
+.btn3d { position:relative; border:none; background:transparent; padding:0; cursor:pointer; border-radius:8px; }
+.btn3d-edge { position:absolute; inset:0; border-radius:8px; background:linear-gradient(180deg, #1E40AF, #B03A1E); }
+.btn3d-front { position:relative; display:flex; align-items:center; justify-content:center; height:44px; padding:0 24px; border-radius:8px; background:var(--accent-orange,#1A3A5C); color:#fff; font-size:15px; font-weight:600; transform:translateY(-4px); box-shadow:0 3px 8px rgba(30,12,4,0.22); transition:transform 450ms cubic-bezier(0.34,1.3,0.64,1), box-shadow 450ms cubic-bezier(0.34,1.3,0.64,1); }
+.btn3d:active .btn3d-front { transform:translateY(-1px); box-shadow:0 1px 2px rgba(30,12,4,0.20); transition-duration:60ms; }
+.btn3d:disabled .btn3d-front { transform:translateY(0); box-shadow:none; background:#E5E2DC; color:#9A958D; cursor:not-allowed; }
+.btn3d:disabled .btn3d-edge { display:none; }
+/* 模式卡片hover效果 */
+.tier-card:not(.tier-locked):hover { border-color:#ffb899 !important; background:#FFFAF7 !important; }
+.tier-card:not(.tier-locked):hover .mode-desc { color:#777; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="upload-section">
+    <div class="container-md">
+        <div style="text-align:center;margin-bottom:32px;">
+            <h1 style="font-size:28px;font-weight:700;margin-bottom:8px;">代码质量检测</h1>
+            <p style="color:var(--text-secondary);">上传代码文件或粘贴代码，获取专业检测报告</p>
+        </div>
+
+        <!-- 顶部积分/次数展示 -->
+        {% if is_vip %}
+        <div class="credit-balance-bar">
+            <span class="credit-label">积分余额</span>
+            <span class="credit-amount">
+                <span id="credit-balance-num">{{ credit_balance }}</span>
+                <span class="unit">积分</span>
+            </span>
+        </div>
+        {% else %}
+        <div class="daily-remaining-bar">
+            <span class="dr-label">免费版</span>
+            <span class="dr-amount" style="color: var(--success);">
+                ✓ 规范层无限次免费
+            </span>
+        </div>
+        {% endif %}
+
+        <!-- 使用引导 -->
+        <div style="margin-bottom:20px;padding:16px 20px;background:rgba(26,58,92,0.04);border:1px solid rgba(26,58,92,0.12);border-radius:12px;">
+            <div style="font-size:13px;color:var(--text-secondary,#666);line-height:1.8;">
+                <strong style="color:var(--accent-orange,#1A3A5C);">🎯 三种扫描方式</strong><br>
+                <span style="display:inline-block;margin-right:16px;">📁 <strong>上传文件</strong> — 拖拽代码文件或压缩包</span>
+                <span style="display:inline-block;margin-right:16px;">📝 <strong>粘贴代码</strong> — 直接粘贴单文件代码</span>
+                <span style="display:inline-block;">🔗 <strong>GitHub 仓库</strong> — 粘贴仓库地址扫描整个项目</span>
+            </div>
+        </div>
+
+<style>
+.tab-faq { margin-top:16px; }
+.tab-faq details { border:1px solid rgba(0,0,0,0.06);border-radius:8px;padding:12px 16px;background:rgba(0,0,0,0.02);margin-bottom:8px;transition:background 0.2s; }
+.tab-faq details:hover { background:rgba(26,58,92,0.04); }
+.tab-faq summary { font-weight:600;cursor:pointer;font-size:13px;color:var(--text-primary,#333);list-style:none;display:flex;align-items:center;gap:6px; }
+.tab-faq summary::-webkit-details-marker { display:none; }
+.tab-faq summary::before { content:"▸";font-size:11px;color:var(--accent-orange,#1A3A5C);transition:transform 0.2s; }
+.tab-faq details[open] summary::before { transform:rotate(90deg); }
+.tab-faq details p { margin-top:8px;font-size:12px;color:var(--text-secondary,#666);line-height:1.7;padding-left:16px; }
+</style>
+
+
+        <!-- 源码安全承诺 -->
+        <div style="margin-bottom:20px;padding:14px 20px;background:rgba(5,150,105,0.04);border:1px solid rgba(5,150,105,0.15);border-radius:12px;">
+            <div style="font-size:13px;color:var(--text-secondary,#555);line-height:1.8;">
+                <strong style="color:#059669;">🔒 源码安全承诺</strong><br>
+                <span style="display:inline-block;margin-right:20px;">✅ <strong>代码仅用于检测</strong> — 不会用于模型训练或任何第三方用途</span><br>
+                <span style="display:inline-block;margin-right:20px;">✅ <strong>扫描后自动清理</strong> — 上传代码在扫描完成后 24 小时内自动删除</span><br>
+                <span style="display:inline-block;margin-right:20px;">✅ <strong>一键删除</strong> — 可随时在报告页手动删除已上传的全部代码</span><br>
+                <span style="display:inline-block;">✅ <strong>传输加密</strong> — 全站 HTTPS，代码传输过程全程加密</span>
+            </div>
+        </div>
+
+        <!-- 上传表单 -->
+        <div id="upload-form">
+            <!-- Tab 切换 -->
+            <div class="upload-tabs">
+                <button class="upload-tab active" id="tab-file">📁 上传文件</button>
+                <button class="upload-tab" id="tab-code">📝 粘贴代码</button>
+                <button class="upload-tab" id="tab-github">🔗 GitHub 仓库</button>
+            </div>
+
+            <!-- 文件上传 -->
+            <div class="upload-tab-content active" id="tab-content-file">
+                <div class="upload-area" id="upload-area" style="padding:16px;">
+                    <input type="file" id="file-input" multiple accept=".py,.js,.ts,.java,.cpp,.c,.cs,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.scss,.less,.vue,.jsx,.tsx,.json,.xml,.yml,.yaml,.md,.zip,.tar,.tar.gz,.tgz" style="display:none;">
+                    <div class="upload-title" style="font-size:14px;margin-bottom:3px;">拖拽文件到此处 或 点击上传</div>
+                    <div class="upload-desc" style="font-size:11px;">支持多文件 / ZIP / TAR.GZ，总大小 ≤ 50MB</div>
+                    <div style="font-size:10px;color:var(--text-tertiary,#bbb);margin-top:3px;font-style:italic;">💡 建议上传关键业务代码，无需上传 node_modules 等依赖目录</div>
+                </div>
+                <div class="file-list" id="file-list"></div>
+            </div>
+
+            <!-- 粘贴代码 -->
+            <div class="upload-tab-content" id="tab-content-code">
+                <div class="form-group">
+                    <label class="form-label">文件名（可选）</label>
+                    <input type="text" class="form-input" id="code-filename" placeholder="例如：main.py" value="main.py">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">代码内容</label>
+                    <textarea class="form-textarea" id="code-textarea" placeholder="在此粘贴你的代码..." rows="16"></textarea>
+                </div>
+            </div>
+
+            <!-- GitHub 仓库扫描 -->
+            <div class="upload-tab-content" id="tab-content-github">
+                <!-- GitHub OAuth 连接状态 -->
+                <div id="github-oauth-section" style="margin-bottom:16px;padding:14px 18px;background:rgba(36,41,47,0.04);border:1px solid rgba(36,41,47,0.12);border-radius:10px;">
+                    <div id="github-not-connected">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <svg width="24" height="24" viewBox="0 0 16 16" fill="#24292f"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;color:#24292f;">连接 GitHub 账号</div>
+                                <div style="font-size:11px;color:#666;margin-top:2px;">一键授权后可选择仓库、扫描私有仓库、无需手动粘贴 Token</div>
+                            </div>
+                            <a href="/api/github/authorize" class="btn3d" style="flex-shrink:0;">
+                                <span class="btn3d-edge" style="background:linear-gradient(180deg,#2da44e,#1a7f37);"></span>
+                                <span class="btn3d-front" style="background:#2da44e;font-size:13px;padding:0 16px;height:36px;">授权连接</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div id="github-connected" style="display:none;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <svg width="20" height="20" viewBox="0 0 16 16" fill="#24292f"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                            <span style="font-size:13px;font-weight:600;">已连接：<span id="github-username">-</span></span>
+                            <select id="github-repo-select" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+                                <option value="">- 选择仓库 -</option>
+                            </select>
+                            <button onclick="fetchGitHubRepos()" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:white;font-size:11px;cursor:pointer;">刷新</button>
+                            <button onclick="disconnectGitHub()" style="padding:4px 10px;border:1px solid #e74c3c;border-radius:6px;background:white;color:#e74c3c;font-size:11px;cursor:pointer;margin-left:4px;">断开连接</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align:center;margin:8px 0;font-size:11px;color:#aaa;">- 或直接粘贴仓库地址 -</div>
+                <div class="form-group">
+                    <label class="form-label">GitHub 仓库地址</label>
+                    <input type="text" class="form-input" id="github-repo-url" placeholder="https://github.com/username/repo" style="font-size:14px;padding:12px 16px;">
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label class="form-label">分支名称 <span style="color:#aaa;font-weight:400;font-size:12px;">（可选，默认使用默认分支）</span></label>
+                    <input type="text" class="form-input" id="github-branch" placeholder="例如：main、develop" style="font-size:14px;padding:12px 16px;">
+
+                <!-- PR 内联评论选项 -->
+                <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:150px;">
+                        <label class="form-label" style="font-size:13px;">PR 编号 <span style="color:#aaa;font-weight:400;font-size:11px;">（可选，自动评论到PR）</span></label>
+                        <input type="number" class="form-input" id="github-pr-number" placeholder="例如：42" min="1" style="font-size:14px;padding:10px 14px;">
+                    </div>
+                    <div style="flex:1;min-width:200px;display:flex;align-items:flex-end;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#57606a;">
+                            <input type="checkbox" id="github-post-comment" style="width:16px;height:16px;accent-color:#1A3A5C;">
+                            扫描后自动在 PR 发布质检评论
+                        </label>
+                    </div>
+                </div>
+                </div>
+                <div style="margin-top:12px;padding:12px 16px;background:rgba(26,58,92,0.06);border:1px solid rgba(26,58,92,0.15);border-radius:10px;">
+                    <div style="font-size:12px;color:var(--text-secondary,#888);line-height:1.8;">
+                        <span style="color:var(--accent-orange,#1A3A5C);font-weight:600;">💡 使用说明</span><br>
+                        • 支持公开 GitHub 仓库，私有仓库需提供 Personal Access Token<br>
+                        • 自动过滤 node_modules、.git、dist、build 等目录<br>
+                        • 最多扫描 200 个代码文件，单文件不超过 500KB<br>
+                        • 支持 Python、JavaScript、TypeScript、Java、Go 等 40+ 种语言
+                    </div>
+                </div>
+                <div class="form-group" id="github-token-group" style="margin-top:12px;display:none;">
+                    <label class="form-label">GitHub Token <span style="color:#aaa;font-weight:400;font-size:12px;">（私有仓库需要）</span></label>
+                    <input type="password" class="form-input" id="github-token" placeholder="ghp_xxxxxxxxxxxx" style="font-size:14px;padding:12px 16px;">
+                </div>
+                <div style="margin-top:8px;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary,#888);">
+                        <input type="checkbox" id="github-private-check" onchange="document.getElementById('github-token-group').style.display=this.checked?'block':'none'">
+                        这是私有仓库
+                    </label>
+                </div>
+            </div>
+
+            <!-- 语言选择 -->
+            <div style="margin-top:20px;">
+                <label class="form-label">编程语言</label>
+                <select class="form-select" id="language-select" style="max-width:240px;">
+                    <option value="auto">自动识别</option>
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C/C++</option>
+                    <option value="csharp">C#</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="swift">Swift</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="scala">Scala</option>
+                    <option value="lua">Lua</option>
+                    <option value="shell">Shell</option>
+                    <option value="sql">SQL</option>
+                </select>
+            </div>
+            <!-- 检测模式选择 - 紧凑横排v6 -->
+            <div style="margin-top:14px;">
+                <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+                    <span style="width:3px;height:11px;background:var(--accent-orange);border-radius:2px;display:inline-block;"></span>
+                    检测方式
+                </div>
+                <div id="tier-list" style="display:flex;gap:6px;">
+                    <div class="tier-card" id="tier-free" onclick="selectScanMode('free')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                        <div style="font-size:13px;font-weight:700;margin-bottom:3px;">免费检查</div>
+                        <div style="font-size:10px;color:#999;line-height:1.4;">7引擎基础规范</div>
+                    </div>
+                    <div class="tier-card" id="tier-quick" onclick="selectScanMode('quick')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                        <div style="font-size:13px;font-weight:700;margin-bottom:3px;">快速检查</div>
+                        <div style="font-size:10px;color:#999;line-height:1.4;">12引擎全量扫描<br>完整报告</div>
+                    </div>
+                    <div class="tier-card" id="tier-smart" onclick="selectScanMode('smart')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                        <div style="font-size:13px;font-weight:700;margin-bottom:3px;">智能检查</div>
+                        <div style="font-size:10px;color:#999;line-height:1.4;">+AI语义确认<br>自动标注误报</div>
+                    </div>
+                    <div class="tier-card" id="tier-deep" onclick="selectScanMode('deep')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                        <div style="font-size:13px;font-weight:700;margin-bottom:3px;">深度检查</div>
+                        <div style="font-size:10px;color:#999;line-height:1.4;">+AI深度分析<br>跨文件追踪</div>
+                    </div>
+                </div>
+                <div id="tier-time-bar" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:#1976D2;background:rgba(25,118,210,0.06);border-radius:6px;padding:5px 0;">
+                    ⏱ 预计时间：<span id="tier-time-value" style="font-weight:700;">2-3 秒</span>
+                    <span style="color:var(--text-tertiary,#aaa);">·</span>
+                    <span id="tier-price-value" style="font-weight:600;color:var(--accent-orange);">按行数计费</span>
+                </div>
+                <div style="font-size:11px;color:var(--text-tertiary,#aaa);text-align:center;margin-top:5px;" id="mode-hint">适合：日常开发、提交前快速自查</div>
+            </div>
+            </div>
+
+
+            <!-- 预估消耗信息条 -->
+            <div id="estimate-bar" class="estimate-bar" style="display:none;">
+                <span class="estimate-label" id="estimate-label">预估消耗</span>
+                <span id="estimate-value">
+                    <span class="estimate-loading">计算中...</span>
+                </span>
+            </div>
+
+            <div class="scan-actions">
+                <div class="scan-count-info">
+                    {% if is_vip %}
+                        <span style="color:var(--accent-orange);">⚡ 专业会员 · 全维度AI检测 · 按积分计费</span>
+                    {% else %}
+                        <span>规范层扫描 · 永久免费 · 不限次数</span>
+                    {% endif %}
+                </div>
+                <button class="btn3d" id="scan-btn" disabled onclick="window.__uploadScanClick && window.__uploadScanClick()" style="min-width:180px;">
+                    <span class="btn3d-edge" aria-hidden="true"></span>
+                    <span class="btn3d-front" style="height:48px;padding:0 28px;font-size:16px;">🔍 开始检测</span>
+                </button>
+            </div>
+        </div>
+
+
+
+
+
+        <!-- 检测进度 -->
+        <div id="scan-progress" style="display:none;">
+            <div class="scan-progress">
+                <div class="progress-icon">
+                    <div class="progress-spinner"></div>
+                </div>
+                <div class="progress-text" id="progress-text">正在提交检测任务...</div>
+                <div style="font-size:13px;color:var(--accent-orange,#1A3A5C);margin-bottom:12px;font-weight:500;" id="progress-step">准备中...</div>
+                <div class="progress-desc">多引擎并行扫描，通常需要 10-30 秒。提交后可切换页面，无需等待</div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" style="width: 5%;"></div>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- 常见问题 (统一移至底部) -->
+        <div class="tab-faq" style="margin-top:40px;max-width:640px;margin-left:auto;margin-right:auto;">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary,#333);">常见问题</h3>
+            <details>
+                <summary>支持哪些文件格式？</summary>
+                <p>支持 Python、JavaScript、TypeScript、Java、Go、C/C++、PHP、Ruby、Swift、Kotlin、Rust、Shell、SQL、HTML/CSS 等 40+ 种代码文件，也支持 ZIP/TAR.GZ 压缩包上传。</p>
+            </details>
+            <details>
+                <summary>一次能上传多少文件？</summary>
+                <p>支持多文件同时上传，总大小不超过 50MB。建议只上传核心业务代码，无需上传 node_modules、.git 等依赖或版本控制目录，系统会自动过滤。</p>
+            </details>
+            <details>
+                <summary>上传的代码安全吗？会被保存吗？</summary>
+                <p>代码仅用于扫描分析，扫描完成后临时文件自动清理。报告数据加密存储，仅你本人可查看，不会用于任何训练或第三方用途。</p>
+            </details>
+            <details>
+                <summary>适合什么场景？</summary>
+                <p>适合快速检测单个文件或少量代码片段，比如你在写代码时想快速检查某段代码的质量，直接粘贴过来即可，无需创建文件。</p>
+            </details>
+            <details>
+                <summary>对代码长度有限制吗？</summary>
+                <p>没有严格的字符数限制，但建议单次粘贴不超过 5000 行。如果项目较大，建议使用「上传文件」或「GitHub 仓库」方式扫描完整项目。</p>
+            </details>
+            <details>
+                <summary>支持哪些 GitHub 仓库格式？</summary>
+                <p>支持标准 GitHub 链接，如 <code>https://github.com/user/repo</code>，也支持指定分支 <code>https://github.com/user/repo/tree/branch</code>。直接粘贴浏览器地址栏的链接即可。</p>
+            </details>
+            <details>
+                <summary>私有仓库怎么扫描？</summary>
+                <p>勾选「这是私有仓库」后，填写你的 GitHub Personal Access Token。Token 可在 GitHub Settings → Developer settings → Personal access tokens 中生成，只需勾选 <code>repo</code> 权限即可。Token 仅用于本次克隆，不会存储。</p>
+            </details>
+            <details>
+                <summary>仓库太大怎么办？</summary>
+                <p>系统会自动过滤 node_modules、.git、dist、build 等无关目录，最多扫描 200 个代码文件。如果仓库文件超过限制，建议指定特定分支或目录进行扫描。</p>
+            </details>
+        </div>
+
+        <!-- 免费版提示 -->
+        {% if not is_vip %}
+        <div style="margin-top:32px;padding:20px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);display:flex;align-items:center;gap:16px;">
+            <div style="font-size:32px;">⚡</div>
+            <div style="flex:1;">
+                <div style="font-weight:600;margin-bottom:4px;">升级专业版，解锁全部 10 大脑检测</div>
+                <div style="font-size:13px;color:var(--text-secondary);">免费版开放规范层检测（B1+B6+B7+B9），问题全可见，升级后享全维度AI检测和完整报告</div>
+            </div>
+            <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">立即升级</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block script %}
+<script>
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute("content") : "";
+    }
+    // ===== 第一步：同步隐藏元素ID，让 main.js initUpload 找不到 =====
+    var ids = ['upload-area', 'file-input', 'file-list', 'scan-btn'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.id = id + '-disabled';
+    });
+
+    // ===== 配置 =====
+    var isVip = {{ 'true' if is_vip else 'false' }};
+    var creditBalance = {{ credit_balance if is_vip else 0 }};
+    var dailyRemaining = {{ daily_remaining if not is_vip else 0 }};
+
+    // ===== 状态 =====
+    var state = {
+        files: [],
+        codeText: '',
+        mode: 'file',
+        estimatedCost: 0,
+        estimatedLines: 0
+    };
+
+    var estimateTimer = null;
+    var estimateAbortController = null;
+
+    // ===== DOM 缓存 =====
+    var fileInput, uploadArea, fileListEl, codeTextarea, fileNameInput;
+    var tabFile, tabCode, fileContent, codeContent;
+    var scanBtn, langSelect;
+
+    // 工具：找元素（先找真名，再找-disabled）
+    function $(id) {
+        var el = document.getElementById(id);
+        if (el) return el;
+        el = document.getElementById(id + '-disabled');
+        if (el) { el.id = id; return el; }
+        return null;
+    }
+
+    function fmtNum(n) {
+        return Number(n || 0).toLocaleString('zh-CN');
+    }
+
+    function flash(msg, type) {
+        // 简易提示
+        var div = document.createElement('div');
+        div.textContent = msg;
+        div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;color:#fff;z-index:10000;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+        if (type === 'error') div.style.background = '#ff4d4f';
+        else if (type === 'success') div.style.background = '#00b578';
+        else div.style.background = '#333';
+        document.body.appendChild(div);
+        setTimeout(function() { div.style.opacity = '0'; div.style.transition = 'opacity .3s'; }, 2000);
+        setTimeout(function() { div.remove(); }, 2500);
+    }
+
+    // ===== 文件列表渲染 =====
+    function renderFileList() {
+        if (!fileListEl) return;
+        if (state.files.length === 0) {
+            fileListEl.innerHTML = '';
+            fileListEl.style.display = 'none';
+            return;
+        }
+        fileListEl.style.display = 'block';
+        var html = '';
+        state.files.forEach(function(f, i) {
+            html += '<div class="file-item" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);border-radius:10px;margin-bottom:10px;">' +
+                '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
+                    '<span style="font-size:18px;">📄</span>' +
+                    '<span style="font-size:14px;color:#ffffff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + f.name + '</span>' +
+                    '<span style="font-size:12px;color:#cccccc;">(' + (f.size < 1024 ? f.size + 'B' : (f.size/1024).toFixed(1) + 'KB') + ')</span>' +
+                '</div>' +
+                '<button onclick="window.__uploadRemoveFile && window.__uploadRemoveFile(' + i + ')" style="border:none;background:transparent;color:var(--text-tertiary,#aaa);cursor:pointer;font-size:16px;padding:4px 8px;">✕</button>' +
+            '</div>';
+        });
+        fileListEl.innerHTML = html;
+    }
+
+    window.__uploadRemoveFile = function(idx) {
+        state.files.splice(idx, 1);
+        renderFileList();
+        updateScanBtn();
+        if (state.files.length > 0) debounceEstimate(); else hideEstimateBar();
+    };
+
+    function handleFiles(fileListObj) {
+        var files = Array.from(fileListObj);
+        // 去重
+        var existingNames = state.files.map(function(f) { return f.name; });
+        files.forEach(function(f) {
+            if (existingNames.indexOf(f.name) === -1) {
+                state.files.push(f);
+            }
+        });
+        renderFileList();
+        updateScanBtn();
+        if (state.files.length > 0) debounceEstimate();
+    }
+
+    function updateScanBtn() {
+        if (!scanBtn) return;
+        var can = false;
+        if (state.mode === 'file') {
+            can = state.files.length > 0;
+        } else if (state.mode === 'github') {
+            var repoUrl = document.getElementById('github-repo-url');
+            var val = repoUrl ? repoUrl.value.trim() : '';
+            can = /^https?:\/\/github\.com\/[\w\-]+\/[\w\-]+/.test(val);
+        } else {
+            can = (state.codeText || '').trim().length > 0;
+        }
+        scanBtn.disabled = !can;
+    }
+
+    // ===== 预估积分 =====
+    function getFilesMeta() {
+        if (state.mode === 'file') {
+            return state.files.map(function(f) {
+                return { name: f.name, size: f.size };
+            });
+        } else {
+            var text = state.codeText || '';
+            if (!text.trim()) return [];
+            var fn = fileNameInput ? fileNameInput.value || 'code.txt' : 'code.txt';
+            return [{ name: fn, size: text.length }];
+        }
+    }
+
+    function callEstimate() {
+        var meta = getFilesMeta();
+        if (meta.length === 0) { hideEstimateBar(); return; }
+
+        showEstimateBar(true);
+
+        if (estimateAbortController) estimateAbortController.abort();
+        estimateAbortController = new AbortController();
+
+        fetch('/api/scan/estimate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            body: JSON.stringify({ files_meta: meta, scan_mode: currentScanMode }),
+            signal: estimateAbortController.signal
+        }).then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && data.ok) {
+                state.estimatedCost = data.cost || 0;
+                state.estimatedLines = data.total_lines || 0;
+                showEstimateBar(false, data);
+            } else {
+                hideEstimateBar();
+            }
+        }).catch(function(err) {
+            if (err.name !== 'AbortError') hideEstimateBar();
+        });
+    }
+
+    function debounceEstimate() {
+        if (estimateTimer) clearTimeout(estimateTimer);
+        estimateTimer = setTimeout(callEstimate, 300);
+    }
+
+    function showEstimateBar(loading, data) {
+        var bar = $('estimate-bar');
+        if (!bar) return;
+        bar.style.display = 'flex';
+        var val = $('estimate-value');
+        var label = $('estimate-label');
+        if (loading) {
+            val.innerHTML = '<span style="font-size:14px;color:var(--text-secondary);">计算中...</span>';
+            return;
+        }
+        if (isVip && data.cost > 0) {
+            val.innerHTML =
+                '<span style="font-size:20px;font-weight:700;color:var(--accent-orange);">' + fmtNum(data.cost || 0) + '</span>' +
+                '<span style="font-size:13px;color:var(--text-secondary);margin-left:4px;">积分 · ' + fmtNum(data.total_lines || 0) + '行 · ' + (data.scan_mode || 'quick') + '模式</span>';
+        } else if (isVip) {
+            val.innerHTML =
+                '<span style="font-size:14px;color:var(--text-secondary);">上传文件后自动预估积分</span>';
+        } else {
+            val.innerHTML =
+                '<span style="font-size:16px;font-weight:600;color:var(--text-primary);">' + (data.file_count || 0) + ' 个文件</span>' +
+                '<span style="font-size:13px;color:var(--text-secondary);margin-left:8px;">约' + fmtNum(data.total_lines || 0) + '行 · 免费</span>';
+        }
+    }
+
+    function hideEstimateBar() {
+        var bar = $('estimate-bar');
+        if (bar) bar.style.display = 'none';
+    }
+
+    // ===== 核心：点击开始检测 =====
+    function onScanClick() {
+        if (!scanBtn || scanBtn.disabled) return;
+        // GitHub 仓库扫描
+        if (state.mode === 'github') {
+            doGitHubScan();
+            return;
+        }
+        console.log('[Upload] scan button clicked, isVip=', isVip, 'files=', state.files.length);
+        if (isVip) {
+            if (state.estimatedCost > 0 || state.estimatedLines > 0) {
+                showConfirm();
+            } else {
+                estimateThenConfirm();
+            }
+        } else {
+            doStartScan();
+        }
+    }
+
+    function estimateThenConfirm() {
+        var meta = getFilesMeta();
+        if (meta.length === 0) return;
+        scanBtn.disabled = true;
+        var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '预估中...';
+        console.log('[Upload] estimateThenConfirm');
+        fetch('/api/scan/estimate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            body: JSON.stringify({ files_meta: meta, scan_mode: currentScanMode })
+        }).then(function(r) { return r.json(); })
+        .then(function(data) {
+            scanBtn.disabled = false;
+            var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '🔍 开始检测';
+            console.log('[Upload] estimate result:', data);
+            if (data && data.ok) {
+                state.estimatedCost = data.cost || 0;
+                state.estimatedLines = data.total_lines || 0;
+                showConfirm();
+            } else {
+                flash(data.error || '预估失败，请重试', 'error');
+            }
+        }).catch(function(e) {
+            console.error('[Upload] estimate error:', e);
+            scanBtn.disabled = false;
+            var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '🔍 开始检测';
+            flash('预估失败，请重试', 'error');
+        });
+    }
+
+    function showConfirm() {
+        console.log('[Upload] showConfirm, cost=', state.estimatedCost);
+        if (confirm('本次扫描预计消耗 ' + fmtNum(state.estimatedCost) + ' 积分（约 ' + fmtNum(state.estimatedLines) + ' 行代码），确认开始？')) {
+            doStartScan();
+        }
+    }
+
+    function showInsufficientModal(currentCredits, needCredits) {
+        var modal = document.getElementById('credit-insufficient-modal');
+        if (!modal) {
+            flash('积分不足，请充值后重试', 'error');
+            return;
+        }
+        var curEl = document.getElementById('insufficient-current-num');
+        var needEl = document.getElementById('insufficient-need-num');
+        var closeBtn = document.getElementById('insufficient-close-btn');
+        var rechargeBtn = document.getElementById('insufficient-recharge-btn');
+        if (curEl) curEl.textContent = fmtNum(currentCredits || 0);
+        if (needEl) needEl.textContent = fmtNum(needCredits || 0);
+        modal.style.display = 'flex';
+        closeBtn.onclick = function() { modal.style.display = 'none'; };
+        rechargeBtn.onclick = function() {
+            window.location.href = "{{ url_for('dashboard_page', page='recharge') }}";
+        };
+    }
+
+    
+    // ===== 检测模式选择 =====
+    var currentScanMode = {% if is_vip %}'quick'{% else %}'free'{% endif %};
+    var isVip = {{ 'true' if is_vip else 'false' }};
+    
+    // 模式数据
+    var tierData = {
+        free:  { name:'免费检查', time:'1-2 秒',   price:'免费',       cost:null, hint:'适合：体验产品功能，快速了解代码质量', vipHint:'会员可享完整报告 · 7引擎' },
+        quick: { name:'快速检查', time:'2-3 秒',   price:'按行数计费', cost:null, hint:'适合：日常开发、提交前快速自查（1积分/300行）' },
+        smart: { name:'智能检查', time:'1-2 分钟', price:'按行数计费', cost:null, hint:'适合：提测验证、Code Review（2积分/300行）' },
+        deep:  { name:'深度检查', time:'5-10 分钟',price:'按行数计费', cost:null, hint:'适合：上线终审、安全合规审计（4积分/300行）' }
+    };
+
+    // 暴露到全局供onclick使用
+    // ===== selectScanMode 函数 =====
+    function selectScanMode(mode) {
+        // 锁定态不可选
+        var card = document.getElementById('tier-' + mode);
+        if (card && card.classList.contains('tier-locked')) return;
+        
+        currentScanMode = mode;
+        var d = tierData[mode];
+        
+        // 重置所有卡片（清除所有inline style，恢复CSS默认）
+        document.querySelectorAll('.tier-card').forEach(function(c) {
+            // 移除所有inline style，让CSS类控制样式
+            c.removeAttribute('style');
+            // 重新应用基础样式
+            c.style.flex = '1';
+            c.style.borderRadius = '8px';
+            c.style.padding = '10px 8px 8px';
+            c.style.textAlign = 'center';
+            c.style.cursor = 'pointer';
+            c.style.transition = 'all 0.2s cubic-bezier(0.34,1.3,0.64,1)';
+            c.style.minWidth = '0';
+            c.style.position = 'relative';
+            c.style.overflow = 'hidden';
+            // 默认边框和背景
+            c.style.borderColor = '#E2E8F0';
+            c.style.background = '#FFFFFF';
+            c.style.boxShadow = 'none';
+            c.style.opacity = '1';
+            // 文字恢复默认色
+            var titleEl = c.querySelector('div:first-child');
+            var descEl = c.querySelector('div:last-child');
+            if (titleEl) titleEl.style.color = '#1A2B4A';
+            if (descEl) descEl.style.color = '#6B7B94';
+        });
+        
+        // 选中态：品牌橙色背景+白色文字
+        if (card) {
+            card.style.borderColor = '#1A3A5C';
+            card.style.background = 'linear-gradient(135deg, #1A3A5C, #1E40AF)';
+            card.style.boxShadow = '0 4px 12px rgba(26,58,92,0.3)';
+            // 文字变白色
+            var titleEl = card.querySelector('div:first-child');
+            var descEl = card.querySelector('div:last-child');
+            if (titleEl) titleEl.style.color = '#fff';
+            if (descEl) descEl.style.color = 'rgba(255,255,255,0.9)';
+        }
+        
+        // 更新时间条
+        var timeEl = document.getElementById('tier-time-value');
+        var priceEl = document.getElementById('tier-price-value');
+        if (timeEl) timeEl.textContent = d.time;
+        if (priceEl) priceEl.textContent = d.price;
+        
+        // 更新提示
+        var hint = document.getElementById('mode-hint');
+        if (hint) hint.textContent = (isVip && mode === 'free') ? d.vipHint : d.hint;
+        
+        // 更新预估消耗
+        if (typeof updateEstimate === 'function') updateEstimate();
+    }
+
+    window.selectScanMode = selectScanMode;
+
+    // 初始化锁定态
+    (function initTierLocks() {
+        if (!isVip) {
+            ['quick','smart','deep'].forEach(function(m) {
+                var card = document.getElementById('tier-' + m);
+                if (card) {
+                    card.classList.add('tier-locked');
+                    card.style.opacity = '0.5';
+                    card.style.cursor = 'not-allowed';
+                    // 添加锁定遮罩
+                    var lock = document.createElement('div');
+                    lock.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;';
+                    lock.innerHTML = '<div style="font-size:14px;">🔒</div><div style="font-size:9px;color:#1A3A5C;font-weight:600;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();window.location.href=\'/pricing\'">开通会员</div>';
+                    card.appendChild(lock);
+                }
+            });
+            // 非会员默认免费
+            selectScanMode('free');
+        } else {
+            // 会员默认快速
+            selectScanMode('quick');
+        }
+    })();
+
+
+    // 积分不足弹窗函数
+    function modalSwitchToFree() {
+        document.getElementById('credit-insufficient-modal-v2').style.display = 'none';
+        selectScanMode('free');
+    }
+    function modalGoRecharge() {
+        document.getElementById('credit-insufficient-modal-v2').style.display = 'none';
+        window.location.href = '/pricing';
+    }
+    function showInsufficientModal(needCost, currentBalance) {
+        document.getElementById('modal-need-cost').textContent = needCost;
+        document.getElementById('modal-current-balance').textContent = currentBalance;
+        document.getElementById('credit-insufficient-modal-v2').style.display = 'flex';
+    }
+
+
+    function doStartScan() {
+        console.log('[Upload] doStartScan - 检查队列');
+        scanBtn.disabled = true;
+        var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '检测中...';
+
+        // 排队系统：检查队列负载
+        fetch('/api/queue/overview')
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(q) {
+                if (q && q.success && q.available_slots === 0 && q.queued > 2) {
+                    console.log('[Queue] 队列已满，走排队流程');
+                    submitToQueue();
+                } else {
+                    console.log('[Queue] 队列有空位或空闲，直接扫描');
+                    submitScanNormally();
+                }
+            })
+            .catch(function(e) {
+                console.warn('[Queue] 检查失败，降级直接扫描:', e);
+                submitScanNormally();
+            });
+    }
+
+    function submitToQueue() {
+        var projectName = '';
+        if (state.mode === 'file' && state.files.length > 0) {
+            projectName = state.files[0].name;
+            if (state.files.length > 1) projectName += ' 等' + state.files.length + '个文件';
+        } else {
+            var fnInput = document.getElementById('file-name-input');
+            projectName = (fnInput ? fnInput.value : '') || '粘贴代码';
+        }
+
+        var queueForm = new FormData();
+        queueForm.append('project_name', projectName);
+        queueForm.append('scan_mode', currentScanMode || 'smart');
+        var langSel = document.getElementById('lang-select');
+        queueForm.append('language', langSel ? langSel.value : 'auto');
+
+        if (state.mode === 'file') {
+            state.files.forEach(function(f) { queueForm.append('files', f, f.name); });
+        } else {
+            queueForm.append('code', state.codeText);
+        }
+
+        fetch('/api/queue/submit', {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
+            body: queueForm
+        }).then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success && data.task_id) {
+                window.location.href = '/queue/status?task_id=' + data.task_id;
+            } else {
+                console.warn('[Queue] 排队失败，降级直接扫描:', data.error);
+                submitScanNormally();
+            }
+        }).catch(function(e) {
+            console.warn('[Queue] 请求失败，降级直接扫描:', e);
+            submitScanNormally();
+        });
+    }
+
+    function submitScanNormally() {
+        console.log('[Upload] doStartScan');
+        scanBtn.disabled = true;
+        var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '检测中...';
+
+        var formData = new FormData();
+        formData.append('language', langSelect ? langSelect.value : 'auto');
+        formData.append('scan_mode', currentScanMode || 'free');
+
+        if (state.mode === 'file') {
+            state.files.forEach(function(f) {
+                formData.append('files', f, f.name);
+            });
+        } else {
+            formData.append('code', state.codeText);
+            var fn = fileNameInput ? fileNameInput.value || 'code.txt' : 'code.txt';
+            formData.append('filename', fn);
+        }
+
+        // 显示进度
+        var progSec = $('scan-progress');
+        var uploadSec = $('upload-form');
+        if (progSec && uploadSec) {
+            uploadSec.style.display = 'none';
+            progSec.style.display = 'block';
+        }
+
+        var progBar = document.querySelector(".progress-bar-fill");
+        var stepEl = document.getElementById("progress-step");
+        var prog = 0;
+        var stepIdx = 0;
+        var steps = [
+            { pct: 10, text: "上传文件中" },
+            { pct: 18, text: "解析代码结构" },
+            { pct: 28, text: "B1 语法规范检查" },
+            { pct: 40, text: "B2 安全漏洞扫描" },
+            { pct: 52, text: "B3 语义深度分析" },
+            { pct: 62, text: "B4 性能瓶颈检测" },
+            { pct: 72, text: "B5 依赖安全审计" },
+            { pct: 80, text: "B6 代码质量评估" },
+            { pct: 88, text: "B7 架构规范检查" },
+            { pct: 93, text: "B8 业务风险检测" },
+            { pct: 97, text: "生成检测报告" }
+        ];
+        if (stepEl) stepEl.textContent = steps[0].text;
+        var progInterval = setInterval(function() {
+            prog += Math.random() * 6;
+            if (prog > 95) prog = 95;
+            if (progBar) progBar.style.width = prog + "%";
+            while (stepIdx < steps.length - 1 && prog >= steps[stepIdx + 1].pct) {
+                stepIdx++;
+                if (stepEl) stepEl.textContent = steps[stepIdx].text;
+            }
+        }, 350);
+
+        fetch('/api/scan/submit', {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
+            body: formData
+        }).then(function(response) {
+            return response.json().then(function(data) {
+                if (!response.ok) {
+                    var err = new Error(data.error || '检测失败');
+                    err.data = data;
+                    throw err;
+                }
+                return data;
+            });
+        }).then(function(data) {
+            // 异步模式：拿到 scan_id，开始轮询状态
+            if (data.scan_id && data.status === 'pending') {
+                pollScanStatus(data.scan_id, progInterval, progBar, stepEl, progSec, uploadSec);
+            } else {
+                // 兼容旧的同步响应
+                clearInterval(progInterval);
+                if (progBar) progBar.style.width = '100%';
+                if (stepEl) stepEl.textContent = '检测完成 ✓';
+                setTimeout(function() {
+                    window.location.href = '/report/' + data.scan_id;
+                }, 500);
+            }
+        }).catch(function(error) {
+            clearInterval(progInterval);
+            scanBtn.disabled = false;
+            var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '🔍 开始检测';
+            if (progSec && uploadSec) {
+                progSec.style.display = 'none';
+                uploadSec.style.display = 'block';
+            }
+            var d = error.data || {};
+            if (d.error === '积分不足' || error.message === '积分不足' || d.code === 'INSUFFICIENT_CREDITS') {
+                showInsufficientModal(d.credits_balance || d.current_credits || creditBalance, d.credits_needed || d.need_credits || 0);
+            } else {
+                flash(error.message || '检测失败，请重试', 'error');
+            }
+        });
+    }
+
+    // ===== 轮询扫描状态 =====
+    function pollScanStatus(scanId, progInterval, progBar, stepEl, progSec, uploadSec) {
+        // 停止假进度动画，改用服务器真实进度
+        clearInterval(progInterval);
+        var pollCount = 0;
+        var maxPolls = 300; // 最多轮询5分钟 (300 * 1秒)
+
+        function doPoll() {
+            pollCount++;
+            if (pollCount > maxPolls) {
+                // 超时但任务可能还在跑，直接跳报告页
+                window.location.href = '/report/' + scanId;
+                return;
+            }
+
+            fetch('/api/scan/status/' + scanId)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.status === 'completed') {
+                        if (progBar) progBar.style.width = '100%';
+                        if (stepEl) stepEl.textContent = '检测完成 \u2713';
+                        setTimeout(function() { window.location.href = '/report/' + scanId; }, 500);
+                        return;
+                    }
+                    if (data.status === 'failed') {
+                        throw new Error(data.error || '扫描失败');
+                    }
+                    // 更新进度
+                    var pct = data.progress || 0;
+                    if (progBar) progBar.style.width = Math.min(pct, 95) + '%';
+                    if (stepEl && data.progress_text) stepEl.textContent = data.progress_text;
+                    // 继续轮询
+                    setTimeout(doPoll, 2500);
+                })
+                .catch(function(error) {
+                    scanBtn.disabled = false;
+                    var front = scanBtn.querySelector('.btn3d-front');
+                    if (front) front.textContent = '\U0001f50d 开始检测';
+                    if (progSec && uploadSec) {
+                        progSec.style.display = 'none';
+                        uploadSec.style.display = 'block';
+                    }
+                    flash(error.message || '查询扫描状态失败', 'error');
+                });
+        }
+
+        setTimeout(doPoll, 2000);
+    }
+
+    // ===== GitHub 仓库扫描 =====
+    function doGitHubScan() {
+        var repoUrl = (document.getElementById('github-repo-url').value || '').trim();
+        var branch = (document.getElementById('github-branch').value || '').trim();
+        var token = (document.getElementById('github-token').value || '').trim();
+
+        if (!repoUrl) {
+            flash('请输入 GitHub 仓库地址', 'error');
+            return;
+        }
+        if (!/^https?:\/\/github\.com\//.test(repoUrl)) {
+            flash('请输入有效的 GitHub 仓库地址', 'error');
+            return;
+        }
+
+        scanBtn.disabled = true;
+        var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '克隆中...';
+
+        // 显示进度
+        var progSec = document.getElementById('scan-progress');
+        var uploadSec = document.getElementById('upload-form');
+        if (progSec && uploadSec) {
+            uploadSec.style.display = 'none';
+            progSec.style.display = 'block';
+        }
+
+        var progBar = document.querySelector(".progress-bar-fill");
+        var stepEl = document.getElementById("progress-step");
+        var prog = 0;
+        var stepIdx = 0;
+        var steps = [
+            { pct: 8, text: "连接 GitHub" },
+            { pct: 20, text: "克隆仓库代码" },
+            { pct: 35, text: "解析代码结构" },
+            { pct: 48, text: "B1 语法规范检查" },
+            { pct: 58, text: "B2 安全漏洞扫描" },
+            { pct: 68, text: "B3 语义深度分析" },
+            { pct: 78, text: "B4 性能瓶颈检测" },
+            { pct: 85, text: "B5 依赖安全审计" },
+            { pct: 92, text: "B6 代码质量评估" },
+            { pct: 97, text: "生成检测报告" }
+        ];
+        if (stepEl) stepEl.textContent = steps[0].text;
+        var progInterval = setInterval(function() {
+            prog += Math.random() * 4;
+            if (prog > 95) prog = 95;
+            if (progBar) progBar.style.width = prog + "%";
+            while (stepIdx < steps.length - 1 && prog >= steps[stepIdx + 1].pct) {
+                stepIdx++;
+                if (stepEl) stepEl.textContent = steps[stepIdx].text;
+            }
+        }, 500);
+
+        var prNumber = document.getElementById('github-pr-number');
+        var postComment = document.getElementById('github-post-comment');
+        var payload = {
+            repo_url: repoUrl,
+            branch: branch,
+            scan_mode: currentScanMode || 'free'
+        };
+        if (token) payload.github_token = token;
+        if (prNumber && prNumber.value) payload.pr_number = parseInt(prNumber.value);
+        if (postComment && postComment.checked) payload.post_comment = true;
+
+        fetch('/api/scan/github', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            body: JSON.stringify(payload)
+        }).then(function(response) {
+            return response.json().then(function(data) {
+                if (!response.ok) {
+                    var err = new Error(data.error || data.message || '扫描失败');
+                    err.data = data;
+                    throw err;
+                }
+                return data;
+            });
+        }).then(function(data) {
+            // 异步模式：拿到 scan_id，开始轮询状态
+            if (data.scan_id && (data.status === 'pending' || data.status === 'ok')) {
+                if (data.status === 'ok') {
+                    // 同步完成了（小仓库）
+                    clearInterval(progInterval);
+                    if (progBar) progBar.style.width = '100%';
+                    if (stepEl) stepEl.textContent = '检测完成 \u2713';
+                    setTimeout(function() { window.location.href = '/report/' + data.scan_id; }, 500);
+                } else {
+                    pollScanStatus(data.scan_id, progInterval, progBar, stepEl, progSec, uploadSec);
+                }
+            }
+        }).catch(function(error) {
+            clearInterval(progInterval);
+            scanBtn.disabled = false;
+            var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '\U0001f50d 开始检测';
+            if (progSec && uploadSec) {
+                progSec.style.display = 'none';
+                uploadSec.style.display = 'block';
+            }
+            var d = error.data || {};
+            if (d.error === 'credits_insufficient' || d.code === 'INSUFFICIENT_CREDITS') {
+                showInsufficientModal(d.credits_balance || 0, d.credits_needed || 0);
+            } else {
+                flash(error.message || '扫描失败，请重试', 'error');
+            }
+        });
+    }
+
+    // ===== 初始化 =====
+    function init() {
+        console.log('[Upload] init start');
+        // 找元素（会自动恢复ID）
+        fileInput = $('file-input');
+        uploadArea = $('upload-area');
+        fileListEl = $('file-list');
+        codeTextarea = $('code-textarea');
+        fileNameInput = $('code-filename');
+        tabFile = $('tab-file');
+        tabCode = $('tab-code');
+        fileContent = $('tab-content-file');
+        codeContent = $('tab-content-code');
+        langSelect = $('language-select');
+        scanBtn = $('scan-btn');
+
+        console.log('[Upload] elements:', {
+            fileInput: !!fileInput, uploadArea: !!uploadArea,
+            fileListEl: !!fileListEl, scanBtn: !!scanBtn
+        });
+
+        // 克隆替换 fileInput，清除可能的旧事件
+        if (fileInput) {
+            var newFI = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(newFI, fileInput);
+            fileInput = newFI;
+            fileInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+                fileInput.value = '';
+            });
+        }
+
+        // 上传区域点击
+        if (uploadArea) {
+            uploadArea.addEventListener('click', function(e) {
+                if (state.mode === 'file' && !e.target.closest('.file-list')) {
+                    if (fileInput) fileInput.click();
+                }
+            });
+            // 拖拽
+            ['dragenter', 'dragover'].forEach(function(ev) {
+                uploadArea.addEventListener(ev, function(e) {
+                    e.preventDefault(); e.stopPropagation();
+                    uploadArea.classList.add('dragover');
+                });
+            });
+            ['dragleave', 'drop'].forEach(function(ev) {
+                uploadArea.addEventListener(ev, function(e) {
+                    e.preventDefault(); e.stopPropagation();
+                    uploadArea.classList.remove('dragover');
+                });
+            });
+            uploadArea.addEventListener('drop', function(e) {
+                if (state.mode === 'file' && e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+        }
+
+        // 粘贴代码
+        if (codeTextarea) {
+            codeTextarea.addEventListener('input', function() {
+                state.codeText = codeTextarea.value;
+                updateScanBtn();
+                debounceEstimate();
+            });
+        }
+
+        // Tab 切换
+        var tabGithub = $('tab-github');
+        var githubContent = $('tab-content-github');
+        var allTabs = [tabFile, tabCode, tabGithub];
+        var allContents = [fileContent, codeContent, githubContent];
+        var modes = ['file', 'code', 'github'];
+
+        function switchTab(idx) {
+            state.mode = modes[idx];
+            allTabs.forEach(function(t, i) {
+                if (!t) return;
+                if (i === idx) t.classList.add('active');
+                else t.classList.remove('active');
+            });
+            allContents.forEach(function(c, i) {
+                if (!c) return;
+                if (i === idx) c.classList.add('active');
+                else c.classList.remove('active');
+            });
+            updateScanBtn();
+            debounceEstimate();
+        }
+
+        if (tabFile) tabFile.addEventListener('click', function() { switchTab(0); });
+        if (tabCode) tabCode.addEventListener('click', function() { switchTab(1); });
+        if (tabGithub) tabGithub.addEventListener('click', function() { switchTab(2); });
+
+        // GitHub URL 输入监听
+        var githubUrlInput = document.getElementById('github-repo-url');
+        if (githubUrlInput) {
+            githubUrlInput.addEventListener('input', function() {
+                updateScanBtn();
+            });
+        }
+
+        // 扫描按钮点击已经用 onclick 属性绑了 window.__uploadScanClick
+        // 这里只做初始状态
+        updateScanBtn();
+
+        // 千分位显示
+        var cn = $('credit-balance-num');
+        if (cn) cn.textContent = fmtNum(parseInt(cn.textContent) || 0);
+        var dn = $('daily-remaining-num');
+        if (dn) dn.textContent = fmtNum(parseInt(dn.textContent) || 0);
+
+        console.log('[Upload] init done, scanBtn.disabled=', scanBtn ? scanBtn.disabled : 'no btn');
+    }
+
+    // ===== GitHub 连接状态管理 =====
+    function checkGitHubStatus() {
+        fetch('/api/github/status')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.connected) {
+                    document.getElementById('github-not-connected').style.display = 'none';
+                    document.getElementById('github-connected').style.display = 'block';
+                    document.getElementById('github-username').textContent = '@' + data.username;
+                    fetchGitHubRepos();
+                } else {
+                    document.getElementById('github-not-connected').style.display = 'block';
+                    document.getElementById('github-connected').style.display = 'none';
+                }
+            })
+            .catch(function() {});
+    }
+
+    function disconnectGitHub() {
+        if (!confirm('确定要断开 GitHub 连接吗？')) return;
+        fetch('/api/github/disconnect', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    document.getElementById('github-not-connected').style.display = 'block';
+                    document.getElementById('github-connected').style.display = 'none';
+                    var sel = document.getElementById('github-repo-select');
+                    if (sel) sel.innerHTML = '<option value="">- 选择仓库 -</option>';
+                }
+            })
+            .catch(function() { alert('断开失败，请重试'); });
+    }
+
+    function fetchGitHubRepos() {
+        var sel = document.getElementById('github-repo-select');
+        if (sel) sel.innerHTML = '<option value="">加载中...</option>';
+        fetch('/api/github/repos')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'ok' && sel) {
+                    sel.innerHTML = '<option value="">- 选择仓库 -</option>';
+                    (data.repos || []).forEach(function(r) {
+                        var opt = document.createElement('option');
+                        opt.value = r.full_name;
+                        opt.textContent = r.full_name + (r.private ? ' (私有)' : '');
+                        sel.appendChild(opt);
+                    });
+                    sel.onchange = function() {
+                        if (sel.value) {
+                            document.getElementById('github-repo-url').value = 'https://github.com/' + sel.value;
+                        }
+                    };
+                } else if (sel) {
+                    sel.innerHTML = '<option value="">- 加载失败 -</option>';
+                }
+            })
+            .catch(function() { if (sel) sel.innerHTML = '<option value="">- 加载失败 -</option>'; });
+    }
+
+    // 暴露全局点击入口（按钮 onclick 属性直接调用）
+    // 检查 GitHub 连接状态
+    checkGitHubStatus();
+
+    window.__uploadScanClick = onScanClick;
+
+    // 启动
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+</script>
+
+<!-- 积分不足弹窗v2 -->
+<div id="credit-insufficient-modal-v2" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card,#fff);border-radius:14px;padding:28px 24px;width:360px;max-width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="font-size:40px;margin-bottom:10px;">⚠️</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:6px;">积分不足</div>
+        <div style="font-size:13px;color:var(--text-secondary,#888);margin-bottom:20px;">当前积分不足以完成本次扫描</div>
+        <div style="background:#EFF6FF;border:1px solid #FFE0CC;border-radius:10px;padding:14px;margin-bottom:20px;">
+            <div style="font-size:28px;font-weight:800;color:var(--accent-orange);"><span id="modal-need-cost">15</span><span style="font-size:13px;color:#888;font-weight:400;margin-left:2px;">积分</span></div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">当前余额：<span id="modal-current-balance">0</span> 积分</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="modalSwitchToFree()" style="flex:1;padding:10px;border:1px solid var(--border-color,#ddd);background:#fff;color:#666;border-radius:7px;font-size:13px;cursor:pointer;">切换扫描模式</button>
+            <button onclick="modalGoRecharge()" style="flex:1;padding:10px;border:none;background:var(--accent-orange);color:#fff;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">充值积分包</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

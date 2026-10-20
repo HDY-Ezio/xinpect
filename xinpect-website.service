@@ -1,0 +1,17 @@
+[Unit]
+Description=煋鉴 Xinpect 官网 v1.0
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/xinpect-website
+Environment=XINPECT_SECRET=change-this-in-production
+Environment=SCANNER_URL=http://localhost:8620/scan
+Environment=PAY_NOTIFY_URL=http://localhost:8612
+ExecStart=/usr/bin/python3 /opt/xinpect-website/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

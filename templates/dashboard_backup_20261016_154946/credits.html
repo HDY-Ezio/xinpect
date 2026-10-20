@@ -1,0 +1,79 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}积分中心 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>积分中心</h1>
+    <p>查看积分余额和使用记录</p>
+</div>
+
+<!-- 积分余额卡片 -->
+<div style="background:linear-gradient(135deg,#ff6b35 0%,#f7931e 100%);color:white;border-radius:var(--radius-lg);padding:32px;margin-bottom:24px;box-shadow:0 4px 20px rgba(255,107,53,0.3);">
+    <div style="font-size:14px;opacity:0.9;margin-bottom:8px;">当前积分余额</div>
+    <div id="credit-balance" style="font-size:48px;font-weight:700;margin-bottom:16px;">加载中...</div>
+    <div style="display:flex;gap:24px;font-size:14px;opacity:0.9;">
+        <div>
+            <div style="opacity:0.7;">本月消耗</div>
+            <div id="monthly-used" style="font-size:20px;font-weight:600;">--</div>
+        </div>
+        <div>
+            <div style="opacity:0.7;">积分有效期</div>
+            <div style="font-size:20px;font-weight:600;">1年</div>
+        </div>
+    </div>
+</div>
+
+<!-- 积分说明 -->
+<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:24px;">
+    <h3 style="font-size:18px;font-weight:600;margin-bottom:16px;">积分使用说明</h3>
+    <div style="display:grid;gap:12px;font-size:14px;color:var(--text-secondary);">
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span>每次扫描消耗积分，具体数量取决于项目大小和扫描模式</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span>订阅会员每月赠送 300 积分，积分包额外购买</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span>优先消耗月度赠送积分，积分包积分作为补充</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <span style="color:var(--success);">✓</span>
+            <span>积分有效期 1 年，过期未使用将自动清除</span>
+        </div>
+    </div>
+    <div style="margin-top:20px;text-align:center;">
+        <a href="{{ url_for(dashboard_page, page=recharge) }}" class="btn btn-orange">购买积分包</a>
+    </div>
+</div>
+
+<script>
+// 从API获取积分余额
+async function loadCreditBalance() {
+    try {
+        const response = await fetch('/api/credits/balance');
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+        const data = await response.json();
+        if (data.status === 'ok') {
+            document.getElementById('credit-balance').textContent = data.balance.toLocaleString();
+            // TODO: 计算本月消耗（需要从API获取交易记录）
+            document.getElementById('monthly-used').textContent = 0;
+        } else {
+            document.getElementById('credit-balance').textContent = '加载失败';
+        }
+    } catch (error) {
+        console.error(加载积分余额失败:, error);
+        document.getElementById('credit-balance').textContent = '加载失败';
+    }
+}
+
+// 页面加载时获取数据
+document.addEventListener(DOMContentLoaded, loadCreditBalance);
+</script>
+{% endblock %}

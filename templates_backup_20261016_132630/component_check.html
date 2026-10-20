@@ -1,0 +1,1154 @@
+{% extends "base.html" %}
+
+{% block title %}组件契约合规检测 - 开源组件安全审计 | 煋鉴 Xinpect{% endblock %}
+{% block meta_description %}在线检测项目中开源组件的许可证合规性和安全漏洞，支持npm/pip/maven/go等多包管理器，一键扫描SBOM清单。{% endblock %}
+{% block meta_keywords %}组件合规,开源许可证检测,SBOM,SCA,组件安全审计,依赖漏洞检测{% endblock %}
+{% block og_title %}组件契约合规检测 - 开源组件安全审计 | 煋鉴{% endblock %}
+
+{% block content %}
+<section class="cc-hero">
+    <div class="container-md">
+        <div class="cc-hero-text">
+            <div class="cc-badge">
+                <span class="cc-badge-icon">🧩</span>
+                <span>E6 组件合规 · 免费检测</span>
+            </div>
+            <h1 class="cc-title">小程序组件契约检测 <span class="cc-title-tag">免费版</span></h1>
+            <p class="cc-subtitle">粘贴 WXML 代码，一键检测 TDesign 组件使用规范问题</p>
+            <div class="cc-features">
+                <div class="cc-feature"><span class="cc-feat-icon">⚡</span>秒级检测</div>
+                <div class="cc-feature"><span class="cc-feat-icon">📋</span>8条契约规则</div>
+                <div class="cc-feature"><span class="cc-feat-icon">🧩</span>20+组件覆盖</div>
+                <div class="cc-feature"><span class="cc-feat-icon">🎯</span>零误报率</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 登录提示条 -->
+<section style="background:rgba(255,107,53,0.08);padding:12px 0;border-bottom:1px solid rgba(255,107,53,0.15);">
+    <div class="container-md" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+        <span style="color:var(--accent-orange);font-size:14px;font-weight:500;">🔔 登录后即可免费使用组件契约检测，无限次，不限量</span>
+        <a href="/login?next=/component-check" style="background:var(--accent-orange);color:white;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">立即登录</a>
+        <span style="color:var(--text-muted);font-size:13px;">|</span>
+        <a href="/register?next=/component-check" style="color:var(--accent-orange);font-size:13px;font-weight:500;text-decoration:none;">没有账号？免费注册</a>
+    </div>
+</section>
+
+<section class="cc-main">
+    <div class="container-md">
+        <div class="cc-workspace">
+            <!-- 左侧：代码输入区 -->
+            <div class="cc-editor-panel">
+                <div class="cc-panel-header">
+                    <span class="cc-panel-title">📝 WXML 代码</span>
+                    <button class="cc-clear-btn" onclick="clearCode()">清空</button>
+                </div>
+                <textarea
+                    class="cc-code-textarea"
+                    id="wxml-input"
+                    placeholder="在此粘贴你的 WXML 代码...&#10;&#10;示例：&#10;&lt;t-button theme=&quot;primary&quot;&gt;按钮&lt;/t-button&gt;&#10;&lt;t-input type=&quot;text&quot; /&gt;"
+                    spellcheck="false"
+                ></textarea>
+                <div class="cc-editor-footer">
+                    <span class="cc-line-count" id="line-count">0 行</span>
+                    <button class="btn btn-orange btn-lg cc-scan-btn" id="scan-btn" onclick="runCheck()">
+                        <span class="cc-btn-icon">🔍</span>
+                        <span>开始检测</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧：检测结果区 -->
+            <div class="cc-result-panel">
+                <div class="cc-panel-header">
+                    <span class="cc-panel-title">📊 检测结果</span>
+                    <span class="cc-result-status" id="result-status">待检测</span>
+                </div>
+
+                <!-- 初始状态 -->
+                <div class="cc-empty-state" id="empty-state">
+                    <div class="cc-empty-icon">🔬</div>
+                    <div class="cc-empty-title">粘贴代码后点击检测</div>
+                    <div class="cc-empty-desc">支持 TDesign 小程序组件规范检测</div>
+                </div>
+
+                <!-- 加载状态 -->
+                <div class="cc-loading-state" id="loading-state" style="display:none;">
+                    <div class="cc-spinner"></div>
+                    <div class="cc-loading-text">正在检测组件契约...</div>
+                    <div class="cc-loading-sub">E6 引擎扫描中</div>
+                </div>
+
+                <!-- 结果内容 -->
+                <div class="cc-result-content" id="result-content" style="display:none;">
+                    <!-- 统计概览 -->
+                    <div class="cc-stats-bar">
+                        <div class="cc-score-box">
+                            <div class="cc-score-label">契约合规分</div>
+                            <div class="cc-score-value" id="score-value">--</div>
+                        </div>
+                        <div class="cc-stats-grid">
+                            <div class="cc-stat-item cc-stat-high">
+                                <div class="cc-stat-num" id="count-high">0</div>
+                                <div class="cc-stat-label">高危</div>
+                            </div>
+                            <div class="cc-stat-item cc-stat-medium">
+                                <div class="cc-stat-num" id="count-medium">0</div>
+                                <div class="cc-stat-label">中等</div>
+                            </div>
+                            <div class="cc-stat-item cc-stat-low">
+                                <div class="cc-stat-num" id="count-low">0</div>
+                                <div class="cc-stat-label">轻微</div>
+                            </div>
+                            <div class="cc-stat-item cc-stat-time">
+                                <div class="cc-stat-num" id="scan-time">0ms</div>
+                                <div class="cc-stat-label">耗时</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 问题筛选 Tab -->
+                    <div class="cc-filter-tabs" id="filter-tabs" style="display:none;">
+                        <button class="cc-filter-tab active" data-severity="all" onclick="filterIssues('all')">
+                            全部 <span id="tab-all-count">0</span>
+                        </button>
+                        <button class="cc-filter-tab" data-severity="high" onclick="filterIssues('high')">
+                            高危 <span id="tab-high-count">0</span>
+                        </button>
+                        <button class="cc-filter-tab" data-severity="medium" onclick="filterIssues('medium')">
+                            中等 <span id="tab-medium-count">0</span>
+                        </button>
+                        <button class="cc-filter-tab" data-severity="low" onclick="filterIssues('low')">
+                            轻微 <span id="tab-low-count">0</span>
+                        </button>
+                    </div>
+
+                    <!-- 问题列表 -->
+                    <div class="cc-issues-list" id="issues-list"></div>
+
+                    <!-- 无问题状态 -->
+                    <div class="cc-all-clear" id="all-clear" style="display:none;">
+                        <div class="cc-clear-icon">✅</div>
+                        <div class="cc-clear-title">全部通过！</div>
+                        <div class="cc-clear-desc">未检测到组件契约违规问题</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部转化区 -->
+        <div class="cc-cta-section">
+            <div class="cc-cta-content">
+                <div class="cc-cta-left">
+                    <div class="cc-cta-icon">🔒</div>
+                    <div>
+                        <div class="cc-cta-title">注册解锁全部修复建议 + 9大引擎全量检测</div>
+                        <div class="cc-cta-desc">免费版仅展示问题描述，注册后即可查看完整修复方案，还可体验全维度代码质检</div>
+                    </div>
+                </div>
+                <div class="cc-cta-right">
+                    <a href="{{ url_for('register') }}" class="btn btn-orange btn-lg">免费注册</a>
+                    <a href="{{ url_for('pricing_page') }}" class="btn btn-ghost" style="color:var(--text-primary);border-color:var(--border-color);">查看定价</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 规则说明 -->
+        <div class="cc-rules-section">
+            <h2 class="cc-section-title">检测规则覆盖</h2>
+            <div class="cc-rules-grid">
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">📌</div>
+                    <div class="cc-rule-name">必传属性校验</div>
+                    <div class="cc-rule-desc">检查组件必填属性是否缺失</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">🎚️</div>
+                    <div class="cc-rule-name">属性值越界检测</div>
+                    <div class="cc-rule-desc">枚举值、范围值合法性校验</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">📦</div>
+                    <div class="cc-rule-name">嵌套规则检测</div>
+                    <div class="cc-rule-desc">父子组件合法嵌套关系</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">🔗</div>
+                    <div class="cc-rule-name">属性联动检查</div>
+                    <div class="cc-rule-desc">属性间依赖与互斥关系</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">🎨</div>
+                    <div class="cc-rule-name">样式边界检测</div>
+                    <div class="cc-rule-desc">外部样式对组件影响预警</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">⚡</div>
+                    <div class="cc-rule-name">废弃属性提醒</div>
+                    <div class="cc-rule-desc">已废弃属性的版本兼容提示</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">🧩</div>
+                    <div class="cc-rule-name">组件配对检查</div>
+                    <div class="cc-rule-desc">成对组件的正确使用方式</div>
+                </div>
+                <div class="cc-rule-card">
+                    <div class="cc-rule-icon">📝</div>
+                    <div class="cc-rule-name">事件绑定规范</div>
+                    <div class="cc-rule-desc">事件名与绑定方式合规检测</div>
+                </div>
+            </div>
+            <div class="cc-rules-more">
+                <span>覆盖 20+ TDesign 小程序组件 · 持续更新中</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+/* ===== 组件契约检测页样式 ===== */
+.cc-hero {
+    padding: 60px 0 40px;
+    background: linear-gradient(180deg, rgba(255, 107, 53, 0.08) 0%, transparent 100%);
+}
+.cc-hero-text {
+    text-align: center;
+}
+.cc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(255, 107, 53, 0.15);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 20px;
+    color: var(--accent-orange);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+.cc-badge-icon {
+    font-size: 14px;
+}
+.cc-title {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+.cc-title-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--gradient-orange);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 8px;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+.cc-subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+}
+.cc-features {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.cc-feature {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.cc-feat-icon {
+    font-size: 16px;
+}
+
+/* ===== 主工作区 ===== */
+.cc-main {
+    padding: 20px 0 60px;
+}
+.cc-workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+.cc-editor-panel,
+.cc-result-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 500px;
+}
+.cc-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+}
+.cc-panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.cc-clear-btn {
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.cc-clear-btn:hover {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+}
+
+/* 代码输入区 */
+.cc-code-textarea {
+    flex: 1;
+    width: 100%;
+    padding: 16px 20px;
+    background: #0d1117;
+    border: none;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    resize: none;
+    outline: none;
+    min-height: 380px;
+    tab-size: 2;
+}
+.cc-code-textarea::placeholder {
+    color: #484f58;
+}
+.cc-editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+}
+.cc-line-count {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', monospace;
+}
+.cc-scan-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 160px;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+}
+.cc-scan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.cc-btn-icon {
+    font-size: 16px;
+}
+
+/* 结果状态 */
+.cc-result-status {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.cc-empty-state,
+.cc-loading-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+.cc-empty-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+.cc-empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.cc-empty-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.cc-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-orange);
+    border-radius: 50%;
+    animation: cc-spin 0.8s linear infinite;
+    margin-bottom: 16px;
+}
+@keyframes cc-spin {
+    to { transform: rotate(360deg); }
+}
+.cc-loading-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+.cc-loading-sub {
+    font-size: 13px;
+    color: var(--accent-orange);
+    font-weight: 500;
+}
+
+/* 结果内容 */
+.cc-result-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.cc-stats-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+.cc-score-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.15) 0%, rgba(255, 107, 53, 0.05) 100%);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 10px;
+    min-width: 100px;
+}
+.cc-score-label {
+    font-size: 12px;
+    color: var(--accent-orange);
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+.cc-score-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accent-orange);
+    line-height: 1;
+}
+.cc-stats-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.cc-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+.cc-stat-num {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.cc-stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.cc-stat-high .cc-stat-num { color: #f97316; }
+.cc-stat-medium .cc-stat-num { color: var(--warning); }
+.cc-stat-low .cc-stat-num { color: var(--info); }
+.cc-stat-time .cc-stat-num { color: var(--success); font-size: 16px; }
+
+/* 筛选 Tab */
+.cc-filter-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+.cc-filter-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+.cc-filter-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+.cc-filter-tab.active {
+    background: rgba(255, 107, 53, 0.15);
+    border-color: rgba(255, 107, 53, 0.3);
+    color: var(--accent-orange);
+    font-weight: 600;
+}
+.cc-filter-tab span {
+    font-size: 11px;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+.cc-filter-tab.active span {
+    background: rgba(255, 107, 53, 0.3);
+}
+
+/* 问题列表 */
+.cc-issues-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 20px 20px;
+}
+.cc-issue-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: var(--transition);
+}
+.cc-issue-card:hover {
+    border-color: rgba(255, 107, 53, 0.3);
+    background: rgba(255, 107, 53, 0.03);
+}
+.cc-issue-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+}
+.cc-severity-tag {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.6;
+}
+.cc-severity-tag.high {
+    background: rgba(249, 115, 22, 0.2);
+    color: #f97316;
+}
+.cc-severity-tag.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+.cc-severity-tag.low {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--info);
+}
+.cc-issue-main {
+    flex: 1;
+    min-width: 0;
+}
+.cc-issue-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+.cc-issue-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.cc-issue-rule-id {
+    font-family: 'SF Mono', monospace;
+    color: var(--accent-orange);
+}
+.cc-issue-toggle {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    transition: var(--transition);
+    margin-top: 2px;
+}
+.cc-issue-card.expanded .cc-issue-toggle {
+    transform: rotate(180deg);
+}
+
+.cc-issue-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.cc-issue-card.expanded .cc-issue-body {
+    max-height: 500px;
+}
+.cc-issue-body-inner {
+    padding: 0 14px 14px 14px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 4px;
+}
+.cc-issue-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 10px;
+}
+.cc-issue-code {
+    background: #0d1117;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #e6edf3;
+    overflow-x: auto;
+    margin-bottom: 10px;
+}
+.cc-issue-code .cc-line-current {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fbbf24;
+    display: block;
+    margin: 0 -12px;
+    padding: 0 12px;
+}
+.cc-issue-suggestion {
+    position: relative;
+}
+.cc-suggestion-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success);
+    margin-bottom: 6px;
+}
+.cc-suggestion-content {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    padding: 10px 12px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 6px;
+}
+/* 免费版遮罩 */
+.cc-suggestion-locked {
+    position: relative;
+    padding: 14px 12px;
+    background: rgba(255, 107, 53, 0.05);
+    border: 1px dashed rgba(255, 107, 53, 0.3);
+    border-radius: 6px;
+    text-align: center;
+}
+.cc-suggestion-locked .cc-lock-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+.cc-suggestion-locked .cc-lock-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+.cc-suggestion-locked .cc-lock-btn {
+    display: inline-block;
+    padding: 6px 16px;
+    background: var(--accent-orange);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+}
+.cc-suggestion-locked .cc-lock-btn:hover {
+    background: var(--accent-orange-hover);
+}
+
+/* 全通过状态 */
+.cc-all-clear {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+.cc-clear-icon {
+    font-size: 52px;
+    margin-bottom: 14px;
+}
+.cc-clear-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 6px;
+}
+.cc-clear-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* ===== CTA 转化区 ===== */
+.cc-cta-section {
+    margin-bottom: 48px;
+}
+.cc-cta-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 32px;
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 107, 53, 0.03) 100%);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: var(--radius-lg);
+}
+.cc-cta-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+.cc-cta-icon {
+    font-size: 36px;
+    flex-shrink: 0;
+}
+.cc-cta-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+.cc-cta-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.cc-cta-right {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+/* ===== 规则说明 ===== */
+.cc-rules-section {
+    margin-bottom: 40px;
+}
+.cc-section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 28px;
+}
+.cc-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.cc-rule-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: var(--transition);
+}
+.cc-rule-card:hover {
+    border-color: rgba(255, 107, 53, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.cc-rule-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+.cc-rule-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+.cc-rule-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+.cc-rules-more {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding-top: 8px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 960px) {
+    .cc-workspace {
+        grid-template-columns: 1fr;
+    }
+    .cc-editor-panel,
+    .cc-result-panel {
+        min-height: 400px;
+    }
+    .cc-rules-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .cc-title {
+        font-size: 28px;
+    }
+    .cc-title-tag {
+        font-size: 14px;
+    }
+    .cc-cta-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    .cc-cta-left {
+        flex-direction: column;
+    }
+    .cc-cta-right {
+        width: 100%;
+        justify-content: center;
+    }
+}
+@media (max-width: 480px) {
+    .cc-rules-grid {
+        grid-template-columns: 1fr;
+    }
+    .cc-stats-bar {
+        flex-direction: column;
+    }
+    .cc-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .cc-features {
+        gap: 8px;
+    }
+    .cc-feature {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+}
+</style>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    function getCsrfToken() {
+        var meta = document.querySelector("meta[name=csrf-token]");
+        return meta ? meta.getAttribute("content") : "";
+    }
+// 设置页面专属 meta description
+(function() {
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+        meta.setAttribute('content', '免费在线检测TDesign小程序组件使用规范，8条契约规则，20+组件覆盖，一键检查必传属性、属性值越界、嵌套规则等组件契约问题。');
+    }
+})();
+
+(function() {
+    // ===== DOM 元素 =====
+    var wxmlInput = document.getElementById('wxml-input');
+    var lineCountEl = document.getElementById('line-count');
+    var scanBtn = document.getElementById('scan-btn');
+    var emptyState = document.getElementById('empty-state');
+    var loadingState = document.getElementById('loading-state');
+    var resultContent = document.getElementById('result-content');
+    var resultStatus = document.getElementById('result-status');
+    var issuesList = document.getElementById('issues-list');
+    var filterTabs = document.getElementById('filter-tabs');
+    var allClear = document.getElementById('all-clear');
+
+    var currentFilter = 'all';
+    var currentIssues = [];
+
+    // ===== 工具函数 =====
+    function fmtNum(n) {
+        return Number(n || 0).toLocaleString('zh-CN');
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function updateLineCount() {
+        var lines = wxmlInput.value.split('\n').length;
+        lineCountEl.textContent = lines + ' 行';
+        scanBtn.disabled = !wxmlInput.value.trim();
+    }
+
+    // ===== 事件绑定 =====
+    wxmlInput.addEventListener('input', updateLineCount);
+
+    // Tab 切换支持
+    wxmlInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 2;
+            updateLineCount();
+        }
+    });
+
+    // ===== 清空代码 =====
+    window.clearCode = function() {
+        wxmlInput.value = '';
+        updateLineCount();
+        resetResult();
+        wxmlInput.focus();
+    };
+
+    // ===== 重置结果 =====
+    function resetResult() {
+        emptyState.style.display = 'flex';
+        loadingState.style.display = 'none';
+        resultContent.style.display = 'none';
+        resultStatus.textContent = '待检测';
+        currentIssues = [];
+    }
+
+    // ===== 检测 =====
+    window.runCheck = function() {
+        var code = wxmlInput.value.trim();
+        if (!code) {
+            flash('请先输入 WXML 代码', 'error');
+            return;
+        }
+
+        // 显示加载状态
+        emptyState.style.display = 'none';
+        loadingState.style.display = 'flex';
+        resultContent.style.display = 'none';
+        resultStatus.textContent = '检测中...';
+        scanBtn.disabled = true;
+
+        fetch('/api/component-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            body: JSON.stringify({ wxml_code: code })
+        })
+        .then(function(resp) {
+            if (resp.status === 401) {
+                // 未登录，跳转到登录页
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return Promise.reject('login_required');
+            }
+            return resp.json();
+        })
+        .then(function(data) {
+            scanBtn.disabled = false;
+            if (!data.success) {
+                loadingState.style.display = 'none';
+                emptyState.style.display = 'flex';
+                resultStatus.textContent = '检测失败';
+                flash(data.error || '检测失败', 'error');
+                return;
+            }
+            renderResult(data);
+        })
+        .catch(function(err) {
+            scanBtn.disabled = false;
+            loadingState.style.display = 'none';
+            emptyState.style.display = 'flex';
+            resultStatus.textContent = '网络错误';
+            flash('网络错误，请稍后重试', 'error');
+            console.error(err);
+        });
+    };
+
+    // ===== 渲染结果 =====
+    function renderResult(data) {
+        loadingState.style.display = 'none';
+        resultContent.style.display = 'flex';
+
+        var total = data.total_issues;
+        resultStatus.textContent = total > 0 ? '发现 ' + total + ' 个问题' : '全部通过';
+
+        // 分数
+        document.getElementById('score-value').textContent = data.score;
+
+        // 统计
+        var counts = data.sev_counts || {};
+        document.getElementById('count-high').textContent = counts.high || 0;
+        document.getElementById('count-medium').textContent = counts.medium || 0;
+        document.getElementById('count-low').textContent = counts.low || 0;
+        document.getElementById('scan-time').textContent = data.elapsed_ms + 'ms';
+
+        // Tab 计数
+        document.getElementById('tab-all-count').textContent = total;
+        document.getElementById('tab-high-count').textContent = counts.high || 0;
+        document.getElementById('tab-medium-count').textContent = counts.medium || 0;
+        document.getElementById('tab-low-count').textContent = counts.low || 0;
+
+        currentIssues = data.issues || [];
+
+        if (total === 0) {
+            filterTabs.style.display = 'none';
+            issuesList.style.display = 'none';
+            allClear.style.display = 'flex';
+        } else {
+            filterTabs.style.display = 'flex';
+            issuesList.style.display = 'block';
+            allClear.style.display = 'none';
+            filterIssues(currentFilter);
+        }
+    }
+
+    // ===== 筛选 =====
+    window.filterIssues = function(severity) {
+        currentFilter = severity;
+        var tabs = document.querySelectorAll('.cc-filter-tab');
+        tabs.forEach(function(tab) {
+            tab.classList.toggle('active', tab.dataset.severity === severity);
+        });
+
+        var filtered = currentIssues;
+        if (severity !== 'all') {
+            filtered = currentIssues.filter(function(issue) {
+                return issue.severity === severity;
+            });
+        }
+
+        renderIssues(filtered);
+    };
+
+    // ===== 渲染问题列表 =====
+    function renderIssues(issues) {
+        if (issues.length === 0) {
+            issuesList.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;">该级别暂无问题</div>';
+            return;
+        }
+
+        var html = '';
+        issues.forEach(function(issue, index) {
+            var sev = issue.severity || 'medium';
+            var sevLabel = issue.severity_label || '中等';
+            var ruleId = issue.rule_id || '';
+            var title = issue.title || '组件契约问题';
+            var desc = issue.description || '';
+            var line = issue.line || 0;
+            var codeSnippet = issue.code_snippet || '';
+            var suggestion = issue.suggestion || '';
+
+            // 代码片段高亮当前行
+            var codeHtml = escapeHtml(codeSnippet).replace(
+                /^&gt; (\s*\d+: .*)$/gm,
+                '<span class="cc-line-current">&gt; $1</span>'
+            );
+
+            html += '<div class="cc-issue-card" data-index="' + index + '" onclick="toggleIssue(this)">' +
+                '<div class="cc-issue-header">' +
+                    '<span class="cc-severity-tag ' + sev + '">' + sevLabel + '</span>' +
+                    '<div class="cc-issue-main">' +
+                        '<div class="cc-issue-title">' + escapeHtml(title) + '</div>' +
+                        '<div class="cc-issue-meta">' +
+                            '<span class="cc-issue-rule-id">' + escapeHtml(ruleId) + '</span>' +
+                            (line ? '<span>第 ' + line + ' 行</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="cc-issue-toggle">▼</span>' +
+                '</div>' +
+                '<div class="cc-issue-body">' +
+                    '<div class="cc-issue-body-inner">' +
+                        '<div class="cc-issue-desc">' + escapeHtml(desc) + '</div>' +
+                        (codeHtml ? '<div class="cc-issue-code">' + codeHtml + '</div>' : '') +
+                        '<div class="cc-issue-suggestion">' +
+                            '<div class="cc-suggestion-label">💡 修复建议</div>' +
+                            '<div class="cc-suggestion-locked">' +
+                                '<div class="cc-lock-icon">🔒</div>' +
+                                '<div class="cc-lock-text">注册后查看完整修复建议</div>' +
+                                '<a href="' + registerUrl + '" class="cc-lock-btn">免费注册解锁</a>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+
+        issuesList.innerHTML = html;
+    }
+
+    // ===== 展开/收起 =====
+    window.toggleIssue = function(card) {
+        if (event.target.closest('.cc-lock-btn')) return;
+        card.classList.toggle('expanded');
+    };
+
+    // ===== 轻量提示 =====
+    function flash(msg, type) {
+        var div = document.createElement('div');
+        div.textContent = msg;
+        div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;color:#fff;z-index:10000;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+        if (type === 'error') div.style.background = '#ef4444';
+        else if (type === 'success') div.style.background = '#10b981';
+        else div.style.background = '#374151';
+        document.body.appendChild(div);
+        setTimeout(function() {
+            div.style.opacity = '0';
+            div.style.transition = 'opacity .3s';
+        }, 2000);
+        setTimeout(function() { div.remove(); }, 2500);
+    }
+
+    // 注册页 URL（从模板变量注入）
+    var registerUrl = "{{ url_for('register') }}";
+
+    // 初始化
+    updateLineCount();
+
+    // 快捷键：Ctrl/Cmd + Enter 触发检测
+    wxmlInput.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!scanBtn.disabled) {
+                runCheck();
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

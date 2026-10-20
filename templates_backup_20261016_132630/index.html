@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>煋鉴 - AI代码安全审计平台</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1A2B4A;--accent:#FF6B35;--bg:#FFFFFF;--bg-alt:#F5F7FA;--text:#333333;--text-sec:#666666;--border:#E0E6ED;--success:#52C41A;--warn:#FAAD14;--error:#F5222D;--shadow:0 2px 8px rgba(0,0,0,0.08);--shadow-hover:0 4px 16px rgba(0,0,0,0.12)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6}
+a{text-decoration:none;color:inherit}
+/* NAV */
+.nav{background:var(--primary);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:10px;color:#fff;font-size:20px;font-weight:700}
+.nav-logo i{color:var(--accent);font-size:24px}
+.nav-menu{display:flex;gap:32px}
+.nav-menu a{color:rgba(255,255,255,0.8);font-size:14px;transition:color .2s}
+.nav-menu a:hover{color:#fff}
+.nav-actions{display:flex;gap:12px;align-items:center}
+.btn-ghost{color:rgba(255,255,255,0.9);font-size:14px;padding:8px 16px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;transition:all .2s}
+.btn-ghost:hover{border-color:#fff;color:#fff}
+.btn-accent{background:var(--accent);color:#fff;font-size:14px;padding:8px 20px;border-radius:6px;border:none;font-weight:600;transition:all .2s}
+.btn-accent:hover{background:#e55a28;transform:translateY(-1px)}
+/* HERO BUTTONS - 统一风格 */
+.btn-primary{background:var(--accent);color:#fff;font-size:16px;padding:14px 36px;border-radius:8px;font-weight:600;border:none;transition:all .2s;box-shadow:0 2px 8px rgba(255,107,53,0.3)}
+.btn-primary:hover{background:#e55a28;transform:translateY(-2px);box-shadow:0 4px 12px rgba(255,107,53,0.4)}
+.btn-secondary{background:var(--primary);color:#fff;font-size:16px;padding:14px 36px;border-radius:8px;font-weight:600;border:none;transition:all .2s}
+.btn-secondary:hover{background:#0f1f38;transform:translateY(-2px)}
+.btn-tertiary{background:transparent;color:var(--primary);font-size:16px;padding:14px 36px;border-radius:8px;font-weight:600;border:2px solid var(--border);transition:all .2s}
+.btn-tertiary:hover{background:var(--bg-alt);border-color:var(--primary)}
+/* HERO */
+.hero{padding:100px 40px 80px;text-align:center;max-width:800px;margin:0 auto}
+.hero h1{font-size:48px;color:var(--primary);font-weight:800;line-height:1.2;margin-bottom:20px}
+.hero h1 span{color:var(--accent)}
+.hero p{font-size:18px;color:var(--text-sec);margin-bottom:40px;line-height:1.8}
+.hero-actions{display:flex;gap:16px;justify-content:center}
+.btn-lg{padding:14px 36px;font-size:16px;border-radius:8px;font-weight:600}
+.btn-outline{border:2px solid var(--primary);color:var(--primary);background:transparent;transition:all .2s}
+.btn-outline:hover{background:var(--primary);color:#fff}
+/* STATS */
+.stats-bar{background:var(--bg-alt);padding:40px;display:flex;justify-content:center;gap:60px;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-num{font-size:36px;font-weight:800;color:var(--primary)}
+.stat-num span{color:var(--accent)}
+.stat-label{font-size:14px;color:var(--text-sec);margin-top:4px}
+/* FEATURES */
+.features{padding:80px 40px;max-width:1200px;margin:0 auto}
+.section-title{text-align:center;margin-bottom:60px}
+.section-title h2{font-size:32px;color:var(--primary);font-weight:700;margin-bottom:12px}
+.section-title p{font-size:16px;color:var(--text-sec)}
+.feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.feature-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:32px 24px;transition:all .3s;cursor:default}
+.feature-card:hover{border-color:var(--accent);box-shadow:var(--shadow-hover);transform:translateY(-4px)}
+.feature-icon{width:48px;height:48px;background:var(--bg-alt);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:22px;color:var(--primary)}
+.feature-card:hover .feature-icon{background:rgba(255,107,53,0.08);color:var(--accent)}
+.feature-card h3{font-size:18px;color:var(--primary);font-weight:600;margin-bottom:10px}
+.feature-card p{font-size:14px;color:var(--text-sec);line-height:1.7}
+/* LANGUAGES */
+.languages{background:var(--bg-alt);padding:80px 40px}
+.lang-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;max-width:900px;margin:0 auto}
+.lang-tag{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 20px;font-size:14px;color:var(--primary);font-weight:500;display:flex;align-items:center;gap:8px;transition:all .2s}
+.lang-tag i{color:var(--primary);font-size:16px}
+.lang-tag:hover{border-color:var(--accent);color:var(--accent)}
+/* WORKFLOW */
+.workflow{padding:80px 40px;max-width:1000px;margin:0 auto}
+.workflow-steps{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.wf-step{text-align:center;flex:1;position:relative}
+.wf-step::after{content:'';position:absolute;top:28px;right:-50%;width:100%;height:2px;background:var(--border)}
+.wf-step:last-child::after{display:none}
+.wf-num{width:56px;height:56px;border-radius:50%;background:var(--primary);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;z-index:1}
+.wf-step h4{font-size:16px;color:var(--primary);margin-bottom:8px}
+.wf-step p{font-size:13px;color:var(--text-sec)}
+/* CTA */
+.cta-section{background:var(--primary);padding:80px 40px;text-align:center}
+.cta-section h2{font-size:32px;color:#fff;font-weight:700;margin-bottom:16px}
+.cta-section p{font-size:16px;color:rgba(255,255,255,0.7);margin-bottom:32px}
+/* FOOTER */
+.footer{background:var(--primary);border-top:1px solid rgba(255,255,255,0.1);padding:40px}
+.footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:40px}
+.footer-col h4{color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+.footer-col a{display:block;color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:10px;transition:color .2s}
+.footer-col a:hover{color:#fff}
+.footer-bottom{max-width:1200px;margin:20px auto 0;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);text-align:center;color:rgba(255,255,255,0.4);font-size:13px}
+/* MOBILE */
+@media(max-width:768px){
+.nav-menu{display:none}
+.hero h1{font-size:32px}
+.hero{padding:60px 20px 40px}
+.feature-grid{grid-template-columns:1fr}
+.stats-bar{gap:30px}
+.workflow-steps{flex-direction:column}
+.wf-step::after{display:none}
+.footer-inner{flex-direction:column}
+.features,.languages,.workflow{padding:40px 20px}
+}
+</style>
+</head>
+<body>
+<!-- NAV -->
+<nav class="nav">
+<div class="nav-logo"><i class="fas fa-shield-halved"></i>煋鉴</div>
+<div class="nav-menu">
+<a href="/">首页</a>
+<a href="/pricing">定价</a>
+<a href="/upload">快速体验</a>
+<a href="/help">接入仓库</a>
+<a href="/docs">文档中心</a>
+<a href="/dashboard/overview">控制台</a>
+<a href="/license">许可证</a>
+</div>
+<div class="nav-actions">
+<a href="/login" class="btn-ghost">登录</a>
+<a href="/register" class="btn-accent">免费注册</a>
+</div>
+</nav>
+<!-- HERO -->
+<section class="hero">
+<h1>AI驱动的<span>代码安全</span>审计平台</h1>
+<p>9大检测引擎，覆盖代码质量、安全漏洞、业务逻辑、性能瓶颈等维度。<br>支持17种主流编程语言，毫秒级扫描，精准定位每一个风险。</p>
+<div class="hero-actions">
+<a href="/upload" class="btn-primary btn-lg">免费开始扫描</a>
+<a href="/pricing" class="btn-secondary btn-lg">查看定价</a>
+<a href="/docs" class="btn-tertiary btn-lg">文档中心</a>
+</div>
+</section>
+<!-- STATS -->
+<section class="stats-bar">
+<div class="stat-item"><div class="stat-num">9</div><div class="stat-label">检测引擎</div></div>
+<div class="stat-item"><div class="stat-num">17<span>+</span></div><div class="stat-label">支持语言</div></div>
+<div class="stat-item"><div class="stat-num">500<span>+</span></div><div class="stat-label">检测规则</div></div>
+<div class="stat-item"><div class="stat-num">98<span>%</span></div><div class="stat-label">准确率</div></div>
+</section>
+<!-- FEATURES -->
+<section class="features">
+<div class="section-title">
+<h2>九大检测引擎，全维度覆盖</h2>
+<p>从语法错误到业务逻辑漏洞，从安全缺陷到性能瓶颈，一站完成</p>
+</div>
+<div class="feature-grid">
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-code"></i></div>
+<h3>E1 代码质量</h3>
+<p>编码规范、代码风格、可维护性检测，确保代码整洁一致</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-lock"></i></div>
+<h3>E2 安全漏洞</h3>
+<p>SQL注入、XSS、硬编码密钥等安全漏洞深度扫描</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-bug"></i></div>
+<h3>E3 逻辑缺陷</h3>
+<p>空指针、越界访问、资源泄漏等运行时风险检测</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-gauge-high"></i></div>
+<h3>E4 性能分析</h3>
+<p>慢查询、死循环、内存泄漏等性能瓶颈精准定位</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-diagram-project"></i></div>
+<h3>E5 架构规范</h3>
+<p>依赖分析、循环依赖、分层违规等架构问题检测</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-database"></i></div>
+<h3>E6 数据安全</h3>
+<p>敏感信息泄露、数据流转异常、权限越界检测</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-plug"></i></div>
+<h3>E7 依赖风险</h3>
+<p>第三方组件漏洞、版本过时、License合规检测</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon"><i class="fas fa-briefcase"></i></div>
+<h3>E8 业务逻辑</h3>
+<p>支付安全、权限控制、并发竞争等业务层风险</p>
+</div>
+</div>
+</section>
+<!-- LANGUAGES -->
+<section class="languages">
+<div class="section-title">
+<h2>支持17种主流编程语言</h2>
+<p>覆盖前后端、移动端、脚本语言，满足全栈检测需求</p>
+</div>
+<div class="lang-grid">
+<div class="lang-tag"><i class="fab fa-python"></i>Python</div>
+<div class="lang-tag"><i class="fab fa-js"></i>JavaScript</div>
+<div class="lang-tag"><i class="fab fa-java"></i>Java</div>
+<div class="lang-tag"><i class="fas fa-c"></i>C/C++</div>
+<div class="lang-tag"><i class="fab fa-go"></i>Go</div>
+<div class="lang-tag"><i class="fab fa-rust"></i>Rust</div>
+<div class="lang-tag"><i class="fas fa-gem"></i>Ruby</div>
+<div class="lang-tag"><i class="fab fa-php"></i>PHP</div>
+<div class="lang-tag"><i class="fab fa-swift"></i>Swift</div>
+<div class="lang-tag"><i class="fas fa-code"></i>Kotlin</div>
+<div class="lang-tag"><i class="fab fa-vuejs"></i>Vue</div>
+<div class="lang-tag"><i class="fab fa-react"></i>React</div>
+<div class="lang-tag"><i class="fas fa-database"></i>SQL</div>
+<div class="lang-tag"><i class="fab fa-html5"></i>HTML/CSS</div>
+<div class="lang-tag"><i class="fas fa-hashtag"></i>C#</div>
+<div class="lang-tag"><i class="fas fa-code"></i>TypeScript</div>
+<div class="lang-tag"><i class="fab fa-node-js"></i>Node.js</div>
+</div>
+</section>
+<!-- WORKFLOW -->
+<section class="workflow">
+<div class="section-title">
+<h2>四步完成代码审计</h2>
+<p>从零到报告，最快30秒出结果</p>
+</div>
+<div class="workflow-steps">
+<div class="wf-step">
+<div class="wf-num">1</div>
+<h4>上传代码</h4>
+<p>支持Git仓库、ZIP压缩包、在线粘贴</p>
+</div>
+<div class="wf-step">
+<div class="wf-num">2</div>
+<h4>选择引擎</h4>
+<p>9大引擎按需勾选，或一键全选</p>
+</div>
+<div class="wf-step">
+<div class="wf-num">3</div>
+<h4>AI扫描</h4>
+<p>多引擎并行分析，毫秒级定位问题</p>
+</div>
+<div class="wf-step">
+<div class="wf-num">4</div>
+<h4>查看报告</h4>
+<p>详细问题清单、修复建议、PDF导出</p>
+</div>
+</div>
+</section>
+<!-- CTA -->
+<section class="cta-section">
+<h2>开始你的第一次代码审计</h2>
+<p>免费注册，立即体验AI驱动的代码安全检测</p>
+<a href="/register" class="btn-accent btn-lg" style="display:inline-block">立即体验</a>
+</section>
+<!-- FOOTER -->
+<footer class="footer">
+<div class="footer-inner">
+<div class="footer-col">
+<h4>产品</h4>
+<a href="/#features">功能介绍</a>
+<a href="/pricing">价格方案</a>
+<a href="/changelog">更新日志</a>
+<a href="/help">API文档</a>
+</div>
+<div class="footer-col">
+<h4>资源</h4>
+<a href="/help">帮助中心</a>
+<a href="/help">开发者文档</a>
+<a href="/help">检测规则说明</a>
+<a href="/help">常见问题</a>
+</div>
+<div class="footer-col">
+<h4>公司</h4>
+<a href="/pages/about.html">关于我们</a>
+<a href="mailto:hdyabcd@163.com">联系方式</a>
+<a href="/terms">服务条款</a>
+<a href="/terms">隐私政策</a>
+</div>
+<div class="footer-col">
+<h4>联系</h4>
+<a href="mailto:hdyabcd@163.com">hdyabcd@163.com</a>
+<a href="/help">意见反馈</a>
+<a href="/help"><i class="fab fa-github"></i> GitHub</a>
+</div>
+</div>
+<div class="footer-bottom">
+&copy; 2026 长沙煋旺智能科技有限公司 版权所有
+</div>
+</footer>
+</body>
+</html>

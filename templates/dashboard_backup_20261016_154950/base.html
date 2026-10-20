@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- 侧边栏 -->
+    <aside class="dashboard-sidebar">
+        <div class="dashboard-user">
+            <div class="dashboard-user-avatar">{{ user_email[0].upper() if user_email else 'U' }}</div>
+            <div class="dashboard-user-name">{{ user_email or '用户' }}</div>
+            <span class="dashboard-user-role">{% if is_vip %}⚡ 专业会员{% else %}免费用户{% endif %}</span>
+        </div>
+                <nav class="dashboard-menu">
+            {# ── 核心功能 ── #}
+            <a href="{{ url_for('dashboard_page', page='overview') }}" class="dashboard-menu-item {% if page == 'overview' %}active{% endif %}">
+                <span class="dashboard-menu-icon">📊</span>
+                <span>概览</span>
+            </a>
+            <a href="{{ url_for('dashboard_page', page='scans') }}" class="dashboard-menu-item {% if page == 'scans' %}active{% endif %}">
+                <span class="dashboard-menu-icon">🔍</span>
+                <span>我的检测</span>
+            </a>
+
+            {# ── 开发集成 ── #}
+            <div class="menu-group {% if page in ('api-keys','ci-setup','deploy','repos') %}menu-group-open{% endif %}">
+                <div class="menu-group-header" onclick="this.parentElement.classList.toggle('menu-group-open')">
+                    <span class="dashboard-menu-icon">🔌</span>
+                    <span class="menu-group-title">开发集成</span>
+                    <span class="menu-group-arrow">▸</span>
+                </div>
+                <div class="menu-group-items">
+                    <a href="{{ url_for('dashboard_page', page='api-keys') }}" class="dashboard-menu-item {% if page == 'api-keys' %}active{% endif %}">
+                        <span>🔑 API 接入</span>
+                    </a>
+                    <a href="/dashboard/ci-setup" class="dashboard-menu-item {% if page == 'ci-setup' %}active{% endif %}">
+                        <span>🔧 CI/CD 配置</span>
+                    </a>
+                    <a href="/dashboard/repos" class="dashboard-menu-item {% if page == 'repos' %}active{% endif %}">
+                        <span>🔗 仓库管理</span>
+                    </a>
+                    <a href="/dashboard/deploy" class="dashboard-menu-item {% if page == 'deploy' %}active{% endif %}">
+                        <span>📦 私有化部署</span>
+                    </a>
+                </div>
+            </div>
+
+            {# ── 扫描配置 ── #}
+            <div class="menu-group {% if page in ('thresholds','gates','trends','alerts') %}menu-group-open{% endif %}">
+                <div class="menu-group-header" onclick="this.parentElement.classList.toggle('menu-group-open')">
+                    <span class="dashboard-menu-icon">⚙️</span>
+                    <span class="menu-group-title">扫描配置</span>
+                    <span class="menu-group-arrow">▸</span>
+                </div>
+                <div class="menu-group-items">
+                    <a href="{{ url_for('dashboard_page', page='thresholds') }}" class="dashboard-menu-item {% if page == 'thresholds' %}active{% endif %}">
+                        <span>阈值配置</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='gates') }}" class="dashboard-menu-item {% if page == 'gates' %}active{% endif %}">
+                        <span>质量门禁</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='trends') }}" class="dashboard-menu-item {% if page == 'trends' %}active{% endif %}">
+                        <span>技术债趋势</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='alerts') }}" class="dashboard-menu-item {% if page == 'alerts' %}active{% endif %}">
+                        <span>高危告警</span>
+                    </a>
+                </div>
+            </div>
+
+            {# ── 账户中心 ── #}
+            <div class="menu-group {% if page in ('account','recharge','orders','invoice','recommend','credits') %}menu-group-open{% endif %}">
+                <div class="menu-group-header" onclick="this.parentElement.classList.toggle('menu-group-open')">
+                    <span class="dashboard-menu-icon">💰</span>
+                    <span class="menu-group-title">账户中心</span>
+                    <span class="menu-group-arrow">▸</span>
+                </div>
+                <div class="menu-group-items">
+                    <a href="{{ url_for('account_page') }}" class="dashboard-menu-item {% if page == 'account' %}active{% endif %}">
+                        <span>👤 我的账户</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='credits') }}" class="dashboard-menu-item {% if page == 'credits' %}active{% endif %}">
+                        <span>🪙 积分中心</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='recharge') }}" class="dashboard-menu-item {% if page == 'recharge' %}active{% endif %}">
+                        <span>⚡ 充值会员</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='orders') }}" class="dashboard-menu-item {% if page == 'orders' %}active{% endif %}">
+                        <span>📋 我的订单</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='invoice') }}" class="dashboard-menu-item {% if page == 'invoice' %}active{% endif %}">
+                        <span>🧾 申请开票</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='recommend') }}" class="dashboard-menu-item {% if page == 'recommend' %}active{% endif %}">
+                        <span>🎁 邀请有礼</span>
+                    </a>
+                    <a href="{{ url_for('dashboard_page', page='team') }}" class="dashboard-menu-item {% if page == 'team' %}active{% endif %}">
+                        <span>👥 团队协作</span>
+                    </a>
+                </div>
+            </div>
+
+            {# ── 底部区域 ── #}
+            <div style="margin-top:12px;border-top:1px solid var(--border-light);padding-top:8px;">
+                
+                <a href="{{ url_for('dashboard_page', page='versions') }}" class="dashboard-menu-item {% if page == 'versions' %}active{% endif %}">
+                    <span class="dashboard-menu-icon">📋</span>
+                    <span>版本信息</span>
+                </a>
+                <a href="{{ url_for('help_page') }}" target="_blank" class="dashboard-menu-item">
+                    <span class="dashboard-menu-icon">💬</span>
+                    <span>帮助与反馈</span>
+                </a>
+            </div>
+            <a href="{{ url_for('logout') }}" class="dashboard-menu-item" style="margin-top:8px;color:var(--danger);">
+                <span class="dashboard-menu-icon">🚪</span>
+                <span>退出登录</span>
+            </a>
+        </nav>
+        </aside>
+
+    <!-- 主内容 -->
+    <div class="dashboard-content">
+
+        <!-- 公告 Banner -->
+        {% if unread_announcements %}
+        <div class="announcement-banners" id="announcement-banners" style="margin-bottom:16px;">
+            {% for ann in unread_announcements %}
+            <div class="announcement-banner ann-type-{{ ann.type }}" data-id="{{ ann.id }}"
+                 style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:12px;margin-bottom:8px;font-size:13px;line-height:1.6;">
+                <div class="ann-icon" style="font-size:18px;flex-shrink:0;margin-top:1px;">
+                    {% if ann.type == 'success' %}✅
+                    {% elif ann.type == 'warning' %}⚠️
+                    {% else %}📢{% endif %}
+                </div>
+                <div class="ann-content" style="flex:1;">
+                    <div class="ann-title" style="font-weight:600;margin-bottom:2px;">{{ ann.title }}</div>
+                    <div class="ann-desc" style="opacity:.9;">{{ ann.content | safe }}</div>
+                </div>
+                <button onclick="closeAnnouncement({{ ann.id }}, this)" class="ann-close"
+                        style="flex-shrink:0;background:transparent;border:none;cursor:pointer;font-size:18px;opacity:.7;padding:0 4px;line-height:1;"
+                        title="关闭">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block dashboard_content %}{% endblock %}
+    </div>
+</div>
+
+<!-- 公告样式 -->
+<style>
+    .ann-type-info {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1e3a8a;
+        border: 1px solid #93c5fd;
+    }
+    .ann-type-success {
+        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+        color: #14532d;
+        border: 1px solid #86efac;
+    }
+    .ann-type-warning {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #78350f;
+        border: 1px solid #fcd34d;
+    }
+    .ann-close:hover {
+        opacity: 1 !important;
+    }
+
+/* === Collapsible Menu Groups === */
+.menu-group { margin-bottom: 2px; }
+.menu-group-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px;
+    cursor: pointer; user-select: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px; font-weight: 500;
+    transition: background .2s;
+}
+.menu-group-header:hover { background: rgba(255,255,255,.08); }
+.menu-group-title { flex: 1; }
+.menu-group-arrow {
+    font-size: 10px; transition: transform .25s; color: rgba(255,255,255,0.4);
+}
+.menu-group-open .menu-group-arrow { transform: rotate(90deg); }
+.menu-group-items {
+    max-height: 0; overflow: hidden; transition: max-height .3s ease;
+}
+.menu-group-open .menu-group-items { max-height: 400px; }
+.menu-group-items .dashboard-menu-item {
+    padding-left: 44px; font-size: 13px;
+}
+
+/* === Content breathing room === */
+
+.page-desc {
+    font-size: 13px; color: #6B7B94; margin: 0 0 20px 0; line-height: 1.7;
+}
+</style>
+
+<script>
+function closeAnnouncement(id, btn) {
+    var banner = btn.closest('.announcement-banner');
+    if (!banner) return;
+    fetch('/api/announcement/read/' + id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).catch(function(e) { console.warn('标记公告已读失败', e); });
+    banner.style.transition = 'opacity .3s, height .3s, margin .3s, padding .3s';
+    banner.style.opacity = '0';
+    setTimeout(function() {
+        banner.style.height = banner.offsetHeight + 'px';
+        requestAnimationFrame(function() {
+            banner.style.height = '0';
+            banner.style.marginBottom = '0';
+            banner.style.paddingTop = '0';
+            banner.style.paddingBottom = '0';
+            banner.style.overflow = 'hidden';
+            setTimeout(function() { banner.remove(); }, 300);
+        });
+    }, 100);
+}
+</script>
+
+<!-- 推荐活动弹窗 -->
+<div class="referral-modal-overlay" id="referral-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;justify-content:center;align-items:center;">
+    <div class="referral-modal" style="background:#fff;border-radius:20px;max-width:420px;width:90%;padding:0;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+        <button onclick="closeReferralModal()" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;background:rgba(255,255,255,.8);border-radius:50%;cursor:pointer;font-size:18px;color:#6b7280;z-index:2;">&times;</button>
+        <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);padding:32px 24px 24px;text-align:center;color:#fff;">
+            <div style="font-size:48px;margin-bottom:8px;">&#127873;</div>
+            <div style="font-size:22px;font-weight:700;margin-bottom:6px;">推荐好友，赚积分！</div>
+            <div style="font-size:13px;opacity:.9;">分享你的专属推荐码，好友首充你得积分</div>
+        </div>
+        <div style="padding:24px;">
+            <div style="background:#fff7ed;border:1px dashed #fcd34d;border-radius:12px;padding:16px;text-align:center;margin-bottom:16px;">
+                <div style="font-size:12px;color:#78350f;margin-bottom:6px;">你的专属推荐码</div>
+                <div style="font-family:monospace;font-size:28px;font-weight:700;letter-spacing:4px;color:#92400e;" id="modal-referral-code">--</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                <button onclick="copyModalCode()" style="padding:10px 12px;background:#f59e0b;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;">复制推荐码</button>
+                <button onclick="copyModalLink()" style="padding:10px 12px;background:#fff;color:#f59e0b;border:1px solid #f59e0b;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;">复制链接</button>
+                <button onclick="copyModalPitch()" style="grid-column:span 2;padding:10px 12px;background:#1e40af;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;">&#128231; 复制推荐语</button>
+            </div>
+            <div style="font-size:12px;color:#6b7280;line-height:1.6;background:#f9fafb;border-radius:8px;padding:10px 12px;">
+                <strong style="color:#374151;">奖励规则：</strong><br>
+                &#127873; 好友通过你的链接注册 → 好友得 50 积分<br>
+                &#9889; 好友首次充值 → 你得积分（月卡100/季卡300/半年卡800/年卡2000）
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 推荐活动弹窗逻辑
+(function() {
+    var CLOSED_KEY = 'xinpect_referral_modal_closed';
+
+    function showReferralModal() {
+        var modal = document.getElementById('referral-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        // 获取推荐码
+        fetch('/api/referral/info')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success && data.referral_code) {
+                    document.getElementById('modal-referral-code').textContent = data.referral_code;
+                }
+            })
+            .catch(function() {});
+    }
+
+    function closeReferralModal() {
+        var modal = document.getElementById('referral-modal');
+        if (modal) modal.style.display = 'none';
+        // 同时写入 localStorage 和 cookie（双重持久化）
+        try { localStorage.setItem(CLOSED_KEY, '1'); } catch(e) {}
+        try {
+            var d = new Date();
+            d.setTime(d.getTime() + 365 * 24 * 60 * 60 * 1000);
+            document.cookie = CLOSED_KEY + '=1;expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+        } catch(e) {}
+    }
+
+    function copyModalCode() {
+        var code = document.getElementById('modal-referral-code').textContent;
+        if (!code || code === '--') return;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(code).then(function() { showToast('推荐码已复制'); });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = code;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showToast('推荐码已复制'); } catch(e) {}
+            document.body.removeChild(ta);
+        }
+    }
+
+    function copyModalLink() {
+        var code = document.getElementById('modal-referral-code').textContent;
+        if (!code || code === '--') return;
+        var link = window.location.origin + '/register?ref=' + code;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(link).then(function() { showToast('推荐链接已复制'); });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = link;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showToast('推荐链接已复制'); } catch(e) {}
+            document.body.removeChild(ta);
+        }
+    }
+
+    function copyModalPitch() {
+        var code = document.getElementById('modal-referral-code').textContent;
+        if (!code || code === '--') return;
+        var link = window.location.origin + '/register?ref=' + code;
+        var pitch = '推荐你用煋鉴代码质检，我自己项目一直在用。\n' +
+                    '10大检测引擎+AI深度分析，扫一遍能找出安全漏洞、性能问题、架构隐患，比人工review快多了。\n' +
+                    '通过我的链接注册你还能得50积分：' + link + '\n' +
+                    '注册后充值我也有奖励，双赢～';
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(pitch).then(function() { showToast('推荐语已复制，快去分享吧'); });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = pitch;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showToast('推荐语已复制，快去分享吧'); } catch(e) {}
+            document.body.removeChild(ta);
+        }
+    }
+
+    function showToast(msg) {
+        var toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; }, 2000);
+        setTimeout(function() { if (toast.parentNode) toast.remove(); }, 2300);
+    }
+
+    window.closeReferralModal = closeReferralModal;
+    window.copyModalCode = copyModalCode;
+    window.copyModalLink = copyModalLink;
+    window.copyModalPitch = copyModalPitch;
+
+    // 页面加载后检查是否弹出（双重检查：localStorage + cookie）
+    document.addEventListener('DOMContentLoaded', function() {
+        var closed = false;
+        // 检查 localStorage
+        try { closed = localStorage.getItem(CLOSED_KEY) === '1'; } catch(e) {}
+        // 检查 cookie 作为备用
+        if (!closed) {
+            try {
+                closed = document.cookie.split(';').some(function(c) {
+                    return c.trim().indexOf(CLOSED_KEY + '=') === 0;
+                });
+            } catch(e) {}
+        }
+        if (!closed) {
+            // 延迟一点弹出，体验更好
+            setTimeout(showReferralModal, 800);
+        }
+    });
+
+    // 点击遮罩关闭
+    document.addEventListener('click', function(e) {
+        var modal = document.getElementById('referral-modal');
+        if (modal && e.target === modal) {
+            closeReferralModal();
+        }
+    });
+})();
+</script>
+
+{% endblock %}
+
+{% block footer %}{% endblock %}

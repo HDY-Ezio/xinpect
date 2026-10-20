@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}更新日志 - 煋鉴 Xinpect{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h1 class="mb-4">更新日志</h1>
+  
+  <div class="card mb-4">
+    <div class="card-body">
+      <h3 class="card-title">v6.0 <small class="text-muted">2026-10-12</small></h3>
+  <div class=card mb-4>
+    <div class=card-body>
+      <h3 class=card-title>v6.1 <small class="text-muted">2026-10-15</small></h3>
+      
+      <h5>🔧 规则ID统一命名</h5>
+      <p>所有规则ID统一为 <code>E{引擎号}-{类型}-{序号}</code> 格式，更清晰、更易搜索：</p>
+      <ul>
+        <li><code>E1-SYN-xxx</code> — 语法检测规则</li>
+        <li><code>E2-SEC-xxx</code> — 安全检测规则</li>
+        <li><code>E3-PERF-xxx</code> — 性能检测规则</li>
+        <li><code>E4-QUAL-xxx</code> — 代码质量规则</li>
+        <li><code>E5-ARCH-xxx</code> — 架构规范规则</li>
+        <li><code>E6-CMP-xxx</code> — 组件检查规则</li>
+      </ul>
+      
+      <h5>🆕 新增25条检测规则</h5>
+      <table class="table table-sm">
+        <tr><td>⚙️ 配置安全检查</td><td>10条</td><td>数据库密码硬编码、API密钥明文、DEBUG模式、CORS宽松配置等</td></tr>
+        <tr><td>📄 HTML模板安全检查</td><td>7条</td><td>XSS未转义、JS引号缺失、CSRF保护缺失、内联事件处理器等</td></tr>
+        <tr><td>🐳 Docker部署安全检查</td><td>8条</td><td>root用户运行、latest标签、敏感文件复制、暴露敏感端口等</td></tr>
+      </table>
+      
+      <h5>🔧 引擎修复</h5>
+      <ul>
+        <li>E3性能引擎：修复concurrency模块缺失</li>
+        <li>E5架构引擎：修复config_audit循环导入</li>
+        <li>E6组件引擎：添加scan统一入口函数</li>
+        <li>清理B3语义模块残留引用</li>
+      </ul>
+      
+      <h5>📊 数据更新</h5>
+      <ul>
+        <li>检测规则总数：<strong>2881+</strong>（原2500+）</li>
+        <li>规则ID格式统一，支持 <code>grep "E2-SEC"</code> 快速搜索</li>
+      </ul>
+    </div>
+  </div>
+      <h5>🛡️ 业务逻辑安全检测（核心升级）</h5>
+      <p>传统 SAST 工具能发现 SQL 注入、XSS 这类技术漏洞，但对业务逻辑漏洞基本无解：</p>
+      <ul>
+        <li>用户 A 能不能访问用户 B 的订单？</li>
+        <li>支付金额能不能被前端篡改？</li>
+        <li>同一个订单能不能重复支付？</li>
+        <li>退出登录后 Session 真的失效了吗？</li>
+      </ul>
+      <p>v6.0 的 E2 安全检测引擎新增 <strong>50+ 条业务逻辑安全规则</strong>，覆盖 7 大维度：</p>
+      <table class="table table-sm">
+        <tr><td>密码安全</td><td>8条</td><td>弱密码策略、明文存储、弱哈希算法</td></tr>
+        <tr><td>认证授权</td><td>10条</td><td>越权访问、JWT 误用、RBAC 缺陷</td></tr>
+        <tr><td>输入验证</td><td>8条</td><td>业务层输入校验缺失、类型绕过</td></tr>
+        <tr><td>会话安全</td><td>6条</td><td>Session 固定、会话劫持、并发限制</td></tr>
+        <tr><td>支付安全</td><td>8条</td><td>金额篡改、重复支付、退款漏洞</td></tr>
+        <tr><td>数据安全</td><td>6条</td><td>敏感数据泄露、数据完整性破坏</td></tr>
+        <tr><td>审计日志</td><td>4条</td><td>关键操作审计缺失、日志注入</td></tr>
+      </table>
+      
+      <h5>其他变更</h5>
+      <ul>
+        <li>引擎架构统一为 E1-E9，命名更清晰</li>
+        <li>检测规则总数从 2400+ 提升至 2500+</li>
+        <li>新增 Agent 安全检测和高级业务逻辑检测</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

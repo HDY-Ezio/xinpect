@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫描报告 | 煋鉴 Xinpect</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230EA5E9'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-weight='bold' font-family='Arial'>X</text></svg>">
+    <style>
+        :root { --bg:#0a0f1a; --card:#111827; --border:#1e293b; --text:#f1f5f9; --muted:#64748b; --orange:#1A3A5C; --blue:#0EA5E9; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444; --info:#3b82f6; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; min-height:100vh; }
+        .container { max-width:960px; margin:0 auto; padding:0 24px; }
+        .topbar { background:var(--card); border-bottom:1px solid var(--border); padding:12px 0; }
+        .topbar-inner { display:flex; align-items:center; justify-content:space-between; }
+        .logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); }
+        .logo-icon { width:32px; height:32px; border-radius:8px; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; }
+        .logo-text { font-weight:700; font-size:16px; }
+        .topbar-badge { font-size:12px; color:var(--muted); background:var(--bg); padding:4px 12px; border-radius:20px; border:1px solid var(--border); }
+        .main { padding:32px 0 64px; }
+        .report-header { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; margin-bottom:24px; display:flex; align-items:center; gap:32px; }
+        .score-circle { width:120px; height:120px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; border:4px solid; }
+        .score-circle .score-num { font-size:36px; font-weight:800; line-height:1; }
+        .score-circle .score-label { font-size:12px; color:var(--muted); margin-top:4px; }
+        .score-excellent { border-color:var(--success); color:var(--success); }
+        .score-good { border-color:var(--orange); color:var(--orange); }
+        .score-fair { border-color:var(--warning); color:var(--warning); }
+        .score-poor { border-color:var(--danger); color:var(--danger); }
+        .report-meta { flex:1; }
+        .report-meta h1 { font-size:22px; font-weight:700; margin-bottom:12px; }
+        .meta-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; }
+        .meta-item { }
+        .meta-label { font-size:12px; color:var(--muted); margin-bottom:2px; }
+        .meta-value { font-size:14px; font-weight:600; }
+        .meta-value.code { font-family:monospace; font-size:12px; color:var(--blue); }
+        .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
+        .stat-num { font-size:28px; font-weight:800; }
+        .stat-label { font-size:12px; color:var(--muted); margin-top:4px; }
+        .stat-num.critical { color:var(--danger); }
+        .stat-num.warning { color:var(--warning); }
+        .stat-num.info { color:var(--info); }
+        .stat-num.total { color:var(--orange); }
+        .badge-section { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:24px; }
+        .badge-preview { display:flex; align-items:center; gap:16px; }
+        .badge-preview img { height:28px; }
+        .section-title { font-size:16px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .issue-section { margin-bottom:32px; }
+        .issue-list { list-style:none; }
+        .issue-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:8px; border-left:4px solid transparent; transition:background .2s; }
+        .issue-item:hover { background:var(--bg); }
+        .issue-item.critical { border-left-color:var(--danger); }
+        .issue-item.warning { border-left-color:var(--warning); }
+        .issue-item.info { border-left-color:var(--info); }
+        .issue-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+        .issue-severity { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; text-transform:uppercase; }
+        .issue-severity.critical { background:rgba(239,68,68,.15); color:var(--danger); }
+        .issue-severity.warning { background:rgba(37,99,235,.15); color:var(--warning); }
+        .issue-severity.info { background:rgba(59,130,246,.15); color:var(--info); }
+        .issue-file { font-size:12px; color:var(--muted); font-family:monospace; margin-bottom:6px; }
+        .issue-desc { font-size:13px; color:#94a3b8; line-height:1.5; }
+        .empty-state { text-align:center; padding:48px 24px; color:var(--muted); }
+        .empty-state .icon { font-size:48px; margin-bottom:12px; }
+        .empty-state .text { font-size:16px; }
+        .footer { text-align:center; padding:24px 0; border-top:1px solid var(--border); color:var(--muted); font-size:13px; }
+        .footer a { color:var(--orange); text-decoration:none; }
+        .footer a:hover { text-decoration:underline; }
+        @media(max-width:640px) { .report-header{flex-direction:column;text-align:center;} .stats-row{grid-template-columns:repeat(2,1fr);} .meta-grid{grid-template-columns:repeat(2,1fr);} }
+
+        /* === 抽样预览：深度引擎锁定区 === */
+        .deep-preview-section { margin-bottom:32px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; }
+        .deep-preview-hint { font-size:13px; color:var(--muted); margin-bottom:16px; padding:12px 16px; background:rgba(26,58,92,0.06); border-radius:8px; border-left:3px solid var(--orange); line-height:1.6; }
+        .issue-item.locked { opacity:0.75; }
+        .issue-item.locked:hover { opacity:0.85; }
+        .lock-icon { font-size:14px; margin-left:auto; flex-shrink:0; }
+        .locked-text { color:var(--muted) !important; }
+        .upgrade-cta { text-align:center; padding:24px; margin-top:16px; background:linear-gradient(135deg, rgba(26,58,92,0.08) 0%, rgba(14,165,233,0.08) 100%); border-radius:12px; border:1px solid rgba(26,58,92,0.2); }
+        .cta-button { display:inline-block; padding:12px 32px; background:var(--orange); color:#fff; border-radius:8px; text-decoration:none; font-weight:700; font-size:16px; transition:transform .2s,box-shadow .2s; }
+        .cta-button:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(26,58,92,0.3); text-decoration:none; color:#fff; }
+        .cta-sub { font-size:12px; color:var(--muted); margin-top:8px; }
+        .deep-more { text-align:center; color:var(--muted); padding:12px; font-size:13px; }
+    
+/* ========== PDF 导出样式 ========== */
+.pdf-export-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px;
+    background: linear-gradient(135deg, #1A3A5C, #1E40AF);
+    color: #fff; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer;
+    transition: all 0.2s;
+}
+.pdf-export-btn:hover {
+    background: linear-gradient(135deg, #1E40AF, #d14d1f);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,58,92,0.3);
+}
+.pdf-export-btn:active { transform: translateY(0); }
+.pdf-export-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+.pdf-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,15,26,0.85);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(4px);
+}
+.pdf-overlay-inner { text-align: center; color: #f1f5f9; }
+.pdf-overlay .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(26,58,92,0.2);
+    border-top-color: #1A3A5C;
+    border-radius: 50%;
+    animation: pdf-spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+@keyframes pdf-spin { to { transform: rotate(360deg); } }
+.pdf-overlay .msg { font-size: 15px; font-weight: 600; }
+.pdf-overlay .sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+
+.action-buttons { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ===== 打印专用样式 ===== */
+@media print {
+    .topbar, .footer, .pdf-export-btn, .badge-section,
+    .action-buttons, .fp-mark-btn, .issue-toggle,
+    .filter-bar, .tab-nav, .drill-down-section,
+    button:not(.pdf-export-btn), .btn { display: none !important; }
+
+    @page {
+        size: A4 portrait;
+        margin: 15mm 12mm 20mm 12mm;
+    }
+
+    body {
+        background: #fff !important;
+        color: #1a1a1a !important;
+        font-size: 11pt !important;
+        line-height: 1.5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .container { max-width: 100% !important; padding: 0 !important; }
+    .main { padding: 0 !important; }
+
+    .report-header {
+        background: #f8f9fa !important;
+        border: 2px solid #1A3A5C !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+        margin-bottom: 16px !important;
+        page-break-inside: avoid;
+    }
+    .report-header h1 { color: #1a1a1a !important; font-size: 18pt !important; }
+
+    .score-circle { border-width: 3px !important; }
+    .score-circle .score-num { font-size: 28pt !important; }
+    .score-excellent { border-color: #22c55e !important; color: #22c55e !important; }
+    .score-good { border-color: #1A3A5C !important; color: #1A3A5C !important; }
+    .score-fair { border-color: #f59e0b !important; color: #f59e0b !important; }
+    .score-poor { border-color: #ef4444 !important; color: #ef4444 !important; }
+
+    .meta-label { color: #666 !important; }
+    .meta-value { color: #1a1a1a !important; }
+
+    .stats-row { gap: 8px !important; margin-bottom: 16px !important; }
+    .stat-card {
+        background: #f8f9fa !important;
+        border: 1px solid #ddd !important;
+        border-radius: 6px !important;
+        padding: 12px !important;
+        page-break-inside: avoid;
+    }
+    .stat-num { color: #1a1a1a !important; font-size: 20pt !important; }
+    .stat-num.critical { color: #ef4444 !important; }
+    .stat-num.warning { color: #f59e0b !important; }
+    .stat-num.info { color: #3b82f6 !important; }
+    .stat-num.total { color: #1A3A5C !important; }
+    .stat-label { color: #666 !important; }
+
+    .section-title {
+        font-size: 13pt !important;
+        margin-bottom: 10px !important;
+        margin-top: 16px !important;
+        page-break-after: avoid;
+        color: #1a1a1a !important;
+    }
+
+    .issue-section { margin-bottom: 16px !important; }
+    .issue-item {
+        background: #fff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        padding: 10px 14px !important;
+        margin-bottom: 6px !important;
+        page-break-inside: avoid;
+    }
+    .issue-item.critical { border-left: 4px solid #ef4444 !important; }
+    .issue-item.warning { border-left: 4px solid #f59e0b !important; }
+    .issue-item.info { border-left: 4px solid #3b82f6 !important; }
+
+    .issue-severity { font-size: 9pt !important; padding: 1px 6px !important; }
+    .issue-severity.critical { background: #fef2f2 !important; color: #ef4444 !important; }
+    .issue-severity.warning { background: #fffbeb !important; color: #d97706 !important; }
+    .issue-severity.info { background: #eff6ff !important; color: #3b82f6 !important; }
+
+    .issue-title { color: #1a1a1a !important; font-size: 11pt !important; }
+    .issue-file { color: #666 !important; font-size: 9pt !important; }
+    .issue-desc { color: #333 !important; font-size: 10pt !important; }
+
+    .issue-code, pre, code {
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 9pt !important;
+        background: #f5f5f5 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 4px !important;
+        padding: 6px 8px !important;
+        white-space: pre-wrap !important;
+        word-break: break-all !important;
+        color: #1a1a1a !important;
+    }
+
+    .pdf-footer {
+        display: block !important;
+        text-align: center;
+        font-size: 9pt;
+        color: #999;
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #ddd;
+    }
+    .pdf-footer .brand { color: #1A3A5C; font-weight: 700; }
+
+    .empty-state { color: #666 !important; }
+}
+
+.pdf-footer { display: none; }
+
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <div class="container topbar-inner">
+        <a href="/" class="logo"><div class="logo-icon">X</div><span class="logo-text">鉴 Xinpect</span></a>
+        <div class="action-buttons">
+            <button class="pdf-export-btn" onclick="exportToPDF()" title="导出PDF报告">
+                <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L16,16H13.5V19H10.5V16H8L12,12Z"/></svg>
+                导出PDF
+            </button>
+            <span class="topbar-badge">公开分享报告</span>
+    </div>
+</div>
+<div class="main">
+    <div class="container">
+        <div class="report-header">
+            {% if score >= 80 %}
+            <div class="score-circle score-excellent"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            {% elif score >= 60 %}
+            <div class="score-circle score-good"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            {% elif score >= 40 %}
+            <div class="score-circle score-fair"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            {% else %}
+            <div class="score-circle score-poor"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            {% endif %}
+            <div class="report-meta">
+                <h1>代码质检报告</h1>
+                <div class="meta-grid">
+                    <div class="meta-item"><div class="meta-label">扫描模式</div><div class="meta-value">{% if scan_mode=='free'%}免费扫描{%elif scan_mode=='quick'%}快速扫描{%elif scan_mode=='smart'%}智能扫描{%elif scan_mode=='deep'%}深度扫描{%else%}{{scan_mode}}{%endif%}</div></div>
+                    <div class="meta-item"><div class="meta-label">文件数</div><div class="meta-value">{{ file_count }} 个</div></div>
+                    {% if total_lines %}<div class="meta-item"><div class="meta-label">代码行数</div><div class="meta-value">{{ total_lines }}</div></div>{% endif %}
+                    <div class="meta-item"><div class="meta-label">扫描时间</div><div class="meta-value">{{ created_at or '-' }}</div></div>
+                    {% if ci_repo %}<div class="meta-item"><div class="meta-label">仓库</div><div class="meta-value code">{{ ci_repo }}{% if ci_branch %} @ {{ ci_branch }}{% endif %}</div></div>{% endif %}
+                    {% if ci_commit_sha %}<div class="meta-item"><div class="meta-label">提交</div><div class="meta-value code">{{ ci_commit_sha[:8] }}</div></div>{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-num total">{{ issues|length }}</div><div class="stat-label">问题总数</div></div>
+            <div class="stat-card"><div class="stat-num critical">{{ critical|length }}</div><div class="stat-label">严重问题</div></div>
+            <div class="stat-card"><div class="stat-num warning">{{ warning|length }}</div><div class="stat-label">警告</div></div>
+            <div class="stat-card"><div class="stat-num info">{{ info|length }}</div><div class="stat-label">建议</div></div>
+        </div>
+        <div class="badge-section">
+            <div class="badge-preview">
+                <img src="/api/badge/{{ scan_id }}.svg" alt="鉴评分">
+                <span style="font-size:13px;color:var(--muted);">此报告由鉴用户分享 · powered by Xinpect</span>
+            </div>
+        </div>
+        {% if critical %}
+        <div class="issue-section">
+            <div class="section-title"><span style="color:var(--danger);"></span> 严重问题 ({{ critical|length }})</div>
+            <ul class="issue-list">{% for issue in critical %}<li class="issue-item critical"><div class="issue-header"><span class="issue-severity critical">Critical</span>{% if issue.get('engine')%}<span style="font-size:11px;color:var(--muted);">{{ issue.get('engine') }}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{ issue.get('file') }}{%if issue.get('line')%}:{{ issue.get('line') }}{%endif%}</div>{%endif%}<div class="issue-desc">{{ issue.get('message', issue.get('desc','')) }}</div></li>{%endfor%}</ul>
+        </div>{%endif%}
+        {% if warning %}
+        <div class="issue-section">
+            <div class="section-title"><span style="color:var(--warning);"></span> 警告 ({{ warning|length }})</div>
+            <ul class="issue-list">{% for issue in warning %}<li class="issue-item warning"><div class="issue-header"><span class="issue-severity warning">Warning</span>{%if issue.get('engine')%}<span style="font-size:11px;color:var(--muted);">{{issue.get('engine')}}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{issue.get('file')}}{%if issue.get('line')%}:{{issue.get('line')}}{%endif%}</div>{%endif%}<div class="issue-desc">{{issue.get('message',issue.get('desc',''))}}</div></li>{%endfor%}</ul>
+        </div>{%endif%}
+        {% if info %}
+        <div class="issue-section">
+            <div class="section-title"><span style="color:var(--info);"></span> 建议 ({{ info|length }})</div>
+            <ul class="issue-list">{% for issue in info %}<li class="issue-item info"><div class="issue-header"><span class="issue-severity info">Info</span>{%if issue.get('engine')%}<span style="font-size:11px;color:var(--muted);">{{issue.get('engine')}}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{issue.get('file')}}{%if issue.get('line')%}:{{issue.get('line')}}{%endif%}</div>{%endif%}<div class="issue-desc">{{issue.get('message',issue.get('desc',''))}}</div></li>{%endfor%}</ul>
+        </div>{%endif%}
+        {% if not issues and not deep_issues %}
+        <div class="empty-state"><div class="icon"></div><div class="text">恭喜！未发现任何问题</div><p style="font-size:13px;color:var(--muted);margin-top:8px;">代码质量优秀，继续保持！</p></div>
+        {% endif %}
+
+        {% if not issues and deep_issues %}
+        <div class="empty-state"><div class="icon">🔍</div><div class="text">基础扫描未发现明显问题</div><p style="font-size:13px;color:var(--muted);margin-top:8px;">但深度引擎检测到一些需要关注的问题，请查看下方 ↓</p></div>
+        {% endif %}
+
+        {# ====== 抽样预览：深度引擎锁定区 ====== #}
+        {% if deep_issues %}
+        <div class="deep-preview-section">
+            <div class="section-title"><span>🔒</span> 深度引擎发现 {{ deep_issues|length }} 个额外问题</div>
+            <div class="deep-preview-hint">
+                以下问题由<strong>质量层</strong>（AI语义分析 · 性能可靠性 · 可观测性）和<strong>防护层</strong>（安全审计 · 业务安全）引擎发现。<br>
+                升级专业版可查看完整问题描述、代码片段和修复建议。
+            </div>
+            <ul class="issue-list">
+                {% for issue in deep_issues[:10] %}
+                <li class="issue-item locked {% if issue.get('severity') in ('critical','error','fatal','blocker') %}critical{% elif issue.get('severity') in ('warning','major','high','medium') %}warning{% else %}info{% endif %}">
+                    <div class="issue-header">
+                        <span class="issue-severity {% if issue.get('severity') in ('critical','error','fatal','blocker') %}critical{% elif issue.get('severity') in ('warning','major','high','medium') %}warning{% else %}info{% endif %}">{{ issue.severity_label }}</span>
+                        {% if issue.get('brain_name') %}<span style="font-size:11px;color:var(--muted);">{{ issue.brain_name }}</span>{% endif %}
+                        <span class="lock-icon">🔒</span>
+                    </div>
+                    {% if issue.get('file') %}<div class="issue-file">{{ issue.file }}{% if issue.get('line') %}:{{ issue.line }}{% endif %}</div>{% endif %}
+                    <div class="issue-desc locked-text">{{ issue.title }}</div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if deep_issues|length > 10 %}
+            <div class="deep-more">还有 {{ deep_issues|length - 10 }} 个问题被隐藏...</div>
+            {% endif %}
+            <div class="upgrade-cta">
+                <a href="/" class="cta-button">🚀 升级煋鉴，解锁完整报告</a>
+                <div class="cta-sub">AI 深度分析 · 修复建议 · 安全审计 · CI/CD 集成</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<div class="footer"><div class="container">此报告由 <a href="/">鉴 Xinpect</a> 用户分享 · <a href="https://xinpect.xingwangzhineng.com">立即体验代码质检</a></div></div>
+
+<!-- PDF 页脚（仅打印时显示） -->
+<div class="pdf-footer">
+    <span class="brand">煋鉴 Xinpect</span> · 代码质检报告 · 扫描ID: {{ scan_id }}
+</div>
+
+
+<script>
+function exportToPDF() {
+    var overlay = document.createElement('div');
+    overlay.className = 'pdf-overlay';
+    overlay.innerHTML = '<div class="pdf-overlay-inner"><div class="spinner"></div><div class="msg">正在生成PDF...</div><div class="sub">请稍候</div></div>';
+    document.body.appendChild(overlay);
+    setTimeout(function() { window.print(); overlay.remove(); }, 600);
+}
+</script>
+</body></html>

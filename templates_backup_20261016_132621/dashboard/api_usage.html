@@ -1,0 +1,474 @@
+{% extends "dashboard/base.html" %}
+{% block title %}API调用统计 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <h2>API调用统计</h2>
+    <p class="text-muted">查看您的API配额使用情况和调用趋势</p>
+</div>
+
+<!-- 配额概览卡片组 -->
+<div class="usage-overview">
+    <div class="usage-card">
+        <div class="usage-card-icon" style="background: rgba(255,107,53,0.1); color: #FF6B35;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+            </svg>
+        </div>
+        <div class="usage-card-content">
+            <span class="usage-card-label">今日已用</span>
+            <span class="usage-card-value" id="todayUsed">--</span>
+            <span class="usage-card-sub" id="todayLimit">/ --</span>
+        </div>
+    </div>
+    <div class="usage-card">
+        <div class="usage-card-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+        </div>
+        <div class="usage-card-content">
+            <span class="usage-card-label">本周总计</span>
+            <span class="usage-card-value" id="weekTotal">--</span>
+            <span class="usage-card-sub">次调用</span>
+        </div>
+    </div>
+    <div class="usage-card">
+        <div class="usage-card-icon" style="background: rgba(99,102,241,0.1); color: #6366f1;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+        </div>
+        <div class="usage-card-content">
+            <span class="usage-card-label">配额等级</span>
+            <span class="usage-card-value" id="tierLabel">--</span>
+            <span class="usage-card-sub" id="tierLimit">--</span>
+        </div>
+    </div>
+    <div class="usage-card">
+        <div class="usage-card-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <div class="usage-card-content">
+            <span class="usage-card-label">限流次数</span>
+            <span class="usage-card-value" id="limitCount">--</span>
+            <span class="usage-card-sub">近7天</span>
+        </div>
+    </div>
+</div>
+
+<!-- 配额进度条 -->
+<div class="quota-main-bar" id="quotaMainBar">
+    <div class="quota-main-header">
+        <span>今日配额使用</span>
+        <span id="quotaMainText">-- / --</span>
+    </div>
+    <div class="quota-main-track">
+        <div class="quota-main-fill" id="quotaMainFill" style="width: 0%"></div>
+    </div>
+    <div class="quota-main-footer">
+        <span id="quotaRemainingText">剩余 -- 次</span>
+        <span id="quotaResetText">距重置 --</span>
+    </div>
+</div>
+
+<!-- 图表区域 -->
+<div class="usage-charts">
+    <!-- 今日调用分布 -->
+    <div class="usage-chart-card">
+        <h3>今日调用分布（按小时）</h3>
+        <canvas id="hourlyChart" height="200"></canvas>
+    </div>
+    
+    <!-- 本周趋势 -->
+    <div class="usage-chart-card">
+        <h3>本周调用趋势</h3>
+        <canvas id="weeklyChart" height="200"></canvas>
+    </div>
+</div>
+
+<div class="usage-charts">
+    <!-- 调用类型分布 -->
+    <div class="usage-chart-card">
+        <h3>调用接口分布</h3>
+        <canvas id="endpointChart" height="200"></canvas>
+    </div>
+    
+    <!-- 本月趋势 -->
+    <div class="usage-chart-card">
+        <h3>本月调用趋势</h3>
+        <canvas id="monthlyChart" height="200"></canvas>
+    </div>
+</div>
+
+<!-- 限流记录 -->
+<div class="usage-table-card">
+    <h3>限流记录</h3>
+    <div id="rateLimitTable">
+        <div class="empty-state">
+            <p>加载中...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+.usage-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.usage-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.usage-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.usage-card-content {
+    display: flex;
+    flex-direction: column;
+}
+.usage-card-label {
+    font-size: 12px;
+    color: var(--text-muted, #6b7280);
+}
+.usage-card-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary, #1f2937);
+}
+.usage-card-sub {
+    font-size: 12px;
+    color: var(--text-muted, #6b7280);
+}
+
+/* 主进度条 */
+.quota-main-bar {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+.quota-main-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+.quota-main-track {
+    height: 12px;
+    background: var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.quota-main-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.8s ease;
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+.quota-main-fill.warning {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+.quota-main-fill.danger {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+.quota-main-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted, #6b7280);
+}
+
+/* 图表 */
+.usage-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.usage-chart-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+}
+.usage-chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary, #1f2937);
+}
+
+/* 限流记录表 */
+.usage-table-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+.usage-table-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+.rate-limit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.rate-limit-table th,
+.rate-limit-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    font-size: 13px;
+}
+.rate-limit-table th {
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    font-size: 12px;
+}
+.empty-state {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted, #6b7280);
+    font-size: 14px;
+}
+.badge-warning-sm {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+.page-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+</style>
+
+<script>
+(function() {
+    const ORANGE = '#FF6B35';
+    const GREEN = '#10b981';
+    const BLUE = '#6366f1';
+    const YELLOW = '#f59e0b';
+    
+    let hourlyChart, weeklyChart, endpointChart, monthlyChart;
+    
+    function renderHourlyChart(data) {
+        const ctx = document.getElementById('hourlyChart').getContext('2d');
+        const labels = Object.keys(data);
+        const values = Object.values(data);
+        
+        if (hourlyChart) hourlyChart.destroy();
+        hourlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '调用次数',
+                    data: values,
+                    backgroundColor: ORANGE + '33',
+                    borderColor: ORANGE,
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+    
+    function renderWeeklyChart(data) {
+        const ctx = document.getElementById('weeklyChart').getContext('2d');
+        const labels = Object.keys(data).map(d => d.slice(5));
+        const values = Object.values(data);
+        
+        if (weeklyChart) weeklyChart.destroy();
+        weeklyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '调用次数',
+                    data: values,
+                    borderColor: GREEN,
+                    backgroundColor: GREEN + '22',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: GREEN,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+    
+    function renderEndpointChart(data) {
+        const ctx = document.getElementById('endpointChart').getContext('2d');
+        const labels = data.map(d => d.endpoint.replace('/api/', ''));
+        const values = data.map(d => d.count);
+        const colors = [ORANGE, GREEN, BLUE, YELLOW, '#ec4899', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#64748b'];
+        
+        if (endpointChart) endpointChart.destroy();
+        endpointChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+    
+    function renderMonthlyChart(data) {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        const labels = Object.keys(data).map(d => d.slice(5));
+        const values = Object.values(data);
+        
+        if (monthlyChart) monthlyChart.destroy();
+        monthlyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '调用次数',
+                    data: values,
+                    borderColor: BLUE,
+                    backgroundColor: BLUE + '22',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointBackgroundColor: BLUE,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+    
+    function renderRateLimitTable(records) {
+        const container = document.getElementById('rateLimitTable');
+        document.getElementById('limitCount').textContent = records.length;
+        
+        if (!records || records.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>近7天没有限流记录，运行良好 ✓</p></div>';
+            return;
+        }
+        
+        let html = '<table class="rate-limit-table"><thead><tr><th>时间</th><th>接口</th><th>原因</th></tr></thead><tbody>';
+        records.forEach(r => {
+            const time = r.time ? r.time.replace('T', ' ').slice(0, 16) : '-';
+            const endpoint = r.endpoint || '-';
+            const reason = r.reason || '-';
+            html += `<tr><td>${time}</td><td><code>${endpoint}</code></td><td><span class="badge-warning-sm">${reason}</span></td></tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+    
+    function updateOverview(quota, weekTotal, limitCount) {
+        document.getElementById('todayUsed').textContent = quota.used_today;
+        document.getElementById('todayLimit').textContent = quota.unlimited ? '/ 无限' : `/ ${quota.daily_limit}`;
+        document.getElementById('weekTotal').textContent = weekTotal;
+        document.getElementById('tierLabel').textContent = quota.tier_label;
+        document.getElementById('tierLimit').textContent = quota.unlimited ? '无限制' : `每日${quota.daily_limit}次`;
+        document.getElementById('limitCount').textContent = limitCount;
+        
+        // 主进度条
+        const pct = quota.unlimited ? 0 : Math.min(quota.usage_percent, 100);
+        document.getElementById('quotaMainText').textContent = `${quota.used_today} / ${quota.unlimited ? '∞' : quota.daily_limit}`;
+        document.getElementById('quotaMainFill').style.width = pct + '%';
+        document.getElementById('quotaRemainingText').textContent = quota.unlimited ? '无限制' : `剩余 ${quota.remaining} 次`;
+        document.getElementById('quotaResetText').textContent = `距重置 ${quota.hours_until_reset}小时`;
+        
+        const fill = document.getElementById('quotaMainFill');
+        fill.className = 'quota-main-fill';
+        if (pct > 80) fill.classList.add('danger');
+        else if (pct > 50) fill.classList.add('warning');
+    }
+    
+    // 加载所有数据
+    fetch('/api/user/api-usage/overview')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const d = data.data;
+            
+            updateOverview(d.quota, d.week.total, d.rate_limits.length);
+            renderHourlyChart(d.today.hourly);
+            renderWeeklyChart(d.week.trend);
+            renderEndpointChart(d.endpoints);
+            renderRateLimitTable(d.rate_limits);
+        })
+        .catch(err => console.error('API统计加载失败:', err));
+    
+    // 加载月度趋势（单独请求，数据量大）
+    fetch('/api/user/api-usage/month')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.data.trend) {
+                renderMonthlyChart(data.data.trend);
+            }
+        })
+        .catch(err => console.error('月度数据加载失败:', err));
+})();
+</script>
+{% endblock %}

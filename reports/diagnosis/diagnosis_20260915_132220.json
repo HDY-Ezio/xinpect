@@ -1,0 +1,110 @@
+{
+  "timestamp": "2026-09-15T13:22:20.332588",
+  "script_version": "1.0.0",
+  "log_window_minutes": 30,
+  "basic_info": {
+    "hostname": "VM-0-15-ubuntu",
+    "uptime": "13:22:20 up 36 days,  8:15,  2 users,  load average: 0.09, 0.07, 0.02",
+    "os_version": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"",
+    "kernel": "6.8.0-49-generic",
+    "current_time": "2026-09-15 13:22:20",
+    "current_user": "root"
+  },
+  "services": {
+    "xinpect-website": {
+      "active": true,
+      "status": "active"
+    },
+    "xinpect-scanner-green": {
+      "active": true,
+      "status": "active"
+    },
+    "xinpect-scanner-blue": {
+      "active": true,
+      "status": "active"
+    },
+    "xinpect-pay": {
+      "active": true,
+      "status": "active"
+    }
+  },
+  "resources": {
+    "load_average": "0.09 0.07 0.02 3/526 862383",
+    "cpu_cores": 2,
+    "memory_mb": {
+      "raw": ""
+    },
+    "disk": "/dev/vda2        79G   46G   30G  61% /\n/dev/vda2        79G   46G   30G  61% /"
+  },
+  "ports": {
+    "5001": "LISTEN 0      2048                     127.0.0.1:5001       0.0.0.0:*    users:((\"gunicorn\",pid=561341,fd=3),(\"gunicorn\",pid=561339,fd=3),(\"gunicorn\",pid=75988,fd=3))",
+    "8001": "LISTEN 0      2048                       0.0.0.0:8001       0.0.0.0:*    users:((\"python3\",pid=3355882,fd=7))",
+    "8443": "LISTEN 0      511                      127.0.0.1:8443       0.0.0.0:*    users:((\"nginx\",pid=2401266,fd=5),(\"nginx\",pid=806760,fd=5),(\"nginx\",pid=806759,fd=5))",
+    "48923": "LISTEN 0      1024                       0.0.0.0:48923      0.0.0.0:*    users:((\"ss-server\",pid=926,fd=5))",
+    "8082": "LISTEN 0      2048                       0.0.0.0:8082       0.0.0.0:*    users:((\"fcc-server\",pid=910,fd=19))",
+    "8080": "LISTEN 0      512                        0.0.0.0:8080       0.0.0.0:*    users:((\"srs\",pid=82533,fd=10))",
+    "65489": "LISTEN 0      4096                100.72.214.122:65489      0.0.0.0:*    users:((\"tailscaled\",pid=937,fd=23))",
+    "8620": "LISTEN 0      5                        127.0.0.1:8620       0.0.0.0:*    users:((\"python3\",pid=449634,fd=3),(\"python3\",pid=449633,fd=3),(\"python3\",pid=449632,fd=3),(\"python3\",pid=449628,fd=3),(\"python3\",pid=449627,fd=3),(\"python3\",pid=449626,fd=3),(\"python3\",pid=449625,fd=3),(\"python3\",pid=21066,fd=3))",
+    "8622": "LISTEN 0      5                        127.0.0.1:8622       0.0.0.0:*    users:((\"python3\",pid=20524,fd=3))",
+    "33060": "LISTEN 0      4096                     127.0.0.1:33060      0.0.0.0:*    users:((\"docker-proxy\",pid=4004290,fd=4))",
+    "18790": "LISTEN 0      511                        0.0.0.0:18790      0.0.0.0:*    users:((\"nginx\",pid=2401266,fd=7),(\"nginx\",pid=806760,fd=7),(\"nginx\",pid=806759,fd=7))",
+    "53": "LISTEN 0      4096                    127.0.0.54:53         0.0.0.0:*    users:((\"systemd-resolve\",pid=571,fd=17))",
+    "6379": "LISTEN 0      511                      127.0.0.1:6379       0.0.0.0:*    users:((\"redis-server\",pid=921,fd=6))",
+    "1985": "LISTEN 0      512                        0.0.0.0:1985       0.0.0.0:*    users:((\"srs\",pid=82533,fd=9))",
+    "1935": "LISTEN 0      512                        0.0.0.0:1935       0.0.0.0:*    users:((\"srs\",pid=82533,fd=8))"
+  },
+  "processes": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\n999      4004362  0.2  6.5 1871496 495376 ?      Ssl  Sep04  43:01 mysqld\nubuntu   1672903  0.0  3.4 27101552 259128 ?     Sl   Aug31  17:00 node /usr/local/bin/n8n\nroot     4004191  0.0  3.0 681224 231616 ?       Ssl  Sep04   0:46 /usr/libexec/fwupd/fwupd\nubuntu   3355882  0.7  1.7 663172 136464 ?       Ssl  Sep11  46:26 python3 /home/ubuntu/ai-cost-optimizer/main.py\nubuntu     20524  0.0  1.4 1102904 109584 ?      Ss   Sep13   1:12 /usr/bin/python3 /opt/xinpect-scanner-blue/scanner_service.py\nubuntu    553803  0.0  1.3 313008 105836 ?       Ss   Sep14   0:15 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend_clean/gunicorn_config.py app:app\nubuntu    446837  0.0  1.3 309448 102044 ?       Ss   Sep14   0:21 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend/gunicorn_config.py app:app\nubuntu    553813  0.0  1.2 328020 98472 ?        Sl   Sep14   0:19 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend_clean/gunicorn_config.py app:app\nroot     1329021  0.6  1.2 1078344 98084 ?       Ssl  Aug21 235:36 /usr/local/qcloud/YunJing/YDEyes/YDService\nubuntu     21066  0.0  1.2 1097624 97968 ?       Ssl  Sep13   0:39 /usr/bin/python3 /opt/xinpect-scanner-green/scanner_service.py\nubuntu    553814  0.0  1.2 321972 92460 ?        Sl   Sep14   0:11 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend_clean/gunicorn_config.py app:app\nubuntu    446846  0.0  1.1 313332 83924 ?        Sl   Sep14   0:11 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend/gunicorn_config.py app:app\nubuntu    446850  0.0  1.1 313332 83924 ?        Sl   Sep14   0:10 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend/gunicorn_config.py app:app\nubuntu    446847  0.0  1.0 313332 83284 ?        Sl   Sep14   0:10 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend/gunicorn_config.py app:app\nubuntu    446849  0.0  1.0 313332 83284 ?        Sl   Sep14   0:10 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend/gunicorn_config.py app:app\nubuntu    446848  0.0  1.0 313332 83276 ?        Sl   Sep14   0:10 /usr/bin/python3 /home/ubuntu/.local/bin/gunicorn -c /opt/starwang/backend/gunicorn_config.py app:app\nubuntu    449625  0.0  1.0 1568124 81672 ?       S    Sep14   0:02 /usr/bin/python3 /opt/xinpect-scanner-green/scanner_service.py\nubuntu    449626  0.0  1.0 1560196 77384 ?       S    Sep14   0:09 /usr/bin/python3 /opt/xinpect-scanner-green/scanner_service.py\nubuntu    449632  0.0  0.9 1557172 71380 ?       S    Sep14   0:01 /usr/bin/python3 /opt/xinpect-scanner-green/scanner_service.py",
+  "logs": {
+    "xinpect-website_warnings": "-- No entries --",
+    "xinpect-website_lifecycle": "-- No entries --",
+    "xinpect-scanner-green_warnings": "-- No entries --",
+    "xinpect-scanner-green_lifecycle": "-- No entries --",
+    "xinpect-scanner-blue_warnings": "-- No entries --",
+    "xinpect-scanner-blue_lifecycle": "-- No entries --",
+    "xinpect-pay_warnings": "-- No entries --",
+    "xinpect-pay_lifecycle": "Sep 15 13:20:01 VM-0-15-ubuntu systemd[1]: Started xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:20:01 VM-0-15-ubuntu systemd[1]: Stopped xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:15:02 VM-0-15-ubuntu systemd[1]: Started xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:15:02 VM-0-15-ubuntu systemd[1]: Stopped xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:10:01 VM-0-15-ubuntu systemd[1]: Started xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:10:01 VM-0-15-ubuntu systemd[1]: Stopped xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:05:01 VM-0-15-ubuntu systemd[1]: Started xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:05:01 VM-0-15-ubuntu systemd[1]: Stopped xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:00:01 VM-0-15-ubuntu systemd[1]: Started xinpect-pay.service - 煋鉴付费版 X402 协议服务.\nSep 15 13:00:01 VM-0-15-ubuntu systemd[1]: Stopped xinpect-pay.service - 煋鉴付费版 X402 协议服务."
+  },
+  "database": {
+    "exists": true,
+    "size_mb": 62.59,
+    "integrity": "ok",
+    "tables": {
+      "alert_history": 0,
+      "alert_rules": 1,
+      "announcements": 5,
+      "api_keys": 2,
+      "ci_configs": 0,
+      "credit_pools": 199,
+      "credit_transactions": 980,
+      "daily_usage": 29,
+      "error_logs": 1723,
+      "gate_results": 0,
+      "invoice_requests": 0,
+      "orders": 19,
+      "quality_gates": 1,
+      "referral_rewards": 0,
+      "reset_codes": 6,
+      "scan_metrics": 33,
+      "scan_thresholds": 0,
+      "scans": 508,
+      "schema_migrations": 18,
+      "sqlite_sequence": 15,
+      "user_announcement_read": 2,
+      "user_credits": 12,
+      "users": 7
+    }
+  },
+  "network": {
+    "localhost:8621": "200",
+    "localhost:8620": "200",
+    "localhost:8622": "200",
+    "external_dns": "200"
+  },
+  "connections": "Total: 788\nTCP:   392 (estab 236, closed 86, orphaned 0, timewait 7)\n\nTransport Total     IP        IPv6\nRAW\t  1         0         1        \nUDP\t  7         5         2        \nTCP\t  306       302       4        \nINET\t  314       307       7        \nFRAG\t  0         0         0",
+  "recent_changes": "-rw-r--r-- 1 root   root     637 Sep 15 13:20 /opt/xinpect-website/monitoring/status.json\n-rwxr-xr-x 1 ubuntu ubuntu 10675 Sep 15 01:11 /opt/xinpect-website/daily_inspection.py\n-rw-r--r-- 1 root   root   37483 Sep 15 01:11 /opt/xinpect-website/modules/ci.py\n-rw-rw-r-- 1 ubuntu ubuntu 16704 Sep 15 01:10 /opt/xinpect-website/modules/payment.py\n-rwxrwxr-x 1 ubuntu ubuntu 25099 Sep 15 01:10 /opt/xinpect-website/static/xinpect_mcp_server.py\n-rw-rw-r-- 1 ubuntu ubuntu 23779 Sep 15 01:10 /opt/xinpect-website/app.py\n-rwxrwxr-x 1 ubuntu ubuntu 13475 Sep 15 01:10 /opt/xinpect-website/modules/alert.py\n-rwxrwxr-x 1 ubuntu ubuntu  9377 Sep 15 01:10 /opt/xinpect-website/templates/base.html\n-rw------- 1 ubuntu ubuntu  4298 Sep 15 01:10 /opt/xinpect-website/templates/forgot_password.html\n-rwx------ 1 ubuntu ubuntu  5068 Sep 15 01:10 /opt/xinpect-website/templates/register.html\n-rw-rw-r-- 1 ubuntu ubuntu 52617 Sep 15 01:10 /opt/xinpect-website/modules/scan.py\n-rw-rw-r-- 1 ubuntu ubuntu 28534 Sep 15 01:10 /opt/xinpect-website/modules/auth.py\n-rw-rw-r-- 1 ubuntu ubuntu  1644 Sep 15 01:10 /opt/xinpect-website/modules/csrf_protection.py\n-rw-rw-r-- 1 ubuntu ubuntu   333 Sep 15 01:10 /opt/xinpect-website/modules/__init__.py\n-rwx------ 1 ubuntu ubuntu 52054 Sep 15 00:42 /opt/xinpect-website/templates/report.html\n-rw-rw-r-- 1 ubuntu ubuntu  8332 Sep 15 00:21 /opt/xinpect-website/modules/fix_roadmap.py\n-rwxrwxr-x 1 ubuntu ubuntu 13228 Sep 14 10:27 /opt/xinpect-website/scripts/generate_error_report.py\n-rwxrwxr-x 1 ubuntu ubuntu 51853 Sep 12 12:39 /opt/xinpect-website/templates/upload.html\n-rwxr-xr-x 1 ubuntu ubuntu 40633 Sep 12 12:36 /opt/xinpect-website/templates/index.html\n-rw-rw-r-- 1 ubuntu ubuntu 14460 Sep 12 12:35 /opt/xinpect-website/templates/help.html",
+  "health_summary": {
+    "issues": [],
+    "warnings": []
+  },
+  "elapsed_seconds": 0.44
+}

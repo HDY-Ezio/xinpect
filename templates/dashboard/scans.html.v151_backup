@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}我的检测 - 会员中心 - 煋鉴 Xinpect{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-header">
+    <h1>我的检测</h1>
+    <p>查看所有历史检测记录</p>
+</div>
+
+{% if scans %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>检测名称</th>
+            <th>文件数</th>
+            <th>问题数</th>
+            <th>得分</th>
+            <th>等级</th>
+            <th>检测时间</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for scan in scans %}
+        <tr>
+            <td>{{ scan.title }}</td>
+            <td>{{ scan.file_count }}</td>
+            <td>
+                <span style="color:{% if scan.issue_count > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                    {{ scan.issue_count }}
+                </span>
+            </td>
+            <td>
+                <span style="color:{% if scan.score >= 80 %}var(--success){% elif scan.score >= 60 %}var(--warning){% else %}var(--danger){% endif %};font-weight:600;">
+                    {{ scan.score }}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge {% if scan.grade == 'A' %}success{% elif scan.grade == 'B' %}info{% elif scan.grade == 'C' %}warning{% else %}danger{% endif %}">
+                    {{ scan.grade }}级
+                </span>
+            </td>
+            <td style="color:var(--text-muted);font-size:13px;">{{ scan.created_at }}</td>
+            <td><a href="{{ url_for('report_page', scan_id=scan.scan_id) }}">查看报告</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+    <div class="empty-state-icon">📭</div>
+    <div class="empty-state-text">还没有检测记录</div>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-primary">开始第一次检测</a>
+</div>
+{% endif %}
+{% endblock %}
