@@ -152,13 +152,38 @@ def _t_excluded_has_reason():
     return "均已加引号" in reason, "依据=%s" % reason[:30]
 
 
+def _t_gaps_change_headline():
+    """有地方没查全时，第一句不许说「没有问题」。
+
+    实证：一份 8 个文件没解析、10 个引擎全部只查了一部分的报告，
+    第一屏写着「太棒了！未检测到任何问题」，三层卡却标着「部分未检测」。
+    """
+    from modules.report_verdict import build
+    clean = build([])
+    if clean["conclusion"]["tone"] != "good":
+        return False, "没有缺口时结论不是 good：%r" % clean["conclusion"]
+
+    gapped = build([], gaps=["3 个文件没能解析"])
+    head = gapped["conclusion"]["headline"]
+    detail = gapped["conclusion"].get("detail") or ""
+    problems = []
+    if "没有需要处理的问题" in head or "没有任何问题" in head:
+        problems.append("有缺口时第一句还在报喜：%s" % head)
+    if gapped["conclusion"]["tone"] != "warn":
+        problems.append("有缺口时 tone 应为 warn，实际 %s" % gapped["conclusion"]["tone"])
+    if "3 个文件没能解析" not in detail:
+        problems.append("缺口没写进说明：%s" % detail)
+    return not problems, "; ".join(problems) if problems else "缺口=%s" % head
+
+
 print("=== report_verdict / rule_kind 自检 ===")
 check("模块可导入", _t_import)
 check("分类判据", _t_kind)
 check("三层分组与结论一致", _t_layers)
 check("排除项带具体依据", _t_excluded_has_reason)
+check("没查全时结论不报喜", _t_gaps_change_headline)
 
 if failures:
     print("\n结果：%d 项失败 -> %s" % (len(failures), ", ".join(failures)))
     sys.exit(1)
-print("\n结果：4 项全部通过")
+print("\n结果：5 项全部通过")

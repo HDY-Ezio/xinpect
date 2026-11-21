@@ -39,9 +39,9 @@ from .helpers import login_required, get_current_user, is_vip_user, _safe_http_p
 from .scoring import (
     get_user_credits, consume_credits, grant_credits,
     calculate_scan_cost, count_total_lines, check_credit_sufficient,
-    calculate_tier_scores, calculate_overall_grade,
+    calculate_tier_scores, grade_of,
     calculate_score, calculate_dimension_score, calculate_building_block_scores,
-    score_to_grade, score_color, severity_label,
+    score_to_grade, score_color, severity_label, GRADE_TEXT,
     get_daily_usage, check_daily_limit, increment_daily_usage,
 )
 from .fix_roadmap import build_fix_roadmap, build_fix_progress
@@ -50,7 +50,9 @@ from .report_verdict import TIER_MUST, TIER_SHOULD, TIER_EXCLUDED
 from .csrf_protection import csrf_required
 from .dimensions import (
     card_state as _dim_card_state,
+    coverage_ok as _coverage_ok,
     NOT_RUN as _DIM_NOT_RUN,
+    PARTIAL as _DIM_PARTIAL,
 )
 from .scanner import call_scanner, _extract_code_snippet, ScanEngineError
 
@@ -342,65 +344,60 @@ def _compute_severity_counts(visible_issues):
     }
 
 
-def _build_conclusion(severity_counts, score, grade, total_issues, not_detected=None):
-    """生成「一句话结论摘要」（体检报告总评式，确定性规则，非 AI）。
+def _detection_gaps(engines, unsupported=0, trimmed=0, file_count=None):
+    """这次到底有哪些地方没查全，给人话短句。
 
-    面向不懂代码的人：用大白话在第一屏讲清「这次扫描整体怎样、最该先修什么」。
-    判据全部来自已有的 severity 五档计数与健康分，无启发式猜测、无白名单。
+    报告页和 Markdown 导出都从这里取同一份，避免「页面说没检查全、
+    导出的 MD 说查得很好」——同一份报告两个说法，客户只会信那个
+    对他有利的，剩下的一条都不信。
 
-    2026-11-04：加 not_detected（没查成的维度名列表）。
-    原来 total_issues==0 一律写「未检测到任何问题，代码质量优秀」——引擎崩了
-    也是这句。维度卡已经改成「未检测」，第一屏的结论却还在报喜，等于把刚补
-    的那层诚实又抹掉了。
+    三条缺口分开说，因为它们对客户的意义不同：
+      引擎没出结果 → 这一类问题这次根本没查
+      引擎报错     → 查了但没查完
+      文件没解析   → 这些文件里的代码没看（不是引擎的问题）
 
-    返回 dict：{ 'headline', 'detail', 'tone' }，tone 用于前端配色
-    （good=绿 / warn=黄 / danger=红）。
+    改之前这三件事被压成一句「所有引擎都只查了一部分」，于是一份 5 个文件、
+    4 个正常解析的报告，第一屏写着「所有引擎都只查了一部分」——既不准确，
+    也让人以为整份结果不能用。
+
+    engines 为 None（2026-11-04 之前落库、没有台账的老报告）时返回空：
+    拿不到证据就不编缺口。
     """
-    crit = severity_counts.get('critical', 0)
-    high = severity_counts.get('high', 0)
-    medium = severity_counts.get('medium', 0)
-    low = severity_counts.get('low', 0)
-    info = severity_counts.get('info', 0)
-    not_detected = list(not_detected or [])
+    if not engines:
+        return []
 
-    if total_issues == 0:
-        if not_detected:
-            return {
-                'headline': '有 %d 个维度未能完成检测' % len(not_detected),
-                'detail': '「%s」没有拿到结果，这不代表代码干净，只代表这次没查成。'
-                          '建议稍后重试；反复出现请联系我们排查引擎状态。'
-                          % '、'.join(not_detected[:3]),
-                'tone': 'warn',
-            }
-        return {
-            'headline': '未检测到任何问题，代码质量优秀',
-            'detail': '这次扫描没有发现需要处理的问题，可以放心。',
-            'tone': 'good',
-        }
-    if crit > 0:
-        return {
-            'headline': '发现 %d 个严重问题，需要立即处理' % crit,
-            'detail': '严重问题可能被攻击者直接利用，建议优先修复，其余 %d 个问题随后跟进。' % (total_issues - crit),
-            'tone': 'danger',
-        }
-    if high > 0:
-        return {
-            'headline': '发现 %d 个高危问题，建议优先修复' % high,
-            'detail': '高危问题存在真实风险，处理完这 %d 个后，其余 %d 个中低危问题可逐步跟进。' % (high, total_issues - high),
-            'tone': 'danger',
-        }
-    if medium > 0 or low > 0:
-        return {
-            'headline': '整体可控，有 %d 个中低危问题' % (medium + low),
-            'detail': '暂不构成紧急风险，建议按修复路线图逐步处理，避免长期累积。',
-            'tone': 'warn',
-        }
-    # 只剩 info（建议类）
-    return {
-        'headline': '代码质量良好，有 %d 条改进建议' % info,
-        'detail': '没有安全问题，这 %d 条是锦上添花的改进建议，有空可顺手处理。' % info,
-        'tone': 'good',
-    }
+    not_run, errored = [], []
+    for brain in BRAINS:
+        st = engines.get(str(brain['id']))
+        if not isinstance(st, dict):
+            continue          # 本次没请求它（免费版锁住 / PoC 未启用），不算缺口
+        if not st.get('executed'):
+            not_run.append(brain['name'])
+        elif st.get('error'):
+            errored.append(brain['name'])
+
+    gaps = []
+    if not_run:
+        gaps.append('%d 个引擎完全没有出结果（%s）'
+                    % (len(not_run), '、'.join(not_run[:3])))
+    if errored:
+        gaps.append('%d 个引擎报错（%s）'
+                    % (len(errored), '、'.join(errored[:3])))
+
+    unparsed = (unsupported or 0) + (trimmed or 0)
+    if unparsed:
+        try:
+            total = int(file_count or 0)
+        except (TypeError, ValueError):
+            total = 0
+        if total > 0:
+            gaps.append('%d 个文件没能解析（占 %d%%），这些文件里的代码没查过'
+                        % (unparsed, int(round(100.0 * unparsed / total))))
+        else:
+            gaps.append('%d 个文件没能解析，这些文件里的代码没查过' % unparsed)
+        if not _coverage_ok(file_count, unsupported, trimmed):
+            gaps.append('读到的文件不足一半，本次不给评级')
+    return gaps
 
 
 def _issue_tier_assignment(visible_issues):
@@ -952,8 +949,11 @@ def _async_scan_success(scan_id, user_id, files_dict, total_lines, results, vip)
     tier_scores = calculate_tier_scores(
         results["issues"], available_brain_ids=avail_brains, is_vip=vip,
         engines=_ledger, unsupported=_uns, trimmed=_trim,
+        file_count=len(files_dict),
     )
-    grade = calculate_overall_grade(tier_scores)
+    # 分数与等级同源：calculate_score 已经默认剔除复核未采纳的条目，
+    # grade_of 只把这个分数读成档位（三层全 S 才在 S 之上加 SS/SSS）。
+    grade = grade_of(score, tier_scores, is_vip=vip)
 
     _db = _sqlite3.connect(DB_PATH)
     _db.execute("UPDATE scans SET results=?, score=?, grade=?, issue_count=?, scan_status=?, scan_progress=?, scan_progress_text=? WHERE scan_id=?",
@@ -1332,7 +1332,9 @@ def report_page(scan_id):
     # 主列表只放「必须修 + 建议改」；复核判定不成立的单列在报告最后。
     # 改之前：全库 66748 条 issue 里 19040 条（28.5%）带 ai_false_positive，
     # AI 写了分析说「无需修复」，报告照单全收，还把其中两条排进「推荐优先修复」。
-    _verdict = report_verdict.build(visible_issues)
+    # gaps 一起传进去：0 条问题 + 有引擎没跑成时，第一句不许说「没有问题」。
+    _gaps = _detection_gaps(_ledger, _unsupported_n, _trimmed_n, scan['file_count'])
+    _verdict = report_verdict.build(visible_issues, gaps=_gaps)
     _must_items = _verdict['tiers'][TIER_MUST]
     _should_items = _verdict['tiers'][TIER_SHOULD]
     _excluded_items = _verdict['tiers'][TIER_EXCLUDED]
@@ -1351,13 +1353,16 @@ def report_page(scan_id):
     tier_scores = calculate_tier_scores(
         all_issues, available_brain_ids=avail_brains, is_vip=vip,
         engines=_ledger, unsupported=_unsupported_n, trimmed=_trimmed_n,
+        file_count=scan['file_count'],
     )
     severity_counts = _compute_severity_counts(visible_issues)
 
-    score = scan['score']
-    grade = scan['grade']
-    if len(grade) <= 1:
-        grade = calculate_overall_grade(tier_scores)
+    # 分数与等级都在这里按「我们认的问题」重算，不再读库里存的那两个数。
+    # 库里存的是旧口径（含复核未采纳、等级走三层平均），而且 441 份历史报告里
+    # 有 76 份两个数互相打架。报告是给客户看的那份东西，必须自洽：
+    # 同一份报告在任何时候打开、在哪个页面打开，都是同一个分、同一个档。
+    score = calculate_score(all_issues, available_brain_ids=avail_brains)
+    grade = grade_of(score, tier_scores, is_vip=vip)
 
     created_at = scan['created_at']
     try:
@@ -1370,31 +1375,15 @@ def report_page(scan_id):
     fix_roadmap = build_fix_roadmap(visible_issues)
     fix_progress = build_fix_progress(scan_id, session.get("user_id"))
 
-    # 一句话结论摘要（体检报告总评式）
-    # 没查成的维度要传进去：否则引擎崩了、0 条问题，结论还在说「代码质量优秀」
-    _not_detected_dims = [
-        d['name'] for d in dimensions if d.get('not_run')
-    ]
-    # 结论必须和分层同源。改之前结论看 severity_counts、路线图看另一套优先级，
-    # 同一个页面同时说「4 个高危建议优先修复」和「立即修复 0 个问题」。
+    # 一句话结论摘要：整段由 report_verdict 给出，页面不再自己拼。
+    # 缺口（哪些引擎没跑成/哪些文件没解析）在 build 时就已经写进第一句，
+    # 所以这里不需要再补文字——补文字就是第二个拼装处，早晚两边不一致。
     _vc = _verdict['conclusion']
     conclusion = {
         'headline': _vc['headline'],
         'detail': _vc.get('detail') or '',
         'tone': _vc['tone'],
     }
-    if not visible_issues and not _excluded_items and _not_detected_dims:
-        # 一条都没有、又有维度没查成：这块必须由「未检测」口径说话，
-        # 不能让「没有需要处理的问题」把「没查成」盖成「干净」。
-        conclusion = _build_conclusion(
-            severity_counts, score, grade, 0, _not_detected_dims
-        )
-    elif _not_detected_dims:
-        _nd = '另有 %d 个维度未能完成检测（%s），那部分不算查过' % (
-            len(_not_detected_dims), '、'.join(_not_detected_dims[:3]))
-        conclusion['detail'] = (conclusion['detail'] + '；' + _nd) if conclusion['detail'] else _nd
-        if conclusion['tone'] == 'good':
-            conclusion['tone'] = 'warn'
 
     scan_mode = scan['scan_mode'] if 'scan_mode' in scan.keys() else ''
     is_fix_eligible = bool(vip and scan_mode == 'deep')
@@ -1595,22 +1584,25 @@ def _build_md_header(scan, all_issues, vip):
     tier_scores_md = calculate_tier_scores(
         all_issues, available_brain_ids=avail_brains_md, is_vip=vip,
         engines=_led_md, unsupported=_uns_md, trimmed=_trim_md,
+        file_count=scan['file_count'],
     )
-    md_grade = calculate_overall_grade(tier_scores_md)
+    # 导出的 MD 与页面同一口径。原来这里写 scan["score"]（旧口径存值），
+    # 同一份报告「看页面 82 分、下载 MD 50 分」。
+    md_score = calculate_score(all_issues, available_brain_ids=avail_brains_md)
+    md_grade = grade_of(md_score, tier_scores_md, is_vip=vip)
 
     # 查不全时不能写「S 级」——那是把没查的地方当成干净
     _md_grade_text = '未完整检测（评级不可用）' if md_grade == '—' else f'{md_grade} 级'
     md_lines.append(f'**综合评级：** {_md_grade_text}')
-    md_lines.append(f'**综合得分：** {scan["score"]} / 100')
+    md_lines.append(f'**综合得分：** {md_score} / 100')
     md_lines.append('')
 
-    # 一句话结论摘要（与报告页同源的确定性规则）
-    _sev = _compute_severity_counts(all_issues)
-    _not_detected_md = [
-        b['name'] for b in BRAINS
-        if _dim_card_state(_led_md, b['id'], _uns_md, _trim_md)[0] == _DIM_NOT_RUN
-    ]
-    _conc = _build_conclusion(_sev, scan["score"], md_grade, len(all_issues), _not_detected_md)
+    # 结论与报告页同源：同一个 build，同一份缺口清单。
+    # 改之前这里走 _build_conclusion（按 severity 五档计数），页面走三层分层，
+    # 同一份报告「页面说必须修 2 个、导出的 MD 说 4 个高危建议优先修复」。
+    _md_verdict = report_verdict.build(
+        all_issues, gaps=_detection_gaps(_led_md, _uns_md, _trim_md))
+    _conc = _md_verdict['conclusion']
     md_lines.append(f'**结论：** {_conc["headline"]}')
     md_lines.append('')
 
@@ -1712,14 +1704,17 @@ def _build_md_issue_detail(brain, visible_issues):
     return md_lines
 
 
-def _build_md_issues(visible_issues, vip, profile_groups=None):
+def _build_md_issues(visible_issues, vip, profile_groups=None, gaps=None):
     """构建问题详情部分"""
     md_lines = []
     md_lines.append('## 问题详情')
     md_lines.append('')
 
     if not visible_issues:
-        md_lines.append('🎉 **未检测到任何问题，代码质量优秀！**')
+        # 这句原来写死成「未检测到任何问题，代码质量优秀」——有文件没解析时
+        # 照样报喜。现在由结论统一给：有缺口就说「没查出问题，但没检查全」。
+        _empty_head = report_verdict.build([], gaps=gaps)['conclusion']['headline']
+        md_lines.append('🎉 **%s**' % _empty_head)
     else:
         visible_brains = BRAINS if vip else [b for b in BRAINS if b['id'] in FREE_BRAIN_ID_SET]
         for brain in visible_brains:
@@ -1785,7 +1780,8 @@ def download_report(scan_id):
 
     header_lines, tier_scores_md, visible_issues = _build_md_header(scan, all_issues, vip)
     dimension_lines = _build_md_dimension_scores(scan, visible_issues, vip)
-    issues_lines = _build_md_issues(visible_issues, vip, profile_groups)
+    _md_gaps = _detection_gaps(*_ledger_of(results), file_count=scan['file_count'])
+    issues_lines = _build_md_issues(visible_issues, vip, profile_groups, gaps=_md_gaps)
 
     md_lines = header_lines + dimension_lines + issues_lines
     md_content = '\n'.join(md_lines)

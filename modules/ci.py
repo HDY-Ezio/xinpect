@@ -27,9 +27,10 @@ from .constants import (
     HTTP_NOT_FOUND, HTTP_INTERNAL_ERROR, HTTP_PAYMENT_REQUIRED,
     HTTP_ENTITY_TOO_LARGE,
     CODE_EXTS, ARCHIVE_SKIP_DIRS, ALL_BRAIN_IDS, FREE_BRAIN_IDS,
+    GIT_TIMEOUT_SECONDS,
 )
 from .db import get_db
-from .scanner import call_scanner, ScanEngineError
+from .scanner import call_scanner, ScanEngineError, REPORT_PAYLOAD_KEYS
 from .scoring import (
     get_user_credits, consume_credits, grant_credits,
     calculate_scan_cost, count_total_lines,
@@ -48,9 +49,14 @@ MAX_CODE_FILES = 200
 MAX_SINGLE_FILE_KB = 500
 BADGE_CACHE_SECONDS = 300
 
+# CI 扫描记录落库时，各个列表栏目（问题、样式问题、依赖画像、被抑制清单）
+# 各自最多存多少条。scans.results 是整包 JSON 存库，CI 记录定位是「快速看一眼」，
+# 四栏同口径封顶；超出部分只保留计数（suppressed_stats.total 等仍是真实总数）。
+CI_RESULT_STORE_LIMIT = 200
+
 # 抽样预览：基础引擎（规范层，免费可见）vs 深度引擎（质量层+防护层，锁定预览）
-BASIC_BRAIN_IDS = {'1', '6', '7', '9'}  # 规范层 = 免费可见
-DEEP_BRAIN_IDS = {'2', '3', '4', '5', '8'}  # 质量层 + 防护层 = 锁定预览
+BASIC_BRAIN_IDS = {'1', '4', '5', '6'}  # 规范层（E1+E4+E5+E6）= 免费可见
+DEEP_BRAIN_IDS = {'2', '3', '7', 'ai', 'poc'}  # 质量层（E3+E7+AI语义）+ 防护层（E2+PoC）= 锁定预览
 
 
 # ============================================================
@@ -217,6 +223,38 @@ def _count_issues_by_severity(issues):
     return counts
 
 
+def _build_ci_result_payload(scanner_result):
+    """按扫描器声明的报告字段清单组装落库内容（scans.results）。
+
+    2026-11-03: 这里原本是一张手写字典，每新增一个报告栏目就要记得来加一行，
+    忘了就静默丢字段——页面表现为「栏目不存在」，不报错，极难发现。已经被这条
+    路径吃掉过三次：被抑制清单、样式问题、依赖画像。
+    现在改成从 scanner.REPORT_PAYLOAD_KEYS 派生：新增栏目在 scanner.py 声明一次，
+    网页扫描与 CI 两条落库路径同时跟上，不存在「记得改两处」这种要求。
+
+    列表栏目按 CI_RESULT_STORE_LIMIT 截断（真实条数由各自的 *_stats 保留）。
+    类型不符的字段回落到默认值，避免脏数据把 JSON 写坏。
+    注意：数值字段的默认值是 int（如 scan_time=0），但扫描器给的是 float
+    （total_elapsed），所以数值要按「数字」整体判断，不能拿 type(default) 死比——
+    否则 2.5 会被判成类型不符、静默变成 0（本轮就被守卫测试抓到过一次）。
+    """
+    payload = {}
+    for key, default in REPORT_PAYLOAD_KEYS.items():
+        val = scanner_result.get(key)
+        if isinstance(default, list):
+            payload[key] = (val if isinstance(val, list) else [])[:CI_RESULT_STORE_LIMIT]
+        elif isinstance(default, dict):
+            payload[key] = val if isinstance(val, dict) else {}
+        elif isinstance(default, bool):
+            payload[key] = val if isinstance(val, bool) else default
+        elif isinstance(default, (int, float)):
+            payload[key] = (val if isinstance(val, (int, float))
+                            and not isinstance(val, bool) else default)
+        else:
+            payload[key] = val if isinstance(val, type(default)) else default
+    return payload
+
+
 def _save_ci_scan(user_id, scan_id, scanner_result, scan_mode, ci_repo, ci_branch, ci_commit_sha, total_lines=0, auto_share=False):
     """保存 CI 扫描记录，返回 (record_id, share_token)"""
     db = get_db()
@@ -234,11 +272,13 @@ def _save_ci_scan(user_id, scan_id, scanner_result, scan_mode, ci_repo, ci_branc
         share_token = secrets.token_urlsafe(12)
 
     # 构建 issues 摘要 JSON（存入 results 列）
-    issues_summary = json.dumps({
-        'issues': scanner_result.get('issues', [])[:200],
-        'version': scanner_result.get('version', ''),
-        'scan_time': scanner_result.get('scan_time', 0),
-    }, ensure_ascii=False)
+    # 2026-11-03: 按 REPORT_PAYLOAD_KEYS 派生，不再手写白名单——分享页要展示的
+    # 每一栏（问题、样式建议、依赖画像、被抑制清单）都必须原样落库，
+    # 否则客户扫码点开看到的是一份「什么都没说」的报告。
+    # 口径与完整报告页一致：样式建议/依赖画像/被抑制清单都单独成栏、
+    # 不计入 issue_count、不影响评分。
+    issues_summary = json.dumps(_build_ci_result_payload(scanner_result),
+                                ensure_ascii=False)
     
     # 构建 files_meta（存入 files_meta 列）
     files_meta = json.dumps({
@@ -428,7 +468,7 @@ def api_scan_github():
         ci_commit = ''
         try:
             r = subprocess.run(['git', '-C', clone_dir, 'rev-parse', 'HEAD'],
-                               capture_output=True, text=True, timeout=5)
+                               capture_output=True, text=True, timeout=GIT_TIMEOUT_SECONDS)
             if r.returncode == 0:
                 ci_commit = r.stdout.strip()
         except Exception:
@@ -449,17 +489,26 @@ def api_scan_github():
         total_lines = count_total_lines(code_files)
         credits_cost = 0
         if is_vip and scan_mode != 'free':
-            credits_cost = calculate_scan_cost(total_lines, is_full_scan=True)
+            credits_cost = calculate_scan_cost(total_lines, is_full_scan=True, user_id=user_id)
             balance = get_user_credits(user_id)
             if balance < credits_cost:
                 return jsonify(status='error', error='credits_insufficient',
                                message='积分不足',
                                credits_needed=credits_cost, credits_balance=balance), HTTP_PAYMENT_REQUIRED
 
-        # ── 调用扫描引擎 ──
+        # ── 调用扫描引擎（brain_ids 按 scan_mode 裁剪，与主扫描链路对齐）──
+        # free → 规范层 4 引擎；quick → E1-E7 纯规则；smart → +AI 语义；deep → +PoC
         is_vip_engine = scan_mode in ('smart', 'deep')
+        if scan_mode == 'free':
+            ci_brain_ids = list(FREE_BRAIN_IDS)
+        elif scan_mode == 'quick':
+            ci_brain_ids = [b for b in ALL_BRAIN_IDS if b not in ('ai', 'poc')]
+        elif scan_mode == 'smart':
+            ci_brain_ids = [b for b in ALL_BRAIN_IDS if b != 'poc']
+        else:  # deep / full 兼容
+            ci_brain_ids = list(ALL_BRAIN_IDS)
         try:
-            scanner_result = call_scanner(code_files, list(ALL_BRAIN_IDS if scan_mode in ('deep', 'full') else FREE_BRAIN_IDS), {
+            scanner_result = call_scanner(code_files, ci_brain_ids, {
                 'scan_mode': scan_mode,
                 'is_vip': is_vip_engine,
             })
@@ -612,17 +661,25 @@ def api_ci_scan():
     total_lines = count_total_lines(valid_files)
     credits_cost = 0
     if is_vip and scan_mode != 'free':
-        credits_cost = calculate_scan_cost(total_lines, is_full_scan=True)
+        credits_cost = calculate_scan_cost(total_lines, is_full_scan=True, user_id=user_id)
         balance = get_user_credits(user_id)
         if balance < credits_cost:
             return jsonify(status='error', error='credits_insufficient',
                            message='积分不足，需 %d 积分，余额 %d' % (credits_cost, balance),
                            credits_needed=credits_cost, credits_balance=balance), HTTP_PAYMENT_REQUIRED
 
-    # 7. 调用扫描引擎
+    # 7. 调用扫描引擎（brain_ids 按 scan_mode 裁剪，与主扫描链路对齐）
     is_vip_engine = scan_mode in ('smart', 'deep')
+    if scan_mode == 'free':
+        _ci_brain_ids = list(FREE_BRAIN_IDS)
+    elif scan_mode == 'quick':
+        _ci_brain_ids = [b for b in ALL_BRAIN_IDS if b not in ('ai', 'poc')]
+    elif scan_mode == 'smart':
+        _ci_brain_ids = [b for b in ALL_BRAIN_IDS if b != 'poc']
+    else:  # deep
+        _ci_brain_ids = list(ALL_BRAIN_IDS)
     try:
-        scanner_result = call_scanner(valid_files, ['1','2','3','4','5','6','7'], {
+        scanner_result = call_scanner(valid_files, _ci_brain_ids, {
             'scan_mode': scan_mode,
             'is_vip': is_vip_engine,
         })
@@ -838,6 +895,15 @@ def report_share_page(share_token):
     import json as _json
     scan_id, user_id, score, grade, issue_count, file_count,     total_lines, scan_mode, source, ci_repo, ci_branch, ci_commit_sha,     results_json, files_meta_json, created_at, language = scan
 
+    # 免费通道的等级上限是 A（检测维度不全不评 S）。「100 分 · A 级」不解释一句，
+    # 看的人只会觉得我们在糊弄——分数和等级是同一套算法出来的，上限是商品规则。
+    from .constants import SCORE_S_THRESHOLD as _S_LINE
+    grade_capped = bool(
+        (scan_mode or '').lower() in ('free', 'basic')
+        and isinstance(score, int) and score >= _S_LINE
+        and str(grade).strip().upper() == 'A'
+    )
+
     try:
         results_data = _json.loads(results_json) if results_json else {}
     except Exception:
@@ -854,6 +920,28 @@ def report_share_page(share_token):
         issues = results_data
     else:
         issues = []
+
+    # 2026-11-03: 被抑制清单（扫描发现、但被 AI 判定为误报而没计入报告的条目）。
+    # 分组实现复用 modules/scan.py 的 build_suppressed_groups——同一个客户问题
+    # （「这条为什么没报」）不能因为看的是分享页还是完整报告页而有两种说法。
+    # 这里延迟导入，与 modules/team.py 的既有做法一致，避开模块加载顺序问题。
+    # 老记录（改动前落库）没有这两个字段 → 空清单 → 模板整栏不显示。
+    from .scan import build_suppressed_groups, build_profile_groups
+    suppressed_groups, suppressed_total = build_suppressed_groups(results_data)
+    suppressed_stats = (results_data.get('suppressed_stats')
+                        if isinstance(results_data, dict) else None) or {}
+
+    # 2026-11-03: 样式建议与依赖画像也要在分享页显示——客户点开分享链接时，
+    # 看到的应该是和完整报告页同一份东西，而不是「少了三栏」的残缺版。
+    # 两者都单列成栏、不计入 issue_count、不影响评分：
+    #   样式建议 = 代码风格类命中（强制规范层输出，不是缺陷）
+    #   依赖画像 = 「这个项目用了哪些库/API」，用于了解技术栈，更不是缺陷
+    # 分组逻辑复用 modules/scan.py 的同一份实现，两页不会出现两种说法。
+    style_issues = ((results_data.get('style_issues') if isinstance(results_data, dict) else None) or [])
+    style_count = len(style_issues)
+    profile_items = ((results_data.get('profile_items') if isinstance(results_data, dict) else None) or [])
+    profile_count = len(profile_items)
+    profile_groups = build_profile_groups(profile_items)
 
     # 抽样预览：按引擎层级分组
     is_paid_scan = scan_mode in ('smart', 'deep', 'full')
@@ -885,7 +973,7 @@ def report_share_page(share_token):
     deep_info = [i for i in deep_issues if i not in deep_critical and i not in deep_warning]
 
     return render_template('report_shared.html',
-        scan_id=scan_id, score=score, grade=grade,
+        scan_id=scan_id, score=score, grade=grade, grade_capped=grade_capped,
         issue_count=issue_count, file_count=file_count,
         total_lines=total_lines, scan_mode=scan_mode,
         source=source or 'web', ci_repo=ci_repo, ci_branch=ci_branch,
@@ -895,6 +983,12 @@ def report_share_page(share_token):
         is_paid_scan=is_paid_scan,
         deep_issues=deep_issues,
         deep_critical=deep_critical, deep_warning=deep_warning, deep_info=deep_info,
+        # 样式建议 / 依赖画像：与完整报告页同口径，均不计入问题数、不影响评分
+        style_issues=style_issues, style_count=style_count,
+        profile_groups=profile_groups, profile_count=profile_count,
+        # 被抑制清单：不进 issues、不计分，只回答「这条为什么没报」
+        suppressed_groups=suppressed_groups, suppressed_total=suppressed_total,
+        suppressed_stats=suppressed_stats,
     )
 
 
@@ -926,35 +1020,87 @@ def api_remove_share(scan_id):
 # 徽章 SVG
 # ============================================================
 
-def _build_badge_svg(score):
-    if score >= 80:
-        color = '#4c1'
-        label = '优秀'
-    elif score >= 60:
-        color = '#FF6B35'
-        label = '良好'
-    else:
-        color = '#e05d44'
-        label = '需改进'
-    score_text = '%d %s' % (score, label)
+# --- 徽章取色 -------------------------------------------------------
+# 徽章是独立 SVG 文件（GitHub README 用 <img> 引用），拿不到站点 CSS 变量，
+# 所以字面值必须烤进文件；但“值从哪来”只能有一处，就是 tokens.css。
+# 在这里写第二份色表就会跟设计系统漂移：2026-11-09 之前正是这样，
+# 三档用了 #4c1 / #FF6B35 / #e05d44，白字对比度只有 2.12 / 2.84 / 3.61。
+TOKENS_CSS_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'static', 'css', 'tokens.css')
+
+_token_css_cache = {'mtime': None, 'text': ''}
+
+# 好 / 中 / 差三档保留语义，颜色一律取 tokens 的深档（白字均 >= 5.1:1）
+_BADGE_GRADES = (
+    (80, 'color-success', '优秀'),
+    (60, 'color-warning', '良好'),
+    (0, 'color-danger', '需改进'),
+)
+_BADGE_PLATE_TOKEN = 'color-accent-blue'
+_BADGE_NEUTRAL = '#333333'   # 只用于“取不到 token”，不表态等级
+
+
+def _tokens_css_text():
+    try:
+        mtime = os.path.getmtime(TOKENS_CSS_PATH)
+    except OSError:
+        return ''
+    if _token_css_cache['mtime'] != mtime:
+        try:
+            with open(TOKENS_CSS_PATH, encoding='utf-8') as f:
+                _token_css_cache['text'] = f.read()
+            _token_css_cache['mtime'] = mtime
+        except OSError:
+            return ''
+    return _token_css_cache['text']
+
+
+def _token_color(name):
+    m = re.search(r'--' + re.escape(name) + r'\s*:\s*(#[0-9A-Fa-f]{3,8})\s*;',
+                  _tokens_css_text())
+    return m.group(1) if m else None
+
+
+def _render_badge(plate, color, left_text, right_text):
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" width="186" height="20" role="img">'
-        '<title>煋鉴评分: ' + score_text + '</title>'
+        '<title>煋鉴评分: ' + right_text + '</title>'
         '<linearGradient id="s" x2="0" y2="100%">'
         '<stop offset="0" stop-color="#bbb" stop-opacity=".1"/>'
         '<stop offset="1" stop-opacity=".1"/>'
         '</linearGradient>'
         '<clipPath id="r"><rect width="186" height="20" rx="3" fill="#fff"/></clipPath>'
         '<g clip-path="url(#r)">'
-        '<rect width="106" height="20" fill="#555"/>'
+        '<rect width="106" height="20" fill="' + plate + '"/>'
         '<rect x="106" width="80" height="20" fill="' + color + '"/>'
         '<rect width="186" height="20" fill="url(#s)"/>'
         '</g>'
         '<g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">'
-        '<text x="53" y="14">煋鉴评分</text>'
-        '<text x="146" y="14">' + score_text + '</text>'
+        '<text x="53" y="14">' + left_text + '</text>'
+        '<text x="146" y="14">' + right_text + '</text>'
         '</g></svg>'
     )
+
+
+def _build_badge_svg(score):
+    """score=None = 查不到这条扫描。
+
+    不能当成 0 分：0 分读起来是“评测过、极差”，而真相是“没这条记录”。
+    tokens.css 读不到也不许猜一个颜色充当等级 ——
+    猜成绿色就是在假报“优秀”。两种情况都退成中性灰、字写真相。
+    """
+    plate = _token_color(_BADGE_PLATE_TOKEN)
+    if not plate:
+        return _render_badge(_BADGE_NEUTRAL, _BADGE_NEUTRAL, '煋鉴评分', '配置异常')
+    if score is None:
+        return _render_badge(plate, plate, '煋鉴评分', '未知')
+    for floor, token, label in _BADGE_GRADES:
+        if score >= floor:
+            color = _token_color(token) or _BADGE_NEUTRAL
+            return _render_badge(plate, color, '煋鉴评分',
+                                 '%d %s' % (score, label))
+    return _render_badge(_BADGE_NEUTRAL, _BADGE_NEUTRAL, '煋鉴评分', '配置异常')
 
 
 @ci_bp.route('/api/badge/<scan_id>.svg')
@@ -962,9 +1108,9 @@ def badge_svg(scan_id):
     db = get_db()
     scan = db.execute("SELECT score FROM scans WHERE scan_id = ?", (scan_id,)).fetchone()
     if not scan:
-        svg = _build_badge_svg(0)
+        svg = _build_badge_svg(None)
     else:
-        svg = _build_badge_svg(scan[0] or 0)
+        svg = _build_badge_svg(scan[0])
     resp = make_response(svg)
     resp.headers['Content-Type'] = 'image/svg+xml'
     resp.headers['Cache-Control'] = 'public, max-age=%d' % BADGE_CACHE_SECONDS

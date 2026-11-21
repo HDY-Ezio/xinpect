@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/cool-fx.css?v={{ asset_v }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>煋鉴 · 总控监视器（只读）</title>
+<style>
+:root {
+  --bg: #0e1621;
+  --panel: #16212e;
+  --panel2: #1c2a3a;
+  --border: #263646;
+  --text: #e6edf3;
+  --muted: #8b98a5;
+  --green: #2ecc71;
+  --red: #e74c3c;
+  --yellow: var(--color-sev-medium);
+  --blue: #4a9eff;
+  /* 2026-11-09：强调色由橙改冷（深底信息蓝，6.4:1）。红黄绿仅作风险等级状态灯，不算装饰 */
+  --accent: var(--color-info-on-dark);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-v-pingfang-sc-d22062);
+  background: var(--bg);
+  color: var(--text);
+  padding: 24px;
+  min-height: 100vh;
+}
+.banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px;
+}
+.banner h1 { font-size: 20px; font-weight: 600; }
+.banner .badge {
+  background: var(--color-v-f4d7cf53e); color: var(--green);
+  padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+.banner .readonly {
+  margin-left: auto; color: var(--muted); font-size: 13px;
+}
+.banner .readonly strong { color: var(--yellow); }
+.grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px;
+}
+.card h2 {
+  font-size: 14px; font-weight: 600; color: var(--muted);
+  margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.stat-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.stat-row .v { font-weight: 600; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.dot.g { background: var(--green); }
+.dot.r { background: var(--red); }
+.dot.y { background: var(--yellow); }
+.big-num { font-size: 34px; font-weight: 700; color: var(--accent); }
+.big-num small { font-size: 14px; color: var(--muted); font-weight: 400; }
+.engine-list { display: flex; flex-direction: column; gap: 6px; }
+.engine-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: var(--panel2); border-radius: 8px; font-size: 13px;
+}
+.engine-item .tag { color: var(--muted); font-size: 11px; }
+.divider { border-top: 1px dashed var(--border); margin: 10px 0; }
+.section-label { font-size: 12px; color: var(--accent); font-weight: 600; margin: 12px 0 6px; }
+.svc { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13px; }
+.sev-bar { display: flex; gap: 4px; height: 20px; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.sev-bar span { display: block; }
+.footer { margin-top: 20px; text-align: center; color: var(--muted); font-size: 12px; }
+.refresh { color: var(--blue); cursor: pointer; margin-left: auto; font-size: 13px; }
+.refresh:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <h1>煋鉴 · 总控监视器</h1>
+  <span class="badge">只读</span>
+  <span class="readonly">仅监视 · <strong>不可操作</strong></span>
+  <span class="refresh" onclick="load()">↻ 刷新</span>
+</div>
+
+<div class="grid">
+  <!-- 规则总量 -->
+  <div class="card">
+    <h2>检测规则</h2>
+    <div class="stat-row"><span>有效规则</span><span class="v big-num" id="r-active">—</span></div>
+    <div class="stat-row"><span>停用规则</span><span class="v" id="r-disabled">—</span></div>
+    <div class="stat-row"><span>规则总数</span><span class="v" id="r-total">—</span></div>
+    <div class="section-label">严重度分布</div>
+    <div id="sev-bars"></div>
+  </div>
+
+  <!-- 引擎 -->
+  <div class="card">
+    <h2>7 大检测引擎</h2>
+    <div class="engine-list" id="engine-list"></div>
+    <div class="divider"></div>
+    <div class="section-label">两道智能防线（非引擎）</div>
+    <div class="engine-list" id="defense-list"></div>
+  </div>
+
+  <!-- 扫描器 -->
+  <div class="card">
+    <h2>扫描器性能</h2>
+    <div id="scanner-box"></div>
+  </div>
+
+  <!-- 服务健康 -->
+  <div class="card">
+    <h2>服务健康</h2>
+    <div id="svc-box"></div>
+  </div>
+
+  <!-- 门房支付 -->
+  <div class="card">
+    <h2>门房（付费）</h2>
+    <div id="menfang-box"></div>
+  </div>
+</div>
+
+<div class="footer">只读监视器 · 数据每 30 秒自动刷新 · 不提供任何操作入口</div>
+
+<script>
+function dot(cls) { return '<span class="dot ' + cls + '"></span>'; }
+
+function fmtSec(s) { return (s == null ? '—' : (Number(s).toFixed(1) + 's')); }
+
+function renderSev(sev) {
+  const colorMap = { critical:'#e74c3c', high:xpColor('--color-sev-high'), medium:xpColor('--color-sev-medium'), low:'#3498db', info:'#95a5a6', warning:xpColor('--color-warning'), error:'#c0392b', S1:'#e74c3c', S2:xpColor('--color-sev-high'), S3:xpColor('--color-sev-medium') };
+  let total = 0; for (const k in sev) total += sev[k];
+  let html = '<div class="sev-bar">';
+  for (const k in sev) {
+    const pct = (sev[k] / total * 100).toFixed(1);
+    const c = colorMap[k] || '#888';
+    html += '<span style="width:' + pct + '%;background:' + c + ';" title="' + k + ': ' + sev[k] + '条"></span>';
+  }
+  html += '</div>';
+  html += '<div style="margin-top:8px;font-size:11px;color:var(--muted);">';
+  const entries = Object.entries(sev).sort((a,b)=>b[1]-a[1]);
+  html += entries.map(([k,v]) => '<span style="margin-right:10px;">' + k + ' ' + v + '</span>').join('');
+  html += '</div>';
+  return html;
+}
+
+function renderEngines(engines, defense) {
+  let h = '';
+  engines.forEach(e => { h += '<div class="engine-item"><span>' + e[1] + '</span><span class="tag">' + e[0] + '</span></div>'; });
+  document.getElementById('engine-list').innerHTML = h;
+  let d = '';
+  defense.forEach(e => { d += '<div class="engine-item"><span>' + e[1] + '</span><span class="tag">' + e[0] + '</span></div>'; });
+  document.getElementById('defense-list').innerHTML = d;
+}
+
+function renderScanner(scanner) {
+  let h = '';
+  [scanner].forEach(s => {
+    const ok = s.status === 'ok';
+    h += '<div class="stat-row"><span>' + dot(ok?'g':'r') + s.label + '</span><span class="v">' + (ok?'正常':'异常') + '</span></div>';
+    h += '<div class="stat-row"><span>版本</span><span class="v">' + (s.version||'—') + '</span></div>';
+    h += '<div class="stat-row"><span>引擎加载</span><span class="v">' + (s.brains_loaded||0) + ' 个</span></div>';
+    h += '<div class="stat-row"><span>累计扫描</span><span class="v">' + (s.total_scans||0) + ' 次</span></div>';
+    h += '<div class="stat-row"><span>成功率</span><span class="v">' + (s.success_rate||0) + '%</span></div>';
+    h += '<div class="stat-row"><span>平均耗时</span><span class="v">' + fmtSec(s.avg_elapsed) + '</span></div>';
+  });
+  document.getElementById('scanner-box').innerHTML = h;
+}
+
+function renderServices(services) {
+  let h = '';
+  services.forEach(s => {
+    h += '<div class="svc"><span>' + dot(s.active?'g':'r') + s.label + '</span><span>' + (s.active?'active':'down') + '</span></div>';
+  });
+  document.getElementById('svc-box').innerHTML = h;
+}
+
+function renderMenfang(m) {
+  let h = '';
+  const ok = m.status === 'ok';
+  h += '<div class="stat-row"><span>' + dot(ok?'g':'r') + '服务状态</span><span class="v">' + m.status + '</span></div>';
+  h += '<div class="stat-row"><span>微信支付</span><span class="v">' + (m.wechat_pay_configured ? dot('g')+'就绪' : dot('r')+'失效') + '</span></div>';
+  h += '<div class="stat-row"><span>密钥加载</span><span class="v">' + (m.keys_loaded ? dot('g')+'正常' : dot('r')+'异常') + '</span></div>';
+  document.getElementById('menfang-box').innerHTML = h;
+}
+
+async function load() {
+  try {
+    const resp = await fetch('/api/monitor/status', { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const d = await resp.json();
+    document.getElementById('r-active').innerHTML = d.rules.active + '<small> 条</small>';
+    document.getElementById('r-disabled').textContent = d.rules.disabled + ' 条';
+    document.getElementById('r-total').textContent = d.rules.total + ' 条';
+    document.getElementById('sev-bars').innerHTML = renderSev(d.rules.severity);
+    renderEngines(d.engines, d.defense_layers);
+    renderScanner(d.scanner_green);
+    renderServices(d.services);
+    renderMenfang(d.menfang);
+  } catch (e) {
+    document.getElementById('scanner-box').innerHTML = '<div style="color:var(--red)">加载失败：' + e + '</div>';
+  }
+}
+
+load();
+setInterval(load, 30000);
+</script>
+
+<div style="padding:16px 24px 24px;text-align:center;font-size:12px;line-height:1.8;color:var(--color-v-9aa3ad);">
+  &copy; 2026 长沙煋旺智能科技有限公司 &middot; {% include "_beian.html" %}
+</div>
+</body>
+</html>

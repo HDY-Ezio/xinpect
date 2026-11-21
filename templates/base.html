@@ -12,7 +12,7 @@ window.xpColor = function (name, fallback) {
 };
 </script>
 
-    <link rel="stylesheet" href="/static/css/tokens.css?v=20261118.1">
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ asset_v }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析{% endblock %}</title>
@@ -34,8 +34,8 @@ window.xpColor = function (name, fallback) {
     <meta name="twitter:title" content="{{ self.og_title() }}">
     <meta name="twitter:description" content="{{ self.og_description() }}">
     <meta name="twitter:image" content="{{ self.og_image() }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261117.1">
-    <link rel="stylesheet" href="/static/css/cool-fx.css?v=20261108">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/cool-fx.css?v={{ asset_v }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/noto-serif-sc.local.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/noto-sans-sc.local.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/jetbrains-mono.local.css') }}">

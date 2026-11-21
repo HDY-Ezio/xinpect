@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/cool-fx.css?v={{ asset_v }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备管理 - 煋鉴管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-v-segoe-ui-c790ad); background: var(--color-bg-tertiary); }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; background: var(--color-v-1a1a2e); color: var(--color-text-inverse); padding: 20px 0; position: fixed; height: 100vh; }
+        .sidebar .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--color-v-333333); font-size: 20px; font-weight: bold; }
+        .sidebar nav { padding: 20px 0; }
+        .sidebar nav a { display: block; padding: 12px 20px; color: var(--color-v-aaaaaa); text-decoration: none; transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.3s, transform 0.3s; }
+        .sidebar nav a:hover, .sidebar nav a.active { background: var(--color-v-16213e); color: var(--color-text-inverse); border-left: 3px solid var(--color-bg-secondary); }
+        .main { margin-left: 240px; padding: 24px; flex: 1; }
+        .header { background: var(--color-bg-primary); padding: 20px 24px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px var(--color-v-fa107c331); display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { font-size: 20px; color: var(--color-bg-secondary); }
+        .card { background: var(--color-bg-primary); border-radius: 8px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 4px var(--color-v-fa107c331); }
+        .device-list { list-style: none; }
+        .device-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--color-v-f0f0f0); }
+        .device-item:last-child { border-bottom: none; }
+        .device-info { flex: 1; }
+        .device-name { font-size: 15px; font-weight: 600; color: var(--color-bg-secondary); margin-bottom: 4px; }
+        .device-meta { font-size: 12px; color: var(--color-v-888888); }
+        .device-meta span { margin-right: 16px; }
+        .badge-current { display: inline-block; background: var(--color-v-dcfce7); color: var(--color-success); font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+        .btn-unbind { padding: 6px 14px; background: var(--color-v-fee2e2); color: var(--color-danger); border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.3s, transform 0.3s; }
+        .btn-unbind:hover { background: var(--color-v-fca5a5); }
+        .btn-unbind:disabled { opacity: 0.5; cursor: not-allowed; }
+        .empty-state { text-align: center; padding: 40px; color: var(--color-v-888888); }
+        .fp-display { font-size: 11px; color: var(--color-v-bbbbbb); word-break: break-all; margin-top: 4px; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: var(--color-text-inverse); font-size: 14px; z-index: 9999; display: none; }
+        .toast-success { background: var(--color-v-166534); }
+        .toast-error { background: var(--color-v-991b1b); }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <div class="sidebar">
+            <div class="logo">煋鉴管理后台</div>
+            <nav>
+                <a href="/admin">📊 数据看板</a>
+                <a href="/admin/users">👥 用户管理</a>
+                <a href="/admin/orders">📦 订单管理</a>
+                <a href="/admin/invoices">🧾 发票管理</a>
+                <a href="/admin/scans">🔍 扫描记录</a>
+                <a href="/admin/devices" class="active">🔐 设备管理</a>
+            </nav>
+        </div>
+        <div class="main">
+            <div class="header">
+                <h2>🔐 已绑定设备</h2>
+            </div>
+            <div class="card">
+                <div id="deviceList">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+
+    <script>
+    async function generateFingerprint() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = "top";
+        ctx.font = "14px 'Arial'";
+        // canvas 只认真实色值，读不到 CSS 变量的字符串；统一从令牌取
+        const cssColor = (n, f) => (getComputedStyle(document.documentElement)
+            .getPropertyValue(n).trim() || f);
+        ctx.fillStyle = cssColor('--color-metal-gold', '#000');
+        ctx.fillRect(50, 0, 50, 20);
+        ctx.fillStyle = cssColor('--color-accent-blue', '#000');
+        ctx.fillText("XinpectFP", 2, 15);
+        ctx.fillStyle = cssColor('--color-metal-gold-deep', '#000');
+        ctx.fillText("XinpectFP", 4, 17);
+        const canvasData = canvas.toDataURL();
+        const components = [
+            navigator.userAgent || '',
+            screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+            Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+            navigator.language || '',
+            navigator.hardwareConcurrency || '',
+            canvasData
+        ];
+        const raw = components.join('|||');
+        const msgBuffer = new TextEncoder().encode(raw);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+    }
+
+    function showToast(msg, type) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast toast-' + type;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    async function loadDevices() {
+        const fp = await generateFingerprint();
+        try {
+            const resp = await fetch('/api/admin/devices', {
+                headers: { 'X-Device-Fingerprint': fp }
+            });
+            const data = await resp.json();
+            renderDevices(data.devices || []);
+        } catch(e) {
+            document.getElementById('deviceList').innerHTML = '<div class="empty-state">加载失败</div>';
+        }
+    }
+
+    function renderDevices(devices) {
+        const container = document.getElementById('deviceList');
+        if (!devices.length) {
+            container.innerHTML = '<div class="empty-state">暂无已绑定设备</div>';
+            return;
+        }
+        let html = '<ul class="device-list">';
+        devices.forEach(d => {
+            const currentTag = d.is_current ? '<span class="badge-current">此设备</span>' : '';
+            const lastUsed = d.last_used_at || '从未使用';
+            const fpShort = d.fingerprint.substring(0, 12) + '...';
+            html += '<li class="device-item">' +
+                '<div class="device-info">' +
+                '<div class="device-name">' + escapeHtml(d.name) + currentTag + '</div>' +
+                '<div class="device-meta">' +
+                '<span>绑定: ' + (d.created_at || '-') + '</span>' +
+                '<span>最后使用: ' + lastUsed + '</span>' +
+                '</div>' +
+                '<div class="fp-display">指纹: ' + fpShort + '</div>' +
+                '</div>' +
+                '<button class="btn-unbind" ' + (d.is_current ? 'disabled title="不能解绑当前设备"' : 'onclick="unbind(' + d.id + ')"') + '>解绑</button>' +
+                '</li>';
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    async function unbind(deviceId) {
+        if (!confirm('确定要解绑该设备吗？解绑后该设备将无法访问管理后台。')) return;
+        const fp = await generateFingerprint();
+        try {
+            const resp = await fetch('/api/admin/device/' + deviceId, {
+                method: 'DELETE',
+                headers: { 'X-Device-Fingerprint': fp }
+            });
+            const data = await resp.json();
+            if (data.success) {
+                showToast('设备已解绑', 'success');
+                loadDevices();
+            } else {
+                showToast(data.error || '解绑失败', 'error');
+            }
+        } catch(e) {
+            showToast('网络错误', 'error');
+        }
+    }
+
+    loadDevices();
+    </script>
+</body>
+</html>

@@ -40,6 +40,16 @@ except ImportError:
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, 'xinpect.db')
 
+# 站点对外地址：邮件里的按钮、分享链接一律以它为准，不要各处手写域名
+SITE_BASE_URL = os.environ.get(
+    'SITE_BASE_URL', 'https://xinpect.xingwangzhineng.com').rstrip('/')
+
+# 静态资源缓存版本号：唯一出处。模板里一律写 ?v={{ asset_v }}，不许手写日期。
+# 2026-11-22 之前它散在 11 个模板里各写一遍，两张样式表版本对不上就让
+# 「浅底版面守卫」判红 —— 为了对齐得手改 9 处，重复的代价。
+ASSET_VERSION = '20261122.1'
+
+
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = Flask(__name__,
             template_folder=os.path.join(_project_root, 'templates'),
@@ -111,13 +121,19 @@ app.config.update(
 # ============================================================
 MAX_CONTENT_SIZE_MB = 20
 MAX_CONTENT_LENGTH = MAX_CONTENT_SIZE_MB * 1024 * 1024  # 20MB
-MAX_FILE_SIZE_SINGLE = 10 * 1024 * 1024  # 10MB
-MAX_CODE_LENGTH = 50000  # 单文件最大字符数
+MAX_CODE_LENGTH = 50000  # 单文件最大字符数（WXML 小程序模板专用）
+# 单次扫描提交能力边界（唯一权威来源，api.py 的 _check_scan_limits 引用此处，勿再散落硬编码）
+SCAN_MAX_FILES = 500        # 单次最多文件数
+SCAN_MAX_BYTES = 10 * 1024 * 1024  # 单次总代码量 10MB
+SCAN_MAX_LINES = 200000     # 单次有效行数上限
 RESET_CODE_EXPIRY_MINUTES = 15
 SCAN_TIMEOUT_SECONDS = 300
 REPORT_TIMEOUT_SECONDS = 30
 MENFANG_TIMEOUT_SECONDS = 5
 MENFANG_PAY_TIMEOUT_SECONDS = 10
+SMTP_TIMEOUT_SECONDS = 15        # SMTP 邮件发送超时（验证码/设备绑定）
+GIT_TIMEOUT_SECONDS = 5          # git 命令 subprocess 超时（CI 扫描）
+WEBHOOK_TIMEOUT_SECONDS = 10     # webhook 推送/测试超时
 MAX_REFERRAL_ATTEMPTS = 50
 
 # --- 推荐奖励配置 ---
@@ -169,11 +185,11 @@ MAX_SCORE = 100
 RESET_CODE_LENGTH = 6
 RESET_CODE_CHECK_LENGTH = 6
 
-# 免费用户可用大脑ID（规范层）
-FREE_BRAIN_IDS = ['1', '6', '7', '9']
-FREE_BRAIN_ID_SET = {'1', '6', '7', '9'}
-# 全量大脑ID
-ALL_BRAIN_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '11']
+# 免费用户可用引擎ID（规范层：E1 语法 + E4 代码质量 + E5 架构 + E6 组件合规）
+FREE_BRAIN_IDS = ['1', '4', '5', '6']
+FREE_BRAIN_ID_SET = {'1', '4', '5', '6'}
+# 全量引擎ID（扫描器真实引擎：E1-E7(含8号部署就绪) + AI语义分析 + PoC验证，共 10 个）
+ALL_BRAIN_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', 'ai', 'poc']
 
 # 密码最小长度
 MIN_PASSWORD_LENGTH = 6
@@ -189,7 +205,7 @@ TOPUP_CREDITS_MAP = {
 CODE_EXTS = {'.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.go', '.cpp', '.c',
              '.h', '.cs', '.php', '.rb', '.rs', '.swift', '.kt', '.wxml', '.wxss',
              '.vue', '.html', '.htm', '.scss', '.less', '.css', '.sass',
-             '.json', '.yaml', '.yml', '.toml', '.ini', '.sh', '.bash',
+             '.json', '.yaml', '.yml', '.toml', '.ini', '.properties', '.conf', '.sh', '.bash',
              '.txt', '.lua', '.scala', '.sql', '.r', '.m', '.pl', '.pm',
              '.dart', '.ex', '.exs', '.erl', '.hs', '.clj', '.elm',
              '.v', '.sv', '.vhd', '.vhdl', '.xml', '.md'}
@@ -215,6 +231,7 @@ MIN_ESTIMATED_SIZE_ADDITION = 1024
 
 # 检测服务配置
 SCANNER_URL = os.environ.get('SCANNER_URL', 'http://localhost:8620/scan')
+SCANNER_API_KEY = os.environ.get("SCANNER_API_KEY") or os.environ.get("XINPECT_API_KEY", "")
 # 门房服务（支付+用户权限中心）
 MENFANG_BASE_URL = os.environ.get('MENFANG_BASE_URL', 'http://127.0.0.1:8612')
 
@@ -245,11 +262,6 @@ CREDIT_PACKS = {
     'credit-2000':  {'name': '2000积分',  'credits': 2000,  'amount': 599,  'mf_plan': 'credit-2000'},
     'credit-5000':  {'name': '5000积分',  'credits': 5000,  'amount': 1299, 'mf_plan': 'credit-5000'},
     'credit-15000': {'name': '15000积分', 'credits': 15000, 'amount': 2999, 'mf_plan': 'credit-15000'},
-    'pack_100':    {'name': '100积分',   'credits': 100,   'amount': 49,   'mf_plan': 'credit-100'},
-    'pack_500':    {'name': '500积分',   'credits': 500,   'amount': 199,  'mf_plan': 'credit-500'},
-    'pack_2000':   {'name': '2000积分',  'credits': 2000,  'amount': 599,  'mf_plan': 'credit-2000'},
-    'pack_5000':   {'name': '5000积分',  'credits': 5000,  'amount': 1299, 'mf_plan': 'credit-5000'},
-    'pack_15000':  {'name': '15000积分', 'credits': 15000, 'amount': 2999, 'mf_plan': 'credit-15000'},
 }
 
 # 扫描消耗配置（v1.5 按代码行数计费，简化版）
@@ -260,21 +272,21 @@ SCAN_COST_PER_100_LINES_BASIC = 0     # 基础版完全免费 # 基础版百行�
 SCAN_COST_PER_100_LINES_FULL = 0.3     # 完整版百行单价（AI全增强）
 
 # ============================================================
-# 9 大脑维度定义（+ 小程序专项）
+# 检测能力定义（对齐扫描器真实引擎：7 大规则引擎 E1-E7 + AI 语义分析 + PoC 验证）
+# 权威依据：/opt/xinpect-scanner-green/engine/parallel_runner.py 的 BRAIN_MODULES
+# 对外命名铁律：统一 E1-E7，禁用 B 编号表述
 # ============================================================
 
 BRAINS = [
-    {'id': '1', 'name': '语法格式', 'icon': '📐', 'desc': '检查代码语法错误、格式规范、编码风格一致性，统一团队代码风格。'},
-    {'id': '2', 'name': '安全与依赖审计', 'icon': '🔒', 'desc': '检测注入攻击、硬编码密钥、敏感信息泄露等安全漏洞，同时扫描第三方依赖版本风险、许可证合规、配置文件安全。'},
-    {'id': '3', 'name': 'AI语义分析', 'icon': '🧠', 'desc': '基于AST深度分析代码语义，识别未定义变量、异常静默、逻辑死代码等深层缺陷。'},
-    {'id': '4', 'name': '性能与可靠性', 'icon': '⚡', 'desc': '识别性能瓶颈：低效循环、冗余计算、内存泄漏风险；新增并发安全检测，防范竞态条件与死锁。'},
-    {'id': '5', 'name': '可观测性', 'icon': '📡', 'desc': '全新可观测性引擎：检测日志完整性、错误栈缺失、监控埋点遗漏、告警阈值不合理等可观测性短板。'},
-    {'id': '6', 'name': '代码质量与测试', 'icon': '📊', 'desc': '圈复杂度、函数长度、重复代码、Prompt质量等可维护性指标；新增测试质量检测，覆盖测试覆盖率、断言质量、用例完整性。'},
-    {'id': '7', 'name': '架构与数据合规', 'icon': '🏗', 'desc': '积木架构五大原则审计（职责清晰/函数精简/入口统一/测试完备/依赖干净）、模块耦合度、分层架构、循环依赖、接口文档完整性等架构健康度；新增数据一致性检测，校验数据流转与字段约定。'},
-    {'id': '8', 'name': '业务安全', 'icon': '🛡', 'desc': '支付安全、权限绕过、数据越权、资源/操作配对、事务一致性等业务逻辑漏洞检测。'},
-    {'id': '9', 'name': '专项引擎', 'icon': '🧩', 'desc': '前端组件契组合规检测 + 小程序连接完整性专项，覆盖属性约束、嵌套规则、跨文件连接核对、交互完备性等专项场景。'},
-    {'id': '10', 'name': '依赖安全(SCA)', 'icon': '📦', 'desc': '第三方依赖已知漏洞(CVE)扫描、过期版本检测、许可证合规校验，覆盖npm/pip/maven/go等主流生态，防范供应链攻击。'},
-    {'id': '11', 'name': 'PoC自动验证', 'icon': '🧪', 'desc': '对检出的安全漏洞自动生成PoC攻击载荷，在隔离沙箱中实弹验证漏洞真伪，输出确认/可疑/排除三级结论，降低误报。'},
+    {'id': '1', 'code': 'E1', 'name': '语法与AST分析', 'icon': '📐', 'desc': 'AST 级语法解析：语法错误、编码规范、命名规范、语言惯用法一致性检查。'},
+    {'id': '2', 'code': 'E2', 'name': '安全检测', 'icon': '🔒', 'desc': '注入攻击、硬编码密钥、敏感信息泄露、越权、支付安全、资源与操作配对、事务一致性等安全漏洞检测。'},
+    {'id': '3', 'code': 'E3', 'name': '性能与可靠性', 'icon': '⚡', 'desc': '低效循环、冗余计算、内存泄漏风险，以及并发安全（竞态条件、死锁、忙等待）检测。'},
+    {'id': '4', 'code': 'E4', 'name': '代码质量与可观测性', 'icon': '📊', 'desc': '圈复杂度、函数长度、重复代码等可维护性指标，以及日志完整性、错误栈缺失、监控埋点遗漏等可观测性短板。'},
+    {'id': '5', 'code': 'E5', 'name': '架构与部署', 'icon': '🏗', 'desc': '积木架构五原则审计、模块耦合度、分层架构、循环依赖、接口结构规范等架构健康度检测。'},
+    {'id': '6', 'code': 'E6', 'name': '组件合规', 'icon': '🧩', 'desc': '前端组件契约合规、小程序跨文件连接完整性，以及 Docker/Helm/K8s 等部署配置的安全与合规检测。'},
+    {'id': '7', 'code': 'E7', 'name': 'AI应用健康检测', 'icon': '🩺', 'desc': 'AI 应用专项：准确性与幻觉、Token 成本、缓存策略、安全护栏、数据质量等健康度检测。'},
+    {'id': 'ai', 'code': 'AI', 'name': 'AI语义分析', 'icon': '🧠', 'desc': '基于 AST 的语义深度分析：未定义变量、异常静默、逻辑死代码等规则引擎难以覆盖的深层缺陷。'},
+    {'id': 'poc', 'code': 'PoC', 'name': 'PoC自动验证', 'icon': '🧪', 'desc': '对检出的安全漏洞自动生成 PoC 载荷，在隔离沙箱中实弹验证真伪，输出确认/可疑/排除三级结论，降低误报。'},
 ]
 
 # 三层分组 - 积木架构评级体系
@@ -283,30 +295,47 @@ TIERS = [
         'key': 'spec',
         'name': '规范层',
         'subtitle': '代码骨架',
-        'brain_ids': ['1', '6', '7', '9'],  # 语法格式 + 代码质量与测试 + 架构与数据合规 + 专项引擎
-        'weights': {'1': 0.25, '6': 0.25, '7': 0.25, '9': 0.25},
+        'brain_ids': ['1', '4', '5', '6'],  # E1 语法 + E4 代码质量 + E5 架构 + E6 组件合规
+        'weights': {'1': 0.25, '4': 0.25, '5': 0.25, '6': 0.25},
         'desc': '代码的骨架是否规范、整洁、符合标准',
     },
     {
         'key': 'quality',
         'name': '质量层',
         'subtitle': '代码血肉',
-        'brain_ids': ['3', '4', '5'],  # AI语义 + 性能与可靠性 + 可观测性
-        'weights': {'3': 0.4, '4': 0.3, '5': 0.3},
+        'brain_ids': ['3', '7', 'ai'],  # E3 性能与可靠性 + E7 AI应用健康 + AI语义分析
+        'weights': {'3': 0.4, '7': 0.3, 'ai': 0.3},
         'desc': '代码的逻辑是否健壮、高效、可靠',
     },
     {
         'key': 'security',
         'name': '防护层',
         'subtitle': '代码皮肤',
-        'brain_ids': ['2', '8', '10'],  # 安全与依赖审计 + 业务安全 + 依赖安全SCA
-        'weights': {'2': 0.4, '8': 0.35, '10': 0.25},
+        'brain_ids': ['2', 'poc'],  # E2 安全检测 + PoC自动验证
+        'weights': {'2': 0.6, 'poc': 0.4},
         'desc': '代码的安全防护是否到位，能否抵御攻击',
     },
 ]
 TIERS_MAP = {t['key']: t for t in TIERS}
 
 BRAINS_MAP = {b['id']: b for b in BRAINS}
+
+
+def brain_label(brain_id):
+    """引擎对外显示名（铁律：统一 E1-E7 编号，禁用 B 编号表述）
+
+    '3'  -> 'E3 性能与可靠性'
+    'ai' -> 'AI语义分析'（名称已含代号则不重复）
+    未知 id 原样返回，绝不编造名称。
+    """
+    _b = BRAINS_MAP.get(str(brain_id))
+    if not _b:
+        return str(brain_id)
+    _code = _b.get('code', '') or ''
+    _name = _b.get('name', '') or ''
+    if _code and not _name.upper().startswith(_code.upper()):
+        return ('%s %s' % (_code, _name)).strip()
+    return _name or _code or str(brain_id)
 
 
 

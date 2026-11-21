@@ -208,8 +208,12 @@ def _sort_key(item):
             str(issue.get("file") or ""), int(issue.get("line") or 0))
 
 
-def build(issues):
+def build(issues, gaps=None):
     """把一堆 issue 分成三层，并给出第一屏要用的全部数字。
+
+    gaps：这次没查全的地方（人话短句列表），由调用方从引擎台账得出。
+          报告页和 Markdown 导出都传同一份，保证「页面说没查全、导出说查得很好」
+          这种事不会再发生。0 个问题 + 有缺口时，第一句不许说「没有问题」。
 
     返回 dict：
         tiers       {must: [...], should: [...], excluded: [...]}  每项 {issue, verdict}
@@ -242,9 +246,35 @@ def build(issues):
         "tiers": tiers,
         "counts": counts,
         "by_kind": by_kind,
-        "conclusion": _conclusion(tiers, counts, by_kind),
+        "conclusion": _apply_gaps(_conclusion(tiers, counts, by_kind), counts, gaps),
         "top": _top_fixes(tiers[TIER_MUST], limit=5),
         "score_basis": "按必须修的问题数量与严重度扣分；复核未采纳的不计入",
+    }
+
+
+def _apply_gaps(conclusion, counts, gaps):
+    """把「这次没查全」写进结论。缺口为空时原样返回。
+
+    为什么必须写进第一句：一个没能解析的文件里可能就藏着那条漏洞。
+    「没有需要处理的问题」和「部分未检测」同框，等于用漂亮结论盖住没做的事。
+    """
+    gaps = [g for g in (gaps or []) if g]
+    if not gaps:
+        return conclusion
+
+    detail = "；".join(gaps) + "，这些地方不算查过"
+    if counts.get(TIER_MUST) or counts.get(TIER_SHOULD):
+        out = dict(conclusion)
+        out["detail"] = (out["detail"] + "；" + detail + "。") if out.get("detail") else (detail + "。")
+        if out.get("tone") == "good":
+            out["tone"] = "warn"
+        return out
+
+    # 一条问题都没有，但确实有地方没查全：第一句不许说「没有问题」
+    return {
+        "headline": "这次没查出问题，但没检查全",
+        "detail": detail + "。",
+        "tone": "warn",
     }
 
 

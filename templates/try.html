@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}免费试扫 - 粘贴代码立即体验 | 煋鉴 Xinpect{% endblock %}
+{% block meta_description %}无需注册，粘贴代码立即体验煋鉴代码质检：2,740 个真实项目实测 0 误报、23 种语言、AST 级语义分析。免费试扫，快速做一次代码初筛。{% endblock %}
+{% block og_title %}免费试扫 - 煋鉴代码质检{% endblock %}
+
+{% block content %}
+<div class="container xp-has-ambient" style="padding:14px 20px 28px;max-width:900px;">
+    <div class="xp-ambient" aria-hidden="true">
+      <div class="xp-ambient-grid"></div>
+      <div class="xp-ambient-code"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="xp-ambient-beam"></div>
+      <div class="xp-ambient-particles"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div style="text-align:center;margin-bottom:12px;">
+        <h1 style="font-size:28px;margin-bottom:6px;">免费试扫，30 秒做一次代码初筛</h1>
+        <p style="color:var(--text-secondary);font-size:16px;line-height:1.7;">
+            不用注册、不用登录，粘贴一段代码，先看一次<strong>代码初筛</strong>结果。<br>
+            <span style="font-size:13px;">初筛只跑规范层和安全引擎，不含性能、架构深度分析和依赖漏洞扫描，不等于完整报告。</span><br>
+            今日剩余免费次数：<span id="remaining-tries" style="color:var(--primary);font-weight:600;">{{ remaining }}</span> / {{ daily_limit }}<br>
+            <span style="font-size:13px;">想先知道报告长什么样？<a href="/sample-report" style="color:var(--accent-steel);font-weight:600;">看一份真实扫描报告样例</a>（演示代码，不是客户代码）</span>
+        </p>
+    </div>
+
+    <div class="info-card" style="margin-bottom:18px;border:1px solid var(--border-color);border-radius:16px;padding:16px;background:var(--bg-card);">
+        <!-- 语言选择 -->
+        <div style="margin-bottom:16px;">
+            <label style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">代码语言（默认自动识别）</label>
+            <select id="language" style="width:100%;padding:8px 14px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-page);color:var(--text-primary);font-size:14px;">
+                <option value="auto">自动识别</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="go">Go</option>
+                <option value="php">PHP</option>
+                <option value="cpp">C/C++</option>
+                <option value="csharp">C#</option>
+                <option value="ruby">Ruby</option>
+                <option value="swift">Swift</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="rust">Rust</option>
+                <option value="scala">Scala</option>
+            </select>
+        </div>
+
+        <!-- 代码输入 -->
+        <label style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">粘贴你的代码</label>
+        <textarea id="code-input" placeholder="粘贴要检测的代码，例如：&#10;&#10;import sqlite3&#10;from flask import request&#10;&#10;def login():&#10;    user = request.args.get('user')&#10;    conn = sqlite3.connect('db.sqlite')&#10;    conn.execute(&quot;SELECT * FROM users WHERE name='&quot; + user + &quot;'&quot;)&#10;    return &quot;ok&quot;" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-v-jetbrains-mono-a1165c);font-size:13px;line-height:1.6;resize:vertical;box-sizing:border-box;"></textarea>
+        <p style="color:var(--text-secondary);font-size:12px;margin-top:8px;">最多 100KB，适合单文件快速体验。更大项目请注册后使用。</p>
+
+        <!-- 扫描按钮 -->
+        <button id="scan-btn" onclick="doTryScan()" class="btn btn-primary btn-lg" style="width:100%;margin-top:10px;font-size:16px;padding:13px;">
+            开始免费检测
+        </button>
+    </div>
+
+    <!-- 结果区 -->
+    <div id="result-area" style="display:none;">
+        <div id="result-loading" style="padding:8px 0;display:none;">
+            <div id="xp-scanfx-try"></div>
+        </div>
+        <div id="result-content" style="display:none;"></div>
+        <div id="result-error" style="display:none;border:1px solid var(--danger,var(--color-v-e74c3c));border-radius:12px;padding:20px;background:var(--bg-card);color:var(--danger,var(--color-v-e74c3c));"></div>
+    </div>
+
+    <!-- CTA 引导注册 -->
+    <div id="cta-area" style="display:none;text-align:center;margin-top:32px;border:1px solid var(--border-color);border-radius:16px;padding:32px;background:var(--bg-card);">
+        <h2 id="cta-title" style="font-size:22px;margin-bottom:12px;">想看到完整报告和修复建议？</h2>
+        <p id="cta-sub" style="color:var(--text-secondary);margin-bottom:20px;line-height:1.7;">
+            免费试扫只展示摘要。注册后即可查看<strong>每一处问题的完整定位、代码片段、修复建议</strong>，<br>
+            还有历史趋势对比、一键修复补丁、团队协作等完整能力。
+        </p>
+        <a href="/register" onclick="trackCtaClick()" class="btn btn-primary btn-lg" style="font-size:16px;">免费注册，解锁完整报告</a>
+        <p style="font-size:13px;color:var(--text-secondary);margin-top:14px;">
+          <a href="/sample-report" style="color:var(--accent-steel);font-weight:600;">先看一份真实报告样例</a>，再决定要不要注册
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ---- 漏斗埋点 -------------------------------------------------------------
+// 只记「走了没走」和「走到哪一步」，不记任何代码内容。
+// 上报失败一律静默：埋点坏掉不能挡住用户试扫。
+let lastTryResult = null;
+
+function trackEvent(name, props) {
+    try {
+        const body = JSON.stringify({event: name, props: props || {}});
+        if (navigator.sendBeacon) {
+            // 点击后马上跳转，sendBeacon 不会被导航打断
+            navigator.sendBeacon('/api/track', new Blob([body], {type: 'application/json'}));
+        } else {
+            fetch('/api/track', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: body,
+                keepalive: true,
+            });
+        }
+    } catch (e) { /* 静默 */ }
+}
+
+function trackCtaClick() {
+    trackEvent('try.cta_click', lastTryResult || {});
+}
+
+async function doTryScan() {
+    const code = document.getElementById('code-input').value.trim();
+    if (!code) {
+        alert('请先粘贴要检测的代码');
+        return;
+    }
+
+    const btn = document.getElementById('scan-btn');
+    const resultArea = document.getElementById('result-area');
+    const loading = document.getElementById('result-loading');
+    const content = document.getElementById('result-content');
+    const errBox = document.getElementById('result-error');
+    const cta = document.getElementById('cta-area');
+
+    btn.disabled = true;
+    btn.textContent = '检测中…';
+    resultArea.style.display = 'block';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    errBox.style.display = 'none';
+    cta.style.display = 'none';
+
+    // 本次任务号：只用来查「真的扫到哪一步了」，不参与任何判定
+    var jobId = 'try-' + Date.now().toString(36) + '-' +
+        (window.__xpTrySeq = (window.__xpTrySeq || 0) + 1);
+    var scanOk = false;
+    var polling = true;
+    XpScanFX.mount('xp-scanfx-try', { title: '正在初筛你的代码' });
+    XpScanFX.render({ pct: null, text: '已提交，等待扫描引擎返回实际进度',
+                      events: [], files: [] });
+    (function pollProgress() {
+        if (!polling) return;
+        fetch('/api/try-scan/progress/' + encodeURIComponent(jobId))
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!polling) return;
+                if (d.status !== 'unknown') XpScanFX.render(d);
+                setTimeout(pollProgress, 400);
+            })
+            .catch(function() { if (polling) setTimeout(pollProgress, 800); });
+    })();
+
+    trackEvent('try.submit', {
+        lang: document.getElementById('language').value,
+        size: code.length,
+    });
+
+    try {
+        const resp = await fetch('/api/try-scan', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                code: code,
+                language: document.getElementById('language').value,
+                progress_job_id: jobId,
+            }),
+        });
+        const data = await resp.json();
+
+        if (!resp.ok) {
+            errBox.textContent = data.error || '检测失败，请稍后再试';
+            errBox.style.display = 'block';
+            // 认不出语言时，把下拉框标出来，别让用户自己找
+            if (data.need_language) {
+                const sel = document.getElementById('language');
+                sel.style.borderColor = 'var(--danger,#e74c3c)';
+                sel.style.boxShadow = '0 0 0 3px rgba(231,76,60,.15)';
+                sel.focus();
+            }
+            // 更新剩余次数
+            if (data.remaining !== undefined) {
+                document.getElementById('remaining-tries').textContent = data.remaining;
+            }
+            return;
+        }
+
+        // 更新剩余次数
+        document.getElementById('remaining-tries').textContent = data.remaining;
+
+        const s = data.summary;
+        lastTryResult = {
+            lang: data.language,
+            auto: data.language_auto ? 1 : 0,
+            issues: s.total_issues,
+            score: (s.health || {}).score,
+            grade: (s.health || {}).grade,
+        };
+        const langNames = {python:'Python', java:'Java', javascript:'JavaScript', typescript:'TypeScript',
+            go:'Go', php:'PHP', c:'C', cpp:'C/C++', csharp:'C#', ruby:'Ruby', swift:'Swift',
+            kotlin:'Kotlin', rust:'Rust', scala:'Scala', dart:'Dart'};
+        const langLabel = langNames[data.language] || data.language || '';
+        let html = '';
+
+        // 健康度评分卡
+        if (s.health) {
+            const h = s.health;
+            // 档位与报告页同一套（S/A/B/C/D）。试扫是免费通道，上限 A，
+            // 但档位表要留全 —— 少一个键会静默变灰，看起来像「没评级」。
+            const gradeColors = {S:'#1e9e5a', A:'#27ae60', B:'#2ecc71', C:xpColor('--color-sev-medium'), D:xpColor('--color-sev-high')};
+            const cov = h.coverage || {};
+            const gc = gradeColors[h.grade] || (h.grade === '—' ? xpColor('--color-sev-high') : '#95a5a6');
+            // 维度分可能是数字，也可能是「未检测」——数字原样给，文字用警示色
+            const dimVal = (v) => (typeof v === 'number') ? String(v) : ('<span style="color: var(--color-warning);font-weight:600;">' + v + '</span>');
+            html += '<div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);margin-bottom:20px;text-align:center;">';
+            html += '<h3 style="font-size:18px;margin-bottom:16px;color:var(--text-secondary);">代码健康度</h3>';
+            html += '<div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:20px;">';
+            html += '<div style="width:110px;height:110px;border-radius:50%;border:6px solid ' + gc + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+            html += '<div style="text-align:center;"><div style="font-size:36px;font-weight:700;color:' + gc + ';line-height:1;">' + h.score + '</div><div style="font-size:11px;color:var(--text-secondary);">分</div></div>';
+            html += '</div>';
+            html += '<div style="text-align:left;">';
+            html += '<div style="font-size:22px;font-weight:700;color:' + gc + ';margin-bottom:6px;">' + h.grade + ' · ' + h.grade_cn + '</div>';
+            html += '<div style="font-size:13px;color:var(--text-secondary);">安全 ' + dimVal(h.dims.security) + ' · 质量 ' + dimVal(h.dims.quality) + ' · 架构 ' + dimVal(h.dims.arch) + '</div>';
+            html += '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">性能等完整维度 · 注册后解锁</div>';
+            // 没查全就把原因写出来。「未检测」单独杵在那儿，用户不知道是坏了还是没扫。
+            if (cov.complete === false) {
+                const why = [];
+                if (cov.unsupported_files) why.push(cov.unsupported_files + ' 个文件没能解析');
+                if (cov.trimmed_files) why.push(cov.trimmed_files + ' 个文件太大只扫了前面部分');
+                if ((cov.not_run || []).length) why.push((cov.not_run || []).length + ' 个维度负责的引擎没跑成');
+                if ((cov.partial || []).length) why.push((cov.partial || []).length + ' 个维度只跑了一部分');
+                html += '<div style="font-size:12px;color: var(--color-warning);margin-top:6px;font-weight:600;">'
+                     + (why.join('；') || '本次检测不完整')
+                     + '<br><span style="font-weight:400;">上面的分数只覆盖跑成的部分，不能当结论。注册后跑完整项目会补齐。</span></div>';
+            }
+            // 维度分是我们自己归的类，归不了的必须让人看见，不能悄悄算成满分
+            if (h.unclassified) {
+                html += '<div style="font-size:12px;color: var(--color-warning);margin-top:4px;">另有 ' + h.unclassified + ' 条问题未能归类，维度分仅供参考</div>';
+            }
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+        }
+
+        // 总览
+        html += '<div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:24px;background:var(--bg-card);margin-bottom:20px;">';
+        html += '<h3 style="font-size:20px;margin-bottom:16px;">检测完成</h3>';
+        if (langLabel) {
+            html += '<p style="font-size:13px;color:var(--text-secondary);margin:-8px 0 16px;">按 <strong style="color:var(--text-primary);">'
+                 + langLabel + '</strong> 解析'
+                 + (data.language_auto ? '（自动识别，认错了请在上方下拉框手动选）' : '')
+                 + '</p>';
+        }
+        html += '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;">';
+        html += '<div><div style="font-size:32px;font-weight:700;color:' + (s.total_issues > 0 ? 'var(--danger,var(--color-v-e74c3c))' : 'var(--success,var(--color-v-27ae60))') + ';">' + s.total_issues + '</div><div style="font-size:13px;color:var(--text-secondary);">检出问题</div></div>';
+        html += '<div><div style="font-size:32px;font-weight:700;color:var(--text-secondary);">' + (data.scan_time || 0).toFixed(1) + 's</div><div style="font-size:13px;color:var(--text-secondary);">扫描耗时</div></div>';
+        html += '</div>';
+
+        // 严重度分布
+        const sevNames = {critical:'致命', high:'高危', medium:'中危', low:'低危', info:'提示'};
+        const sevColors = {critical:'#c0392b', high:'#e74c3c', medium:xpColor('--color-sev-medium'), low:'#27ae60', info:'#95a5a6'};
+        const bd = s.severity_breakdown || {};
+        if (Object.keys(bd).length > 0) {
+            html += '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
+            for (const [sev, count] of Object.entries(bd)) {
+                html += '<span style="padding:6px 14px;border-radius:20px;font-size:13px;background:' + (sevColors[sev]||'var(--color-v-95a5a6)') + '1a;color:' + (sevColors[sev]||'var(--color-v-95a5a6)') + ';border:1px solid ' + (sevColors[sev]||'var(--color-v-95a5a6)') + '40;">' + (sevNames[sev]||sev) + ' × ' + count + '</span>';
+            }
+            html += '</div>';
+        } else {
+            html += '<p style="color:var(--success,var(--color-v-27ae60));font-size:15px;">✓ 安全维度未检出明显问题</p>';
+        }
+        // 诚实交代口径。试扫只跑规范层 + 安全引擎、basic 模式，
+        // 和完整报告的结论不是一个量级——不说清楚，用户会把「试扫没报」
+        // 当成「我的代码没问题」，那是我们误导他。
+        html += '<p style="font-size:12px;color:var(--text-secondary);margin-top:14px;line-height:1.6;">'
+             + '试扫是初筛：只跑规范层和安全引擎，不含性能、架构深度分析和依赖漏洞扫描。'
+             + '每条结论都是自动判定，完整报告里会给出判定依据，可疑项也不会直接当成问题算给你。'
+             + '</p>';
+        html += '</div>';
+
+        // 摘要钩子
+        if (s.highlights && s.highlights.length > 0) {
+            html += '<div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:24px;background:var(--bg-card);">';
+            html += '<h3 style="font-size:18px;margin-bottom:16px;">主要发现（完整报告注册后可见）</h3>';
+            for (const h of s.highlights) {
+                html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;">';
+                html += '<span style="flex-shrink:0;padding:2px 10px;border-radius:12px;font-size:12px;background:' + (sevColors[h.severity]||'var(--color-v-95a5a6)') + '1a;color:' + (sevColors[h.severity]||'var(--color-v-95a5a6)') + ';">' + (sevNames[h.severity]||h.severity) + '</span>';
+                html += '<span style="font-size:14px;">' + (h.name || '检测问题') + '</span>';
+                html += '</div>';
+            }
+            html += '</div>';
+        }
+
+        content.innerHTML = html;
+        content.style.display = 'block';
+
+        // CTA 说具体数字，不说套话。
+        // 「解锁完整报告」对第一次来的人是个抽象词；「你这 3 个问题里 2 个高危，
+        // 分别在哪一行」才是他真正想知道的。数字就是他刚扫出来的，不用编。
+        const ctaTitle = document.getElementById('cta-title');
+        const ctaSub = document.getElementById('cta-sub');
+        if (s.total_issues > 0) {
+            const hi = (bd.critical || 0) + (bd.high || 0);
+            ctaTitle.textContent = hi > 0
+                ? '这 ' + s.total_issues + ' 个问题里有 ' + hi + ' 个高危——分别在哪一行、怎么改？'
+                : '这 ' + s.total_issues + ' 个问题分别在哪一行、怎么改？';
+            ctaSub.innerHTML = '试扫只告诉你有几类问题。注册后能看到<strong>每一条的代码位置、判定依据、可以直接套用的修复写法</strong>，还能把整个项目连历史一起扫。';
+        } else {
+            ctaTitle.textContent = '安全维度没查出问题，但只查了其中一半';
+            ctaSub.innerHTML = '试扫只跑规范层和安全引擎，<strong>性能瓶颈、架构隐患、依赖漏洞</strong>都还没看。注册后上传整个项目，一次看全。';
+        }
+
+        cta.style.display = 'block';
+        scanOk = true;
+
+    } catch (e) {
+        errBox.textContent = '网络错误，请稍后再试';
+        errBox.style.display = 'block';
+    } finally {
+        polling = false;
+        XpScanFX.finish(scanOk);
+        loading.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = '开始免费检测';
+    }
+}
+</script>
+{% endblock %}

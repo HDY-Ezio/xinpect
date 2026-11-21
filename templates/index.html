@@ -1,326 +1,562 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ asset_v }}">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>煋鉴 - AI代码安全审计平台</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<title>煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析</title>
+<meta name="description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，9,500+ 条检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持 Python/Java/Go/JS 等 23 种语言，规范层免费无限使用。">
+<meta name="keywords" content="代码质检,代码审计,静态分析,SAST,代码扫描,代码审查工具,AST分析,漏洞检测,煋鉴,Xinpect,代码质量检测">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://xinpect.xingwangzhineng.com/">
+<meta property="og:site_name" content="煋鉴 Xinpect">
+<meta property="og:type" content="website">
+<meta property="og:title" content="煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析">
+<meta property="og:description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，9,500+ 条检测规则，2,740 个真实项目实测 0 误报，支持 23 种语言。">
+<meta property="og:url" content="https://xinpect.xingwangzhineng.com/">
+<meta property="og:image" content="https://xinpect.xingwangzhineng.com/static/og-default.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="煋鉴 Xinpect - AI代码质检工具">
+<meta name="twitter:description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，2,740 个真实项目实测 0 误报。">
+<meta name="twitter:image" content="https://xinpect.xingwangzhineng.com/static/og-default.png">
+<link rel="icon" type="image/png" sizes="128x128" href="/static/xinpect-mark-128.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/fonts/noto-serif-sc.local.css">
+<link rel="stylesheet" href="/static/fonts/noto-sans-sc.local.css">
+<link rel="stylesheet" href="/static/fonts/jetbrains-mono.local.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-/* === Brand Colors === */
---primary:#1A2B4A;--primary-mid:#2D4A7C;--primary-light:#4A6FA5;
---accent:#1A3A5C;--accent-light:#60A5FA;
-/* === 3-Layer Background System === */
---bg-primary:#F8FAFC;--bg-secondary:#F0F4F8;
---surface-default:#FFFFFF;--surface-raised:#FFFFFF;
-/* === Backward-compatible aliases === */
---bg:#F8FAFC;--bg-alt:#F0F4F8;--bg-card:#FFFFFF;
-/* === Text Colors (WCAG AA verified) === */
---text:#0F172A;--text-sec:#475569;--text-muted:#94A3B8;
-/* === Borders === */
---border:#CBD5E1;--border-light:#E2E8F0;
-/* === Status === */
---success:#52C41A;--warn:#FAAD14;--error:#F5222D;
-/* === 5-Level Elevation System === */
---elevation-0:none;
---elevation-1:0 1px 3px rgba(0,0,0,0.12),0 8px 24px rgba(0,0,0,0.06);
---elevation-2:0 2px 4px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.06);
---elevation-3:0 4px 8px rgba(0,0,0,0.08),0 16px 40px rgba(0,0,0,0.06);
---elevation-4:0 8px 16px rgba(0,0,0,0.1),0 24px 56px rgba(0,0,0,0.08);
-/* === Backward-compatible shadow aliases === */
---shadow:0 1px 3px rgba(0,0,0,0.12),0 8px 24px rgba(0,0,0,0.06);
---shadow-hover:0 4px 8px rgba(0,0,0,0.08),0 16px 40px rgba(0,0,0,0.06);
-/* === 8px Grid Spacing System === */
---space-0-5:4px;--space-1:8px;--space-2:16px;--space-3:24px;--space-4:32px;--space-5:40px;--space-6:48px
-}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6}
-a{text-decoration:none;color:inherit}
-/* NAV */
-.nav{background:linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.nav-logo{display:flex;align-items:center;gap:10px;color:#fff;font-size:20px;font-weight:700}
-.nav-logo i{color:var(--accent);font-size:24px}
-.nav-menu{display:flex;gap:32px}
-.nav-menu a{color:rgba(255,255,255,0.8);font-size:14px;transition:color .2s}
-.nav-menu a:hover{color:#fff}
-.nav-actions{display:flex;gap:12px;align-items:center}
-.btn-ghost{color:rgba(255,255,255,0.9);font-size:14px;padding:8px 16px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;transition:all .2s}
-.btn-ghost:hover{border-color:#fff;color:#fff}
-.btn-accent{background:var(--accent);color:#fff;font-size:14px;padding:8px 20px;border-radius:6px;border:none;font-weight:600;transition:all .2s}
-.btn-accent:hover{background:#1E3A8A;transform:translateY(-1px)}
-/* HERO BUTTONS - 统一风格 */
-.btn-primary{background:linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);color:#fff;font-size:16px;padding:14px 36px;border-radius:8px;font-weight:600;border:none;transition:all .2s;box-shadow:0 2px 8px rgba(26,58,92,0.3)}
-.btn-primary:hover{background:#1E3A8A;transform:translateY(-2px);box-shadow:0 4px 12px rgba(26,58,92,0.4)}
-.btn-secondary{background:linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);color:#fff;font-size:16px;padding:14px 36px;border-radius:8px;font-weight:600;border:none;transition:all .2s}
-.btn-secondary:hover{background:#0f1f38;transform:translateY(-2px)}
-.btn-tertiary{background:transparent;color:var(--primary);font-size:16px;padding:14px 36px;border-radius:8px;font-weight:600;border:2px solid var(--border);transition:all .2s}
-.btn-tertiary:hover{background:var(--bg-alt);border-color:var(--primary)}
-/* HERO */
-.hero{padding:100px 40px 80px;text-align:center;max-width:800px;margin:0 auto;background:linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);border-radius:0 0 24px 24px}
-.hero h1{font-size:48px;color:var(--primary);font-weight:800;line-height:1.2;margin-bottom:20px}
-.hero h1 span{color:var(--accent)}
-.hero p{font-size:18px;color:var(--text-muted);margin-bottom:40px;line-height:1.8}
-.hero-actions{display:flex;gap:16px;justify-content:center}
-.btn-lg{padding:14px 36px;font-size:16px;border-radius:8px;font-weight:600}
-.btn-outline{border:2px solid var(--primary);color:var(--primary);background:transparent;transition:all .2s}
-.btn-outline:hover{background:var(--primary);color:#fff}
-/* STATS */
-.stats-bar{background:linear-gradient(135deg, var(--bg-secondary) 0%, var(--border-light) 100%);padding:40px;display:flex;justify-content:center;gap:60px;flex-wrap:wrap}
-.stat-item{text-align:center}
-.stat-num{font-size:36px;font-weight:800;color:var(--primary)}
-.stat-num span{color:var(--accent)}
-.stat-label{font-size:14px;color:var(--text-muted);margin-top:4px}
-/* FEATURES */
-.features{padding:80px 40px;max-width:1200px;margin:0 auto}
-.section-title{text-align:center;margin-bottom:60px}
-.section-title h2{font-size:32px;color:var(--primary);font-weight:700;margin-bottom:12px}
-.section-title p{font-size:16px;color:var(--text-muted)}
-.feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
-.feature-card{background:var(--surface-default);border:1px solid var(--border-light);border-radius:8px;padding:var(--space-4) var(--space-3);transition:all .3s;cursor:default;box-shadow:var(--elevation-1)}
-.feature-card:hover{border-color:var(--accent);box-shadow:var(--elevation-3);transform:translateY(-4px)}
-.feature-icon{width:48px;height:48px;background:var(--bg-alt);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:22px;color:var(--primary)}
-.feature-card:hover .feature-icon{background:rgba(26,58,92,0.08);color:var(--accent)}
-.feature-card h3{font-size:18px;color:var(--primary);font-weight:600;margin-bottom:10px}
-.feature-card p{font-size:14px;color:var(--text-muted);line-height:1.7}
-/* LANGUAGES */
-.languages{background:linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);padding:80px 40px}
-.lang-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;max-width:900px;margin:0 auto}
-.lang-tag{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 20px;font-size:14px;color:var(--primary);font-weight:500;display:flex;align-items:center;gap:8px;transition:all .2s}
-.lang-tag i{color:var(--primary);font-size:16px}
-.lang-tag:hover{border-color:var(--accent);color:var(--accent)}
-/* WORKFLOW */
-.workflow{padding:80px 40px;max-width:1000px;margin:0 auto}
-.workflow-steps{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
-.wf-step{text-align:center;flex:1;position:relative}
-.wf-step::after{content:'';position:absolute;top:28px;right:-50%;width:100%;height:2px;background:var(--border)}
-.wf-step:last-child::after{display:none}
-.wf-num{width:56px;height:56px;border-radius:50%;background:var(--primary);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;z-index:1}
-.wf-step h4{font-size:16px;color:var(--primary);margin-bottom:8px}
-.wf-step p{font-size:13px;color:var(--text-muted)}
-/* CTA */
-.cta-section{background:var(--primary);padding:80px 40px;text-align:center}
-.cta-section h2{font-size:32px;color:#fff;font-weight:700;margin-bottom:16px}
-.cta-section p{font-size:16px;color:rgba(255,255,255,0.7);margin-bottom:32px}
-/* FOOTER */
-.footer{background:var(--primary);border-top:1px solid rgba(255,255,255,0.1);padding:40px}
-.footer-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:40px}
-.footer-col h4{color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
-.footer-col a{display:block;color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:10px;transition:color .2s}
-.footer-col a:hover{color:#fff}
-.footer-bottom{max-width:1200px;margin:20px auto 0;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);text-align:center;color:rgba(255,255,255,0.4);font-size:13px}
-/* MOBILE */
-@media(max-width:768px){
-.nav-menu{display:none}
-.hero h1{font-size:32px}
-.hero{padding:60px 20px 40px}
-.feature-grid{grid-template-columns:1fr}
-.stats-bar{gap:30px}
-.workflow-steps{flex-direction:column}
-.wf-step::after{display:none}
-.footer-inner{flex-direction:column}
-.features,.languages,.workflow{padding:40px 20px}
-}
+  :root{
+    /* 首页招牌用的是「深墨字 + 冷白纸」的印刷感，结构保持不动。
+       色温与全站统一：面/边/次字一律指回 tokens.css，不再自带一套暖米色。
+       2026-11-09 前这里的页面底与深底区是暖米色（红>绿>蓝），全站唯一偏暖的底，已归入冷调。 */
+    --ink:#0f1720;
+    --ink-soft:#39424e;
+    --muted:var(--color-text-muted);
+    --line:var(--color-border);
+    --line-strong:var(--color-border-strong);
+    --paper:var(--color-surface-page);
+    --paper-deep:var(--color-surface-inset);
+    --card:var(--color-surface-card);
+    --navy:#14294a;
+    --navy-deep:#0c1c34;
+    /* 主按钮：钢蓝，白字对比度 6.38:1（2026-11-09 由旧暖棕改来，暖棕已停用） */
+    --accent:var(--color-accent-steel);
+    --accent-hover:var(--color-accent-steel-hover);
+    --accent-glow:rgba(62,92,138,.55);
+    --accent-ink:var(--color-accent-steel-hover);
+    --night-soft:#101722;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;overflow-x:clip}
+  body{
+    font-family:var(--font-v-noto-sans-sc-f83b75);
+    color:var(--ink);background:var(--paper);line-height:1.7;
+    -webkit-font-smoothing:antialiased;font-size:16px;overflow-x:clip;
+  }
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 40px}
+  .serif{font-family:var(--font-v-noto-serif-sc-f486ae)}
+  .mono{font-family:var(--font-v-jetbrains-mono-97c959)}
+
+  .nav{position:sticky;top:0;z-index:50;background:var(--color-v-f03946679);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid var(--color-v-1a2a42)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand-logo{height:48px;width:auto;flex-shrink:0}
+  .brand-name{font-family:var(--font-v-noto-serif-sc-0e618c);font-weight:600;font-size:19px;letter-spacing:.06em;line-height:1;color: var(--color-text-inverse)}
+  .nav-menu{display:flex;gap:30px;align-items:center}
+  .nav-menu a{font-size:14px;color:var(--color-v-aebdce);transition:color .15s}
+  .nav-menu a:hover{color: var(--color-text-inverse)}
+  .nav-cta{display:flex;align-items:center;gap:18px}
+  .link-login{font-size:14px;color:var(--color-v-aebdce)}
+  .link-login:hover{color: var(--color-text-inverse)}
+  .nav .btn-solid{background:var(--accent);border-color:var(--accent);color: var(--color-text-inverse)}
+  .nav .btn-solid:hover{background:var(--accent-hover)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;letter-spacing:.01em;padding:9px 20px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+  .btn-solid{background:var(--navy);color: var(--color-text-inverse);border:1px solid var(--navy)}
+  .btn-solid:hover{background:var(--navy-deep)}
+  .btn-ghost{border:1px solid var(--line-strong);color:var(--ink);background:transparent}
+  .btn-ghost:hover{border-color:var(--ink)}
+  .btn-lg{padding:13px 30px;font-size:15px;border-radius:7px}
+  .btn-light{background:var(--color-bg-primary);color:var(--navy);border:1px solid var(--color-bg-primary)}
+  .btn-light:hover{background:var(--color-v-eef2f7);border-color:var(--color-v-eef2f7)}
+
+  /* ===== HERO：深夜办公场景 ===== */
+  .hero{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 70% 30%, var(--color-v-141d2b) 0%, var(--color-v-0a0f18) 55%, var(--color-v-070b12) 100%);color:var(--color-v-e6ecf5);border-bottom:1px solid var(--color-v-1a2434)}
+  .hero-inner{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:88px 0 100px}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--color-cool-beam);letter-spacing:.04em;margin-bottom:26px}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+  .hero h1{text-wrap:balance;font-family:var(--font-v-noto-serif-sc-0e618c);font-size:50px;line-height:1.24;font-weight:600;letter-spacing:.01em;margin-bottom:26px;color:var(--color-v-f4f7fb)}
+  .hero h1 .thin{font-weight:500;color:var(--color-v-c8d2e0)}
+  .hero p.lede{font-size:17px;color:var(--color-v-aeb9c9);max-width:33em;margin-bottom:38px}
+  .hero-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .hero .btn-solid{background:var(--accent);border-color:var(--accent);color: var(--color-text-inverse)}
+  .hero .btn-solid:hover{background:var(--accent-hover)}
+  .hero .btn-ghost{border-color:var(--color-v-3a4a60);color:var(--color-v-dce5f0)}
+  .hero .btn-ghost:hover{border-color:var(--color-v-aeb9c9);color: var(--color-text-inverse)}
+  .hero-note{font-size:13px;color:var(--color-dark-faint);margin-top:22px}  /* 深底上 5.55:1，原 4.04 */
+
+  /* 笔记本场景 */
+  .scene{position:relative}
+  .laptop{position:relative;width:100%;max-width:520px;margin:0 auto;filter:drop-shadow(0 30px 50px var(--color-v-fb597da95))}
+  .screen{
+    position:relative;background:var(--night-soft);
+    border:12px solid var(--color-v-1c2432);border-radius:14px 14px 4px 4px;
+    overflow:hidden;aspect-ratio:16/10;
+    box-shadow:0 0 0 1px var(--color-v-2a3446), inset 0 0 60px var(--color-metal-gold-alpha-08);
+  }
+  .screen::before{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(180deg, var(--color-metal-gold) 0%, var(--color-v-f2b2d13a6) 40%);
+  }
+  .base{
+    height:16px;background:linear-gradient(180deg,var(--color-v-2a3446) 0%,var(--color-v-171e2a) 100%);
+    border-radius:3px 3px 14px 14px;margin-top:2px;
+  }
+  .base-notch{width:90px;height:8px;background:var(--color-v-101722);border-radius:0 0 8px 8px;margin:0 auto}
+
+  /* 屏幕里的代码流 */
+  .codeflow{
+    position:absolute;inset:0;z-index:0;
+    font-family:var(--font-v-jetbrains-mono-97c959);
+    font-size:11px;line-height:1.9;color:var(--color-v-3f5370);
+    overflow:hidden;white-space:nowrap;
+  }
+  .cfline{display:block;color:var(--color-v-3f5370)}
+  .cfline .k{color:var(--color-v-5b7ba6)}
+  .cfline .s{color:var(--color-v-8fa8c8)}   /* 字符串：曾用暖棕，2026-11-09 归冷 */
+  .cfline .f{color:var(--color-info-on-dark)} /* 函数：曾用橄榄绿，同上 */
+  .cfline.hot{color:var(--color-v-b9c7da)}
+  .cfline.hot .k{color:var(--color-v-7aa2d6)}
+  .cfline.hot .s{color:var(--color-v-aebdce)}
+  .cfline.hot .f{color:var(--color-v-7aa2d6)}
+  @keyframes flow{
+    0%{transform:translateY(0)}
+    100%{transform:translateY(-50%)}
+  }
+  .flowwrap{animation:flow 26s linear infinite}
+
+  /* 扫描高亮线 */
+  /* 光带只动合成层位移，不动 top（避免每帧重排）。容器撑满屏幕，
+     渐变只画 38px 一条，位移百分比因此等价于原来的 top:6% → top:86%。 */
+  .scanline{
+    position:absolute;left:0;right:0;top:0;height:100%;z-index:1;pointer-events:none;
+    background:linear-gradient(180deg, transparent 0%, var(--color-v-f61ddfec6) 50%, transparent 100%);
+    background-size:100% 38px;background-repeat:no-repeat;
+    transform:translateY(6%);
+    animation:scan 6s ease-in-out infinite;
+  }
+  @keyframes scan{
+    0%,100%{transform:translateY(6%)}
+    50%{transform:translateY(86%)}
+  }
+
+  /* 光标 */
+  .cursor{
+    position:absolute;z-index:2;width:2px;height:15px;background:var(--color-v-e6ecf5);
+    animation:blink 1.1s steps(2) infinite;
+  }
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+  /* 屏幕辉光 */
+  .glow{position:absolute;inset:-30px;z-index:-1;background:radial-gradient(50% 50% at 50% 50%, var(--color-v-f61ddfec6) 0%, var(--color-v-fbaf94e78) 70%)}
+
+  /* 漂浮的星星/尘埃（深夜感） */
+  .particle{position:absolute;z-index:1;border-radius:50%;background:var(--color-v-8fa8c8);opacity:0;animation:twinkle 7s ease-in-out infinite}
+  @keyframes twinkle{0%,100%{opacity:0;transform:translateY(0)}50%{opacity:.5;transform:translateY(-14px)}}
+
+  /* ===== 数据条 ===== */
+  .stats{border-bottom:1px solid var(--line);background:var(--paper-deep)}
+  .stats-inner{display:grid;grid-template-columns:repeat(3,1fr)}
+  .stat{padding:44px 0;border-right:1px solid var(--line)}
+  .stat:last-child{border-right:none}
+  .stat-in{padding:0 40px}
+  .stat-num{font-variant-numeric:tabular-nums;font-family:var(--font-v-jetbrains-mono-64a8d5);font-size:34px;font-weight:500;color:var(--ink);line-height:1;margin-bottom:10px}
+  /* 这两处在 --paper-deep 浅底上，用 --muted 只有 4.29:1，改用浅底可读档 6.02:1 */
+  .stat-num .u{font-size:18px;color:var(--color-text-on-subtle);margin-left:3px}
+  .stat-label{font-size:14px;color:var(--color-text-on-subtle)}
+
+  .sec{padding:96px 0}
+  .sec-head{margin-bottom:56px}
+  .sec-head h2{font-family:var(--font-v-noto-serif-sc-0e618c);font-size:34px;font-weight:600;letter-spacing:.01em;margin-bottom:14px;color:var(--ink)}
+  .sec-head p{font-size:16px;color:var(--color-text-on-subtle);max-width:40em}  /* 6.40(页底) / 6.02(浅带)，原 muted 在这两类底上分别 4.57 / 4.29 */
+  .cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line);border-left:1px solid var(--line)}
+  .cap{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:34px 30px;background:var(--card);transition:background .15s}
+  .cap:hover{background:var(--color-surface-hover)}
+  .cap-idx{font-family:var(--font-v-jetbrains-mono-64a8d5);font-size:12px;color:var(--color-accent-steel);margin-bottom:16px;letter-spacing:.05em}  /* 白底 6.77:1，原 4.35 */
+  .cap h3{font-size:17px;font-weight:500;color:var(--ink);margin-bottom:10px}
+  .cap p{font-size:14px;color:var(--muted);line-height:1.7}
+
+  .langs{background:var(--paper-deep);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .lang-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .lang{font-size:13px;color:var(--ink-soft);border:1px solid var(--line);border-radius:5px;padding:7px 14px;background:var(--card);transition:border-color .15s,color .15s}
+  .lang:hover{border-color:var(--navy);color:var(--ink)}
+  .lang-extra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:20px}
+  .lang-extra-label{font-size:13px;color:var(--ink-soft);opacity:.7;margin-right:2px}
+  .lang-extra .lang{font-size:12px;padding:5px 11px;opacity:.72}
+
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  .step{position:relative;padding:0 32px 0 0}
+  .step-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .step-n{font-family:var(--font-v-jetbrains-mono-64a8d5);font-size:13px;color:var(--accent-ink);width:32px;height:32px;border:1px solid var(--line-strong);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .step-line{height:1px;background:var(--line);flex:1}
+  .step:last-child .step-line{display:none}
+  .step h3{font-size:16px;font-weight:500;color:var(--ink);margin-bottom:8px}
+  .step p{font-size:13px;color:var(--muted)}
+
+  .cta{background:var(--navy);color: var(--color-text-inverse)}
+  .cta-inner{padding:80px 0;text-align:left}
+  .cta h2{font-family:var(--font-v-noto-serif-sc-0e618c);font-size:34px;font-weight:600;margin-bottom:16px}
+  .cta p{font-size:16px;color:var(--color-v-f73a06625);margin-bottom:36px;max-width:36em}
+
+  .footer{background:var(--navy-deep);color:var(--color-v-f73a06625);font-size:14px}
+  .footer-inner{padding:56px 0 32px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px}
+  .footer-brand p{font-size:13px;color:var(--color-v-f760a9c2b);margin-top:14px;max-width:26em;line-height:1.8}
+  .footer h3{font-size:12px;color:var(--color-v-fc22384a1);letter-spacing:.08em;margin-bottom:16px;font-weight:500}
+  .footer a{display:block;color:var(--color-v-f73a06625);margin-bottom:10px;font-size:13px;transition:color .15s}
+  .footer a:hover{color: var(--color-text-inverse)}
+  .footer-bottom{border-top:1px solid var(--color-v-f895780ff);padding:20px 0;font-size:12px;color:var(--color-v-fc22384a1);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  @media(max-width:900px){
+    .hero-inner{grid-template-columns:1fr;gap:48px;padding:56px 0 64px}
+    .hero h1{font-size:38px}
+    .cap-grid{grid-template-columns:1fr 1fr}
+    .steps{grid-template-columns:1fr 1fr;gap:40px 0}
+    .stats-inner{grid-template-columns:1fr}
+    .stat{border-right:none;border-bottom:1px solid var(--line)}
+    .stat:last-child{border-bottom:none}
+    .footer-inner{grid-template-columns:1fr 1fr}
+    .nav-menu{display:none}
+  }
+  @media(max-width:600px){
+    .wrap{padding:0 24px}
+    .cap-grid{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}
+    .hero h1{font-size:32px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .flowwrap,.scanline,.cursor,.particle{animation:none!important}
+    .scanline{display:none}
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
+<meta name="baidu-site-verification" content="codeva-3wOsEEJ2l7" />
+<!-- xinpect-home-jsonld 2026-11-09 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://xinpect.xingwangzhineng.com/#org",
+      "name": "长沙煋旺智能科技有限公司",
+      "alternateName": "煋鉴 Xinpect",
+      "url": "https://www.xingwangzhineng.com/",
+      "brand": { "@type": "Brand", "name": "煋鉴 Xinpect" }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://xinpect.xingwangzhineng.com/#website",
+      "url": "https://xinpect.xingwangzhineng.com/",
+      "name": "煋鉴 Xinpect",
+      "inLanguage": "zh-CN",
+      "publisher": { "@id": "https://xinpect.xingwangzhineng.com/#org" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://xinpect.xingwangzhineng.com/#app",
+      "name": "煋鉴 Xinpect",
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "静态代码分析与安全扫描",
+      "operatingSystem": "Web",
+      "url": "https://xinpect.xingwangzhineng.com/",
+      "inLanguage": "zh-CN",
+      "description": "AI 驱动的代码质检平台，7 大规则引擎 + AI 语义分析 + PoC 验证并行扫描，9,500+ 条检测规则，覆盖安全漏洞、性能瓶颈与代码规范，支持 23 种编程语言。",
+      "featureList": [
+        "安全漏洞检测（越权、注入、密钥泄露等）",
+        "AI 语义分析与 PoC 验证",
+        "代码规范与性能问题检测",
+        "免登录粘贴代码即可试扫"
+      ],
+      "publisher": { "@id": "https://xinpect.xingwangzhineng.com/#org" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "煋鉴 Xinpect 是什么？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "煋鉴是 AI 驱动的代码质检平台，7 大规则引擎加 AI 语义分析与 PoC 验证并行扫描，9,500 多条检测规则覆盖安全漏洞、性能瓶颈与代码规范，支持 23 种编程语言。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "扫描结果误报多吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "2,740 个真实企业项目实测，误报 0 条。同一批实测里漏报 123 条，也一并公开，不做选择性披露。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "怎么试用？要注册吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "打开 /try 页面，粘贴代码就能扫描，不用注册、不用登录。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
-<!-- NAV -->
-<nav class="nav">
-<div class="nav-logo"><i class="fas fa-shield-halved"></i>煋鉴</div>
-<div class="nav-menu">
-<a href="/">首页</a>
-<a href="/pricing">定价</a>
-<a href="/upload">快速体验</a>
-<a href="/help">接入仓库</a>
-<a href="/docs">文档中心</a>
-<a href="/dashboard/overview">控制台</a>
-<a href="/license">许可证</a>
-</div>
-<div class="nav-actions">
-<a href="/login" class="btn-ghost">登录</a>
-<a href="/register" class="btn-accent">免费注册</a>
-</div>
-</nav>
-<!-- HERO -->
+
+    <!-- 版本更新补偿公告条（仅老用户可见） -->
+    {% set comp = compensation_banner(session.get('user_id')) %}
+    {% if comp == 'eligible' %}
+    <div id="compensation-banner" style="background:var(--color-accent-blue);border-left:4px solid var(--color-danger-on-dark);color: var(--color-text-inverse);text-align:center;padding:12px 48px 12px 16px;font-size:15px;position:relative;box-shadow:0 2px 8px var(--color-v-fa6f87266);">
+        <span style="font-weight:700;">v7.0 版本更新补偿</span>
+        <span style="margin-left:10px;opacity:.96;">为补偿 v7.0 更新期间服务受影响，<strong>10 月 30 日前注册的老用户</strong>可领取 <strong style="font-size:17px;">50 积分</strong></span>
+        <button id="claim-compensation-btn" onclick="claimCompensation()" style="margin-left:12px;background:var(--color-bg-primary);color:var(--color-bg-secondary);border:none;border-radius:20px;padding:6px 18px;font-weight:700;font-size:14px;cursor:pointer;vertical-align:middle;">立即领取</button>
+    </div>
+    {% elif comp == 'claimed' %}
+    <div id="compensation-banner" style="background:var(--color-success);color: var(--color-text-inverse);text-align:center;padding:10px 48px 10px 16px;font-size:14px;position:relative;">
+        <span>✅ 您已领取 v7.0 版本更新补偿（50 积分）</span>
+    </div>
+    {% endif %}
+
+{% if comp %}
+    <script>
+    function claimCompensation() {
+        var btn = document.getElementById('claim-compensation-btn');
+        if (btn) { btn.disabled = true; btn.textContent = '领取中…'; }
+        fetch('/claim-compensation', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ _csrf_token: '{{ csrf_token() }}' })
+        }).then(function(r) { return r.json(); })
+          .then(function(data) {
+              var banner = document.getElementById('compensation-banner');
+              if (data.ok) {
+                  if (banner) {
+                      banner.style.background = 'var(--color-success)';
+                      banner.innerHTML = '<span>✅ 已到账 50 积分，感谢您的支持！</span>';
+                  }
+              } else {
+                  if (btn) { btn.disabled = false; btn.textContent = '立即领取'; }
+                  alert(data.message || '领取失败，请稍后重试');
+              }
+          })
+          .catch(function() {
+              if (btn) { btn.disabled = false; btn.textContent = '立即领取'; }
+              alert('网络异常，请稍后重试');
+          });
+    }
+    </script>
+{% endif %}
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/static/xinpect-mark-wide-128.png" alt="煋鉴">
+      <span class="brand-name">煋鉴</span>
+    </a>
+    <nav class="nav-menu">
+      <a href="#features">能力</a>
+      <a href="#languages">语言</a>
+      <a href="/pages/product.html">产品介绍</a>
+      <a href="/pricing">定价</a>
+      <a href="/try">免费试扫</a>
+      <a href="/sample-report">报告样例</a>
+      <a href="/help">文档</a>
+      <a href="/pages/about.html">关于我们</a>
+      <a href="/blog">博客</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="link-login" href="/login">登录</a>
+      <a class="btn btn-solid" href="/register">免费注册</a>
+    </div>
+  </div>
+</header>
+
 <section class="hero">
-<h1>AI驱动的<span>代码安全</span>审计平台</h1>
-<p>七引擎，覆盖代码质量、安全漏洞、业务逻辑、性能瓶颈等维度。<br>支持30种主流编程语言，11,380+检测规则，精准定位每一个风险。</p>
-<div class="hero-actions">
-<a href="/upload" class="btn-primary btn-lg">免费开始扫描</a>
-<a href="/pricing" class="btn-secondary btn-lg">查看定价</a>
-<a href="/docs" class="btn-tertiary btn-lg">文档中心</a>
-</div>
+  <div class="wrap hero-inner">
+    <div class="hero-left">
+      <span class="kicker"><span class="dot"></span>代码质检 · 拒绝噪音</span>
+      <h1>深夜还在挑灯<br>查 Bug 吗？<span class="thin">交给煋鉴。</span></h1>
+      <p class="lede">像一位不知疲倦的代码审查员，逐行扫过你的代码，把真问题标出来——2,740 个真实项目实测 0 误报，你不用在几千条噪音里大海捞针。个人用 Agent 写代码可以顺手查，小团队也能共享一个积分池、统一看治理报告。</p>
+      <div class="hero-actions">
+        <a class="btn btn-solid btn-lg" href="/try">免费试扫 · 30秒见结果</a>
+        <a class="btn btn-ghost btn-lg" href="/pricing">查看定价</a>
+      </div>
+      <p class="hero-note">无需安装、上传即扫，覆盖 23 种语言，个人和团队都适用</p>
+    </div>
+
+    <div class="scene">
+      <div class="glow"></div>
+      <div class="laptop">
+        <!-- 屏幕里是装饰用假代码流光（JS 生成），不承载任何信息：
+             声明 aria-hidden 后读屏软件不念、对比度门禁也不按正文尺子量。 -->
+        <div class="screen" aria-hidden="true">
+          <div class="codeflow" id="codeflow">
+            <div class="flowwrap" id="flowwrap"></div>
+          </div>
+          <div class="scanline"></div>
+          <div class="cursor" id="cursor" style="left:52%;top:48%"></div>
+        </div>
+        <div class="base"><div class="base-notch"></div></div>
+      </div>
+    </div>
+  </div>
 </section>
-<!-- STATS -->
-<section class="stats-bar">
-<div class="stat-item"><div class="stat-num">7</div><div class="stat-label">检测引擎</div></div>
-<div class="stat-item"><div class="stat-num">30<span>+</span></div><div class="stat-label">支持语言</div></div>
-<div class="stat-item"><div class="stat-num">11,380<span>+</span></div><div class="stat-label">检测规则</div></div>
-<div class="stat-item"><div class="stat-num">98<span>%</span></div><div class="stat-label">准确率</div></div>
+
+<section class="stats">
+  <div class="wrap stats-inner">
+    <div class="stat"><div class="stat-in"><div class="stat-num">0<span class="u">条</span></div><div class="stat-label">2,740 项目实测误报 · 漏报 123 条也公开</div></div></div>
+    <div class="stat"><div class="stat-in"><div class="stat-num">23<span class="u">种</span></div><div class="stat-label">主流编程语言覆盖</div></div></div>
+    <div class="stat"><div class="stat-in"><div class="stat-num">9,500<span class="u">+</span></div><div class="stat-label">条检测规则</div></div></div>
+  </div>
 </section>
-<!-- FEATURES -->
-<section class="features">
-<div class="section-title">
-<h2>七引擎，全维度覆盖</h2>
-<p>从语法错误到业务逻辑漏洞，从安全缺陷到性能瓶颈，一站完成</p>
-</div>
-<div class="feature-grid">
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-code"></i></div>
-<h3>E1 语法检测</h3>
-<p>语法错误、AST 分析、类型检查，确保代码语法正确</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-lock"></i></div>
-<h3>E2 安全检测</h3>
-<p>漏洞检测 + 业务逻辑安全（50+ 条规则），深度扫描安全风险</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-gauge-high"></i></div>
-<h3>E3 性能检测</h3>
-<p>性能瓶颈、资源泄漏精准定位，优化代码运行效率</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-star"></i></div>
-<h3>E4 代码质量</h3>
-<p>代码规范、可维护性检测，确保代码整洁一致</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-diagram-project"></i></div>
-<h3>E5 架构部署</h3>
-<p>架构规范、部署就绪检查，保障工程结构合理</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-plug"></i></div>
-<h3>E6 组件合规</h3>
-<p>依赖安全、小程序完整性检测，确保组件合规可靠</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-robot"></i></div>
-<h3>E7 AI应用健康检测</h3>
-<p>LLM 语义扫描、AI 健康度分析，智能发现潜在风险</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-heartbeat"></i></div>
-<h3>AI语义分析</h3>
-<p>AI 调用链路健康检查（9 大维度），保障 AI 应用稳定运行</p>
-</div>
-<div class="feature-card">
-<div class="feature-icon"><i class="fas fa-flask"></i></div>
-<h3>PoC验证</h3>
-<p>自动生成漏洞验证代码，确认漏洞真实可利用</p>
-</div>
-</div>
+
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>一套引擎，覆盖代码的每个侧面</h2>
+      <p>从语法错误到安全漏洞，从性能瓶颈到 AI 应用健康，一次扫描全部覆盖。</p>
+    </div>
+    <div class="cap-grid">
+      <div class="cap"><div class="cap-idx">E1</div><h3>语法检测</h3><p>语法错误、AST 分析、类型检查，在代码跑起来之前先抓住写错的地方。</p></div>
+      <div class="cap"><div class="cap-idx">E2</div><h3>安全检测</h3><p>漏洞检测 + 业务逻辑安全，4,000+ 条规则深度扫描安全风险。</p></div>
+      <div class="cap"><div class="cap-idx">E3</div><h3>性能检测</h3><p>性能瓶颈、资源泄漏精准定位，优化代码运行效率。</p></div>
+      <div class="cap"><div class="cap-idx">E4</div><h3>代码质量</h3><p>代码规范、可维护性检测，确保代码整洁一致。</p></div>
+      <div class="cap"><div class="cap-idx">E5</div><h3>架构部署</h3><p>架构规范、部署就绪检查，保障工程结构合理。</p></div>
+      <div class="cap"><div class="cap-idx">E6</div><h3>组件合规</h3><p>依赖安全、小程序完整性检测，确保组件合规可靠。</p></div>
+      <div class="cap"><div class="cap-idx">E7</div><h3>AI 应用健康检测</h3><p>LLM 语义扫描、AI 健康度分析，智能发现潜在风险。</p></div>
+      <div class="cap"><div class="cap-idx">AI</div><h3>AI 语义分析</h3><p>用语义理解过滤误报，把真正的漏洞留下、把噪音挡在门外。</p></div>
+      <div class="cap"><div class="cap-idx">PoC</div><h3>PoC 验证</h3><p>自动生成漏洞验证代码，确认漏洞真实可利用，而不是「看起来像」。</p></div>
+    </div>
+  </div>
 </section>
-<!-- LANGUAGES -->
-<section class="languages">
-<div class="section-title">
-<h2>支持30种主流编程语言</h2>
-<p>覆盖前后端、移动端、DevOps、数据库、AI应用，满足全栈检测需求</p>
-</div>
-<div class="lang-grid">
-<div class="lang-tag"><i class="fab fa-python"></i>Python</div>
-<div class="lang-tag"><i class="fab fa-js"></i>JavaScript</div>
-<div class="lang-tag"><i class="fas fa-code"></i>TypeScript</div>
-<div class="lang-tag"><i class="fab fa-java"></i>Java</div>
-<div class="lang-tag"><i class="fab fa-go"></i>Go</div>
-<div class="lang-tag"><i class="fas fa-c"></i>C/C++</div>
-<div class="lang-tag"><i class="fab fa-php"></i>PHP</div>
-<div class="lang-tag"><i class="fas fa-gem"></i>Ruby</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Kotlin</div>
-<div class="lang-tag"><i class="fab fa-swift"></i>Swift</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Scala</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Lua</div>
-<div class="lang-tag"><i class="fas fa-terminal"></i>Shell/Bash</div>
-<div class="lang-tag"><i class="fab fa-rust"></i>Rust</div>
-<div class="lang-tag"><i class="fas fa-hashtag"></i>C#</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Dart</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Elixir</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Perl</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Groovy</div>
-<div class="lang-tag"><i class="fab fa-vuejs"></i>Vue</div>
-<div class="lang-tag"><i class="fas fa-code"></i>GraphQL</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Proto</div>
-<div class="lang-tag"><i class="fas fa-terminal"></i>PowerShell</div>
-<div class="lang-tag"><i class="fas fa-code"></i>Terraform</div>
-<div class="lang-tag"><i class="fab fa-docker"></i>Docker</div>
-<div class="lang-tag"><i class="fas fa-database"></i>SQL</div>
-<div class="lang-tag"><i class="fas fa-database"></i>T-SQL</div>
-<div class="lang-tag"><i class="fas fa-database"></i>PL/SQL</div>
-<div class="lang-tag"><i class="fab fa-html5"></i>HTML模板</div>
-<div class="lang-tag"><i class="fas fa-cogs"></i>Ansible</div>
-<div class="lang-tag"><i class="fas fa-cloud"></i>CloudFormation</div>
-<div class="lang-tag"><i class="fab fa-github"></i>GitHub Actions</div>
-</div>
+
+<section class="langs" id="languages">
+  <div class="wrap" style="padding:80px 40px">
+    <div class="sec-head">
+      <h2>23 种语言，前后端到运维全覆盖</h2>
+      <p>覆盖应用、移动端、数据库、云编排，满足全栈检测需求。</p>
+    </div>
+    <div class="lang-grid">
+      <span class="lang">Python</span><span class="lang">JavaScript</span><span class="lang">TypeScript</span><span class="lang">Java</span><span class="lang">Go</span><span class="lang">PHP</span><span class="lang">C / C++</span><span class="lang">C#</span><span class="lang">Ruby</span><span class="lang">Swift</span><span class="lang">Kotlin</span><span class="lang">Rust</span><span class="lang">Scala</span><span class="lang">Lua</span><span class="lang">Shell / Bash</span><span class="lang">SQL</span><span class="lang">T-SQL</span><span class="lang">PL/SQL</span><span class="lang">R</span><span class="lang">HTML 模板</span><span class="lang">Dart</span><span class="lang">Ansible</span>
+    </div>
+    <div class="lang-extra">
+      <span class="lang-extra-label">另外还自动识别</span>
+      <span class="lang">Perl</span><span class="lang">Groovy</span><span class="lang">PowerShell</span><span class="lang">Vue</span><span class="lang">GraphQL</span><span class="lang">Terraform</span><span class="lang">Docker</span><span class="lang">CloudFormation</span><span class="lang">GitHub Actions</span>
+    </div>
+  </div>
 </section>
-<!-- WORKFLOW -->
-<section class="workflow">
-<div class="section-title">
-<h2>四步完成代码审计</h2>
-<p>从零到报告，最快30秒出结果</p>
-</div>
-<div class="workflow-steps">
-<div class="wf-step">
-<div class="wf-num">1</div>
-<h4>上传代码</h4>
-<p>支持Git仓库、ZIP压缩包、在线粘贴</p>
-</div>
-<div class="wf-step">
-<div class="wf-num">2</div>
-<h4>选择引擎</h4>
-<p>7大规则引擎按需勾选，或一键全选</p>
-</div>
-<div class="wf-step">
-<div class="wf-num">3</div>
-<h4>AI扫描</h4>
-<p>多引擎并行分析，毫秒级定位问题</p>
-</div>
-<div class="wf-step">
-<div class="wf-num">4</div>
-<h4>查看报告</h4>
-<p>详细问题清单、修复建议、PDF导出</p>
-</div>
-</div>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>四步，从代码到报告</h2>
+      <p>最快三十秒出结果，不需要装任何东西。
+        <a href="/sample-report" style="color:var(--accent-steel);font-weight:600;">不确定扫完能拿到什么？先看一份真实报告样例</a>
+      </p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-top"><span class="step-n">1</span><span class="step-line"></span></div><h3>上传代码</h3><p>Git 仓库、ZIP 压缩包，或直接粘贴。</p></div>
+      <div class="step"><div class="step-top"><span class="step-n">2</span><span class="step-line"></span></div><h3>选择引擎</h3><p>按需勾选，或一键全选七大规则引擎。</p></div>
+      <div class="step"><div class="step-top"><span class="step-n">3</span><span class="step-line"></span></div><h3>AI 扫描</h3><p>多引擎并行分析，毫秒级定位问题。</p></div>
+      <div class="step"><div class="step-top"><span class="step-n">4</span><span class="step-line"></span></div><h3>查看报告</h3><p>问题清单、修复建议、一键导出。</p></div>
+    </div>
+  </div>
 </section>
-<!-- CTA -->
-<section class="cta-section">
-<h2>开始你的第一次代码审计</h2>
-<p>免费注册，立即体验AI驱动的代码安全检测</p>
-<a href="/register" class="btn-accent btn-lg" style="display:inline-block">立即体验</a>
+
+<section class="cta">
+  <div class="wrap cta-inner">
+    <h2>把挑灯查 Bug 的夜，还给睡眠</h2>
+    <p>免费注册，上传第一份代码，看看问题是怎么被自动标出来的。</p>
+    <a class="btn btn-light btn-lg" href="/register">立即体验</a>
+  </div>
 </section>
-<!-- FOOTER -->
+
 <footer class="footer">
-<div class="footer-inner">
-<div class="footer-col">
-<h4>产品</h4>
-<a href="/#features">功能介绍</a>
-<a href="/pricing">价格方案</a>
-<a href="/changelog">更新日志</a>
-<a href="/help">API文档</a>
-</div>
-<div class="footer-col">
-<h4>资源</h4>
-<a href="/help">帮助中心</a>
-<a href="/help">开发者文档</a>
-<a href="/help">检测规则说明</a>
-<a href="/help">常见问题</a>
-</div>
-<div class="footer-col">
-<h4>公司</h4>
-<a href="/pages/about.html">关于我们</a>
-<a href="mailto:hdyabcd@163.com">联系方式</a>
-<a href="/terms">服务条款</a>
-<a href="/terms">隐私政策</a>
-</div>
-<div class="footer-col">
-<h4>联系</h4>
-<a href="mailto:hdyabcd@163.com">hdyabcd@163.com</a>
-<a href="/help">意见反馈</a>
-<a href="/help"><i class="fab fa-github"></i> GitHub</a>
-</div>
-</div>
-<div class="footer-bottom">
-&copy; 2026 长沙煋旺智能科技有限公司 版权所有
-</div>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img class="brand-logo" src="/static/xinpect-mark-wide-128.png" alt="煋鉴">
+        <span style="font-family:var(--font-v-noto-serif-sc-c64c2e);font-size:18px;color: var(--color-text-inverse);line-height:1">煋鉴</span>
+      </div>
+      <p>长沙煋旺智能科技出品。低误报代码质检平台，只报值得你看一眼的问题。</p>
+    </div>
+    <div><h3>产品</h3><a href="#features">能力介绍</a><a href="/pricing">价格方案</a><a href="/changelog">更新日志</a><a href="/api-docs">API 文档</a></div>
+    <div><h3>资源</h3><a href="/blog">技术博客</a><a href="/help">帮助中心</a><a href="/help">开发者文档</a><a href="/help">检测规则说明</a><a href="/help">常见问题</a></div>
+    <div><h3>公司</h3><a href="/pages/about.html">关于我们</a><a href="/whitepaper">技术白皮书</a><a href="mailto:hdyabcd@163.com">联系我们</a><a href="/terms">服务条款</a></div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 长沙煋旺智能科技有限公司</span>
+    <span>煋鉴 · 零误报代码质检</span>
+    <span>{% include "_beian.html" %}</span>
+  </div>
 </footer>
+
+<script>
+(function(){
+  var wrap = document.getElementById('flowwrap');
+  if(!wrap) return;
+
+  var lines = [
+    'from flask import Flask, request',
+    'from database import query_user',
+    '',
+    'app = Flask(__name__)',
+    '',
+    '@app.route("/login", methods=["POST"])',
+    'def login():',
+    '    name = request.form.get("name")',
+    '    pwd = request.form.get("password")',
+    '',
+    '    if not name or not pwd:',
+    '        return "missing", 400',
+    '',
+    '    sql = "SELECT * FROM users',
+    '           WHERE name = \'" + name + "\'"',
+    '    user = query_user(sql)',
+    '',
+    '    if user and user.pwd == pwd:',
+    '        session["uid"] = user.id',
+    '        return "ok"',
+    '    return "denied", 403',
+    '',
+    'def logout():',
+    '    session.clear()',
+    '    return redirect("/")'
+  ];
+
+  function render(html){
+    return html
+      .replace(/\b(from|import|def|return|if|else|for|while|class|None|True|False|not|and|or|in)\b/g, function(m){ return '<span class="k">'+m+'</span>'; })
+      .replace(/(&quot;[^&]*&quot;|"[^"]*")/g, function(m){ return '<span class="s">'+m+'</span>'; })
+      .replace(/([a-zA-Z_][a-zA-Z0-9_]*)(\()/g, '<span class="f">$1</span>(');
+  }
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var html = '';
+  for(var rep=0; rep<4; rep++){
+    for(var i=0;i<lines.length;i++){
+      html += '<span class="cfline'+(i===11||i===15?' hot':'')+'">'+render(esc(lines[i]))+'</span>';
+    }
+  }
+  wrap.innerHTML = html;
+})();
+</script>
 </body>
 </html>

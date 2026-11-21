@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }} | 煋鉴技术博客{% endblock %}
+
+{% block meta_description %}{{ post.summary }}{% endblock %}
+
+{% block meta_keywords %}{{ post.keywords or '代码安全,静态分析,SAST,代码审查,煋鉴' }}{% endblock %}
+
+{% block canonical_url %}{{ post.url }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+
+{% block og_title %}{{ post.title }}{% endblock %}
+
+{% block og_description %}{{ post.summary }}{% endblock %}
+
+{% block og_url %}{{ post.url }}{% endblock %}
+
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ post.title | tojson }},
+  "description": {{ post.summary | tojson }},
+  "datePublished": {{ post.date | tojson }},
+  "dateModified": {{ post.date | tojson }},
+  "author": {"@type": "Organization", "name": "煋鉴 Xinpect", "url": "https://xinpect.xingwangzhineng.com/"},
+  "publisher": {
+    "@type": "Organization",
+    "name": "煋鉴 Xinpect",
+    "logo": {"@type": "ImageObject", "url": "https://xinpect.xingwangzhineng.com/static/xinpect-logo.png"}
+  },
+  "mainEntityOfPage": {"@type": "WebPage", "@id": {{ post.url | tojson }}},
+  "keywords": {{ post.keywords | tojson }},
+  "wordCount": {{ post.words }},
+  "inLanguage": "zh-CN"
+}
+</script>
+<link rel="stylesheet" href="/static/css/blog.css?v={{ asset_v }}">
+{% endblock %}
+
+{% block content %}
+<section class="post-hero">
+    <div class="container">
+        <div class="post-crumb"><a href="/blog">技术博客</a> / {{ post.title }}</div>
+        <h1>{{ post.title }}</h1>
+        <div class="post-meta">
+            <time datetime="{{ post.date }}">{{ post.date_cn }}</time>
+            <span>{{ post.author }}</span>
+            <span>约 {{ post.words }} 字 · {{ post.read_min }} 分钟</span>
+        </div>
+    </div>
+</section>
+
+<section class="post-wrap">
+    <div class="container">
+        <article class="post-body">
+            {{ post.html | safe }}
+        </article>
+
+        <div class="post-cta">
+            <div class="post-cta-text">
+                拿你自己的代码试一遍最快。
+                <small>网页上传就能扫，不用装插件，有免费档。</small>
+            </div>
+            <a href="/try">免费试扫</a>
+        </div>
+
+        {% if related %}
+        <div class="post-related">
+            <h3>继续读</h3>
+            {% for r in related %}
+            <a href="/blog/{{ r.slug }}">
+                {{ r.title }}
+                <span>{{ r.date_cn }} · {{ r.read_min }} 分钟</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

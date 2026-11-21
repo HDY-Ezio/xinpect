@@ -239,7 +239,7 @@ function expandFix(btn) {
                             <div class="tier-mini-desc" style="color: var(--color-warning);">{{ ts.status_text }}{% if ts.score is not none %} · 已查部分 {{ ts.score }} 分{% endif %}</div>
                             {% else %}
                             <div class="tier-mini-grade grade-{{ ts.grade }}">{{ ts.grade }} · {{ ts.score }}分</div>
-                            <div class="tier-mini-desc">{{ ts.issue_count }} 个问题</div>
+                            <div class="tier-mini-desc">{{ ts.issue_count }} 个问题{% if ts.status_text %} · <span style="color: var(--color-warning);">{{ ts.status_text }}</span>{% endif %}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -254,7 +254,7 @@ function expandFix(btn) {
             <div class="summary-col summary-health">
                 <div class="summary-col-head">
                     <span class="summary-col-title">代码健康分</span>
-                    <div class="info-tooltip" title="按规则告警的数量和严重程度扣分。注意：被复核判定不成立的条目也计入扣分，所以这个分数往往比修复清单更悲观，判断该不该修请以上面的三层清单为准。">
+                    <div class="info-tooltip" title="按「必须修」和「建议改」扣分：危重 10 分、高 5 分、中 3 分（最多扣 30）、低 0.5 分（最多扣 20），满分 100。复核判定不成立的条目不扣分，它们在下面单独列出供你核对。等级就是这个分数换算出来的：S≥95、A≥80、B≥60、C≥30。">
                         ⓘ
                     </div>
                 </div>
@@ -263,7 +263,7 @@ function expandFix(btn) {
                     <div class="health-score-number">{{ score }}</div>
                     <div class="health-score-unit">/ 100</div>
                 </div>
-                <div class="health-score-sub">按全部规则告警扣分，含复核未采纳的 {{ excluded_count }} 条</div>
+                <div class="health-score-sub">按必须修 + 建议改扣分{% if excluded_count %}，复核未采纳的 {{ excluded_count }} 条不计分{% endif %}</div>
 
                 <div class="severity-stats">
                     <div class="sev-item sev-critical">
@@ -600,7 +600,10 @@ function expandFix(btn) {
                 {% if is_vip %}
                 <div class="empty-state">
                     <div class="empty-state-icon">🎉</div>
-                    <div class="empty-state-text">太棒了！未检测到任何问题</div>
+                    {# 文案由结论给出，不许在这里写死。写死的这句会在「有文件没解析」
+                       的报告上变成「太棒了！未检测到任何问题」——没解析的文件里
+                       可能就藏着那条漏洞。 #}
+                    <div class="empty-state-text">{{ conclusion.headline }}</div>
                     <a href="{{ url_for('upload_page') }}" class="btn btn-primary">检测更多代码</a>
                 </div>
                 {% else %}

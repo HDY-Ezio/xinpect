@@ -27,6 +27,19 @@ def _handle_signal(signum, frame):
     logger.info(f"收到信号 {signum}，准备退出...")
     _shutdown = True
 
+    # 兜底强制退出：Flask 主线程阻塞在 serve_forever()，仅靠 _shutdown 标志无法让主进程退出，
+    # 会一直等到 systemd TimeoutStopSec(15s) 后被 SIGKILL（截断在途请求、拖慢重启）。
+    # 起守护线程：给 worker 2 秒收尾，随后强制退出。
+    def _force_exit():
+        time.sleep(2)
+        try:
+            logger.info("强制退出进程（SIGTERM 兜底）")
+            logging.shutdown()
+        finally:
+            os._exit(0)
+
+    threading.Thread(target=_force_exit, daemon=True).start()
+
 signal.signal(signal.SIGTERM, _handle_signal)
 signal.signal(signal.SIGINT, _handle_signal)
 
@@ -100,15 +113,20 @@ def _execute_scan(task: dict) -> dict:
 
         # 4. 计算评分
         try:
-            from modules.scoring import calculate_score, calculate_tier_scores, calculate_overall_grade
+            from modules.scoring import calculate_score, calculate_tier_scores, grade_of
 
             avail_brains = None if is_vip else None
             from modules.constants import FREE_BRAIN_IDS
             avail_brains = FREE_BRAIN_IDS if not is_vip else None
 
             score = calculate_score(results.get("issues", []), available_brain_ids=avail_brains)
-            tier_scores = calculate_tier_scores(results.get("issues", []), available_brain_ids=avail_brains, is_vip=is_vip)
-            grade = calculate_overall_grade(tier_scores)
+            tier_scores = calculate_tier_scores(
+                results.get("issues", []), available_brain_ids=avail_brains, is_vip=is_vip,
+                engines=results.get('engines') or None,
+                unsupported=len(results.get('unsupported_files') or []),
+                trimmed=len(results.get('trimmed_files') or []),
+            )
+            grade = grade_of(score, tier_scores, is_vip=is_vip)
         except Exception as e:
             logger.warning(f"评分计算失败: {e}")
 

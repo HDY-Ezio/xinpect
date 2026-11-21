@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}技术博客 - 代码安全与 AI 工程实测 | 煋鉴 Xinpect{% endblock %}
+
+{% block meta_description %}煋鉴技术博客：代码安全检测的实测数据、方法学与工程实践。误报率怎么测、越权漏洞为什么扫不出来、规则库怎么分类——所有数字都标了出处和测试条件。{% endblock %}
+
+{% block meta_keywords %}代码安全博客,静态分析,SAST,误报率,代码审查工具,漏洞检测,煋鉴,Xinpect{% endblock %}
+
+{% block canonical_url %}https://xinpect.xingwangzhineng.com/blog{% endblock %}
+
+{% block og_type %}website{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/blog.css?v={{ asset_v }}">
+{% endblock %}
+
+{% block content %}
+<section class="blog-hero">
+    <div class="container">
+        <h1>技术博客</h1>
+        <p>代码安全检测的实测数据、方法学和工程实践。误报率怎么测出来的、越权漏洞为什么扫不出来、规则库怎么分类——每个数字都写明测试条件和出处。</p>
+    </div>
+</section>
+
+<section class="blog-body">
+    <div class="container">
+        {% if posts %}
+        <div class="blog-grid">
+            {% for p in posts %}
+            <a class="blog-card" href="/blog/{{ p.slug }}">
+                <div class="bc-meta">
+                    <time datetime="{{ p.date }}">{{ p.date_cn }}</time>
+                    <span>{{ p.read_min }} 分钟</span>
+                </div>
+                <h2>{{ p.title }}</h2>
+                <p>{{ p.summary }}</p>
+                {% if p.tags %}
+                <div class="bc-tags">
+                    {% for t in p.tags %}<span>{{ t }}</span>{% endfor %}
+                </div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="blog-empty">文章正在陆续上线。</p>
+        {% endif %}
+
+        <div class="blog-cta">
+            <div class="blog-cta-text">
+                想知道你自己的代码里有多少漏洞？
+                <small>网页上传代码就能扫，不用装任何东西。</small>
+            </div>
+            <a href="/try">免费试扫</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

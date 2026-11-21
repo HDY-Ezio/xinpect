@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/cool-fx.css?v={{ asset_v }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备验证 - 煋鉴管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-v-segoe-ui-c790ad); background: var(--color-v-0f1923); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .verify-container { background: var(--color-bg-primary); border-radius: 16px; padding: 48px 40px; max-width: 440px; width: 90%; box-shadow: 0 20px 60px var(--color-v-f86967987); }
+        .logo { text-align: center; margin-bottom: 32px; }
+        .logo h1 { font-size: 24px; color: var(--color-bg-secondary); font-weight: 700; }
+        .logo p { color: var(--color-v-666666); font-size: 13px; margin-top: 6px; }
+        .icon-shield { width: 64px; height: 64px; margin: 0 auto 20px; background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-v-2d4a7a)); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .icon-shield svg { width: 32px; height: 32px; fill: var(--color-bg-primary); }
+        .desc { text-align: center; color: var(--color-v-555555); font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; color: var(--color-v-333333); font-weight: 500; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--color-v-dddddd); border-radius: 8px; font-size: 14px; transition: border-color 0.3s; outline: none; }
+        .form-group input:focus { border-color: var(--color-bg-secondary); }
+        .form-group input.code-input { letter-spacing: 6px; text-align: center; font-size: 20px; font-weight: 600; }
+        .btn { width: 100%; padding: 13px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.3s, transform 0.3s; }
+        .btn-primary { background: var(--color-bg-secondary); color: var(--color-text-inverse); }
+        .btn-primary:hover { background: var(--color-v-2d4a7a); }
+        .btn-primary:disabled { background: var(--color-v-999999); cursor: not-allowed; }
+        .btn-secondary { background: var(--color-v-e8e8e8); color: var(--color-bg-secondary); margin-top: 10px; }
+        .btn-secondary:hover { background: var(--color-v-dddddd); }
+        .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .msg-error { background: var(--color-v-fee2e2); color: var(--color-danger); }
+        .msg-success { background: var(--color-v-dcfce7); color: var(--color-success); }
+        .fp-info { text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-v-eeeeee); }
+        .fp-info span { font-size: 11px; color: var(--color-v-aaaaaa); word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="verify-container">
+        <div class="logo">
+            <div class="icon-shield">
+                <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+            </div>
+            <h1>设备验证</h1>
+            <p>煋鉴管理后台 · 安全访问控制</p>
+        </div>
+
+        <p class="desc">
+            当前设备尚未绑定到管理后台。<br>
+            请输入邮箱验证码完成设备绑定。
+        </p>
+
+        <div id="msgBox" class="msg"></div>
+
+        <div class="form-group">
+            <label>设备名称</label>
+            <input type="text" id="deviceName" placeholder="如：办公室电脑" maxlength="30">
+        </div>
+
+        <div class="form-group">
+            <label>验证码</label>
+            <input type="text" id="verifyCode" class="code-input" placeholder="000000" maxlength="6">
+        </div>
+
+        <button class="btn btn-secondary" id="sendBtn" onclick="sendCode()">发送验证码</button>
+        <button class="btn btn-primary" id="bindBtn" onclick="bindDevice()" style="margin-top:12px;" disabled>绑定设备</button>
+
+        <div class="fp-info">
+            <span>设备指纹: <span id="fpDisplay">计算中...</span></span>
+        </div>
+    </div>
+
+    <script>
+    // ===== 设备指纹生成 =====
+    async function generateFingerprint() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = "top";
+        ctx.font = "14px 'Arial'";
+        // canvas 只认真实色值，读不到 CSS 变量的字符串；统一从令牌取
+        const cssColor = (n, f) => (getComputedStyle(document.documentElement)
+            .getPropertyValue(n).trim() || f);
+        ctx.fillStyle = cssColor('--color-metal-gold', '#000');
+        ctx.fillRect(50, 0, 50, 20);
+        ctx.fillStyle = cssColor('--color-accent-blue', '#000');
+        ctx.fillText("XinpectFP", 2, 15);
+        ctx.fillStyle = cssColor('--color-metal-gold-deep', '#000');
+        ctx.fillText("XinpectFP", 4, 17);
+        const canvasData = canvas.toDataURL();
+
+        const components = [
+            navigator.userAgent || '',
+            screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+            Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+            navigator.language || '',
+            navigator.hardwareConcurrency || '',
+            canvasData
+        ];
+
+        const raw = components.join('|||');
+        return (await sha256(raw)).substring(0, 32);
+    }
+
+    async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    let deviceFingerprint = '';
+
+    // 页面加载时生成指纹
+    (async () => {
+        deviceFingerprint = await generateFingerprint();
+        document.getElementById('fpDisplay').textContent = deviceFingerprint;
+    })();
+
+    function showMsg(text, type) {
+        const box = document.getElementById('msgBox');
+        box.textContent = text;
+        box.className = 'msg msg-' + type;
+        box.style.display = 'block';
+    }
+
+    function hideMsg() {
+        document.getElementById('msgBox').style.display = 'none';
+    }
+
+    async function sendCode() {
+        hideMsg();
+        const btn = document.getElementById('sendBtn');
+        btn.disabled = true;
+        btn.textContent = '发送中...';
+
+        try {
+            const resp = await fetch('/api/admin/device/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Fingerprint': deviceFingerprint
+                },
+                body: JSON.stringify({
+                    fingerprint: deviceFingerprint,
+                    device_name: document.getElementById('deviceName').value
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                showMsg(data.message, 'success');
+                document.getElementById('bindBtn').disabled = false;
+                // 倒计时60秒
+                let sec = 60;
+                btn.textContent = sec + 's后重发';
+                const timer = setInterval(() => {
+                    sec--;
+                    if (sec <= 0) {
+                        clearInterval(timer);
+                        btn.textContent = '重新发送';
+                        btn.disabled = false;
+                    } else {
+                        btn.textContent = sec + 's后重发';
+                    }
+                }, 1000);
+            } else {
+                showMsg(data.error || '发送失败', 'error');
+                btn.disabled = false;
+                btn.textContent = '发送验证码';
+            }
+        } catch(e) {
+            showMsg('网络错误，请重试', 'error');
+            btn.disabled = false;
+            btn.textContent = '发送验证码';
+        }
+    }
+
+    async function bindDevice() {
+        hideMsg();
+        const code = document.getElementById('verifyCode').value.trim();
+        if (!code || code.length !== 6) {
+            showMsg('请输入6位验证码', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('bindBtn');
+        btn.disabled = true;
+        btn.textContent = '绑定中...';
+
+        try {
+            const resp = await fetch('/api/admin/device/bind', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Device-Fingerprint': deviceFingerprint
+                },
+                body: JSON.stringify({
+                    fingerprint: deviceFingerprint,
+                    code: code,
+                    device_name: document.getElementById('deviceName').value || '未命名设备'
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                showMsg('绑定成功，正在跳转...', 'success');
+                setTimeout(() => { window.location.href = '/admin'; }, 1000);
+            } else {
+                showMsg(data.error || '绑定失败', 'error');
+                btn.disabled = false;
+                btn.textContent = '绑定设备';
+            }
+        } catch(e) {
+            showMsg('网络错误，请重试', 'error');
+            btn.disabled = false;
+            btn.textContent = '绑定设备';
+        }
+    }
+    </script>
+</body>
+</html>

@@ -1,271 +1,556 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/cool-fx.css?v={{ asset_v }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>扫描报告 | 煋鉴 Xinpect</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230EA5E9'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-weight='bold' font-family='Arial'>X</text></svg>">
+    <link rel="icon" type="image/png" href="/static/xinpect-mark-128.png">
+    <link rel="apple-touch-icon" href="/static/xinpect-mark-256.png">
     <style>
-        :root { --bg:#0a0f1a; --card:#111827; --border:#1e293b; --text:#f1f5f9; --muted:#64748b; --orange:#1A3A5C; --blue:#0EA5E9; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444; --info:#3b82f6; }
+        /* ============================================================
+           深底版面样式。颜色一律取自 tokens.css：
+             --color-dark-*        深底版面的底 / 面 / 边 / 文字
+             --color-*-on-dark     深底上的语义色（严重 / 警告 / 建议 / 通过）
+             --font-sans/mono      字体
+           本页是站里唯一的深色页，以前自己抄了一套 Tailwind Slate，
+           结果 72 分那个大数字、问题总数、页脚链接在卡片上只有 1.52:1
+           对比度，肉眼基本看不见（2026-11-09 实测）。现在页面里不再出现
+           任何色值字面量，改色只改 tokens.css。
+           层次靠「面比底亮一档 + 1px 冷色边框」拉开，不加大明度差——
+           深底拉大明度差会发灰，看着脏。
+           ============================================================ */
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; min-height:100vh; }
+        html { background: var(--color-dark-bg); }
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-dark-bg);
+            color: var(--color-dark-text);
+            line-height:1.6;
+            min-height:100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
         .container { max-width:960px; margin:0 auto; padding:0 24px; }
-        .topbar { background:var(--card); border-bottom:1px solid var(--border); padding:12px 0; }
-        .topbar-inner { display:flex; align-items:center; justify-content:space-between; }
-        .logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); }
-        .logo-icon { width:32px; height:32px; border-radius:8px; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; }
-        .logo-text { font-weight:700; font-size:16px; }
-        .topbar-badge { font-size:12px; color:var(--muted); background:var(--bg); padding:4px 12px; border-radius:20px; border:1px solid var(--border); }
+
+        /* ---------- 顶栏 ---------- */
+        .topbar { background: var(--color-dark-surface); border-bottom:1px solid var(--color-dark-border); padding:12px 0; }
+        .topbar-inner { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+        .logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--color-dark-text); }
+        /* 品牌标识：完整圆环 + 左右水波纹（原图裁出的宽幅图，四边已羽化，无方块边界），
+           文字只写中文「煋鉴」。英文名在品牌图之外不再重复一遍。 */
+        .logo-mark { height:44px; width:auto; display:block; flex:0 0 auto; }
+        .logo-text { display:flex; flex-direction:column; justify-content:center; }
+        .logo-cn { font-weight:800; font-size:17px; letter-spacing:.08em; }
+        .topbar-badge {
+            font-size:12px; color:var(--color-dark-muted);
+            background:var(--color-dark-surface-2);
+            padding:5px 12px; border-radius:var(--radius-full);
+            border:1px solid var(--color-dark-border);
+            white-space:nowrap;
+        }
+
+        /* ---------- 主区 ---------- */
         .main { padding:32px 0 64px; }
-        .report-header { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; margin-bottom:24px; display:flex; align-items:center; gap:32px; }
-        .score-circle { width:120px; height:120px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; border:4px solid; }
-        .score-circle .score-num { font-size:36px; font-weight:800; line-height:1; }
-        .score-circle .score-label { font-size:12px; color:var(--muted); margin-top:4px; }
-        .score-excellent { border-color:var(--success); color:var(--success); }
-        .score-good { border-color:var(--orange); color:var(--orange); }
-        .score-fair { border-color:var(--warning); color:var(--warning); }
-        .score-poor { border-color:var(--danger); color:var(--danger); }
-        .report-meta { flex:1; }
-        .report-meta h1 { font-size:22px; font-weight:700; margin-bottom:12px; }
+        /* 氛围横幅默认是给白底页用的深色带，在深底页上会像破了个口子，
+           这里让它跟卡片同色，只保留光带本身。 */
+        .xp-ambient-banner {
+            background:var(--color-dark-surface);
+            border:1px solid var(--color-dark-border);
+        }
+
+        /* ---------- 报告头 ---------- */
+        .report-header {
+            background:var(--color-dark-surface);
+            border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-lg);
+            box-shadow: inset 0 1px 0 var(--color-cool-line);
+            padding:32px; margin-bottom:24px;
+            display:flex; align-items:center; gap:32px;
+        }
+        .score-circle {
+            width:120px; height:120px; border-radius:50%;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            flex-shrink:0; border:3px solid;
+            background:var(--color-dark-surface-2);
+        }
+        .score-circle .score-num { font-size:38px; font-weight:800; line-height:1; letter-spacing:-.02em; }
+        .score-circle .score-label { font-size:12px; color:var(--color-dark-muted); margin-top:6px; }
+        .score-excellent { border-color:var(--color-success-on-dark); color:var(--color-success-on-dark); }
+        .score-good      { border-color:var(--color-grade-b-on-dark); color:var(--color-grade-b-on-dark); }
+        .score-fair      { border-color:var(--color-warning-on-dark); color:var(--color-warning-on-dark); }
+        .score-poor      { border-color:var(--color-danger-on-dark);  color:var(--color-danger-on-dark); }
+
+        .report-meta { flex:1; min-width:0; }
+        .report-meta h1 { font-size:22px; font-weight:700; margin-bottom:16px; }
         .meta-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; }
-        .meta-item { }
-        .meta-label { font-size:12px; color:var(--muted); margin-bottom:2px; }
+        .meta-item { min-width:0; }
+        .meta-label { font-size:12px; color:var(--color-dark-muted); margin-bottom:2px; }
         .meta-value { font-size:14px; font-weight:600; }
-        .meta-value.code { font-family:monospace; font-size:12px; color:var(--blue); }
+        .meta-value.code { font-family:var(--font-mono); font-size:12px; color:var(--color-blue-on-dark); overflow-wrap:anywhere; }
+
+        /* ---------- 四个数字 ---------- */
         .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
-        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
-        .stat-num { font-size:28px; font-weight:800; }
-        .stat-label { font-size:12px; color:var(--muted); margin-top:4px; }
-        .stat-num.critical { color:var(--danger); }
-        .stat-num.warning { color:var(--warning); }
-        .stat-num.info { color:var(--info); }
-        .stat-num.total { color:var(--orange); }
-        .badge-section { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:24px; }
-        .badge-preview { display:flex; align-items:center; gap:16px; }
+        .stat-card {
+            background:var(--color-dark-surface);
+            border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-md);
+            padding:20px; text-align:center;
+        }
+        .stat-num { font-size:28px; font-weight:800; line-height:1.1; }
+        .stat-label { font-size:12px; color:var(--color-dark-muted); margin-top:4px; }
+        /* 总数是中性数字，用正文色；其余三档用语义色。以前总数用的深蓝在
+           卡片底上只有 1.52:1，等于没写。 */
+        .stat-num.total    { color:var(--color-dark-text); }
+        .stat-num.critical { color:var(--color-danger-on-dark); }
+        .stat-num.warning  { color:var(--color-warning-on-dark); }
+        .stat-num.info     { color:var(--color-info-on-dark); }
+
+        /* ---------- 徽章 ---------- */
+        .badge-section {
+            background:var(--color-dark-surface);
+            border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-md);
+            padding:20px; margin-bottom:24px;
+        }
+        .badge-preview { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
         .badge-preview img { height:28px; }
+        .badge-preview .badge-note { font-size:13px; color:var(--color-dark-muted); }
+
+        /* ---------- 问题列表 ---------- */
         .section-title { font-size:16px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
         .issue-section { margin-bottom:32px; }
         .issue-list { list-style:none; }
-        .issue-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:8px; border-left:4px solid transparent; transition:background .2s; }
-        .issue-item:hover { background:var(--bg); }
-        .issue-item.critical { border-left-color:var(--danger); }
-        .issue-item.warning { border-left-color:var(--warning); }
-        .issue-item.info { border-left-color:var(--info); }
+        .issue-item {
+            background:var(--color-dark-surface);
+            border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-sm);
+            padding:16px 20px; margin-bottom:8px;
+            border-left:3px solid transparent;
+            transition:background .2s ease, border-color .2s ease;
+        }
+        /* 悬停时抬一档面，不再变回页面底色（那样反而更暗，手感是「按下去」） */
+        .issue-item:hover { background:var(--color-dark-surface-2); }
+        .issue-item.critical { border-left-color:var(--color-danger-on-dark); }
+        .issue-item.warning  { border-left-color:var(--color-warning-on-dark); }
+        .issue-item.info     { border-left-color:var(--color-info-on-dark); }
         .issue-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-        .issue-severity { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; text-transform:uppercase; }
-        .issue-severity.critical { background:rgba(239,68,68,.15); color:var(--danger); }
-        .issue-severity.warning { background:rgba(37,99,235,.15); color:var(--warning); }
-        .issue-severity.info { background:rgba(59,130,246,.15); color:var(--info); }
-        .issue-file { font-size:12px; color:var(--muted); font-family:monospace; margin-bottom:6px; }
-        .issue-desc { font-size:13px; color:#94a3b8; line-height:1.5; }
-        .empty-state { text-align:center; padding:48px 24px; color:var(--muted); }
-        .empty-state .icon { font-size:48px; margin-bottom:12px; }
-        .empty-state .text { font-size:16px; }
-        .footer { text-align:center; padding:24px 0; border-top:1px solid var(--border); color:var(--muted); font-size:13px; }
-        .footer a { color:var(--orange); text-decoration:none; }
+        /* 严重度用描边，不用色块：一块半透明红底压一堆红字会更糊，
+           描边只要一个颜色就够，也不给「红底红字」留位置。 */
+        .issue-severity {
+            font-size:11px; font-weight:700; letter-spacing:.04em;
+            padding:2px 8px; border-radius:4px; text-transform:uppercase;
+            border:1px solid currentColor; background:transparent;
+        }
+        .issue-severity.critical { color:var(--color-danger-on-dark); }
+        .issue-severity.warning  { color:var(--color-warning-on-dark); }
+        .issue-severity.info     { color:var(--color-info-on-dark); }
+        .issue-engine { font-size:11px; color:var(--color-dark-muted); }
+        .issue-file { font-size:12px; color:var(--color-dark-muted); font-family:var(--font-mono); margin-bottom:6px; overflow-wrap:anywhere; }
+        .issue-desc { font-size:13px; color:var(--color-dark-text-2); line-height:1.6; }
+
+        /* ---------- 空状态 ---------- */
+        .empty-state { text-align:center; padding:48px 24px; color:var(--color-dark-muted); }
+        .empty-state .text { font-size:16px; font-weight:600; color:var(--color-dark-text); }
+        .empty-state { border:1px dashed var(--color-dark-border); border-radius:var(--radius-md); margin-bottom:24px; }
+        .empty-state .hint { font-size:13px; color:var(--color-dark-muted); margin-top:8px; }
+
+        /* ---------- 页脚 ---------- */
+        .footer {
+            text-align:center; padding:24px 0;
+            border-top:1px solid var(--color-dark-border);
+            color:var(--color-dark-muted); font-size:13px;
+        }
+        .footer a { color:var(--color-blue-on-dark); text-decoration:none; }
         .footer a:hover { text-decoration:underline; }
-        @media(max-width:640px) { .report-header{flex-direction:column;text-align:center;} .stats-row{grid-template-columns:repeat(2,1fr);} .meta-grid{grid-template-columns:repeat(2,1fr);} }
 
-        /* === 抽样预览：深度引擎锁定区 === */
-        .deep-preview-section { margin-bottom:32px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; }
-        .deep-preview-hint { font-size:13px; color:var(--muted); margin-bottom:16px; padding:12px 16px; background:rgba(26,58,92,0.06); border-radius:8px; border-left:3px solid var(--orange); line-height:1.6; }
-        .issue-item.locked { opacity:0.75; }
-        .issue-item.locked:hover { opacity:0.85; }
-        .lock-icon { font-size:14px; margin-left:auto; flex-shrink:0; }
-        .locked-text { color:var(--muted) !important; }
-        .upgrade-cta { text-align:center; padding:24px; margin-top:16px; background:linear-gradient(135deg, rgba(26,58,92,0.08) 0%, rgba(14,165,233,0.08) 100%); border-radius:12px; border:1px solid rgba(26,58,92,0.2); }
-        .cta-button { display:inline-block; padding:12px 32px; background:var(--orange); color:#fff; border-radius:8px; text-decoration:none; font-weight:700; font-size:16px; transition:transform .2s,box-shadow .2s; }
-        .cta-button:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(26,58,92,0.3); text-decoration:none; color:#fff; }
-        .cta-sub { font-size:12px; color:var(--muted); margin-top:8px; }
-        .deep-more { text-align:center; color:var(--muted); padding:12px; font-size:13px; }
-    
-/* ========== PDF 导出样式 ========== */
-.pdf-export-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px; border-radius: 8px;
-    background: linear-gradient(135deg, #1A3A5C, #1E40AF);
-    color: #fff; font-size: 13px; font-weight: 600;
-    border: none; cursor: pointer;
-    transition: all 0.2s;
-}
-.pdf-export-btn:hover {
-    background: linear-gradient(135deg, #1E40AF, #d14d1f);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(26,58,92,0.3);
-}
-.pdf-export-btn:active { transform: translateY(0); }
-.pdf-export-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        @media(max-width:640px) {
+            .report-header { flex-direction:column; text-align:center; }
+            .stats-row { grid-template-columns:repeat(2,1fr); }
+            .meta-grid { grid-template-columns:repeat(2,1fr); }
+            .topbar-inner { flex-wrap:wrap; }
+            /* 手机一屏很贵，装饰横幅让位给报告本身 */
+            .xp-ambient-banner { display:none; }
+            .report-meta h1 { font-size:19px; }
+        }
 
-.pdf-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(10,15,26,0.85);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 99999;
-    backdrop-filter: blur(4px);
-}
-.pdf-overlay-inner { text-align: center; color: #f1f5f9; }
-.pdf-overlay .spinner {
-    width: 48px; height: 48px;
-    border: 4px solid rgba(26,58,92,0.2);
-    border-top-color: #1A3A5C;
-    border-radius: 50%;
-    animation: pdf-spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-}
-@keyframes pdf-spin { to { transform: rotate(360deg); } }
-.pdf-overlay .msg { font-size: 15px; font-weight: 600; }
-.pdf-overlay .sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+        /* ---------- 抽样预览：深度引擎锁定区 ---------- */
+        .deep-preview-section {
+            margin-bottom:32px;
+            background:var(--color-dark-surface);
+            border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-md);
+            padding:24px;
+        }
+        .deep-preview-hint {
+            font-size:13px; color:var(--color-dark-muted); line-height:1.7;
+            margin-bottom:16px; padding:12px 16px;
+            background:var(--color-dark-surface-2);
+            border-radius:6px;
+            border-left:3px solid var(--color-blue-on-dark);
+        }
+        .deep-preview-hint strong { color:var(--color-dark-text-2); }
+        .issue-item.locked { opacity:.8; }
+        .issue-item.locked:hover { opacity:1; }
+        .lock-tag { margin-left:auto; flex-shrink:0; font-size:11px; color:var(--color-dark-faint); border:1px solid var(--color-dark-border); border-radius:4px; padding:1px 7px; }
+        .locked-text { color:var(--color-dark-muted) !important; }
+        .deep-more { text-align:center; color:var(--color-dark-muted); padding:12px; font-size:13px; }
+        .upgrade-cta {
+            text-align:center; padding:24px; margin-top:16px;
+            background:var(--color-dark-surface-2);
+            border-radius:var(--radius-md);
+            border:1px solid var(--color-dark-border);
+        }
+        .cta-button {
+            display:inline-block; padding:12px 32px;
+            background:var(--color-blue-on-dark); color:var(--color-dark-bg);
+            border-radius:6px; text-decoration:none;
+            font-weight:700; font-size:16px;
+            transition:transform .2s ease, box-shadow .2s ease;
+        }
+        .cta-button:hover {
+            transform:translateY(-2px);
+            box-shadow:0 6px 20px var(--color-cool-glow);
+            text-decoration:none; color:var(--color-dark-bg);
+        }
+        .cta-sub { font-size:12px; color:var(--color-dark-muted); margin-top:8px; }
 
-.action-buttons { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        /* ---------- PDF 导出 ---------- */
+        .action-buttons { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .pdf-export-btn {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:8px 16px; border-radius:6px;
+            background:var(--color-blue-on-dark);
+            color:var(--color-dark-bg);
+            font-size:13px; font-weight:600;
+            border:1px solid transparent; cursor:pointer;
+            transition:background-color .2s, color .2s, border-color .2s, box-shadow .2s, transform .2s;
+        }
+        /* 悬停换成页面最亮的面 + 深字，反馈最明确；不再滑向暖色（撞装饰红线） */
+        .pdf-export-btn:hover {
+            background:var(--color-dark-text);
+            transform:translateY(-1px);
+            box-shadow:0 4px 14px var(--color-cool-glow);
+        }
+        .pdf-export-btn:active { transform:translateY(0); }
+        .pdf-export-btn svg { width:16px; height:16px; fill:currentColor; }
 
-/* ===== 打印专用样式 ===== */
-@media print {
-    .topbar, .footer, .pdf-export-btn, .badge-section,
-    .action-buttons, .fp-mark-btn, .issue-toggle,
-    .filter-bar, .tab-nav, .drill-down-section,
-    button:not(.pdf-export-btn), .btn { display: none !important; }
+        .pdf-overlay {
+            position:fixed; top:0; left:0; right:0; bottom:0;
+            background:var(--color-dark-bg);
+            opacity:.92;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            z-index:99999;
+        }
+        .pdf-overlay-inner { text-align:center; color:var(--color-dark-text); }
+        .pdf-overlay .spinner {
+            width:48px; height:48px;
+            border:4px solid var(--color-dark-border);
+            border-top-color:var(--color-blue-on-dark);
+            border-radius:50%;
+            animation:pdf-spin .8s linear infinite;
+            margin:0 auto 16px;
+        }
+        @keyframes pdf-spin { to { transform:rotate(360deg); } }
+        .pdf-overlay .msg { font-size:15px; font-weight:600; }
+        .pdf-overlay .sub { font-size:12px; color:var(--color-dark-muted); margin-top:6px; }
 
-    @page {
-        size: A4 portrait;
-        margin: 15mm 12mm 20mm 12mm;
-    }
+        /* ---------- 被抑制清单（AI 判为误报、未计入报告） ----------
+           2026-11-03: 与完整报告页 report.html 同口径——单独成栏、不进问题数、不影响评分。
+           分享页是暗色主题，配色沿用深底令牌，不另立色号。 */
+        .suppressed-panel {
+            background:var(--color-dark-surface); border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-md); margin-bottom:24px; overflow:hidden;
+        }
+        .suppressed-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; cursor:pointer; }
+        .suppressed-head:hover { background:var(--color-dark-surface-2); }
+        .suppressed-head-left { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .suppressed-title { font-size:15px; font-weight:700; }
+        .suppressed-count {
+            background:var(--color-dark-surface-2); color:var(--color-dark-text-2);
+            border:1px solid var(--color-dark-border);
+            padding:2px 10px; border-radius:var(--radius-full);
+            font-size:12px; font-weight:600;
+        }
+        .suppressed-note { font-size:12px; color:var(--color-dark-muted); }
+        .suppressed-arrow { color:var(--color-dark-muted); font-size:12px; transition:transform .3s; }
+        .suppressed-body { display:none; padding:0 20px 20px; }
+        .suppressed-intro {
+            font-size:13px; color:var(--color-dark-muted); line-height:1.75;
+            padding:12px 14px; background:var(--color-dark-surface-2);
+            border-radius:6px; border-left:3px solid var(--color-dark-border);
+            margin-bottom:16px;
+        }
+        .suppressed-intro b { color:var(--color-dark-text-2); }
+        .suppressed-group { margin-bottom:18px; }
+        .suppressed-group-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+        .suppressed-group-label { font-size:13px; font-weight:600; color:var(--color-dark-text-2); }
+        .suppressed-group-count {
+            font-size:11px; color:var(--color-dark-muted);
+            background:var(--color-dark-surface-2);
+            border:1px solid var(--color-dark-border);
+            padding:2px 8px; border-radius:4px;
+        }
+        .suppressed-card {
+            background:var(--color-dark-surface-2);
+            border:1px solid var(--color-dark-border);
+            border-left:3px solid var(--color-dark-faint);
+            border-radius:6px; padding:12px 14px; margin-bottom:8px;
+        }
+        .suppressed-rule { font-size:11px; color:var(--color-dark-muted); font-family:var(--font-mono); }
+        .suppressed-item-title { font-size:13px; font-weight:600; color:var(--color-dark-text-2); }
+        .suppressed-file { font-size:12px; color:var(--color-dark-muted); font-family:var(--font-mono); margin-top:4px; overflow-wrap:anywhere; }
+        .suppressed-reason { font-size:12px; color:var(--color-dark-muted); line-height:1.65; margin-top:7px; }
+        .suppressed-confidence { color:var(--color-dark-faint); }
+        .suppressed-truncated { font-size:12px; color:var(--color-warning-on-dark); margin-top:10px; }
+        .suppressed-more { font-size:12px; color:var(--color-dark-muted); margin-top:6px; }
+        .suppressed-line { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
 
-    body {
-        background: #fff !important;
-        color: #1a1a1a !important;
-        font-size: 11pt !important;
-        line-height: 1.5 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
+        /* ---------- 样式建议 / 依赖画像（非缺陷栏目） ----------
+           2026-11-03: 与完整报告页 report.html 同口径——样式建议单列一栏、依赖画像
+           单列一栏，互不合并、都不进问题数、都不影响评分。三块折叠栏共用
+           .panel 一套结构与同一个 togglePanel()，避免每个栏目各写一份 JS 然后慢慢走偏。 */
+        .panel {
+            background:var(--color-dark-surface); border:1px solid var(--color-dark-border);
+            border-radius:var(--radius-md); margin-bottom:24px; overflow:hidden;
+        }
+        .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; cursor:pointer; }
+        .panel-head:hover { background:var(--color-dark-surface-2); }
+        .panel-head-left { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .panel-title { font-size:15px; font-weight:700; }
+        .panel-count { padding:2px 10px; border-radius:var(--radius-full); font-size:12px; font-weight:600; border:1px solid var(--color-dark-border); }
+        .panel-count.gray { background:var(--color-dark-surface-2); color:var(--color-dark-text-2); }
+        .panel-count.blue { background:var(--color-dark-surface-2); color:var(--color-info-on-dark); }
+        .panel-note { font-size:12px; color:var(--color-dark-muted); }
+        .panel-icon { width:5px; height:5px; border-radius:1px; background:var(--color-blue-on-dark); flex:0 0 auto; }
+        .panel-arrow { color:var(--color-dark-muted); font-size:12px; transition:transform .3s; }
+        .panel-body { display:none; padding:0 20px 20px; }
+        .panel-body.open { display:block; }
+        .panel-intro {
+            font-size:13px; color:var(--color-dark-muted); line-height:1.75;
+            padding:12px 14px; background:var(--color-dark-surface-2);
+            border-radius:6px; border-left:3px solid var(--color-dark-border);
+            margin-bottom:16px;
+        }
+        .panel-intro strong { color:var(--color-dark-text-2); }
 
-    .container { max-width: 100% !important; padding: 0 !important; }
-    .main { padding: 0 !important; }
+        .tag {
+            font-size:11px; color:var(--color-dark-muted);
+            background:var(--color-dark-surface-2);
+            border:1px solid var(--color-dark-border);
+            padding:2px 8px; border-radius:4px;
+        }
+        .style-card, .profile-card {
+            background:var(--color-dark-surface-2);
+            border:1px solid var(--color-dark-border);
+            border-radius:6px; padding:12px 14px; margin-bottom:8px;
+        }
+        .style-card { border-left:3px solid var(--color-dark-border); }
+        .profile-card { border-left:3px solid var(--color-blue-on-dark); }
+        .style-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+        .style-title { font-size:13px; font-weight:600; color:var(--color-dark-text-2); }
+        .style-desc { font-size:12px; color:var(--color-dark-muted); line-height:1.65; margin-top:4px; }
+        .style-file { font-size:12px; color:var(--color-dark-muted); font-family:var(--font-mono); margin-top:6px; overflow-wrap:anywhere; }
+        .style-code {
+            background:var(--color-dark-bg); border:1px solid var(--color-dark-border);
+            border-radius:4px; padding:10px; font-size:11px;
+            font-family:var(--font-mono); color:var(--color-dark-text-2);
+            overflow-x:auto; margin-top:8px; white-space:pre-wrap; overflow-wrap:anywhere;
+        }
+        .style-suggestion { margin-top:8px; font-size:12px; color:var(--color-success-on-dark); line-height:1.6; }
+        .profile-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .profile-title { font-size:13px; font-weight:600; color:var(--color-dark-text-2); }
+        .profile-files { font-size:12px; color:var(--color-dark-muted); font-family:var(--font-mono); margin-top:6px; overflow-wrap:anywhere; }
 
-    .report-header {
-        background: #f8f9fa !important;
-        border: 2px solid #1A3A5C !important;
-        border-radius: 8px !important;
-        padding: 20px !important;
-        margin-bottom: 16px !important;
-        page-break-inside: avoid;
-    }
-    .report-header h1 { color: #1a1a1a !important; font-size: 18pt !important; }
+        /* ========== 打印 / 导出 PDF ==========
+           纸上没有深底，整页翻成白底黑字。这一档的颜色是「纸面」语义，
+           与屏幕深底无关，因此不用 --color-dark-*，用打印专用的一组。 */
+        @media print {
+            .topbar, .footer, .pdf-export-btn, .badge-section,
+            .action-buttons, .fp-mark-btn, .issue-toggle,
+            .filter-bar, .tab-nav, .drill-down-section,
+            button:not(.pdf-export-btn), .btn { display:none !important; }
 
-    .score-circle { border-width: 3px !important; }
-    .score-circle .score-num { font-size: 28pt !important; }
-    .score-excellent { border-color: #22c55e !important; color: #22c55e !important; }
-    .score-good { border-color: #1A3A5C !important; color: #1A3A5C !important; }
-    .score-fair { border-color: #f59e0b !important; color: #f59e0b !important; }
-    .score-poor { border-color: #ef4444 !important; color: #ef4444 !important; }
+            @page { size:A4 portrait; margin:15mm 12mm 20mm 12mm; }
 
-    .meta-label { color: #666 !important; }
-    .meta-value { color: #1a1a1a !important; }
+            body {
+                background:var(--color-bg-primary) !important;
+                color:var(--color-text-primary) !important;
+                font-size:11pt !important; line-height:1.5 !important;
+                -webkit-print-color-adjust:exact; print-color-adjust:exact;
+            }
+            .container { max-width:100% !important; padding:0 !important; }
+            .main { padding:0 !important; }
 
-    .stats-row { gap: 8px !important; margin-bottom: 16px !important; }
-    .stat-card {
-        background: #f8f9fa !important;
-        border: 1px solid #ddd !important;
-        border-radius: 6px !important;
-        padding: 12px !important;
-        page-break-inside: avoid;
-    }
-    .stat-num { color: #1a1a1a !important; font-size: 20pt !important; }
-    .stat-num.critical { color: #ef4444 !important; }
-    .stat-num.warning { color: #f59e0b !important; }
-    .stat-num.info { color: #3b82f6 !important; }
-    .stat-num.total { color: #1A3A5C !important; }
-    .stat-label { color: #666 !important; }
+            .report-header {
+                background:var(--color-surface-card) !important;
+                border:2px solid var(--color-accent-blue) !important;
+                border-radius:6px !important; padding:20px !important;
+                margin-bottom:16px !important; page-break-inside:avoid;
+                box-shadow:none !important;
+            }
+            .report-header h1 { color:var(--color-text-primary) !important; font-size:18pt !important; }
+            .score-circle { border-width:3px !important; background:transparent !important; }
+            .score-circle .score-num { font-size:28pt !important; }
+            .score-excellent { border-color:var(--color-success) !important; color:var(--color-success) !important; }
+            .score-good      { border-color:var(--color-accent-blue) !important; color:var(--color-accent-blue) !important; }
+            .score-fair      { border-color:var(--color-warning) !important; color:var(--color-warning) !important; }
+            .score-poor      { border-color:var(--color-danger) !important; color:var(--color-danger) !important; }
 
-    .section-title {
-        font-size: 13pt !important;
-        margin-bottom: 10px !important;
-        margin-top: 16px !important;
-        page-break-after: avoid;
-        color: #1a1a1a !important;
-    }
+            .meta-label, .score-label, .stat-label { color:var(--color-text-secondary) !important; }
+            .meta-value { color:var(--color-text-primary) !important; }
 
-    .issue-section { margin-bottom: 16px !important; }
-    .issue-item {
-        background: #fff !important;
-        border: 1px solid #e0e0e0 !important;
-        border-radius: 6px !important;
-        padding: 10px 14px !important;
-        margin-bottom: 6px !important;
-        page-break-inside: avoid;
-    }
-    .issue-item.critical { border-left: 4px solid #ef4444 !important; }
-    .issue-item.warning { border-left: 4px solid #f59e0b !important; }
-    .issue-item.info { border-left: 4px solid #3b82f6 !important; }
+            .stats-row { gap:8px !important; margin-bottom:16px !important; }
+            .stat-card {
+                background:var(--color-surface-card) !important;
+                border:1px solid var(--color-border) !important;
+                border-radius:4px !important; padding:12px !important;
+                page-break-inside:avoid;
+            }
+            .stat-num { color:var(--color-text-primary) !important; font-size:20pt !important; }
+            .stat-num.critical { color:var(--color-danger) !important; }
+            .stat-num.warning  { color:var(--color-warning) !important; }
+            .stat-num.info     { color:var(--color-info) !important; }
+            .stat-num.total    { color:var(--color-accent-blue) !important; }
 
-    .issue-severity { font-size: 9pt !important; padding: 1px 6px !important; }
-    .issue-severity.critical { background: #fef2f2 !important; color: #ef4444 !important; }
-    .issue-severity.warning { background: #fffbeb !important; color: #d97706 !important; }
-    .issue-severity.info { background: #eff6ff !important; color: #3b82f6 !important; }
+            .section-title {
+                font-size:13pt !important; margin:16px 0 10px !important;
+                page-break-after:avoid; color:var(--color-text-primary) !important;
+            }
 
-    .issue-title { color: #1a1a1a !important; font-size: 11pt !important; }
-    .issue-file { color: #666 !important; font-size: 9pt !important; }
-    .issue-desc { color: #333 !important; font-size: 10pt !important; }
+            .issue-section { margin-bottom:16px !important; }
+            .issue-item {
+                background:var(--color-bg-primary) !important;
+                border:1px solid var(--color-border) !important;
+                border-radius:4px !important; padding:10px 14px !important;
+                margin-bottom:6px !important; page-break-inside:avoid;
+            }
+            .issue-item.critical { border-left:4px solid var(--color-danger) !important; }
+            .issue-item.warning  { border-left:4px solid var(--color-warning) !important; }
+            .issue-item.info     { border-left:4px solid var(--color-info) !important; }
 
-    .issue-code, pre, code {
-        font-family: 'Courier New', Courier, monospace !important;
-        font-size: 9pt !important;
-        background: #f5f5f5 !important;
-        border: 1px solid #ddd !important;
-        border-radius: 4px !important;
-        padding: 6px 8px !important;
-        white-space: pre-wrap !important;
-        word-break: break-all !important;
-        color: #1a1a1a !important;
-    }
+            .issue-severity { font-size:9pt !important; padding:1px 6px !important; }
+            .issue-severity.critical { color:var(--color-danger) !important; }
+            .issue-severity.warning  { color:var(--color-warning) !important; }
+            .issue-severity.info     { color:var(--color-info) !important; }
 
-    .pdf-footer {
-        display: block !important;
-        text-align: center;
-        font-size: 9pt;
-        color: #999;
-        margin-top: 24px;
-        padding-top: 12px;
-        border-top: 1px solid #ddd;
-    }
-    .pdf-footer .brand { color: #1A3A5C; font-weight: 700; }
+            .issue-desc { color:var(--color-text-secondary) !important; font-size:10pt !important; }
+            .issue-file, .issue-engine { color:var(--color-text-secondary) !important; font-size:9pt !important; }
 
-    .empty-state { color: #666 !important; }
-}
+            .style-code, pre, code {
+                font-family:var(--font-mono);
+                font-size:9pt !important;
+                background:var(--color-surface-card) !important;
+                border:1px solid var(--color-border) !important;
+                border-radius:4px !important; padding:6px 8px !important;
+                white-space:pre-wrap !important; word-break:break-all !important;
+                color:var(--color-text-primary) !important;
+            }
 
-.pdf-footer { display: none; }
+            .pdf-footer {
+                display:block !important; text-align:center; font-size:9pt;
+                color:var(--color-text-secondary);
+                margin-top:24px; padding-top:12px;
+                border-top:1px solid var(--color-border);
+            }
+            .pdf-footer .brand { color:var(--color-accent-blue); font-weight:700; }
 
+            .empty-state { color:var(--color-text-secondary) !important; }
+            .empty-state .text { color:var(--color-text-primary) !important; }
+
+            /* 导 PDF 时面板默认收起，打印必须展开——否则书面材料里查不到「为什么没报」。
+               深底配色也要在这里翻成白底黑字，否则打印出来是一堆浅灰字。 */
+            .suppressed-body, .panel-body { display:block !important; }
+            .suppressed-arrow, .panel-arrow { display:none !important; }
+            .suppressed-panel, .panel, .deep-preview-section, .upgrade-cta {
+                background:var(--color-bg-primary) !important;
+                border:1px solid var(--color-border) !important;
+            }
+            .suppressed-head, .panel-head { background:var(--color-surface-card) !important; cursor:default; }
+            .suppressed-title, .panel-title { color:var(--color-text-primary) !important; }
+            .suppressed-count, .panel-count, .suppressed-group-count, .tag {
+                background:var(--color-bg-hover) !important;
+                color:var(--color-text-secondary) !important;
+                border:1px solid var(--color-border) !important;
+            }
+            /* 提示条以前只改了文字色没改底色，打印出来是「浅灰字压在深灰底」，
+               整段读不出来。底色和左边线要一起翻。 */
+            .deep-preview-hint, .panel-intro, .suppressed-intro {
+                background:var(--color-surface-card) !important;
+                border-left-color:var(--color-border) !important;
+            }
+            /* 氛围横幅纯装饰，纸上没有意义，别让它吃掉一条墨 */
+            .xp-ambient-banner { display:none !important; }
+
+            .suppressed-note, .panel-note, .suppressed-intro, .panel-intro, .style-desc,
+            .style-file, .profile-files, .suppressed-file, .suppressed-reason,
+            .suppressed-rule, .suppressed-truncated, .deep-preview-hint, .cta-sub,
+            .suppressed-confidence, .suppressed-more, .badge-preview .badge-note,
+            .locked-text { color:var(--color-text-secondary) !important; }
+            .suppressed-group-label, .style-title, .profile-title,
+            .suppressed-item-title { color:var(--color-text-primary) !important; }
+            .suppressed-card, .style-card, .profile-card {
+                background:var(--color-bg-primary) !important;
+                border:1px solid var(--color-border) !important;
+            }
+            /* 行内加粗在深底上用的是浅色（--color-dark-text-2），
+               打印时不会自动变深，压在浅底上只有 1.38:1，等于看不见。 */
+            .panel-intro strong, .panel-intro b,
+            .suppressed-intro strong, .suppressed-intro b,
+            .deep-preview-hint strong {
+                color:var(--color-text-primary) !important;
+            }
+            .lock-tag { color:var(--color-text-secondary) !important;
+                        border-color:var(--color-border) !important; }
+            /* 小方点是纯装饰，纸上不印 */
+            .panel-icon { display:none !important; }
+            .style-suggestion { color:var(--color-success) !important; }
+            .cta-button { background:var(--color-accent-blue) !important; color: var(--color-text-inverse) !important; }
+        }
+
+        .pdf-footer { display:none; }
     </style>
+
 </head>
 <body>
 <div class="topbar">
     <div class="container topbar-inner">
-        <a href="/" class="logo"><div class="logo-icon">X</div><span class="logo-text">鉴 Xinpect</span></a>
+        <a href="/" class="logo"><img src="/static/xinpect-mark-wide-128.png" alt="煋鉴" class="logo-mark"><span class="logo-text"><span class="logo-cn">煋鉴</span></span></a>
         <div class="action-buttons">
             <button class="pdf-export-btn" onclick="exportToPDF()" title="导出PDF报告">
                 <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L16,16H13.5V19H10.5V16H8L12,12Z"/></svg>
                 导出PDF
             </button>
             <span class="topbar-badge">公开分享报告</span>
+        </div>
     </div>
 </div>
 <div class="main">
     <div class="container">
+        <div class="xp-ambient-banner" aria-hidden="true">
+          <div class="xp-ambient-grid"></div>
+          <div class="xp-ambient-code"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="xp-ambient-beam"></div>
+          <div class="xp-ambient-particles"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="xp-ambient-note">XINPECT / SCAN REPORT</div>
+        </div>
         <div class="report-header">
+            {# 「100 分 · A 级」在免费通道是正常的（等级上限 A），但要写出来 #}
+            {% set score_label = '分 · ' ~ grade ~ '级' ~ ('（免费版上限）' if grade_capped else '') %}
             {% if score >= 80 %}
-            <div class="score-circle score-excellent"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            <div class="score-circle score-excellent"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
             {% elif score >= 60 %}
-            <div class="score-circle score-good"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            <div class="score-circle score-good"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
             {% elif score >= 40 %}
-            <div class="score-circle score-fair"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            <div class="score-circle score-fair"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
             {% else %}
-            <div class="score-circle score-poor"><span class="score-num">{{ score }}</span><span class="score-label">分 · {{ grade }}级</span></div>
+            <div class="score-circle score-poor"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
             {% endif %}
             <div class="report-meta">
                 <h1>代码质检报告</h1>
                 <div class="meta-grid">
-                    <div class="meta-item"><div class="meta-label">扫描模式</div><div class="meta-value">{% if scan_mode=='free'%}免费扫描{%elif scan_mode=='quick'%}快速扫描{%elif scan_mode=='smart'%}智能扫描{%elif scan_mode=='deep'%}深度扫描{%else%}{{scan_mode}}{%endif%}</div></div>
+                    <div class="meta-item"><div class="meta-label">扫描模式</div><div class="meta-value">{% if scan_mode=='free'%}免费扫描{%elif scan_mode=='quick'%}快速扫描{%elif scan_mode=='smart'%}智能扫描{%elif scan_mode=='deep'%}深度扫描{%elif scan_mode=='full'%}完整扫描{%elif scan_mode=='basic'%}基础扫描{%else%}{{scan_mode}}{%endif%}</div></div>
                     <div class="meta-item"><div class="meta-label">文件数</div><div class="meta-value">{{ file_count }} 个</div></div>
                     {% if total_lines %}<div class="meta-item"><div class="meta-label">代码行数</div><div class="meta-value">{{ total_lines }}</div></div>{% endif %}
                     <div class="meta-item"><div class="meta-label">扫描时间</div><div class="meta-value">{{ created_at or '-' }}</div></div>
@@ -282,39 +567,39 @@
         </div>
         <div class="badge-section">
             <div class="badge-preview">
-                <img src="/api/badge/{{ scan_id }}.svg" alt="鉴评分">
-                <span style="font-size:13px;color:var(--muted);">此报告由鉴用户分享 · powered by Xinpect</span>
+                <img src="/api/badge/{{ scan_id }}.svg" alt="煋鉴评分">
+                <span class="badge-note">此报告由煋鉴用户分享 · powered by Xinpect</span>
             </div>
         </div>
         {% if critical %}
         <div class="issue-section">
-            <div class="section-title"><span style="color:var(--danger);"></span> 严重问题 ({{ critical|length }})</div>
-            <ul class="issue-list">{% for issue in critical %}<li class="issue-item critical"><div class="issue-header"><span class="issue-severity critical">Critical</span>{% if issue.get('engine')%}<span style="font-size:11px;color:var(--muted);">{{ issue.get('engine') }}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{ issue.get('file') }}{%if issue.get('line')%}:{{ issue.get('line') }}{%endif%}</div>{%endif%}<div class="issue-desc">{{ issue.get('message', issue.get('desc','')) }}</div></li>{%endfor%}</ul>
+            <div class="section-title"> 严重问题 ({{ critical|length }})</div>
+            <ul class="issue-list">{% for issue in critical %}<li class="issue-item critical"><div class="issue-header"><span class="issue-severity critical">Critical</span>{% if issue.get('engine')%}<span class="issue-engine">{{ issue.get('engine') }}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{ issue.get('file') }}{%if issue.get('line')%}:{{ issue.get('line') }}{%endif%}</div>{%endif%}<div class="issue-desc">{{ issue.get('message', issue.get('desc','')) }}</div></li>{%endfor%}</ul>
         </div>{%endif%}
         {% if warning %}
         <div class="issue-section">
-            <div class="section-title"><span style="color:var(--warning);"></span> 警告 ({{ warning|length }})</div>
-            <ul class="issue-list">{% for issue in warning %}<li class="issue-item warning"><div class="issue-header"><span class="issue-severity warning">Warning</span>{%if issue.get('engine')%}<span style="font-size:11px;color:var(--muted);">{{issue.get('engine')}}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{issue.get('file')}}{%if issue.get('line')%}:{{issue.get('line')}}{%endif%}</div>{%endif%}<div class="issue-desc">{{issue.get('message',issue.get('desc',''))}}</div></li>{%endfor%}</ul>
+            <div class="section-title"> 警告 ({{ warning|length }})</div>
+            <ul class="issue-list">{% for issue in warning %}<li class="issue-item warning"><div class="issue-header"><span class="issue-severity warning">Warning</span>{%if issue.get('engine')%}<span class="issue-engine">{{issue.get('engine')}}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{issue.get('file')}}{%if issue.get('line')%}:{{issue.get('line')}}{%endif%}</div>{%endif%}<div class="issue-desc">{{issue.get('message',issue.get('desc',''))}}</div></li>{%endfor%}</ul>
         </div>{%endif%}
         {% if info %}
         <div class="issue-section">
-            <div class="section-title"><span style="color:var(--info);"></span> 建议 ({{ info|length }})</div>
-            <ul class="issue-list">{% for issue in info %}<li class="issue-item info"><div class="issue-header"><span class="issue-severity info">Info</span>{%if issue.get('engine')%}<span style="font-size:11px;color:var(--muted);">{{issue.get('engine')}}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{issue.get('file')}}{%if issue.get('line')%}:{{issue.get('line')}}{%endif%}</div>{%endif%}<div class="issue-desc">{{issue.get('message',issue.get('desc',''))}}</div></li>{%endfor%}</ul>
+            <div class="section-title"> 建议 ({{ info|length }})</div>
+            <ul class="issue-list">{% for issue in info %}<li class="issue-item info"><div class="issue-header"><span class="issue-severity info">Info</span>{%if issue.get('engine')%}<span class="issue-engine">{{issue.get('engine')}}</span>{%endif%}</div>{%if issue.get('file')%}<div class="issue-file">{{issue.get('file')}}{%if issue.get('line')%}:{{issue.get('line')}}{%endif%}</div>{%endif%}<div class="issue-desc">{{issue.get('message',issue.get('desc',''))}}</div></li>{%endfor%}</ul>
         </div>{%endif%}
         {% if not issues and not deep_issues %}
-        <div class="empty-state"><div class="icon"></div><div class="text">恭喜！未发现任何问题</div><p style="font-size:13px;color:var(--muted);margin-top:8px;">代码质量优秀，继续保持！</p></div>
+        <div class="empty-state"><div class="text">本次初筛未发现问题</div><p class="hint">这是初筛结果，不等于代码没有问题。</p></div>
         {% endif %}
 
         {% if not issues and deep_issues %}
-        <div class="empty-state"><div class="icon">🔍</div><div class="text">基础扫描未发现明显问题</div><p style="font-size:13px;color:var(--muted);margin-top:8px;">但深度引擎检测到一些需要关注的问题，请查看下方 ↓</p></div>
+        <div class="empty-state"><div class="text">基础扫描未发现明显问题</div><p class="hint">但深度引擎检测到一些需要关注的问题，请查看下方 ↓</p></div>
         {% endif %}
 
         {# ====== 抽样预览：深度引擎锁定区 ====== #}
         {% if deep_issues %}
         <div class="deep-preview-section">
-            <div class="section-title"><span>🔒</span> 深度引擎发现 {{ deep_issues|length }} 个额外问题</div>
+            <div class="section-title">深度引擎发现 {{ deep_issues|length }} 个额外问题</div>
             <div class="deep-preview-hint">
-                以下问题由<strong>质量层</strong>（AI语义分析 · 性能可靠性 · 可观测性）和<strong>防护层</strong>（安全审计 · 业务安全）引擎发现。<br>
+                以下问题由<strong>质量层</strong>（E3 性能与可靠性 · E7 AI应用健康 · AI 语义分析）和<strong>防护层</strong>（E2 安全检测 · PoC 自动验证）引擎发现。<br>
                 升级专业版可查看完整问题描述、代码片段和修复建议。
             </div>
             <ul class="issue-list">
@@ -322,8 +607,8 @@
                 <li class="issue-item locked {% if issue.get('severity') in ('critical','error','fatal','blocker') %}critical{% elif issue.get('severity') in ('warning','major','high','medium') %}warning{% else %}info{% endif %}">
                     <div class="issue-header">
                         <span class="issue-severity {% if issue.get('severity') in ('critical','error','fatal','blocker') %}critical{% elif issue.get('severity') in ('warning','major','high','medium') %}warning{% else %}info{% endif %}">{{ issue.severity_label }}</span>
-                        {% if issue.get('brain_name') %}<span style="font-size:11px;color:var(--muted);">{{ issue.brain_name }}</span>{% endif %}
-                        <span class="lock-icon">🔒</span>
+                        {% if issue.get('brain_id') %}<span class="issue-engine">{{ issue.brain_id | brain_label }}</span>{% endif %}
+                        <span class="lock-tag">锁定</span>
                     </div>
                     {% if issue.get('file') %}<div class="issue-file">{{ issue.file }}{% if issue.get('line') %}:{{ issue.line }}{% endif %}</div>{% endif %}
                     <div class="issue-desc locked-text">{{ issue.title }}</div>
@@ -334,14 +619,146 @@
             <div class="deep-more">还有 {{ deep_issues|length - 10 }} 个问题被隐藏...</div>
             {% endif %}
             <div class="upgrade-cta">
-                <a href="/" class="cta-button">🚀 升级煋鉴，解锁完整报告</a>
+                <a href="/" class="cta-button">升级煋鉴，解锁完整报告</a>
                 <div class="cta-sub">AI 深度分析 · 修复建议 · 安全审计 · CI/CD 集成</div>
             </div>
         </div>
         {% endif %}
+
+        {% if style_count and style_count > 0 %}
+        <!-- 2026-11-03: 代码风格建议，单列一栏、不计分。与完整报告页 report.html
+             同一栏目、同一口径：它是写法规整度提示，不是缺陷。 -->
+        <div class="panel">
+            <div class="panel-head" onclick="togglePanel('styleBody','styleArrow')">
+                <div class="panel-head-left">
+                    <span class="panel-icon" aria-hidden="true"></span>
+                    <span class="panel-title">代码风格建议</span>
+                    <span class="panel-count gray">{{ style_count }} 条</span>
+                    <span class="panel-note">不影响安全评分</span>
+                </div>
+                <span class="panel-arrow" id="styleArrow">&#9660;</span>
+            </div>
+            <div class="panel-body" id="styleBody">
+                <div class="panel-intro">
+                    这一栏是<strong>写法规整度</strong>提示（命名、格式、注释、复杂度等），不是安全缺陷，也不参与评分。
+                    想统一团队风格时按这里改就行。
+                </div>
+                {% for it in style_issues %}
+                <div class="style-card">
+                    <div class="style-meta">
+                        <span class="tag">{{ it.get('severity_label') or '建议' }}</span>
+                        {% if it.get('brain_id') %}<span class="tag">{{ it.get('brain_id') | brain_label }}</span>{% endif %}
+                        {% if it.get('rule_id') %}<span class="tag">{{ it.get('rule_id') }}</span>{% endif %}
+                    </div>
+                    <div class="style-title">{{ it.get('title') or '（无标题）' }}</div>
+                    {% if it.get('description') %}<div class="style-desc">{{ it.get('description') }}</div>{% endif %}
+                    {% if it.get('file') %}<div class="style-file">{{ it.get('file') }}{% if it.get('line') %}:{{ it.get('line') }}{% endif %}</div>{% endif %}
+                    {% if it.get('code_snippet') %}<pre class="style-code">{{ it.get('code_snippet') }}</pre>{% endif %}
+                    {% if it.get('suggestion') %}<div class="style-suggestion">{{ it.get('suggestion') }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if profile_count and profile_count > 0 %}
+        <!-- 2026-11-03: 技术栈与依赖画像。回答的是「这个项目用了什么」，
+             不是缺陷、不计分，与完整报告页同一栏目、同一份分组逻辑。 -->
+        <div class="panel">
+            <div class="panel-head" onclick="togglePanel('profileBody','profileArrow')">
+                <div class="panel-head-left">
+                    <span class="panel-icon" aria-hidden="true"></span>
+                    <span class="panel-title">技术栈与依赖画像</span>
+                    <span class="panel-count blue">{{ profile_count }} 项</span>
+                    <span class="panel-note">不是缺陷，仅用于了解项目构成</span>
+                </div>
+                <span class="panel-arrow" id="profileArrow">&#9660;</span>
+            </div>
+            <div class="panel-body" id="profileBody">
+                <div class="panel-intro">
+                    这一栏是扫描时认出来的<strong>技术栈与依赖特征</strong>（用了哪些库、框架、API），
+                    用来判断项目构成与影响面，<strong>不是缺陷、不计分</strong>。
+                </div>
+                {% for g in profile_groups %}
+                <div class="profile-card">
+                    <div class="profile-head">
+                        <span class="profile-title">{{ g.get('title') }}</span>
+                        <span class="tag">命中 {{ g.get('count') }} 处</span>
+                        {% if g.get('rule_id') %}<span class="tag">{{ g.get('rule_id') }}</span>{% endif %}
+                    </div>
+                    {% if g.get('files') %}
+                    <div class="profile-files">{{ g.get('files') | join(' · ') }}{% if g.get('count') > (g.get('files') | length) %}<span class="suppressed-confidence"> 等</span>{% endif %}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if suppressed_total and suppressed_total > 0 %}
+        <!-- 2026-11-03: 被抑制清单（AI 判定为误报、未计入报告）折叠面板，非缺陷。
+             与完整报告页 report.html 同一口径与同一份分组逻辑（modules/scan.py
+             的 build_suppressed_groups），避免两个页面对同一个问题给出两种说法。 -->
+        <div class="suppressed-panel">
+            <div class="suppressed-head" onclick="togglePanel('suppressedBody','suppressedArrow')">
+                <div class="suppressed-head-left">
+                    <span class="panel-icon" aria-hidden="true"></span>
+                    <span class="suppressed-title">AI 判定为误报、已抑制</span>
+                    <span class="suppressed-count">{{ suppressed_total }} 条</span>
+                    <span class="suppressed-note">未计入问题数，不影响评分</span>
+                </div>
+                <span class="suppressed-arrow" id="suppressedArrow">&#9660;</span>
+            </div>
+            <div class="suppressed-body" id="suppressedBody">
+                <div class="suppressed-intro">
+                    这些条目扫描时确实被发现了，但被 AI 复核判定为<b>误报</b>，因此<b>没有计入上面的问题数</b>，也不参与评分。
+                    保留这份清单，是为了在有人问「这段代码明明有问题，为什么没报」时，能查到当时的判断结果和理由。
+                </div>
+                {% for g in suppressed_groups %}
+                <div class="suppressed-group">
+                    <div class="suppressed-group-head">
+                        <span class="suppressed-group-label">{{ g.label }}</span>
+                        <span class="suppressed-group-count">{{ g.count }} 条</span>
+                    </div>
+                    {% for it in g.records %}
+                    <div class="suppressed-card">
+                        <div class="suppressed-line">
+                            {% if it.rule_id %}<span class="suppressed-rule">{{ it.rule_id }}</span>{% endif %}
+                            <span class="suppressed-item-title">{{ it.title or '（无标题）' }}</span>
+                        </div>
+                        <div class="suppressed-file">{{ it.file }}{% if it.line %}:{{ it.line }}{% endif %}</div>
+                        {% if it.reason %}
+                        <div class="suppressed-reason">AI 理由：{{ it.reason }}{% if it.confidence is not none %}<span class="suppressed-confidence">（置信度 {{ '%.2f' | format(it.confidence) }}）</span>{% endif %}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if g.count > g.records_shown %}
+                    <div class="suppressed-more">仅展示前 {{ g.records_shown }} 条，其余 {{ g.count - g.records_shown }} 条未在页面展开。</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if suppressed_stats and suppressed_stats.truncated %}
+                <div class="suppressed-truncated">⚠ 清单较长，本次只保存了部分记录（共 {{ suppressed_total }} 条）。</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        <script>
+        /* 三个折叠栏（样式建议 / 依赖画像 / 被抑制清单）共用一个开关：
+           栏目在增加，实现不要跟着增加——四份各写一遍迟早走偏
+           （比如某一份忘了同步 arrow 旋转角度）。 */
+        function togglePanel(bodyId, arrowId) {
+            var body = document.getElementById(bodyId);
+            var arrow = document.getElementById(arrowId);
+            if (!body) return;
+            var open = (body.style.display === 'block');
+            body.style.display = open ? 'none' : 'block';
+            if (arrow) { arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)'; }
+        }
+        </script>
     </div>
 </div>
-<div class="footer"><div class="container">此报告由 <a href="/">鉴 Xinpect</a> 用户分享 · <a href="https://xinpect.xingwangzhineng.com">立即体验代码质检</a></div></div>
+<div class="footer"><div class="container">此报告由 <a href="/">煋鉴 Xinpect</a> 用户分享 · <a href="https://xinpect.xingwangzhineng.com">立即体验代码质检</a><br>{% include "_beian.html" %}</div></div>
 
 <!-- PDF 页脚（仅打印时显示） -->
 <div class="pdf-footer">
