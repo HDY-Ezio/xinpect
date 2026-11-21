@@ -20,20 +20,19 @@ from flask import (
 from .scan_worker import job_manager, init_scan_tables
 from .constants import (
     app, logger, DB_PATH,
-    BRAINS, BRAINS_MAP, TIERS, TIERS_MAP,
+    BRAINS, BRAINS_MAP, TIERS, TIERS_MAP, brain_label,
     FREE_BRAIN_IDS, ALL_BRAIN_IDS, FREE_BRAIN_ID_SET,
     CODE_EXTS, ARCHIVE_SKIP_DIRS,
-    MAX_CONTENT_LENGTH, MAX_FILE_SIZE_SINGLE, MAX_CODE_LENGTH,
+    MAX_CONTENT_LENGTH, MAX_CODE_LENGTH,
     MAX_CONTENT_SIZE_MB, ESTIMATED_UNZIP_FACTOR, ESTIMATED_LINE_SIZE,
     MIN_ESTIMATED_LINES, MIN_ESTIMATED_SIZE_ADDITION,
     MOCK_SCAN_TIMEOUT,
-    SCAN_COST_BASE_FEE, SCAN_COST_PER_100_LINES_FULL,
     DAILY_LIMIT_FREE,
     CC_SCORE_S, CC_SCORE_A, CC_SCORE_B,
     MAX_WXML_CODE_LENGTH,
     HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_INTERNAL_ERROR,
     HTTP_PAYMENT_REQUIRED, HTTP_ENTITY_TOO_LARGE,
-    SCANNER_URL, REPORT_TIMEOUT_SECONDS,
+    SCANNER_URL, SCANNER_API_KEY, REPORT_TIMEOUT_SECONDS,
 )
 from .db import get_db
 from .helpers import login_required, get_current_user, is_vip_user, _safe_http_post, _safe_http_get
@@ -46,7 +45,13 @@ from .scoring import (
     get_daily_usage, check_daily_limit, increment_daily_usage,
 )
 from .fix_roadmap import build_fix_roadmap, build_fix_progress
+from . import report_verdict
+from .report_verdict import TIER_MUST, TIER_SHOULD, TIER_EXCLUDED
 from .csrf_protection import csrf_required
+from .dimensions import (
+    card_state as _dim_card_state,
+    NOT_RUN as _DIM_NOT_RUN,
+)
 from .scanner import call_scanner, _extract_code_snippet, ScanEngineError
 
 
@@ -73,20 +78,20 @@ def _build_estimate_response(file_count, total_lines, request_scan_mode=None):
         actual_mode = 'quick'  # 会员默认quick
 
     if vip:
-        credits_cost = calculate_scan_cost(total_lines, scan_mode=actual_mode)
+        credits_cost = calculate_scan_cost(total_lines, scan_mode=actual_mode, user_id=user_id)
         credit_balance = get_user_credits(user_id)
         sufficient = check_credit_sufficient(user_id, credits_cost)
         
-        # 计算每300行单价
-        mode_rates = {'quick': 1, 'smart': 2, 'deep': 4}
-        price_per_300 = mode_rates.get(actual_mode, 1)
+        # 计算每100行单价（v7.0 新价）
+        mode_rates = {'quick': 1, 'smart': 4, 'deep': 10}
+        price_per_100 = mode_rates.get(actual_mode, 1)
         
         return jsonify({
             'ok': True, 'file_count': file_count, 'total_lines': total_lines,
             'scan_mode': actual_mode, 'is_vip': True,
             'cost': credits_cost, 'credits_cost': credits_cost,
             'credit_balance': credit_balance, 'is_sufficient': sufficient,
-            'price_per_300': price_per_300,
+            'price_per_100': price_per_100,
         })
     return jsonify({
         'ok': True, 'file_count': file_count, 'total_lines': total_lines,
@@ -123,8 +128,49 @@ def _extract_code_from_archive(file_storage):
     return result
 
 
+def _strip_single_root_prefix(names):
+    """识别并剥离压缩包包裹仓库的「单一顶层目录」，保留项目真实相对路径。
+
+    治本（10-31）：旧逻辑 `parts = name.split('/', 1); display_name = parts[1]`
+    盲目剥第一层目录，把正常的包目录也剥掉了——`modules/db.py` 被剥成 `db.py`，
+    扫描器拿不到「modules 是包」的项目结构上下文，跨模块 import 规则误判。
+
+    正确做法：只有当所有代码文件都共享**同一个**顶层目录（GitHub 下载 zip 的
+    `repo-master/` 包裹）时才剥离它；否则（文件分布在多个顶层、或直接在根）保留
+    完整相对路径。这样 `modules/db.py` 保留原样，`repo-master/modules/db.py` 剥成
+    `modules/db.py`。
+    """
+    if not names:
+        return {}
+
+    # 提取每个路径的顶层目录（无目录的记为 ''）
+    tops = []
+    for n in names:
+        n = n.replace('\\', '/')
+        if '/' in n:
+            tops.append(n.split('/', 1)[0])
+        else:
+            tops.append('')
+
+    # 所有文件是否共享同一非空顶层目录
+    non_empty_tops = {t for t in tops if t}
+    strip_prefix = ''
+    if len(non_empty_tops) == 1 and '' not in tops:
+        # 唯一顶层目录，且没有任何文件直接在根（说明是包裹目录）
+        strip_prefix = non_empty_tops.pop() + '/'
+
+    stripped = {}
+    for n in names:
+        nn = n.replace('\\', '/')
+        key = nn[len(strip_prefix):] if strip_prefix and nn.startswith(strip_prefix) else nn
+        stripped[n] = key
+    return stripped
+
+
 def _extract_zip_data(data, result):
     """从 zip 数据中提取代码文件"""
+    # 第一遍：收集所有代码文件路径
+    candidates = []  # [(name, content)]
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         for info in zf.infolist():
             if info.is_dir():
@@ -137,17 +183,21 @@ def _extract_zip_data(data, result):
             try:
                 with zf.open(info) as zf_file:
                     file_content = zf_file.read().decode('utf-8', errors='replace')
-                parts = name.split('/', 1)
-                display_name = parts[1] if len(parts) > 1 else parts[0]
-                result[display_name] = file_content
+                candidates.append((name, file_content))
             except (UnicodeDecodeError, KeyError):
                 logger.debug('skip undecodable file in archive')
             except (OSError, IOError) as _arch_err:
                 logger.debug('skip file parse error in archive: %s', _arch_err)
 
+    # 第二遍：识别单一顶层包裹目录后落盘
+    name_map = _strip_single_root_prefix([c[0] for c in candidates])
+    for name, content in candidates:
+        result[name_map[name]] = content
+
 
 def _extract_tar_data(data, result):
     """从 tar 数据中提取代码文件"""
+    candidates = []
     with tarfile.open(fileobj=io.BytesIO(data), mode='r:*') as tf:
         for member in tf.getmembers():
             if not member.isfile():
@@ -161,13 +211,15 @@ def _extract_tar_data(data, result):
                 tf_file = tf.extractfile(member)
                 if tf_file:
                     file_content = tf_file.read().decode('utf-8', errors='replace')
-                    parts = name.split('/', 1)
-                    display_name = parts[1] if len(parts) > 1 else parts[0]
-                    result[display_name] = file_content
+                    candidates.append((name, file_content))
             except (UnicodeDecodeError, KeyError):
                 logger.debug('skip undecodable file in archive')
             except (OSError, IOError) as _arch_err:
                 logger.debug('skip file in tar archive: %s', _arch_err)
+
+    name_map = _strip_single_root_prefix([c[0] for c in candidates])
+    for name, content in candidates:
+        result[name_map[name]] = content
 
 
 def _collect_files_from_request():
@@ -213,24 +265,61 @@ def _format_visible_issues(all_issues, vip):
     return visible
 
 
-def _build_dimensions(all_issues, vip):
-    """构建报告页维度数据列表"""
+def _ledger_of(results):
+    """从落库的 results 里取引擎台账三元组：(engines, unsupported_n, trimmed_n)。
+
+    报告页、Markdown 导出、后台异步落库三条路径都从这里取，避免各写一份
+    `results.get('engines')` 然后漏掉一两个字段。
+    老报告没有这几个键 → (None, 0, 0)，下游据此退回旧行为。
+    """
+    if not isinstance(results, dict):
+        return None, 0, 0
+    return (
+        results.get('engines') or None,
+        len(results.get('unsupported_files') or []),
+        len(results.get('trimmed_files') or []),
+    )
+
+
+def _build_dimensions(all_issues, vip, engines=None, unsupported=0, trimmed=0):
+    """构建报告页维度数据列表
+
+    2026-11-04：这张卡原来是「按 brain 数 issues，空就是 100 分」。
+    引擎崩了、被高负载降级、文件没解析，三种情况都表现为 issues 为空，
+    于是全部显示 100 分。现在先问台账这个引擎查没查：
+      没查成 → 分数位置显示「—」，并注明「未检测」，绝不给百分比；
+      查了一部分 → 分数照给（那是已查部分的真实成绩），但要标「部分未检测」；
+      台账缺失（老报告）→ 保持旧行为。
+    """
     dimensions = []
     for brain in BRAINS:
         brain_issues = [i for i in all_issues if str(i.get('brain_id')) == brain['id']]
         is_locked = (not vip) and (brain['id'] not in FREE_BRAIN_ID_SET)
+        state, status_text = _dim_card_state(
+            engines, brain['id'], unsupported, trimmed
+        )
         if is_locked:
             dimensions.append({
-                'id': brain['id'], 'name': brain['name'],
+                'id': brain['id'], 'code': brain.get('code', brain['id']), 'name': brain['name'],
                 'score': '—', 'score_color': '#6b7280',
                 'issues_count': '🔒', 'locked': True,
+                'status_text': '', 'not_run': False,
+            })
+        elif state == _DIM_NOT_RUN:
+            # 没有分数可言。issues_count 照实给（通常是 0，但那是「没查」不是「干净」）
+            dimensions.append({
+                'id': brain['id'], 'code': brain.get('code', brain['id']), 'name': brain['name'],
+                'score': '—', 'score_color': '#6b7280',
+                'issues_count': len(brain_issues), 'locked': False,
+                'status_text': status_text, 'not_run': True,
             })
         else:
             dim_score = calculate_dimension_score(brain_issues)
             dimensions.append({
-                'id': brain['id'], 'name': brain['name'],
+                'id': brain['id'], 'code': brain.get('code', brain['id']), 'name': brain['name'],
                 'score': dim_score, 'score_color': score_color(dim_score),
                 'issues_count': len(brain_issues), 'locked': False,
+                'status_text': status_text, 'not_run': False,
             })
     return dimensions
 
@@ -253,6 +342,67 @@ def _compute_severity_counts(visible_issues):
     }
 
 
+def _build_conclusion(severity_counts, score, grade, total_issues, not_detected=None):
+    """生成「一句话结论摘要」（体检报告总评式，确定性规则，非 AI）。
+
+    面向不懂代码的人：用大白话在第一屏讲清「这次扫描整体怎样、最该先修什么」。
+    判据全部来自已有的 severity 五档计数与健康分，无启发式猜测、无白名单。
+
+    2026-11-04：加 not_detected（没查成的维度名列表）。
+    原来 total_issues==0 一律写「未检测到任何问题，代码质量优秀」——引擎崩了
+    也是这句。维度卡已经改成「未检测」，第一屏的结论却还在报喜，等于把刚补
+    的那层诚实又抹掉了。
+
+    返回 dict：{ 'headline', 'detail', 'tone' }，tone 用于前端配色
+    （good=绿 / warn=黄 / danger=红）。
+    """
+    crit = severity_counts.get('critical', 0)
+    high = severity_counts.get('high', 0)
+    medium = severity_counts.get('medium', 0)
+    low = severity_counts.get('low', 0)
+    info = severity_counts.get('info', 0)
+    not_detected = list(not_detected or [])
+
+    if total_issues == 0:
+        if not_detected:
+            return {
+                'headline': '有 %d 个维度未能完成检测' % len(not_detected),
+                'detail': '「%s」没有拿到结果，这不代表代码干净，只代表这次没查成。'
+                          '建议稍后重试；反复出现请联系我们排查引擎状态。'
+                          % '、'.join(not_detected[:3]),
+                'tone': 'warn',
+            }
+        return {
+            'headline': '未检测到任何问题，代码质量优秀',
+            'detail': '这次扫描没有发现需要处理的问题，可以放心。',
+            'tone': 'good',
+        }
+    if crit > 0:
+        return {
+            'headline': '发现 %d 个严重问题，需要立即处理' % crit,
+            'detail': '严重问题可能被攻击者直接利用，建议优先修复，其余 %d 个问题随后跟进。' % (total_issues - crit),
+            'tone': 'danger',
+        }
+    if high > 0:
+        return {
+            'headline': '发现 %d 个高危问题，建议优先修复' % high,
+            'detail': '高危问题存在真实风险，处理完这 %d 个后，其余 %d 个中低危问题可逐步跟进。' % (high, total_issues - high),
+            'tone': 'danger',
+        }
+    if medium > 0 or low > 0:
+        return {
+            'headline': '整体可控，有 %d 个中低危问题' % (medium + low),
+            'detail': '暂不构成紧急风险，建议按修复路线图逐步处理，避免长期累积。',
+            'tone': 'warn',
+        }
+    # 只剩 info（建议类）
+    return {
+        'headline': '代码质量良好，有 %d 条改进建议' % info,
+        'detail': '没有安全问题，这 %d 条是锦上添花的改进建议，有空可顺手处理。' % info,
+        'tone': 'good',
+    }
+
+
 def _issue_tier_assignment(visible_issues):
     """给每个issue标注所属层（用于前端筛选）"""
     _tier_map = {}
@@ -268,6 +418,72 @@ def _issue_tier_assignment(visible_issues):
 # 扫描主流程拆分
 # ============================================================
 
+def _resolve_active_team(user_id):
+    """解析当前激活的团队身份（主扫描入口用）。
+
+    返回 team_id 或 None。校验 session 里的 active_team_id 是否仍有效
+    （用户确实还是该团队成员），无效则返回 None（回退个人身份）。
+    """
+    team_id = session.get('active_team_id')
+    if not team_id or not user_id:
+        return None
+    try:
+        db = get_db()
+        row = db.execute(
+            'SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?',
+            (team_id, user_id)
+        ).fetchone()
+        return team_id if row else None
+    except Exception as exc:
+        logger.warning('[团队] 解析激活团队失败 team_id=%s user_id=%s: %s',
+                       team_id, user_id, exc)
+        return None
+
+
+def _scan_credits_with_team_pool(team_id, vip, user_id, total_lines, file_count, scan_mode):
+    """团队身份扫描的积分：只扣团队共享积分池，绝不扣个人积分。
+
+    团队无免费档，必然产生积分消耗。
+
+    返回 (credits_cost, error_response, paid_from)。
+    paid_from: 'team_pool'
+    """
+    credits_cost = calculate_scan_cost(total_lines, scan_mode=scan_mode, user_id=user_id)
+    if credits_cost <= 0:
+        # 极端情况（0 行代码）不产生费用，但仍走团队路径，不扣个人
+        return 0, None, 'team_pool'
+
+    try:
+        from . import team_governance
+        ref_id = f'team:{team_id}:{user_id}:{int(time.time())}'
+        if team_governance.consume_team_credits(
+            team_id, credits_cost, user_id,
+            ref_type='team_scan', ref_id=ref_id,
+            remark=f'团队扫描：{total_lines}行，{file_count}个文件，{scan_mode}模式'
+        ):
+            # 共享池扣费成功，credits_cost 传 0（避免再走个人扣费）
+            return 0, None, 'team_pool'
+
+        # 共享池余额不足 → 明确报错，不回退个人积分
+        balance = team_governance.get_team_credit_balance(team_id)
+        return 0, (
+            jsonify({
+                'error': (
+                    f'团队共享积分不足，本次扫描需 {credits_cost} 积分，'
+                    f'团队共享池当前余额 {balance} 积分。请联系团队管理员充值团队积分。'
+                ),
+                'credits_needed': credits_cost,
+                'team_credit_balance': balance,
+                'total_lines': total_lines,
+            }), HTTP_BAD_REQUEST
+        ), 'team_pool'
+    except Exception as e:
+        logger.error('[扫描] 共享积分池扣费异常 team_id=%s: %s', team_id, e)
+        return 0, (
+            jsonify({'error': '团队共享积分扣费失败，请稍后重试或联系团队管理员'})
+        ), HTTP_BAD_REQUEST
+
+
 def _scan_credits_handling(vip, user_id, total_lines, file_count, scan_mode='quick'):
     """处理扫描积分逻辑。
     v5.53 修复竞态：移除独立的 check_credit_sufficient，由 consume_credits 原子处理。
@@ -277,7 +493,7 @@ def _scan_credits_handling(vip, user_id, total_lines, file_count, scan_mode='qui
     if not vip:
         return 0, None
 
-    credits_cost = calculate_scan_cost(total_lines, scan_mode=scan_mode)
+    credits_cost = calculate_scan_cost(total_lines, scan_mode=scan_mode, user_id=user_id)
     
     # 空文件或免费扫描，credits_cost=0，跳过扣费
     if credits_cost == 0:
@@ -308,7 +524,29 @@ def _scan_credits_handling(vip, user_id, total_lines, file_count, scan_mode='qui
     return credits_cost, None
 
 
-def _execute_scanner_call(files_dict, brain_ids, language, vip, user_id):
+def _brain_ids_for_scan_mode(vip, scan_mode):
+    """按检测模式裁剪引擎清单（与扫描器四档路由对齐，v5.164.0）。
+
+    能力递进口径：
+      free  → E1+E4+E5+E6（规范层，纯规则，无 AI）
+      quick → E1-E7 全量规则，不调 AI、不跑 PoC（零 token、零成本）
+      smart → quick 引擎 + AI 语义分析（含 ai 引擎）
+      deep  → smart 引擎 + PoC 实际验证（含 ai + poc 引擎）
+    """
+    if not vip:
+        return list(FREE_BRAIN_IDS)
+    if scan_mode == 'quick':
+        # 纯规则：剔除 ai / poc 引擎
+        return [b for b in ALL_BRAIN_IDS if b not in ('ai', 'poc')]
+    if scan_mode == 'smart':
+        # 规则 + AI 语义：剔除 poc
+        return [b for b in ALL_BRAIN_IDS if b != 'poc']
+    # deep（或未识别）：规则 + AI + PoC 全量
+    return list(ALL_BRAIN_IDS)
+
+
+def _execute_scanner_call(files_dict, brain_ids, language, vip, user_id,
+                          scan_mode='quick', progress_job_id=None):
     """调用扫描引擎，包含自定义阈值加载。
     返回 (results, error_response)。
     """
@@ -324,11 +562,16 @@ def _execute_scanner_call(files_dict, brain_ids, language, vip, user_id):
         except Exception:
             pass
 
-    scan_mode_for_scanner = 'full' if vip else 'basic'
+    # 将四档模式透传给扫描器（扫描器已实现 free/quick/smart/deep 能力路由，
+    # quick 不跑 AI、smart 跑 AI 语义、deep 跑 AI+PoC）。
+    # 兼容扫描器旧版不识别的场景：非 vip 强制 basic（纯规则）。
+    scan_mode_for_scanner = scan_mode if vip else 'basic'
     try:
         results = call_scanner(files_dict, brain_ids, {
             'language': language, 'scan_mode': scan_mode_for_scanner,
             'is_vip': vip, 'thresholds': user_thresholds,
+            'user_id': str(user_id),  # X-02 fix
+            'progress_job_id': progress_job_id,
         })
         return results, None
     except ScanEngineError as e:
@@ -392,7 +635,7 @@ def _write_scan_metrics(db, scan_info, results):
             for bid, bd in results.get('brain_results', {}).items()
             if isinstance(bd, dict) and bd.get('score') is not None
         }
-        _project_tag = request.form.get('project_tag', '')
+        _project_tag = scan_info.get('project_tag', '')  # 2026-10-22: 后台线程无 request 上下文
         db.execute("""
             INSERT INTO scan_metrics (user_id, scan_id, score, grade, issue_count,
                 critical_count, high_count, medium_count, low_count,
@@ -430,17 +673,30 @@ def _trigger_alerts_async(user_id, score, grade, results):
     ).start()
 
 
-def _evaluate_quality_gate(user_id, results, score, file_count):
-    """评估质量门禁"""
+def _evaluate_quality_gate(db, user_id, results, score, file_count):
+    """评估质量门禁
+
+    2026-10-22 修复：原实现两个调用参数全不匹配，异常被自身 except 吞掉，
+    导致质量门禁从未生效（gate_results 长期为 0 行）：
+      * get_user_active_gate(user_id)        -> 真实签名 (db, user_id)
+      * evaluate_gate(gate, score, n, iss, f)-> 真实签名 (scan_result, gate_rules)
+    """
     try:
         from modules.quality_gate import evaluate_gate, get_user_active_gate
-        _active_gate = get_user_active_gate(user_id) if user_id else None
+        _active_gate = get_user_active_gate(db, user_id) if user_id else None
         if not _active_gate:
             return None
         _all_issues = results.get('issues', [])
-        return evaluate_gate(_active_gate, score, results['total_issues'], _all_issues, file_count)
+        _scan_result = {'issues': _all_issues, 'score': score}
+        _res = evaluate_gate(_scan_result, _active_gate)
+        # 2026-10-22: gate_id 注入（gate_results.gate_id 外键 -> quality_gates.id）
+        if _res is not None:
+            _gid = _active_gate.get('id') if isinstance(_active_gate, dict) else None
+            _res['gate_id'] = _gid
+            _res['id'] = _gid
+        return _res
     except Exception as _ge:
-        logger.warning('P1: gate evaluation failed: %s', _ge)
+        logger.warning('P1: gate evaluation failed: %s', _ge, exc_info=True)
         return None
 
 
@@ -450,7 +706,9 @@ def _scan_visible_to_session(scan):
     旧实现里 /report/<scan_id> 完全没有归属校验：任何拿到链接的人都能看到
     别人的源码片段。这里按"报告属于谁"判定：
       * 匿名扫描（user_id 为空）：scan_id 本身即不可猜的访问凭证，放行；
-      * 已登录用户的扫描：只允许本人或管理员查看。
+      * 已登录用户的扫描：只允许本人或管理员查看；
+      * 团队扫描（team_id 非空）：同团队所有成员可见（共享扫描结果的核心价值），
+        成员被踢后其历史扫描仍归属团队、仍可被团队其他成员追溯（不可抵赖）。
     """
     owner = scan['user_id'] if scan['user_id'] is not None else None
     if not owner:
@@ -459,7 +717,29 @@ def _scan_visible_to_session(scan):
     if uid == owner:
         return True
     admin_id = int(os.environ.get('XINPECT_ADMIN_USER_ID', '6'))
-    return uid == admin_id
+    if uid == admin_id:
+        return True
+
+    # P3 团队共享：报告归属团队，团队内成员可见
+    # scan 可能是 sqlite3.Row 或 dict，统一用 keys + [] 读取
+    try:
+        _keys = scan.keys()
+        team_id = scan['team_id'] if 'team_id' in _keys else None
+    except Exception:
+        team_id = None
+    if team_id and uid:
+        try:
+            _db = get_db()
+            _m = _db.execute(
+                'SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?',
+                (team_id, uid)
+            ).fetchone()
+            if _m:
+                return True
+        except Exception:
+            pass  # 团队表异常不阻断，走默认拒绝
+
+    return False
 
 
 def _generate_scan_id():
@@ -514,27 +794,52 @@ def scan():
     language = request.form.get('language', 'auto')
     vip = is_vip_user()
     user_id = session.get('user_id')
-    is_full_scan = vip
-    brain_ids = ALL_BRAIN_IDS if is_full_scan else FREE_BRAIN_IDS
-    
-    # 读取前端传的scan_mode（quick/smart/deep），用于计费和记录
-    req_scan_mode = request.form.get('scan_mode', '')
-    if not vip:
-        actual_scan_mode = 'free'
-    elif req_scan_mode in ('quick', 'smart', 'deep'):
-        actual_scan_mode = req_scan_mode
+
+    # ── 身份感知：切到团队身份后，主扫描自动归队 + 走共享积分池 ──
+    active_team_id = _resolve_active_team(user_id)
+    paid_from = 'personal' if not active_team_id else None
+
+    # ── 档位决定：团队身份 = 管理员上限 + 成员自选；个人身份 = 本人会员决定 ──
+    if active_team_id:
+        # 团队档位：管理员配置的是「上限」，成员自选不超过上限。
+        # 与子账号本人是否会员、有无个人积分完全无关。
+        req_scan_mode = request.form.get('scan_mode', '')
+        try:
+            from . import team_governance
+            actual_scan_mode = team_governance.resolve_team_scan_mode(active_team_id, req_scan_mode)
+        except Exception as e:
+            logger.warning('[扫描] 融合团队档位失败，回退 quick: %s', e)
+            actual_scan_mode = 'quick'
+        # 团队无免费档（只有 quick/smart/deep），必然走引擎能力，engine_vip 恒 True
+        engine_vip = True
     else:
-        actual_scan_mode = 'quick'
+        # 个人身份：本人会员决定档位
+        req_scan_mode = request.form.get('scan_mode', '')
+        if not vip:
+            actual_scan_mode = 'free'
+        elif req_scan_mode in ('quick', 'smart', 'deep'):
+            actual_scan_mode = req_scan_mode
+        else:
+            actual_scan_mode = 'quick'
+        engine_vip = vip
     scan_mode = actual_scan_mode  # 记录到DB用
-    
+
+    # 按模式裁剪引擎清单：quick 不调 AI/PoC、smart 加 AI 语义、deep 加 PoC 验证
+    brain_ids = _brain_ids_for_scan_mode(engine_vip, actual_scan_mode)
+
     file_count = len(files_dict)
     total_lines = count_total_lines(files_dict)
 
-    # 积分处理（按scan_mode计费）
-    credits_cost, err = _scan_credits_handling(vip, user_id, total_lines, file_count, scan_mode=actual_scan_mode)
+    # 积分处理：团队身份走共享池，个人身份走个人积分
+    if active_team_id:
+        credits_cost, err, paid_from = _scan_credits_with_team_pool(
+            active_team_id, engine_vip, user_id, total_lines, file_count, actual_scan_mode
+        )
+    else:
+        credits_cost, err = _scan_credits_handling(vip, user_id, total_lines, file_count, scan_mode=actual_scan_mode)
     if err:
         return err
-    
+
     # 空文件或免费扫描，credits_cost=0，跳过扣费
     if credits_cost == 0:
         pass  # 继续执行扫描
@@ -542,7 +847,8 @@ def scan():
     # 异步扫描：提交到后台线程池，立即返回 scan_id
     source = _get_source_from_request()
     scan_id, err_resp, err_code = _do_async_scan(
-        files_dict, brain_ids, language, vip, user_id, credits_cost, total_lines, scan_mode, source
+        files_dict, brain_ids, language, engine_vip, user_id, credits_cost, total_lines, scan_mode, source,
+        team_id=active_team_id
     )
 
     if err_resp:
@@ -559,6 +865,8 @@ def scan():
         'file_count': len(files_dict),
         'total_lines': total_lines,
         'credits_spent': credits_cost if user_id else 0,
+        'team_id': active_team_id,
+        'paid_from': paid_from if active_team_id else 'personal',
         'message': '扫描任务已提交，请等待完成',
     })
 
@@ -567,21 +875,23 @@ def _run_post_scan_hooks(db, scan_info, results, file_count):
     """执行扫描后处理：度量写入、告警触发、门禁评估"""
     user_id = scan_info.get('user_id')
     _write_scan_metrics(db, scan_info, results)
+    db.commit()  # 2026-10-22: metrics 独立提交，不再依赖门禁分支
     _trigger_alerts_async(user_id, scan_info['score'], scan_info['grade'], results)
 
-    gate_result = _evaluate_quality_gate(user_id, results, scan_info['score'], file_count)
-    if gate_result and user_id:
+    gate_result = _evaluate_quality_gate(db, user_id, results, scan_info['score'], file_count)
+    if gate_result and user_id and gate_result.get('gate_id'):
         try:
             db.execute("""
                 INSERT INTO gate_results (scan_id, user_id, gate_id, passed, details_json)
                 VALUES (?, ?, ?, ?, ?)
             """, (scan_info['scan_id'], user_id,
-                  gate_result.get('id', 0),
+                  gate_result.get('gate_id'),
                   1 if gate_result.get('passed') else 0,
                   json.dumps(gate_result, ensure_ascii=False)))
             db.commit()
-        except Exception:
-            pass
+        except Exception as _ge2:
+            # 2026-10-22: 原为 except Exception: pass，静默吞掉写入失败
+            logger.warning('P1: gate_results insert failed: %s', _ge2, exc_info=True)
 
 
 def _build_scan_response(scan_info, results, credits_cost):
@@ -601,74 +911,108 @@ def _build_scan_response(scan_info, results, credits_cost):
 # 异步扫描支持
 # ============================================================
 
+def _async_scan_fail(scan_id, user_id, credits_cost, err):
+    """扫描失败：提炼错误信息、退款（重试3次）、落 failed 状态。"""
+    import sqlite3 as _sqlite3
+    err_msg = "扫描服务暂时不可用，请稍后重试"
+    try:
+        err_data = err[0].get_json(silent=True) if hasattr(err[0], 'get_json') else {}
+        detail = err_data.get('detail', '') if err_data else ''
+        if 'timeout' in detail.lower() or '超时' in detail:
+            err_msg = "扫描引擎处理超时，可能是文件过多或引擎繁忙。建议减少文件数量后重试"
+        elif 'connection' in detail.lower() or '不可达' in detail or '连接' in detail:
+            err_msg = "扫描引擎暂时无法连接，技术团队已收到通知，请稍后重试"
+        elif detail:
+            err_msg = detail[:150]
+    except Exception:
+        pass
+
+    if user_id and credits_cost > 0:
+        for _ra in range(3):
+            try:
+                grant_credits(user_id, credits_cost, ref_type="scan_refund",
+                              ref_id="scan_failed", remark="Scan engine failed refund")
+                break
+            except Exception:
+                if _ra == 2:
+                    logger.critical("Refund permanently failed: user=%s amount=%s", user_id, credits_cost)
+    _db = _sqlite3.connect(DB_PATH)
+    _db.execute("UPDATE scans SET scan_status=?, scan_error=? WHERE scan_id=?",
+               ("failed", err_msg, scan_id))
+    _db.commit()
+    _db.close()
+
+
+def _async_scan_success(scan_id, user_id, files_dict, total_lines, results, vip):
+    """扫描成功：计算评分/等级、落 completed 状态、回填积分流水。"""
+    import sqlite3 as _sqlite3
+    avail_brains = None if vip else FREE_BRAIN_IDS
+    _ledger, _uns, _trim = _ledger_of(results)
+    score = calculate_score(results["issues"], available_brain_ids=avail_brains)
+    tier_scores = calculate_tier_scores(
+        results["issues"], available_brain_ids=avail_brains, is_vip=vip,
+        engines=_ledger, unsupported=_uns, trimmed=_trim,
+    )
+    grade = calculate_overall_grade(tier_scores)
+
+    _db = _sqlite3.connect(DB_PATH)
+    _db.execute("UPDATE scans SET results=?, score=?, grade=?, issue_count=?, scan_status=?, scan_progress=?, scan_progress_text=? WHERE scan_id=?",
+               (json.dumps(results, ensure_ascii=False), score, grade, results["total_issues"],
+                "completed", 100, "扫描完成", scan_id))
+
+    if vip and user_id:
+        last_tx = _db.execute("SELECT id FROM credit_transactions WHERE user_id = ? AND type = ? AND ref_type = ? ORDER BY id DESC LIMIT 1",
+                             (user_id, "consume", "scan_pre")).fetchone()
+        if last_tx:
+            remark_str = "扫描消耗：%d行，%d个文件，完整版" % (total_lines, len(files_dict))
+            _db.execute("UPDATE credit_transactions SET ref_type = ?, ref_id = ?, remark = ? WHERE id = ?",
+                       ("scan", scan_id, remark_str, last_tx[0]))
+
+    _db.commit()
+    _db.close()
+    return score, grade
+
+
+def _run_post_hooks(scan_id, user_id, files_dict, total_lines, scan_mode, results, score, grade):
+    """接回扫描后处理链（指标写入 / 告警触发 / 质量门禁）。失败仅告警，不影响主流程。"""
+    try:
+        _hook_info = {
+            "scan_id": scan_id, "user_id": user_id,
+            "score": score, "grade": grade,
+            "file_count": len(files_dict), "total_lines": total_lines,
+            "scan_mode": scan_mode, "project_tag": "",
+        }
+        _hdb = get_db()
+        _run_post_scan_hooks(_hdb, _hook_info, results, len(files_dict))
+        _hdb.commit()
+    except Exception as _he:
+        logger.warning("post_scan_hooks failed: %s", _he, exc_info=True)
+
+
 def _async_scan_task(scan_id, user_id, files_dict, brain_ids, language, vip,
                      credits_cost, total_lines, scan_mode, source, progress_callback=None):
     """后台线程执行的异步扫描任务（在 app_context 中运行）"""
     import sqlite3 as _sqlite3
     with app.app_context():
         try:
-            if progress_callback:
-                progress_callback(15, "正在连接扫描引擎")
-
-            results, err = _execute_scanner_call(files_dict, brain_ids, language, vip, user_id)
+            # 2026-11-05：进度只来自扫描器真实事件。删掉原先编的
+            # 「正在连接扫描引擎 / 正在生成报告 / 后处理中」三段（它们跟实际毫无关系）。
+            from modules.scan_progress_bridge import start as _progress_start
+            _progress_start(scan_id)
+            results, err = _execute_scanner_call(files_dict, brain_ids, language, vip,
+                                                 user_id, scan_mode=scan_mode,
+                                                 progress_job_id=scan_id)
 
             if err:
-                # 提取具体错误信息
-                err_msg = "扫描服务暂时不可用，请稍后重试"
-                try:
-                    err_data = err[0].get_json(silent=True) if hasattr(err[0], 'get_json') else {}
-                    detail = err_data.get('detail', '') if err_data else ''
-                    if 'timeout' in detail.lower() or '超时' in detail:
-                        err_msg = "扫描引擎处理超时，可能是文件过多或引擎繁忙。建议减少文件数量后重试"
-                    elif 'connection' in detail.lower() or '不可达' in detail or '连接' in detail:
-                        err_msg = "扫描引擎暂时无法连接，技术团队已收到通知，请稍后重试"
-                    elif detail:
-                        err_msg = detail[:150]
-                except Exception:
-                    pass
-
-                if user_id and credits_cost > 0:
-                    for _ra in range(3):
-                        try:
-                            grant_credits(user_id, credits_cost, ref_type="scan_refund",
-                                          ref_id="scan_failed", remark="Scan engine failed refund")
-                            break
-                        except Exception:
-                            if _ra == 2:
-                                logger.critical("Refund permanently failed: user=%s amount=%s", user_id, credits_cost)
-                _db = _sqlite3.connect(DB_PATH)
-                _db.execute("UPDATE scans SET scan_status=?, scan_error=? WHERE scan_id=?",
-                           ("failed", err_msg, scan_id))
-                _db.commit()
-                _db.close()
+                _async_scan_fail(scan_id, user_id, credits_cost, err)
                 return
 
-            if progress_callback:
-                progress_callback(80, "正在生成报告")
+            score, grade = _async_scan_success(scan_id, user_id, files_dict, total_lines, results, vip)
 
-            avail_brains = None if vip else FREE_BRAIN_IDS
-            score = calculate_score(results["issues"], available_brain_ids=avail_brains)
-            tier_scores = calculate_tier_scores(results["issues"], available_brain_ids=avail_brains, is_vip=vip)
-            grade = calculate_overall_grade(tier_scores)
-
-            _db = _sqlite3.connect(DB_PATH)
-            _db.execute("UPDATE scans SET results=?, score=?, grade=?, issue_count=?, scan_status=?, scan_progress=?, scan_progress_text=? WHERE scan_id=?",
-                       (json.dumps(results, ensure_ascii=False), score, grade, results["total_issues"],
-                        "completed", 100, "扫描完成", scan_id))
-
-            if vip and user_id:
-                last_tx = _db.execute("SELECT id FROM credit_transactions WHERE user_id = ? AND type = ? AND ref_type = ? ORDER BY id DESC LIMIT 1",
-                                     (user_id, "consume", "scan_pre")).fetchone()
-                if last_tx:
-                    remark_str = "扫描消耗：%d行，%d个文件，完整版" % (total_lines, len(files_dict))
-                    _db.execute("UPDATE credit_transactions SET ref_type = ?, ref_id = ?, remark = ? WHERE id = ?",
-                               ("scan", scan_id, remark_str, last_tx[0]))
-
-            _db.commit()
-            _db.close()
-
-            if progress_callback:
-                progress_callback(95, "后处理中")
+            # 2026-10-22 修复：接回扫描后处理链（指标写入 / 告警触发 / 质量门禁）
+            # 回归原因：10/21 异步化改造时丢失了 _run_post_scan_hooks 调用，
+            # 只留下上面那句"后处理中"的进度提示。
+            _run_post_hooks(scan_id, user_id, files_dict, total_lines, scan_mode, results, score, grade)
 
             logger.info("Async scan completed: %s, score=%s, grade=%s, issues=%d",
                          scan_id, score, grade, results["total_issues"])
@@ -683,6 +1027,12 @@ def _async_scan_task(scan_id, user_id, files_dict, brain_ids, language, vip,
                 _db.close()
             except Exception:
                 pass
+        finally:
+            try:
+                from modules.scan_progress_bridge import stop as _progress_stop
+                _progress_stop(scan_id)
+            except Exception:
+                pass
 
 
 @app.route("/api/scan/status/<scan_id>")
@@ -692,7 +1042,7 @@ def scan_status(scan_id):
 
     db = get_db()
     row = db.execute(
-        "SELECT scan_status, scan_progress, scan_progress_text, scan_error, score, grade, issue_count FROM scans WHERE scan_id = ?",
+        "SELECT scan_status, scan_progress, scan_progress_text, scan_error, score, grade, issue_count, scan_progress_events, files_meta FROM scans WHERE scan_id = ?",
         (scan_id,)
     ).fetchone()
 
@@ -717,7 +1067,24 @@ def scan_status(scan_id):
         "status": status,
         "progress": progress,
         "progress_text": progress_text,
+        "progress_source": "engine",
     }
+    try:
+        _snap = json.loads(row[7]) if row[7] else {}
+    except Exception:
+        _snap = {}
+    if not isinstance(_snap, dict):
+        _snap = {}
+    resp["events"] = _snap.get("events") or []
+    resp["engines_done"] = _snap.get("engines_done", 0)
+    resp["engines_total"] = _snap.get("engines_total", 0)
+    _files = _snap.get("files") or []
+    if not _files:
+        try:
+            _files = json.loads(row[8]) if row[8] else []
+        except Exception:
+            _files = []
+    resp["files"] = _files
     if error:
         resp["error"] = error
     if status == "completed":
@@ -731,20 +1098,22 @@ def scan_status(scan_id):
     return jsonify(resp)
 
 
-def _do_async_scan(files_dict, brain_ids, language, vip, user_id, credits_cost, total_lines, scan_mode, source):
-    """将扫描任务提交到后台线程池，立即返回 scan_id"""
+def _do_async_scan(files_dict, brain_ids, language, vip, user_id, credits_cost, total_lines, scan_mode, source, team_id=None):
+    """将扫描任务提交到后台线程池，立即返回 scan_id。
+    team_id 可选：团队扫描时传入，把结果归属到团队（个人扫描保持 None）。
+    """
     scan_id = _generate_scan_id()
     title = _build_scan_title(files_dict)
     file_count = len(files_dict)
 
     db = get_db()
-    db.execute("INSERT INTO scans (scan_id, user_id, title, file_count, files_meta, results, score, grade, issue_count, language, credits_spent, total_lines, scan_mode, source, scan_status, scan_progress, scan_progress_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    db.execute("INSERT INTO scans (scan_id, user_id, title, file_count, files_meta, results, score, grade, issue_count, language, credits_spent, total_lines, scan_mode, source, scan_status, scan_progress, scan_progress_text, team_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                (scan_id, user_id, title, file_count,
                 json.dumps(list(files_dict.keys()), ensure_ascii=False),
                 "[]", 0, "", 0, language,
                 credits_cost if user_id else 0,
                 total_lines, scan_mode, source,
-                "pending", 5, "正在准备扫描"))
+                "pending", 5, "正在准备扫描", team_id))
     db.commit()
 
     ok = job_manager.submit(
@@ -769,6 +1138,131 @@ def _do_async_scan(files_dict, brain_ids, language, vip, user_id, credits_cost, 
 # 报告页
 # ============================================================
 
+def _build_profile_groups(profile_items, max_groups=60, sample_files=3):
+    """把依赖画像条目按「识别到的库/API」聚合，供报告页展示。
+
+    画像是「这个项目用了什么」，同一类特征往往在几十个文件里重复命中，
+    逐条列出没有意义，所以按 title 聚成一行：命中几次 + 出现在哪些文件。
+    不参与评分、不计入问题总数。
+    """
+    groups = {}
+    for item in profile_items or []:
+        title = (item.get('title') or item.get('rule_id') or '').strip()
+        if not title:
+            continue
+        g = groups.setdefault(title, {
+            'title': title,
+            'rule_id': item.get('rule_id', ''),
+            'count': 0,
+            'files': [],
+        })
+        g['count'] += 1
+        fp = item.get('file', '')
+        if fp and fp not in g['files'] and len(g['files']) < sample_files:
+            g['files'].append(fp)
+
+    ordered = sorted(groups.values(), key=lambda x: (-x['count'], x['title']))
+    return ordered[:max_groups]
+
+
+# 报告页最多展开多少条抑制记录（清单本身在 scanner 侧已封顶 500）
+SUPPRESSED_PAGE_MAX = 300
+
+_SUPPRESSED_STAGE_FALLBACK = {
+    'b13_reject': 'AI 降噪判定为误报',
+    'b13_likely_fp_reject': 'AI 降噪复核判定为误报',
+    'b13_dedup_copy': '同文件同问题的代表条目被判误报，本条连带抑制',
+    'specialist_reject': '专科AI 未确认且评分低于阈值',
+}
+
+
+def _build_suppressed_groups(results, max_items=SUPPRESSED_PAGE_MAX):
+    """把「被抑制清单」按抑制阶段分组，供报告页回答「这条为什么没报」。
+
+    抑制清单 = 扫描发现、但被 AI 判定为误报而没计入报告的问题
+    （扫描器 results.ai_denoise.suppressed_issues，本页从 results 顶层同名
+    字段读取，由 modules/scanner.py 的 _collect_suppressed 透传）。
+
+    它不是缺陷：不进问题数、不影响评分、不进严重度分布。
+    分组维度用「抑制阶段」而不是文件——客户质疑时问的是
+    「凭什么说这条不算」，对应的是阶段，不是路径。
+
+    返回 (groups, total)。groups 里每个元素：
+        {stage, label, count(真实总数), records(展示用，可能少于 count), records_shown}
+
+    注意：展示用的列表字段名**不能叫 items**——Jinja 取 g.items 会命中 dict 自带的
+    dict.items 方法（属性优先于下标），渲染时报 object is not iterable。
+    """
+    records = results.get('suppressed_issues') if isinstance(results, dict) else None
+    if not isinstance(records, list):
+        records = []
+    stats = results.get('suppressed_stats') if isinstance(results, dict) else None
+    if not isinstance(stats, dict):
+        stats = {}
+    real_by_stage = stats.get('by_stage')
+    if not isinstance(real_by_stage, dict):
+        real_by_stage = {}
+
+    groups = {}
+    order = []
+    shown = 0
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        stage = rec.get('stage') or 'unknown'
+        group = groups.get(stage)
+        if group is None:
+            group = {
+                'stage': stage,
+                'label': (rec.get('stage_label')
+                          or _SUPPRESSED_STAGE_FALLBACK.get(stage)
+                          or '已被抑制'),
+                'count': 0,
+                'records': [],
+            }
+            groups[stage] = group
+            order.append(stage)
+        group['count'] += 1
+        if shown < max_items:
+            group['records'].append({
+                'rule_id': rec.get('check_id') or '',
+                'title': rec.get('title') or '',
+                'file': rec.get('file') or '',
+                'line': rec.get('line') or 0,
+                'reason': rec.get('reason') or '',
+                'confidence': rec.get('confidence'),
+                'engine': rec.get('engine') or '',
+            })
+            shown += 1
+
+    # 清单可能被截断：用扫描器给的真实分阶段计数覆盖，避免显示成「就这么几条」
+    for stage, group in groups.items():
+        real = real_by_stage.get(stage)
+        if isinstance(real, int) and real > group['count']:
+            group['count'] = real
+
+    ordered = [groups[s] for s in order]
+    ordered.sort(key=lambda x: (-x['count'], x['label']))
+    for group in ordered:
+        group['records_shown'] = len(group['records'])
+
+    try:
+        total = int(stats.get('total'))
+    except (TypeError, ValueError):
+        total = sum(g['count'] for g in ordered)
+    return ordered, total
+
+
+# 2026-11-03: 对外公开名。完整报告页（本模块）与 CI 分享页（modules/ci.py）
+# 必须用同一份分组逻辑——客户在两个页面上看到的「为什么没报」不能有两种说法，
+# 所以 CI 侧直接 import 这个名字，而不是复制一份实现。
+build_suppressed_groups = _build_suppressed_groups
+
+# 同理：依赖画像（「用了哪些库/API」）的分组也共用一份，避免两页对同一批
+# profile_items 聚出不同的行数与排序。
+build_profile_groups = _build_profile_groups
+
+
 @app.route('/report/<scan_id>')
 def report_page(scan_id):
     """报告页"""
@@ -779,13 +1273,41 @@ def report_page(scan_id):
         return render_template('404.html'), 404
 
     results = json.loads(scan['results']) if scan['results'] else {'issues': []}
+    # 落库数据不保证是对象：实测 api_scan_1794626939255_15（引擎超时失败）
+    # 的 results 存的是 "[]"，直接 .get() 就整页 500。
+    # 报告页不能因为一条脏数据崩掉——客户看到的是「网站坏了」。
+    if not isinstance(results, dict):
+        results = {'issues': []}
     all_issues = results.get('issues', [])
+    if not isinstance(all_issues, list):
+        all_issues = []
     # P0: style 问题单独展示
     style_issues = results.get('style_issues', [])
     style_count = len(style_issues)
+    # 2026-11-04: 积木五维要能看到 style_issues（AI 降级的问题）和引擎台账，
+    # 否则「查了没问题」和「查出来但被降级/引擎没跑」在页面上是同一个样子
+    bb_scores = calculate_building_block_scores(
+        all_issues,
+        file_count=scan['file_count'],
+        style_issues=style_issues,
+        engines=results.get('engines'),
+    )
+    # 2026-11-03: 依赖画像（「用了哪些库/API」）单独成栏，不是缺陷、不计分
+    profile_items = results.get('profile_items') or []
+    profile_count = len(profile_items)
+    profile_groups = _build_profile_groups(profile_items)
+    # 2026-11-03: 被抑制清单（AI 判为误报而没进报告的条目），同样单独成栏、不计分
+    suppressed_groups, suppressed_total = _build_suppressed_groups(results)
     vip = is_vip_user()
 
-    dimensions = _build_dimensions(all_issues, vip)
+    # 2026-11-04: 引擎台账。三个字段回答同一个问题——「这次到底查全了没有」：
+    #   engines          某个 brain 跑了/报错/被降级
+    #   unsupported_files 有文件没被解析（没读过的代码里可能有洞）
+    #   trimmed_files     有文件被截断（后半截没进分析）
+    # 缺台账的老报告是 None，下游一律退回旧行为。
+    _ledger, _unsupported_n, _trimmed_n = _ledger_of(results)
+
+    dimensions = _build_dimensions(all_issues, vip, _ledger, _unsupported_n, _trimmed_n)
     visible_issues = _format_visible_issues(all_issues, vip)
     _issue_tier_assignment(visible_issues)
     
@@ -805,8 +1327,31 @@ def report_page(scan_id):
                 ]
         except Exception:
             pass  # 过滤失败不影响正常展示
+
+    # ===== 三层分层（2026-11-22）=====
+    # 主列表只放「必须修 + 建议改」；复核判定不成立的单列在报告最后。
+    # 改之前：全库 66748 条 issue 里 19040 条（28.5%）带 ai_false_positive，
+    # AI 写了分析说「无需修复」，报告照单全收，还把其中两条排进「推荐优先修复」。
+    _verdict = report_verdict.build(visible_issues)
+    _must_items = _verdict['tiers'][TIER_MUST]
+    _should_items = _verdict['tiers'][TIER_SHOULD]
+    _excluded_items = _verdict['tiers'][TIER_EXCLUDED]
+    for _it in _must_items + _should_items + _excluded_items:
+        # 打临时标记给修复路线图和模板用，不落库
+        _iss = _it['issue']
+        _iss['_verdict_tier'] = _it['verdict']['tier']
+        _iss['_verdict_kind'] = _it['verdict']['kind']
+        _iss['_verdict_reason'] = _it['verdict']['reason']
+        _iss['_verdict_rank'] = _it['verdict']['rank']
+        _iss['_verdict_ai_note'] = _it['verdict']['ai_note']
+    # 主列表 = 前两层。第三层不进 visible_issues，但会单独渲染。
+    visible_issues = [i['issue'] for i in (_must_items + _should_items)]
+
     avail_brains = None if vip else FREE_BRAIN_IDS
-    tier_scores = calculate_tier_scores(all_issues, available_brain_ids=avail_brains, is_vip=vip)
+    tier_scores = calculate_tier_scores(
+        all_issues, available_brain_ids=avail_brains, is_vip=vip,
+        engines=_ledger, unsupported=_unsupported_n, trimmed=_trimmed_n,
+    )
     severity_counts = _compute_severity_counts(visible_issues)
 
     score = scan['score']
@@ -821,11 +1366,38 @@ def report_page(scan_id):
     except (ValueError, TypeError):
         created_at_str = created_at
 
-    bb_scores = calculate_building_block_scores(all_issues, file_count=scan['file_count'])
-
     # 修复路线图
     fix_roadmap = build_fix_roadmap(visible_issues)
     fix_progress = build_fix_progress(scan_id, session.get("user_id"))
+
+    # 一句话结论摘要（体检报告总评式）
+    # 没查成的维度要传进去：否则引擎崩了、0 条问题，结论还在说「代码质量优秀」
+    _not_detected_dims = [
+        d['name'] for d in dimensions if d.get('not_run')
+    ]
+    # 结论必须和分层同源。改之前结论看 severity_counts、路线图看另一套优先级，
+    # 同一个页面同时说「4 个高危建议优先修复」和「立即修复 0 个问题」。
+    _vc = _verdict['conclusion']
+    conclusion = {
+        'headline': _vc['headline'],
+        'detail': _vc.get('detail') or '',
+        'tone': _vc['tone'],
+    }
+    if not visible_issues and not _excluded_items and _not_detected_dims:
+        # 一条都没有、又有维度没查成：这块必须由「未检测」口径说话，
+        # 不能让「没有需要处理的问题」把「没查成」盖成「干净」。
+        conclusion = _build_conclusion(
+            severity_counts, score, grade, 0, _not_detected_dims
+        )
+    elif _not_detected_dims:
+        _nd = '另有 %d 个维度未能完成检测（%s），那部分不算查过' % (
+            len(_not_detected_dims), '、'.join(_not_detected_dims[:3]))
+        conclusion['detail'] = (conclusion['detail'] + '；' + _nd) if conclusion['detail'] else _nd
+        if conclusion['tone'] == 'good':
+            conclusion['tone'] = 'warn'
+
+    scan_mode = scan['scan_mode'] if 'scan_mode' in scan.keys() else ''
+    is_fix_eligible = bool(vip and scan_mode == 'deep')
 
     return render_template(
         'report.html',
@@ -833,6 +1405,16 @@ def report_page(scan_id):
         report_title=scan['title'],
         score=score,
         grade=grade,
+        conclusion=conclusion,
+        verdict=_verdict,
+        must_count=len(_must_items),
+        should_count=len(_should_items),
+        excluded_count=len(_excluded_items),
+        excluded_items=_excluded_items,
+        tier_must_meta=report_verdict.TIER_META[TIER_MUST],
+        tier_should_meta=report_verdict.TIER_META[TIER_SHOULD],
+        tier_excluded_meta=report_verdict.TIER_META[TIER_EXCLUDED],
+        ai_exclude_threshold=report_verdict.AI_EXCLUDE_MIN_CONFIDENCE,
         file_count=scan['file_count'],
         total_issues=scan['issue_count'],
         created_at=created_at_str,
@@ -843,12 +1425,21 @@ def report_page(scan_id):
         visible_issues_count=len(visible_issues),
         style_issues=style_issues,
         style_count=style_count,
+        profile_groups=profile_groups,
+        profile_count=profile_count,
+        suppressed_groups=suppressed_groups,
+        suppressed_total=suppressed_total,
+        suppressed_stats=results.get('suppressed_stats') or {},
         severity_counts=severity_counts,
         bb_scores=bb_scores,
         is_vip=vip,
+        scan_mode=scan_mode,
+        is_fix_eligible=is_fix_eligible,
         fix_roadmap=fix_roadmap,
         fix_progress=fix_progress,
         share_token=scan['share_token'],
+        # 报告页不弹「推荐有礼」：那是交付现场，不是拉新现场
+        suppress_promo=True,
     )
 
 
@@ -937,28 +1528,48 @@ def remove_false_positive(scan_id, fp_id):
 # HTML 报告下载
 # ============================================================
 
+# 导出的独立 HTML：去掉导航、页脚、操作按钮、反馈区，只留报告正文。
+# 静态资源靠注入的 <base> 指向线上地址，所以导出的文件双击就能看。
+_EXPORT_STYLE = """
+<style id="xinpect-export-style">
+.topbar, .footer, .report-actions, .feedback-section, #feedbackSection,
+.fp-mark-btn, .issue-toggle, .filter-bar, .tab-nav, .drill-down-section,
+.one-click-fix-actions { display: none !important; }
+body { background:#fff !important; }
+</style>
+"""
+
+
 @app.route('/report/<scan_id>/html')
 def download_html_report(scan_id):
-    """下载 HTML 报告"""
-    db = get_db()
-    scan = db.execute('SELECT * FROM scans WHERE scan_id = ?', (scan_id,)).fetchone()
+    """下载 HTML 报告（单文件，可直接转发给同事/领导）。
 
-    if not scan or not _scan_visible_to_session(scan):
-        return render_template('404.html'), 404
+    2026-11-04 之前这里是从引擎取 `/report/<id>`，但引擎从来没有这个路由
+    （带 API Key 实测 404），也没有任何模板指向它——也就是说这是个死功能，
+    谁点谁看「报告生成失败」。更根本的是：就算引擎能出，那也是第二套渲染、
+    第二套数字，正是这一轮在收的「同一份数据两套口径」。
 
-    try:
-        scanner_report_url = SCANNER_URL.replace('/scan', f'/report/{scan_id}')
-        resp = _safe_http_get(scanner_report_url, timeout=REPORT_TIMEOUT_SECONDS)
-        resp.raise_for_status()
-        html_content = resp.text
-    except (ConnectionError, OSError, RuntimeError) as e:
-        app.logger.error('HTML report fetch failed: %s', e)
-        flash('报告生成失败', 'error')
-        return redirect(url_for('report_page', scan_id=scan_id))
+    现在复用 report_page 的渲染结果，注入 <base> 让静态资源走线上地址，
+    并隐藏导航与按钮。导出件与网页版是同一份 DOM，数字不可能对不上。
+    """
+    rendered = report_page(scan_id)
+    if isinstance(rendered, tuple):        # 无权访问 / 不存在，原样透传 404
+        return rendered
+    html_content = rendered if isinstance(rendered, str) else rendered.get_data(as_text=True)
+
+    head_inject = f'<base href="{request.url_root}">' + _EXPORT_STYLE
+    if '<head>' in html_content:
+        html_content = html_content.replace('<head>', '<head>\n' + head_inject, 1)
+    else:
+        html_content = head_inject + html_content
 
     response = make_response(html_content)
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
-    response.headers['Content-Disposition'] = f'attachment; filename="xinpect_report_{scan_id}.html"'
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename="xinpect_report_{scan_id[:8]}.html"'
+    )
+    # 报告内容是私有数据，别让中间层或浏览器缓存成公共资源
+    response.headers['Cache-Control'] = 'private, no-store'
     return response
 
 
@@ -976,12 +1587,33 @@ def _build_md_header(scan, all_issues, vip):
     md_lines.append(f'**文件数量：** {scan["file_count"]}')
 
     avail_brains_md = None if vip else FREE_BRAIN_IDS
-    tier_scores_md = calculate_tier_scores(all_issues, available_brain_ids=avail_brains_md, is_vip=vip)
+    try:
+        _res_md = json.loads(scan['results']) if scan['results'] else {}
+    except (ValueError, TypeError):
+        _res_md = {}
+    _led_md, _uns_md, _trim_md = _ledger_of(_res_md)
+    tier_scores_md = calculate_tier_scores(
+        all_issues, available_brain_ids=avail_brains_md, is_vip=vip,
+        engines=_led_md, unsupported=_uns_md, trimmed=_trim_md,
+    )
     md_grade = calculate_overall_grade(tier_scores_md)
 
-    md_lines.append(f'**综合评级：** {md_grade} 级')
+    # 查不全时不能写「S 级」——那是把没查的地方当成干净
+    _md_grade_text = '未完整检测（评级不可用）' if md_grade == '—' else f'{md_grade} 级'
+    md_lines.append(f'**综合评级：** {_md_grade_text}')
     md_lines.append(f'**综合得分：** {scan["score"]} / 100')
     md_lines.append('')
+
+    # 一句话结论摘要（与报告页同源的确定性规则）
+    _sev = _compute_severity_counts(all_issues)
+    _not_detected_md = [
+        b['name'] for b in BRAINS
+        if _dim_card_state(_led_md, b['id'], _uns_md, _trim_md)[0] == _DIM_NOT_RUN
+    ]
+    _conc = _build_conclusion(_sev, scan["score"], md_grade, len(all_issues), _not_detected_md)
+    md_lines.append(f'**结论：** {_conc["headline"]}')
+    md_lines.append('')
+
     md_lines.append('**三层评级明细：**')
     md_lines.append('')
     md_lines.append('| 层级 | 名称 | 得分 | 评级 | 问题数 |')
@@ -999,7 +1631,7 @@ def _build_md_header(scan, all_issues, vip):
     ]
     md_lines.append(f'**问题总数：** {len(visible_issues)}')
     if not vip:
-        md_lines.append(f'> ⚡ 免费版仅展示规范层结果，[升级专业版](https://xinpect.xingwangzhineng.com) 解锁全部 9 大脑 + 小程序专项')
+        md_lines.append(f'> ⚡ 免费版仅展示规范层结果，[升级专业版](https://xinpect.xingwangzhineng.com) 解锁全部 7 大规则引擎 + AI 语义 + PoC 验证')
     md_lines.append('')
     md_lines.append('---')
     md_lines.append('')
@@ -1007,19 +1639,34 @@ def _build_md_header(scan, all_issues, vip):
 
 
 def _build_md_dimension_scores(scan, visible_issues, vip):
-    """构建各维度得分表"""
+    """构建各维度得分表
+
+    2026-11-04：与报告页同源——引擎没查成写「未检测」，不写 100。
+    """
     md_lines = []
     md_lines.append('## 各维度得分')
     md_lines.append('')
     md_lines.append('| 维度 | 名称 | 得分 | 问题数 |')
     md_lines.append('|------|------|------|--------|')
+    try:
+        _res_dim = json.loads(scan['results']) if scan['results'] else {}
+    except (ValueError, TypeError):
+        _res_dim = {}
+    _led_dim, _uns_dim, _trim_dim = _ledger_of(_res_dim)
     for brain in BRAINS:
         if vip or brain['id'] in FREE_BRAIN_ID_SET:
             brain_issues = [i for i in visible_issues if str(i.get('brain_id')) == brain['id']]
-            dim_score = calculate_dimension_score(brain_issues)
-            md_lines.append(f'| B{brain["id"]} | {brain["name"]} | {dim_score} | {len(brain_issues)} |')
+            _state, _state_text = _dim_card_state(
+                _led_dim, brain['id'], _uns_dim, _trim_dim
+            )
+            if _state == _DIM_NOT_RUN:
+                md_lines.append(f'| {brain["code"]} | {brain["name"]} | {_state_text} | {len(brain_issues)} |')
+            else:
+                dim_score = calculate_dimension_score(brain_issues)
+                _suffix = f'（{_state_text}）' if _state_text else ''
+                md_lines.append(f'| {brain["code"]} | {brain["name"]} | {dim_score}{_suffix} | {len(brain_issues)} |')
         else:
-            md_lines.append(f'| B{brain["id"]} | {brain["name"]} | 🔒 升级解锁 | - |')
+            md_lines.append(f'| {brain["code"]} | {brain["name"]} | 🔒 升级解锁 | - |')
     md_lines.append('')
     return md_lines
 
@@ -1031,7 +1678,7 @@ def _build_md_issue_detail(brain, visible_issues):
     if not brain_issues:
         return md_lines
 
-    md_lines.append(f'### B{brain["id"]} {brain["name"]}')
+    md_lines.append(f'### {brain["code"]} {brain["name"]}')
     md_lines.append('')
 
     for idx, issue in enumerate(brain_issues, 1):
@@ -1065,7 +1712,7 @@ def _build_md_issue_detail(brain, visible_issues):
     return md_lines
 
 
-def _build_md_issues(visible_issues, vip):
+def _build_md_issues(visible_issues, vip, profile_groups=None):
     """构建问题详情部分"""
     md_lines = []
     md_lines.append('## 问题详情')
@@ -1077,6 +1724,20 @@ def _build_md_issues(visible_issues, vip):
         visible_brains = BRAINS if vip else [b for b in BRAINS if b['id'] in FREE_BRAIN_ID_SET]
         for brain in visible_brains:
             md_lines.extend(_build_md_issue_detail(brain, visible_issues))
+
+    # 2026-11-03: 依赖画像单列一节，明确标注「不是缺陷」
+    if profile_groups:
+        _total = sum(g['count'] for g in profile_groups)
+        md_lines.append('')
+        md_lines.append(f'## 技术栈与依赖画像（{_total} 项，非缺陷）')
+        md_lines.append('')
+        md_lines.append('> 这些是扫描识别到的库 / 函数 / API 使用特征，用于了解项目构成，不代表存在问题。')
+        md_lines.append('')
+        md_lines.append('| 识别项 | 命中 | 示例文件 |')
+        md_lines.append('|---|---|---|')
+        for g in profile_groups:
+            _files = '<br>'.join(g['files']) if g['files'] else '-'
+            md_lines.append(f"| {g['title']} | {g['count']} | {_files} |")
 
     md_lines.append('')
     md_lines.append('---')
@@ -1103,10 +1764,19 @@ def download_report(scan_id):
         return render_template('404.html'), 404
 
     results = json.loads(scan['results']) if scan['results'] else {'issues': []}
+    # 落库数据不保证是对象：实测 api_scan_1794626939255_15（引擎超时失败）
+    # 的 results 存的是 "[]"，直接 .get() 就整页 500。
+    # 报告页不能因为一条脏数据崩掉——客户看到的是「网站坏了」。
+    if not isinstance(results, dict):
+        results = {'issues': []}
     all_issues = results.get('issues', [])
+    if not isinstance(all_issues, list):
+        all_issues = []
     # P0: style 问题单独展示
     style_issues = results.get('style_issues', [])
     style_count = len(style_issues)
+    # 2026-11-03: 依赖画像（非缺陷，单列一节）
+    profile_groups = _build_profile_groups(results.get('profile_items', []))
     vip = is_vip_user()
 
     if not vip:
@@ -1115,7 +1785,7 @@ def download_report(scan_id):
 
     header_lines, tier_scores_md, visible_issues = _build_md_header(scan, all_issues, vip)
     dimension_lines = _build_md_dimension_scores(scan, visible_issues, vip)
-    issues_lines = _build_md_issues(visible_issues, vip)
+    issues_lines = _build_md_issues(visible_issues, vip, profile_groups)
 
     md_lines = header_lines + dimension_lines + issues_lines
     md_content = '\n'.join(md_lines)
@@ -1249,19 +1919,24 @@ def api_component_check():
     try:
         resp = _safe_http_post(SCANNER_URL, json={
             'code_files': {filename: wxml_code},
-            'brain_ids': ['9'],
+            # 扫描器引擎 ID：6 = 组件合规（engine.e6_component，即原 B9 组件契约检测）
+            'brains': ['6'],
             'scan_mode': 'basic',
             'is_vip': False,
-        }, timeout=REPORT_TIMEOUT_SECONDS)
+        }, timeout=REPORT_TIMEOUT_SECONDS,
+            headers={"X-API-Key": SCANNER_API_KEY} if SCANNER_API_KEY else {})
         resp.raise_for_status()
         raw = resp.json()
     except Exception as e:
-        app.logger.error('Component check scanner call failed: %s', e)
+        app.logger.exception('Component check scanner call failed: %s', e)
         return jsonify({'success': False, 'error': '检测服务暂不可用，请稍后重试'}), HTTP_INTERNAL_ERROR
 
-    b9_result = raw.get('results', {}).get('9', {})
+    b9_result = raw.get('results', {}).get('6', {})
     raw_issues = b9_result.get('issues', [])
-    score = b9_result.get('score', 100)
+    # 注：扫描器返回的 per-brain score 基于旧的五级严重度模型，对组件契约类问题（已归为四级
+    # 梯度 restriction/suspicious）不扣分，恒为 100；与主扫描流程一致，改用本站 calculate_score
+    # 依据问题列表计算契约合规分，使 CC_SCORE_S/A/B（90/75/60）分档真实生效。
+    score = calculate_score(raw_issues)
 
     issues, sev_counts = _format_component_issues(raw_issues, wxml_code, filename)
     elapsed_ms = int((time.time() - start_time) * 1000)
@@ -1502,7 +2177,7 @@ def api_trends_brain():
     if not user_id:
         return jsonify({'error': '未登录'}), HTTP_UNAUTHORIZED
 
-    brain_id = request.args.get('brain_id', type=int)
+    brain_id = (request.args.get('brain_id') or '').strip()
     if not brain_id:
         return jsonify({'error': '请指定 brain_id'}), HTTP_BAD_REQUEST
 
@@ -1513,7 +2188,7 @@ def api_trends_brain():
         {'date': dp['date'], 'score': dp.get('brain_scores', {}).get(str(brain_id))}
         for dp in data['data_points']
     ]
-    brain_name = BRAINS_MAP.get(brain_id, {}).get('name', f'Brain {brain_id}')
+    brain_name = brain_label(brain_id)
 
     return jsonify({
         'success': True, 'brain_id': brain_id,

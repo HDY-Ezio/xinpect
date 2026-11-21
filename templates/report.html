@@ -1,15 +1,180 @@
 {% extends "base.html" %}
 
-{% block title %}检测报告 - 煋鉴 Xinpect</title>
+{% block title %}检测报告 - 煋鉴 Xinpect{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 一键修复 */
+.one-click-fix-block { margin-top:12px; padding:14px 16px; border-radius:10px; background:linear-gradient(135deg,var(--color-v-eef4ff) 0%,var(--color-v-eaf6ff) 100%); border:1px solid var(--color-v-b7d4f7); }
+.one-click-fix-block.locked { background:var(--color-v-f8f9fa); border-color:var(--color-v-e0e0e0); }
+.one-click-fix-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.one-click-fix-badge { background:var(--color-v-1a3a5c); color: var(--color-text-inverse); padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+.one-click-fix-block.locked .one-click-fix-badge { background:var(--color-v-9aa5b1); }
+.one-click-fix-sub { color:var(--color-v-6b7a90); font-size:12px; }
+.one-click-fix-actions { display:flex; gap:10px; }
+.one-click-fix-btn { border:none; padding:7px 16px; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600; }
+.one-click-fix-btn.preview { background:var(--color-bg-primary); color:var(--color-v-1a3a5c); border:1px solid var(--color-v-1a3a5c); }
+.one-click-fix-btn.apply { background:var(--color-v-1a3a5c); color: var(--color-text-inverse); }
+.one-click-fix-btn:hover { opacity:0.88; }
+.one-click-fix-lock-hint { color:var(--color-v-6b7a90); font-size:12px; }
+.one-click-fix-result { margin-top:10px; }
+.fix-result-box { background:var(--color-bg-primary); border:1px solid var(--color-border); border-radius:8px; padding:12px; }
+.fix-result-box.success { border-color:var(--color-success); background:var(--color-v-f0fdf4); }
+.fix-result-title { font-weight:600; color:var(--color-v-1a3a5c); margin-bottom:6px; }
+.fix-verify { font-size:12px; color: var(--color-success); margin-bottom:8px; }
+.fix-before-after { display:flex; gap:10px; flex-wrap:wrap; }
+/* flex:1 1 280px 让两栏在放不下时自动换行；min-width:0 防长行把栏撑爆 */
+.fix-half { flex:1 1 280px; min-width:0; }
+.fix-half-label { font-size:11px; color:var(--color-v-999999); margin-bottom:4px; }
+/* 代码按原文换行方式显示，长行自己横向滑动，不逐字断行（逐字断行读不出代码） */
+.fix-half pre { background:var(--color-v-f8f9fa); border-radius:6px; padding:8px; font-size:12px; overflow:auto; max-height:340px; margin:0; white-space:pre; }
+.fix-more-hint { display:block; color:var(--color-v-999999); font-size:11px; }
+.fix-expand-btn { margin-top:6px; border:1px solid var(--color-border); background:var(--color-bg-primary); color:var(--color-v-1a3a5c); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
+.fix-expand-btn:hover { background:var(--color-v-f1f3f5); }
+@media (max-width: 720px) {
+    /* 窄屏两栏并排只剩几十像素宽，必须改上下 */
+    .fix-before-after { display:block; }
+    .fix-half { flex:none; }
+    .fix-half + .fix-half { margin-top:10px; }
+}
+.fix-explanation { color:var(--color-v-6b7a90); font-size:12px; margin-top:8px; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ===== 一键修复 =====
+var scanId = "{{ scan_id }}";
+
+function previewFix(idx) {
+    var block = document.getElementById('fix-block-' + idx);
+    var key = block.getAttribute('data-issue-key');
+    var resultEl = document.getElementById('fix-result-' + idx);
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<div style="color:var(--color-v-666666);padding:8px;">⏳ 正在生成补丁…</div>';
+    fetch('/api/fix/preview/' + scanId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({issue_key: key})
+    }).then(function(r){return r.json();}).then(function(d){
+        if (d.status === 'ok' && d.fix && d.fix.applicable) {
+            var f = d.fix;
+            var verifyTag = f.verified ? '✅ 已回验通过' : '⚠️ 未通过回验';
+            resultEl.innerHTML = '<div class="fix-result-box">' +
+                '<div class="fix-result-title">补丁预览（' + (f.source === 'deterministic' ? '确定性规则' : 'AI 生成') + '）</div>' +
+                '<div class="fix-verify">' + verifyTag + '</div>' +
+                '<div class="fix-before-after">' +
+                '<div class="fix-half"><div class="fix-half-label">修复前</div>' + codeBlockHtml(f.before) + '</div>' +
+                '<div class="fix-half"><div class="fix-half-label">修复后</div>' + codeBlockHtml(f.after) + '</div>' +
+                '</div>' +
+                '<div class="fix-explanation">' + escapeHtml(f.explanation || '') + '</div>' +
+                '</div>';
+        } else {
+            resultEl.innerHTML = '<div style="color:var(--color-v-999999);padding:8px;">该问题暂无法自动修复：' + escapeHtml((d.fix && d.fix.reason) || (d.message || '')) + '</div>';
+        }
+    }).catch(function(e){
+        resultEl.innerHTML = '<div style="color:var(--color-v-cc0000);padding:8px;">请求失败，请稍后重试</div>';
+    });
+}
+
+function applyFix(idx, platform) {
+    var block = document.getElementById('fix-block-' + idx);
+    var key = block.getAttribute('data-issue-key');
+    var repoInput = document.getElementById('fix-repo-' + idx);
+    var repo = repoInput ? repoInput.value.trim() : '';
+    var resultEl = document.getElementById('fix-result-' + idx);
+    if (!repo) {
+        resultEl.style.display = 'block';
+        resultEl.innerHTML = '<div style="color:var(--color-v-cc0000);padding:8px;">请先填写仓库地址（如 HDY-Ezio/xinpect）</div>';
+        return;
+    }
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = '<div style="color:var(--color-v-666666);padding:8px;">⏳ 正在生成补丁并创建 PR…</div>';
+    fetch('/api/fix/' + scanId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({issue_key: key, platform: platform, repo_full_name: repo})
+    }).then(function(r){return r.json();}).then(function(d){
+        if (d.status === 'ok' && d.pr && d.pr.ok) {
+            resultEl.innerHTML = '<div class="fix-result-box success">' +
+                '<div class="fix-result-title">✅ 草稿 PR 已创建</div>' +
+                '<a href="' + d.pr.pr_url + '" target="_blank" style="color:var(--color-v-1a3a5c);font-weight:600;">查看 PR →</a>' +
+                '<div style="color:var(--color-v-666666);margin-top:6px;">请 review 后合并（不会自动合并）</div>' +
+                '</div>';
+        } else if (d.status === 'ok' && d.fix && d.fix.applicable) {
+            resultEl.innerHTML = '<div class="fix-result-box">' +
+                '<div class="fix-result-title">补丁已生成（' + (d.fix.verified ? '✅ 已回验' : '⚠️ 未回验') + '）</div>' +
+                '<div class="fix-before-after"><div class="fix-half"><div class="fix-half-label">修复前</div>' + codeBlockHtml(d.fix.before) + '</div><div class="fix-half"><div class="fix-half-label">修复后</div>' + codeBlockHtml(d.fix.after) + '</div></div>' +
+                (d.note ? '<div style="color:var(--color-v-999999);margin-top:6px;">' + escapeHtml(d.note) + '</div>' : '') +
+                '</div>';
+        } else {
+            resultEl.innerHTML = '<div style="color:var(--color-v-999999);padding:8px;">' + escapeHtml(d.message || (d.fix && d.fix.reason) || '无法自动修复') + '</div>';
+        }
+    }).catch(function(e){
+        resultEl.innerHTML = '<div style="color:var(--color-v-cc0000);padding:8px;">请求失败，请稍后重试</div>';
+    });
+}
+
+function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 代码块：默认只摊前 COLLAPSE_LINES 行，超出给「展开全部」。
+// 为什么：修复前/后是整段代码，大文件能到几百行，一屏全是字既看不出改了哪儿，
+// 也容易跟「页面把脚本漏成文字」那种故障混在一起分不清。
+var COLLAPSE_LINES = 12;
+
+function codeBlockHtml(text) {
+    var s = String(text == null ? '' : text);
+    var lines = s.split('\n');
+    if (lines.length <= COLLAPSE_LINES) {
+        return '<pre>' + escapeHtml(s) + '</pre>';
+    }
+    var head = lines.slice(0, COLLAPSE_LINES).join('\n');
+    return '<pre class="fix-pre-clamped">' + escapeHtml(head) +
+        '\n<span class="fix-more-hint">… 还有 ' + (lines.length - COLLAPSE_LINES) + ' 行</span></pre>' +
+        '<pre class="fix-pre-full" style="display:none">' + escapeHtml(s) + '</pre>' +
+        '<button type="button" class="fix-expand-btn" onclick="expandFix(this)">展开全部 ' + lines.length + ' 行</button>';
+}
+
+function expandFix(btn) {
+    var box = btn.parentNode;
+    var clipped = box.querySelector('.fix-pre-clamped');
+    var full = box.querySelector('.fix-pre-full');
+    if (clipped) { clipped.style.display = 'none'; }
+    if (full) { full.style.display = 'block'; }
+    btn.style.display = 'none';
+}
+</script>
 {% endblock %}
 
 {% block content %}
 <section class="section" style="padding: 32px 0;">
     <div class="container">
+        <div class="xp-ambient-banner" aria-hidden="true">
+          <div class="xp-ambient-grid"></div>
+          <div class="xp-ambient-code"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="xp-ambient-beam"></div>
+          <div class="xp-ambient-particles"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="xp-ambient-note">XINPECT / SCAN REPORT</div>
+        </div>
         <!-- 返回 -->
         <div style="margin-bottom:20px;">
             <a href="{{ url_for('upload_page') }}" style="color:var(--text-muted);font-size:14px;">← 返回上传</a>
         </div>
+
+        <!-- 一句话结论摘要（体检报告总评式，让不懂代码的人第一屏看懂） -->
+        {% if conclusion %}
+        <div class="conclusion-card conclusion-{{ conclusion.tone }}" style="display:flex;align-items:flex-start;gap:14px;padding:18px 22px;border-radius:12px;margin-bottom:20px;background:var(--bg-card, var(--color-bg-primary));border:1px solid var(--border, var(--color-v-e5e7eb));border-left:4px solid;{% if conclusion.tone == 'danger' %}border-left-color:var(--color-v-ef4444);{% elif conclusion.tone == 'warn' %}border-left-color:var(--color-sev-high);{% else %}border-left-color:var(--color-success);{% endif %}">
+            <div style="font-size:26px;line-height:1.3;">
+                {% if conclusion.tone == 'danger' %}🚨{% elif conclusion.tone == 'warn' %}⚠️{% else %}✅{% endif %}
+            </div>
+            <div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:4px;color:var(--text, var(--color-v-111827));">{{ conclusion.headline }}</div>
+                <div style="font-size:14px;opacity:.85;color:var(--text-muted, var(--color-v-6b7280));">{{ conclusion.detail }}</div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- 报告头部：双栏布局（架构评级 + 健康分） -->
         <div class="report-summary">
@@ -31,7 +196,10 @@
                 <div class="bb-radar-wrap">
                     <canvas id="bbRadarChart" width="280" height="280" style="width:280px;height:280px;"></canvas>
                 </div>
-                <div class="arch-grade-sub">积木架构五维雷达图 · 五大原则共同决定架构健康度</div>
+                <div class="arch-grade-sub">积木架构五维雷达图 · 五大原则共同决定架构健康度
+                <span style="display:block;font-size:12px;color:var(--color-v-868e96);margin-top:4px;">
+                    只评架构设计（职责、精简、入口、测试、依赖），<b>不含安全漏洞与代码质量</b>——那两类看下面的修复清单，不要拿这一栏和右侧的代码健康分对总分。
+                </span></div>
 
                 <!-- 五维得分明细 -->
                 <div class="bb-dim-list">
@@ -42,7 +210,7 @@
                         <span class="bb-dim-name">{{ bb.get('name', key) }}</span>
                         <span class="bb-dim-score">
                             {% if bb.get('detected') %}
-                                {{ bb.get('grade', 'A') }}级
+                                {{ bb.get('grade', 'A') }}级{% if bb.get('issue_count') %}<em class="bb-dim-count">{{ bb.get('issue_count') }} 项</em>{% endif %}
                             {% else %}
                                 未检测
                             {% endif %}
@@ -66,6 +234,9 @@
                             {% if ts.locked %}
                             <div class="tier-mini-grade locked">🔒</div>
                             <div class="tier-mini-desc">升级解锁</div>
+                            {% elif ts.incomplete %}
+                            <div class="tier-mini-grade locked">—</div>
+                            <div class="tier-mini-desc" style="color: var(--color-warning);">{{ ts.status_text }}{% if ts.score is not none %} · 已查部分 {{ ts.score }} 分{% endif %}</div>
                             {% else %}
                             <div class="tier-mini-grade grade-{{ ts.grade }}">{{ ts.grade }} · {{ ts.score }}分</div>
                             <div class="tier-mini-desc">{{ ts.issue_count }} 个问题</div>
@@ -83,7 +254,7 @@
             <div class="summary-col summary-health">
                 <div class="summary-col-head">
                     <span class="summary-col-title">代码健康分</span>
-                    <div class="info-tooltip" title="基于问题数量和严重程度的扣分制评分。问题越多、越严重，分数越低，反映当前代码的健康状况。">
+                    <div class="info-tooltip" title="按规则告警的数量和严重程度扣分。注意：被复核判定不成立的条目也计入扣分，所以这个分数往往比修复清单更悲观，判断该不该修请以上面的三层清单为准。">
                         ⓘ
                     </div>
                 </div>
@@ -92,34 +263,26 @@
                     <div class="health-score-number">{{ score }}</div>
                     <div class="health-score-unit">/ 100</div>
                 </div>
-                <div class="health-score-sub">基于问题数量与严重度的扣分制得分</div>
+                <div class="health-score-sub">按全部规则告警扣分，含复核未采纳的 {{ excluded_count }} 条</div>
 
                 <div class="severity-stats">
                     <div class="sev-item sev-critical">
-                        <div class="sev-num">{{ severity_counts.critical }}</div>
-                        <div class="sev-label">严重</div>
-                    </div>
-                    <div class="sev-item sev-high">
-                        <div class="sev-num">{{ severity_counts.high }}</div>
-                        <div class="sev-label">高危</div>
+                        <div class="sev-num">{{ must_count }}</div>
+                        <div class="sev-label">必须修</div>
                     </div>
                     <div class="sev-item sev-medium">
-                        <div class="sev-num">{{ severity_counts.medium }}</div>
-                        <div class="sev-label">中危</div>
-                    </div>
-                    <div class="sev-item sev-low">
-                        <div class="sev-num">{{ severity_counts.low }}</div>
-                        <div class="sev-label">低危</div>
+                        <div class="sev-num">{{ should_count }}</div>
+                        <div class="sev-label">建议改</div>
                     </div>
                     <div class="sev-item sev-info">
-                        <div class="sev-num">{{ severity_counts.info }}</div>
-                        <div class="sev-label">建议</div>
+                        <div class="sev-num">{{ excluded_count }}</div>
+                        <div class="sev-label">复核未采纳</div>
                     </div>
                 </div>
 
                 <div class="report-meta-inline">
                     <span>📄 {{ file_count }} 个文件</span>
-                    <span>🐛 共 {{ total_issues }} 个问题</span>
+                    <span>🐛 必须修 {{ must_count }} · 建议改 {{ should_count }}{% if excluded_count %} · 复核未采纳 {{ excluded_count }}{% endif %}</span>
                     <span>⏱ {{ created_at }}</span>
                     <span>🔖 ID: {{ scan_id[:8] }}</span>
                 </div>
@@ -133,6 +296,15 @@
                 <a href="{{ url_for('download_report', scan_id=scan_id) }}" class="btn btn-primary">
                     📥 下载 MD 报告 <span style="font-size:11px;opacity:.7;">(AI友好)</span>
                 </a>
+                <a href="{{ url_for('download_html_report', scan_id=scan_id) }}" class="btn btn-secondary"
+                   title="单文件，可直接转发给同事或领导">
+                    🌐 下载 HTML 报告
+                </a>
+                <button type="button" class="pdf-export-btn" onclick="window.print()"
+                        title="在打印对话框里选择「另存为 PDF」">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM8 12h8v1.5H8V12zm0 3.5h8V17H8v-1.5z"/></svg>
+                    导出 PDF
+                </button>
                 <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">
                     🔄 再测一次
                 </a>
@@ -197,11 +369,11 @@
             </div>
             <div class="progress-stats">
                 <div class="progress-stat fixed">
-                    <div class="progress-stat-num" style="color:#10B981;">✅ {{ fix_progress.fixed_total }}</div>
+                    <div class="progress-stat-num" style="color: var(--color-success);">✅ {{ fix_progress.fixed_total }}</div>
                     <div class="progress-stat-label">已修复</div>
                 </div>
                 <div class="progress-stat new">
-                    <div class="progress-stat-num" style="color:#EF4444;">⚠️ {{ fix_progress.new_total }}</div>
+                    <div class="progress-stat-num" style="color: var(--color-danger);">⚠️ {{ fix_progress.new_total }}</div>
                     <div class="progress-stat-label">新增</div>
                 </div>
                 <div class="progress-stat remaining">
@@ -209,7 +381,7 @@
                     <div class="progress-stat-label">仍存在</div>
                 </div>
                 <div class="progress-stat rate">
-                    <div class="progress-stat-num" style="color:{{ '#10B981' if fix_progress.score_change >= 0 else '#EF4444' }};">
+                    <div class="progress-stat-num" style="color:{{ 'var(--color-success)' if fix_progress.score_change >= 0 else 'var(--color-danger)' }};">
                         {{ '+' if fix_progress.score_change >= 0 else '' }}{{ fix_progress.score_change }}
                     </div>
                     <div class="progress-stat-label">分数变化</div>
@@ -229,12 +401,18 @@
         </div>
         {% endif %}
 
-        <!-- 9 大引擎得分卡片 -->
+        <!-- 7 大规则引擎 + AI + PoC 得分卡片 -->
+        {% if excluded_count and excluded_count > 0 %}
+        <div style="font-size:12px;color:var(--color-v-868e96);line-height:1.7;margin:0 0 10px;padding:8px 12px;background:var(--color-v-f8f9fb);border-radius:8px;">
+            下面每张卡上的「N 个问题」是<b>该引擎报出的规则告警总数</b>，包含后面复核判定不成立的 {{ excluded_count }} 条；
+            上面的修复清单只列必须修和建议改。两个数字不一样是正常的，不是漏报。
+        </div>
+        {% endif %}
         <div class="dimensions-grid">
             {% for dim in dimensions %}
             <div class="dimension-card {% if dim.locked %}locked{% endif %} {% if loop.first %}active{% endif %}" data-brain="{{ dim.id }}">
                 <div class="dimension-header">
-                    <div class="dimension-brain">B{{ dim.id }}</div>
+                    <div class="dimension-brain">{{ dim.code }}</div>
                     <div class="dimension-title">{{ dim.name }}</div>
                 </div>
                 {% if dim.locked %}
@@ -243,16 +421,22 @@
                     <span>升级解锁专业检测</span>
                 </div>
                 <div style="margin-top:8px;">
-                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" style="font-size:12px;color:var(--accent-orange);">查看详情 →</a>
+                    <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" style="font-size:12px;color:var(--accent-steel);">查看详情 →</a>
                 </div>
                 {% else %}
                 <div class="dimension-score-row">
                     <span class="dimension-score" style="color:{{ dim.score_color }};">{{ dim.score }}</span>
+                    {% if not dim.not_run %}
                     <div class="dimension-score-bar">
                         <div class="dimension-score-bar-fill" style="width:{{ dim.score }}%;background:{{ dim.score_color }};"></div>
                     </div>
+                    {% endif %}
                 </div>
-                <div class="dimension-issues-count">{{ dim.issues_count }} 个问题</div>
+                {% if dim.not_run %}
+                <div class="dimension-issues-count" style="color: var(--color-warning);">{{ dim.status_text }}（无结果）</div>
+                {% else %}
+                <div class="dimension-issues-count">{{ dim.issues_count }} 个问题{% if dim.status_text %} · <span style="color: var(--color-warning);">{{ dim.status_text }}</span>{% endif %}</div>
+                {% endif %}
                 {% endif %}
             </div>
             {% endfor %}
@@ -263,8 +447,8 @@
             <div class="issues-header">
                 <div class="issues-title">
                     问题列表 <span id="issues-count" style="color:var(--text-muted);font-weight:400;">({{ visible_issues_count }})</span>
-                    <span id="tier-filter-tag" style="display:none;margin-left:8px;padding:2px 8px;background:var(--primary-color);color:#fff;border-radius:4px;font-size:12px;"></span>
-                    <span id="brain-filter-tag" style="display:none;margin-left:6px;padding:2px 8px;background:var(--primary-color);color:#fff;border-radius:4px;font-size:12px;"></span>
+                    <span id="tier-filter-tag" style="display:none;margin-left:8px;padding:2px 8px;background:var(--primary-color);color: var(--color-text-inverse);border-radius:4px;font-size:12px;"></span>
+                    <span id="brain-filter-tag" style="display:none;margin-left:6px;padding:2px 8px;background:var(--primary-color);color: var(--color-text-inverse);border-radius:4px;font-size:12px;"></span>
                     <button id="reset-all-filter" onclick="resetAllFilters()" style="display:none;margin-left:8px;padding:2px 10px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-color);border-radius:4px;font-size:12px;cursor:pointer;vertical-align:middle;">× 查看全部</button>
                 </div>
                 <div class="issues-filters">
@@ -305,10 +489,10 @@
                             {% if is_vip %}
                                 {{ issue.file }}:{{ issue.line }}
                             {% else %}
-                                {{ issue.file }} 🔒 <span style="color:var(--accent-orange);font-weight:500;">升级查看位置</span>
+                                {{ issue.file }} 🔒 <span style="color:var(--accent-steel);font-weight:500;">升级查看位置</span>
                             {% endif %}
                         </span>
-                        <button class="fp-mark-btn" onclick="markFalsePositive(this, '{{ issue.rule_id }}', '{{ issue.file }}', {{ issue.line }}, '{{ issue.title|e }}')" title="标记为误报" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:12px;color:#adb5bd;opacity:0.6;transition:all 0.2s;" onmouseover="this.style.opacity='1';this.style.color='#ef4444'" onmouseout="this.style.opacity='0.6';this.style.color='#adb5bd'">⊘</button>
+                        <button class="fp-mark-btn" onclick="markFalsePositive(this, '{{ issue.rule_id }}', '{{ issue.file }}', {{ issue.line }}, '{{ issue.title|e }}')" title="标记为误报" style="background:none;border:none;cursor:pointer;padding:2px 6px;font-size:12px;color:var(--color-v-adb5bd);opacity:0.6;transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;" onmouseover="this.style.opacity='1';this.style.color='#ef4444'" onmouseout="this.style.opacity='0.6';this.style.color='#adb5bd'">⊘</button>
                         <span class="issue-toggle">▼</span>
                     </div>
                     <div class="issue-body">
@@ -340,12 +524,44 @@
 
                         {% if issue.fix_summary %}
                         <div class="issue-section-title">⚡ 快速修复</div>
-                        <div class="issue-suggestion" style="background:linear-gradient(135deg, #FFF7E6 0%, #FFF1EB 100%); border:1px solid #FFD591; color:#D46B08; padding:12px 16px; border-radius:8px;">
+                        <div class="issue-suggestion" style="background:linear-gradient(135deg, var(--color-sev-high-tint) 0%, var(--color-sev-high-tint-2) 100%); border:1px solid var(--color-sev-high); color: var(--color-warning); padding:12px 16px; border-radius:8px;">
                             <span style="font-weight:600;">{{ issue.fix_summary }}</span>
                             {% if issue.fix_suggestion and is_vip %}
-                            <button class="ai-copy-btn" onclick="showFixDetail(this)" style="margin-left:8px;float:right;background:#1A3A5C;color:white;border:none;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;">查看详情</button>
-                            <div class="fix-detail-content" style="display:none;margin-top:10px;">{{ issue.fix_suggestion|safe }}</div>
+                            <button class="ai-copy-btn" onclick="showFixDetail(this)" style="margin-left:8px;float:right;background:var(--color-v-1a3a5c);color:white;border:none;padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;">查看详情</button>
+                            <div class="fix-detail-content" style="display:none;margin-top:10px;">{{ issue.fix_suggestion }}</div>
                             {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if is_fix_eligible %}
+                        <div class="one-click-fix-block" id="fix-block-{{ loop.index0 }}" data-issue-key="{{ issue.rule_id }}@{{ issue.file }}@{{ issue.line }}">
+                            <div class="one-click-fix-header">
+                                <span class="one-click-fix-badge">🔧 一键修复</span>
+                                <span class="one-click-fix-sub">AI 生成补丁 · 自动回验 · 一键提 PR</span>
+                            </div>
+                            <div class="one-click-fix-actions">
+                                <button class="one-click-fix-btn preview" onclick="previewFix({{ loop.index0 }})">预览补丁</button>
+                            </div>
+                            <div class="one-click-fix-repo" style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                                <input type="text" id="fix-repo-{{ loop.index0 }}" placeholder="仓库地址，如 HDY-Ezio/xinpect 或 group/project" style="flex:1;padding:8px 12px;border:1px solid var(--color-v-dddddd);border-radius:6px;font-size:13px;">
+                            </div>
+                            <div class="one-click-fix-actions" style="margin-top:8px;">
+                                <button class="one-click-fix-btn apply" onclick="applyFix({{ loop.index0 }}, 'github')">提 PR (GitHub)</button>
+                                <button class="one-click-fix-btn apply" onclick="applyFix({{ loop.index0 }}, 'gitlab')" style="background:var(--color-v-fc6d26);color: var(--color-text-inverse);">提 MR (GitLab)</button>
+                            </div>
+                            <div class="one-click-fix-connect" style="margin-top:6px;font-size:12px;color:var(--color-v-888888);">
+                                连接账号：<a href="/api/github/authorize" style="color:var(--color-v-1a3a5c);">GitHub</a> · <a href="/api/gitlab/authorize" style="color: var(--color-danger);">GitLab</a>
+                                <span style="margin-left:4px;">（提 PR/MR 前需先授权）</span>
+                            </div>
+                            <div class="one-click-fix-result" id="fix-result-{{ loop.index0 }}" style="display:none;"></div>
+                        </div>
+                        {% elif is_vip and not is_fix_eligible %}
+                        <div class="one-click-fix-block locked">
+                            <div class="one-click-fix-header">
+                                <span class="one-click-fix-badge">🔧 一键修复</span>
+                                <span class="one-click-fix-sub">仅深度扫描可解锁</span>
+                            </div>
+                            <div class="one-click-fix-lock-hint">此扫描为 {{ scan_mode }} 模式，升级「深度扫描」即可用 AI 自动生成并应用修复补丁。</div>
                         </div>
                         {% endif %}
 
@@ -374,7 +590,7 @@
                         {% endif %}
 
                         <div style="margin-top:14px;display:flex;gap:12px;font-size:12px;color:var(--text-muted);">
-                            <span>检测维度：B{{ issue.brain_id }} {{ issue.brain_name }}</span>
+                            <span>检测维度：{{ issue.brain_id | brain_label }}</span>
                             <span>规则ID：{{ issue.rule_id }}</span>
                         </div>
                     </div>
@@ -390,7 +606,7 @@
                 {% else %}
                 <div class="empty-state">
                     <div class="empty-state-icon">🔒</div>
-                    <div class="empty-state-text">免费版仅展示规范层问题<br>升级专业版解锁全部 9 大引擎检测</div>
+                    <div class="empty-state-text">免费版仅展示规范层问题<br>升级专业版解锁全部检测能力</div>
                     <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">立即升级</a>
                 </div>
                 {% endif %}
@@ -400,36 +616,36 @@
         {% if style_count and style_count > 0 %}
         <!-- P0: 代码风格建议折叠面板 -->
         <div class="style-panel" id="stylePanel" style="margin-top:24px;">
-            <div class="style-panel-header" onclick="toggleStylePanel()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-radius:12px;cursor:pointer;border:1px solid #e0e0e0;transition:all 0.2s;">
+            <div class="style-panel-header" onclick="toggleStylePanel()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,var(--color-v-f8f9fa) 0%,var(--color-v-e9ecef) 100%);border-radius:12px;cursor:pointer;border:1px solid var(--color-v-e0e0e0);transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;">
                 <div style="display:flex;align-items:center;gap:12px;">
                     <span style="font-size:20px;">🎨</span>
-                    <span style="font-weight:600;color:#495057;font-size:16px;">代码风格建议</span>
-                    <span style="background:#6c757d;color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ style_count }} 条</span>
-                    <span style="font-size:12px;color:#868e96;margin-left:4px;">不影响安全评分</span>
+                    <span style="font-weight:600;color:var(--color-v-495057);font-size:16px;">代码风格建议</span>
+                    <span style="background:var(--color-v-6c757d);color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ style_count }} 条</span>
+                    <span style="font-size:12px;color:var(--color-v-868e96);margin-left:4px;">不影响安全评分</span>
                 </div>
-                <span id="styleArrow" style="transition:transform 0.3s;color:#868e96;font-size:14px;">&#9660;</span>
+                <span id="styleArrow" style="transition:transform 0.3s;color:var(--color-v-868e96);font-size:14px;">&#9660;</span>
             </div>
             <div id="styleContent" style="display:none;padding:16px 0;">
                 <div style="display:grid;gap:12px;">
                 {% for issue in style_issues %}
-                <div class="style-issue-card" style="background:#fafbfc;border:1px solid #e9ecef;border-radius:10px;padding:14px 16px;border-left:3px solid #adb5bd;">
+                <div class="style-issue-card" style="background:var(--color-v-fafbfc);border:1px solid var(--color-v-e9ecef);border-radius:10px;padding:14px 16px;border-left:3px solid var(--color-v-adb5bd);">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                        <span style="background:#e9ecef;color:#495057;padding:2px 8px;border-radius:6px;font-size:11px;">{{ issue.severity_label }}</span>
-                        <span style="background:#e9ecef;color:#495057;padding:2px 8px;border-radius:6px;font-size:11px;">{{ issue.brain_name }}</span>
-                        <span style="font-size:11px;color:#868e96;">{{ issue.rule_id }}</span>
+                        <span style="background:var(--color-v-e9ecef);color:var(--color-v-495057);padding:2px 8px;border-radius:6px;font-size:11px;">{{ issue.severity_label }}</span>
+                        <span style="background:var(--color-v-e9ecef);color:var(--color-v-495057);padding:2px 8px;border-radius:6px;font-size:11px;">{{ issue.brain_id | brain_label }}</span>
+                        <span style="font-size:11px;color:var(--color-v-868e96);">{{ issue.rule_id }}</span>
                     </div>
-                    <div style="font-weight:600;color:#495057;font-size:14px;margin-bottom:4px;">{{ issue.title }}</div>
+                    <div style="font-weight:600;color:var(--color-v-495057);font-size:14px;margin-bottom:4px;">{{ issue.title }}</div>
                     {% if issue.description %}
-                    <div style="color:#868e96;font-size:13px;margin-bottom:6px;">{{ issue.description }}</div>
+                    <div style="color:var(--color-v-868e96);font-size:13px;margin-bottom:6px;">{{ issue.description }}</div>
                     {% endif %}
-                    <div style="font-size:12px;color:#6c757d;">
-                        📄 {{ issue.file }}{% if issue.line %}<span style="color:#adb5bd;">:{{ issue.line }}</span>{% endif %}
+                    <div style="font-size:12px;color:var(--color-v-6c757d);">
+                        📄 {{ issue.file }}{% if issue.line %}<span style="color:var(--color-v-adb5bd);">:{{ issue.line }}</span>{% endif %}
                     </div>
                     {% if issue.code_snippet %}
-                    <pre style="background:#f1f3f5;padding:10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;overflow-x:auto;margin-top:8px;color:#495057;border:1px solid #e9ecef;white-space:pre-wrap;word-break:break-all;">{{ issue.code_snippet }}</pre>
+                    <pre style="background:var(--color-v-f1f3f5);padding:10px;border-radius:8px;font-family:var(--font-v-jetbrains-mono-a1165c);font-size:12px;overflow-x:auto;margin-top:8px;color:var(--color-v-495057);border:1px solid var(--color-v-e9ecef);white-space:pre-wrap;word-break:break-all;">{{ issue.code_snippet }}</pre>
                     {% endif %}
                     {% if issue.suggestion %}
-                    <div style="margin-top:8px;padding:10px;background:#e8f5e9;border-radius:8px;color:#2e7d32;font-size:13px;">💡 {{ issue.suggestion }}</div>
+                    <div style="margin-top:8px;padding:10px;background:var(--color-v-e8f5e9);border-radius:8px;color: var(--color-success);font-size:13px;">💡 {{ issue.suggestion }}</div>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -451,15 +667,184 @@
         </script>
         {% endif %}
 
+        {% if profile_count and profile_count > 0 %}
+        <!-- 2026-11-03: 依赖画像（识别到哪些库/API）折叠面板，非缺陷 -->
+        <div class="profile-panel" id="profilePanel" style="margin-top:24px;">
+            <div class="profile-panel-header" onclick="toggleProfilePanel()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,var(--color-v-f4f7fb) 0%,var(--color-v-e8eef7) 100%);border-radius:12px;cursor:pointer;border:1px solid var(--color-v-dbe4f0);transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:20px;">🧩</span>
+                    <span style="font-weight:600;color:var(--color-v-34495e);font-size:16px;">技术栈与依赖画像</span>
+                    <span style="background:var(--color-v-5b7fa6);color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ profile_count }} 项</span>
+                    <span style="font-size:12px;color:var(--color-v-7f8c9b);margin-left:4px;">不是缺陷，仅用于了解项目构成</span>
+                </div>
+                <span id="profileArrow" style="transition:transform 0.3s;color:var(--color-v-7f8c9b);font-size:14px;">&#9660;</span>
+            </div>
+            <div id="profileContent" style="display:none;padding:16px 0;">
+                <div style="display:grid;gap:10px;">
+                {% for g in profile_groups %}
+                <div class="profile-item-card" style="background:var(--color-v-fafcff);border:1px solid var(--color-v-e6edf6);border-radius:10px;padding:14px 16px;border-left:3px solid var(--color-v-5b7fa6);">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span style="font-weight:600;color:var(--color-v-34495e);font-size:14px;">{{ g.title }}</span>
+                        <span style="background:var(--color-v-e6edf6);color:var(--color-v-5b7fa6);padding:2px 8px;border-radius:6px;font-size:11px;">命中 {{ g.count }} 处</span>
+                        <span style="font-size:11px;color:var(--color-v-95a5a6);">{{ g.rule_id }}</span>
+                    </div>
+                    {% if g.files %}
+                    <div style="font-size:12px;color:var(--color-v-7f8c9b);margin-top:6px;">
+                        📄 {{ g.files | join(' · ') }}{% if g.count > (g.files | length) %}<span style="color:var(--color-v-bdc3c7);"> 等</span>{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        <script>
+        function toggleProfilePanel() {
+            var content = document.getElementById('profileContent');
+            var arrow = document.getElementById('profileArrow');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+        </script>
+        {% endif %}
+
+        {% if suppressed_total and suppressed_total > 0 %}
+        <!-- 2026-11-03: 被抑制清单（AI 判定为误报、未计入报告）折叠面板，非缺陷 -->
+        <div class="suppressed-panel" id="suppressedPanel" style="margin-top:24px;">
+            <div class="suppressed-panel-header" onclick="toggleSuppressedPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,var(--color-v-f7f8fa) 0%,var(--color-v-eef1f5) 100%);border-radius:12px;cursor:pointer;border:1px solid var(--color-v-e3e7ec);transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span style="font-size:20px;">🔍</span>
+                    <span style="font-weight:600;color:var(--color-v-34495e);font-size:16px;">AI 判定为误报、已抑制</span>
+                    <span style="background:var(--color-v-8a94a6);color: var(--color-text-inverse);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ suppressed_total }} 条</span>
+                    <span style="font-size:12px;color:var(--color-v-7f8c9b);margin-left:4px;">未计入问题数，不影响评分</span>
+                </div>
+                <span id="suppressedArrow" style="transition:transform 0.3s;color:var(--color-v-7f8c9b);font-size:14px;">&#9660;</span>
+            </div>
+            <div id="suppressedContent" style="display:none;padding:16px 0;">
+                <div style="font-size:13px;color:var(--color-v-6c757d);line-height:1.75;margin-bottom:16px;padding:12px 14px;background:var(--color-v-f8f9fb);border-radius:8px;border-left:3px solid var(--color-v-adb5bd);">
+                    这些是扫描发现、但被 AI 判定为误报而<b>没有计入报告</b>的问题。保留这份清单，是为了在您问「这条为什么没报」时，
+                    能查到当时的判断结果和理由——它不是缺陷，不参与评分。
+                </div>
+                {% for g in suppressed_groups %}
+                <div style="margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+                        <span style="font-weight:600;color:var(--color-v-495057);font-size:14px;">{{ g.label }}</span>
+                        <span style="background:var(--color-v-eef1f5);color:var(--color-v-6c757d);padding:2px 8px;border-radius:6px;font-size:11px;">{{ g.count }} 条</span>
+                    </div>
+                    <div style="display:grid;gap:8px;">
+                    {% for it in g.records %}
+                    <div class="suppressed-item-card" style="background:var(--color-v-fafbfc);border:1px solid var(--color-v-e9ecef);border-radius:10px;padding:12px 14px;border-left:3px solid var(--color-v-c3cbd6);">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                            {% if it.rule_id %}<span style="font-size:11px;color:var(--color-v-868e96);font-family:var(--font-v-jetbrains-mono-a1165c);">{{ it.rule_id }}</span>{% endif %}
+                            <span style="font-weight:600;color:var(--color-v-495057);font-size:13px;">{{ it.title or '（无标题）' }}</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--color-v-6c757d);">
+                            📄 {{ it.file }}{% if it.line %}<span style="color:var(--color-v-adb5bd);">:{{ it.line }}</span>{% endif %}
+                        </div>
+                        {% if it.reason %}
+                        <div style="margin-top:7px;font-size:12px;color:var(--color-v-868e96);line-height:1.65;">AI 理由：{{ it.reason }}{% if it.confidence is not none %}<span style="color:var(--color-v-adb5bd);">（置信度 {{ '%.2f' | format(it.confidence) }}）</span>{% endif %}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    </div>
+                    {% if g.count > g.records_shown %}
+                    <div style="font-size:12px;color:var(--color-v-95a5a6);margin-top:8px;">仅展示前 {{ g.records_shown }} 条，其余 {{ g.count - g.records_shown }} 条未在页面展开。</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if suppressed_stats and suppressed_stats.truncated %}
+                <div style="font-size:12px;color:var(--color-metal-gold-deep);margin-top:10px;">⚠ 清单较长，本次仅保存了部分记录（共 {{ suppressed_total }} 条）。</div>
+                {% endif %}
+            </div>
+        </div>
+        <script>
+        function toggleSuppressedPanel() {
+            var content = document.getElementById('suppressedContent');
+            var arrow = document.getElementById('suppressedArrow');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+        </script>
+        {% endif %}
+
+        {% if excluded_count and excluded_count > 0 %}
+        <!-- 2026-11-22: 复核未采纳清单。规则报出来了，扫描后逐条复核判定不成立。
+             单独列出而不是删掉：AI 会错，客户有权核对；但也绝不混进修复清单里去凑数。 -->
+        <div class="suppressed-panel" id="excludedPanel" style="margin-top:24px;">
+            <div class="suppressed-panel-header" onclick="toggleExcludedPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,var(--color-v-f7f8fa) 0%,var(--color-v-eef1f5) 100%);border-radius:12px;cursor:pointer;border:1px solid var(--color-v-e3e7ec);">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span style="font-size:20px;">🧾</span>
+                    <span style="font-weight:600;color:var(--color-v-34495e);font-size:16px;">规则报了、复核判定不成立</span>
+                    <span style="background:var(--color-v-8a94a6);color: var(--color-text-inverse);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ excluded_count }} 条</span>
+                    <span style="font-size:12px;color:var(--color-v-7f8c9b);margin-left:4px;">不计入问题数，不参与评分</span>
+                </div>
+                <span id="excludedArrow" style="transition:transform 0.3s;color:var(--color-v-7f8c9b);font-size:14px;">&#9660;</span>
+            </div>
+            <div id="excludedContent" style="display:none;padding:16px 0;">
+                <div style="font-size:13px;color:var(--color-v-6c757d);line-height:1.75;margin-bottom:16px;padding:12px 14px;background:var(--color-v-f8f9fb);border-radius:8px;border-left:3px solid var(--color-v-adb5bd);">
+                    下面这些问题<b>确实是规则引擎报出来的</b>，扫描结束后逐条复核，判定在当前代码里不成立，
+                    所以没有算进上面的修复清单。保留在这里是因为<b>复核也会出错</b>——
+                    如果你看完觉得判断不对，就按正常问题处理，不要因为我们说「不成立」就放过。
+                </div>
+                <div style="display:grid;gap:10px;">
+                {% for pair in excluded_items %}
+                    {% set it = pair.issue %}
+                    {% set v = pair.verdict %}
+                    <div class="suppressed-item-card" style="background:var(--color-v-fafbfc);border:1px solid var(--color-v-e9ecef);border-radius:10px;padding:14px 16px;border-left:3px solid var(--color-v-c3cbd6);">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                            {% if it.rule_id %}<span style="font-size:11px;color:var(--color-v-868e96);font-family:var(--font-v-jetbrains-mono-a1165c);">{{ it.rule_id }}</span>{% endif %}
+                            <span style="font-weight:600;color:var(--color-v-495057);font-size:14px;">{{ it.title or it.name or '（无标题）' }}</span>
+                            {% if it.ai_confidence is not none %}
+                            <span style="font-size:11px;background:var(--color-v-eef1f5);color:var(--color-v-6c757d);padding:2px 8px;border-radius:6px;">复核把握 {{ it.ai_confidence | int }}%</span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size:12px;color:var(--color-v-6c757d);margin-bottom:8px;">
+                            📄 {{ it.file }}{% if it.line %}<span style="color:var(--color-v-adb5bd);">:{{ it.line }}</span>{% endif %}
+                        </div>
+                        {% if v.reason %}
+                        <div style="font-size:12.5px;color:var(--color-v-5a6570);line-height:1.7;background:var(--color-bg-primary);border-radius:6px;padding:10px 12px;">
+                            复核意见：{{ v.reason }}
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        <script>
+        function toggleExcludedPanel() {
+            var content = document.getElementById('excludedContent');
+            var arrow = document.getElementById('excludedArrow');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+        </script>
+        {% endif %}
+
         <!-- 免费版升级引导 -->
         {% if not is_vip %}
-        <div style="margin-top:24px;background:linear-gradient(135deg, rgba(26,58,92,0.1) 0%, rgba(37,99,235,0.05) 100%);border:1px solid rgba(26,58,92,0.3);border-radius:var(--radius-lg);padding:32px;display:flex;align-items:center;gap:32px;">
+        <div style="margin-top:24px;background:linear-gradient(135deg, var(--color-metal-gold-tint-2) 0%, var(--color-v-f840df0bc) 100%);border:1px solid var(--color-metal-gold);border-radius:var(--radius-lg);padding:32px;display:flex;align-items:center;gap:32px;">
             <div style="font-size:48px;">🚀</div>
             <div style="flex:1;">
-                <h3 style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--accent-orange);">升级专业版，解锁完整检测能力</h3>
+                <h3 style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--accent-steel);">升级专业版，解锁完整检测能力</h3>
                 <p style="color:var(--text-secondary);margin-bottom:16px;">E3 性能与可靠性 · E5 架构与部署 · E4 代码质量 · E2 安全检测 · E6 组件合规，5 大专业维度等你体验</p>
                 <div style="display:flex;gap:24px;font-size:14px;color:var(--text-secondary);flex-wrap:wrap;">
-                    <span>✓ 全部 9 大引擎检测</span>
+                    <span>✓ 7 大规则引擎 + AI + PoC 全开</span>
                     <span>✓ 无限检测次数</span>
                     <span>✓ 完整报告下载</span>
                     <span>✓ 优先技术支持</span>
@@ -471,20 +856,20 @@
     </div>
 
 <!-- ========== 扫描结果反馈区域 ========== -->
-<div class="feedback-section" id="feedbackSection" style="margin:32px auto;max-width:600px;text-align:center;padding:24px;background:var(--card-bg,#fff);border-radius:12px;border:1px solid var(--border-color,#e5e7eb);">
+<div class="feedback-section" id="feedbackSection" style="margin:32px auto;max-width:600px;text-align:center;padding:24px;background:var(--card-bg,var(--color-bg-primary));border-radius:12px;border:1px solid var(--border-color,var(--color-v-e5e7eb));">
     <div id="feedbackInitial">
-        <p style="font-size:16px;font-weight:600;margin:0 0 16px;color:var(--text-primary,#1a1a1a);">扫描结果有用吗？</p>
+        <p style="font-size:16px;font-weight:600;margin:0 0 16px;color:var(--text-primary,var(--color-v-1a1a1a));">扫描结果有用吗？</p>
         <div style="display:flex;gap:16px;justify-content:center;">
-            <button onclick="submitRating(5)" style="padding:10px 28px;border-radius:8px;border:1px solid #22c55e;background:#f0fdf4;color:#16a34a;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;">
+            <button onclick="submitRating(5)" style="padding:10px 28px;border-radius:8px;border:1px solid var(--color-v-22c55e);background:var(--color-v-f0fdf4);color: var(--color-success);font-size:15px;font-weight:600;cursor:pointer;transition:background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s;">
                 👍 有用
             </button>
-            <button onclick="submitRating(1)" style="padding:10px 28px;border-radius:8px;border:1px solid #ef4444;background:#fef2f2;color:#dc2626;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;">
+            <button onclick="submitRating(1)" style="padding:10px 28px;border-radius:8px;border:1px solid var(--color-v-ef4444);background:var(--color-v-fef2f2);color: var(--color-danger);font-size:15px;font-weight:600;cursor:pointer;transition:background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s;">
                 👎 没用
             </button>
         </div>
     </div>
     <div id="feedbackForm" style="display:none;margin-top:16px;text-align:left;">
-        <p style="font-size:14px;color:var(--text-secondary,#6b7280);margin:0 0 12px;" id="feedbackFormTitle">请告诉我们哪里不够好：</p>
+        <p style="font-size:14px;color:var(--text-secondary,var(--color-v-6b7280));margin:0 0 12px;" id="feedbackFormTitle">请告诉我们哪里不够好：</p>
         <div id="issueTypeCheckboxes" style="display:none;margin-bottom:12px;">
             <label style="display:inline-flex;align-items:center;gap:4px;margin:4px 8px 4px 0;font-size:13px;cursor:pointer;">
                 <input type="checkbox" value="漏报" class="feedback-issue-cb"> 漏报（真实问题没扫出来）
@@ -502,69 +887,76 @@
                 <input type="checkbox" value="其他" class="feedback-issue-cb"> 其他
             </label>
         </div>
-        <textarea id="feedbackText" placeholder="具体反馈（可选，最多1000字）" maxlength="1000" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--border-color,#e5e7eb);border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+        <textarea id="feedbackText" placeholder="具体反馈（可选，最多1000字）" maxlength="1000" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--border-color,var(--color-v-e5e7eb));border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
         <div style="margin-top:12px;display:flex;gap:10px;justify-content:flex-end;">
-            <button onclick="cancelFeedback()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color,#e5e7eb);background:transparent;color:var(--text-secondary,#6b7280);font-size:13px;cursor:pointer;">取消</button>
-            <button onclick="submitFeedbackForm()" style="padding:8px 20px;border-radius:6px;border:none;background:#1A3A5C;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">提交反馈</button>
+            <button onclick="cancelFeedback()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color,var(--color-v-e5e7eb));background:transparent;color:var(--text-secondary,var(--color-v-6b7280));font-size:13px;cursor:pointer;">取消</button>
+            <button onclick="submitFeedbackForm()" style="padding:8px 20px;border-radius:6px;border:none;background:var(--color-v-1a3a5c);color: var(--color-text-inverse);font-size:13px;font-weight:600;cursor:pointer;">提交反馈</button>
         </div>
     </div>
     <div id="feedbackThanks" style="display:none;">
-        <p style="font-size:16px;font-weight:600;color:#22c55e;margin:0;">✓ 感谢反馈！</p>
-        <p style="font-size:13px;color:var(--text-secondary,#6b7280);margin:8px 0 0;">您的反馈帮助我们持续改进检测质量</p>
+        <p style="font-size:16px;font-weight:600;color: var(--color-success);margin:0;">✓ 感谢反馈！</p>
+        <p style="font-size:13px;color:var(--text-secondary,var(--color-v-6b7280));margin:8px 0 0;">您的反馈帮助我们持续改进检测质量</p>
     </div>
 </div>
 
 <style>
-.feedback-section button:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.feedback-section button:hover { transform: translateY(-1px); box-shadow: 0 2px 8px var(--color-v-f348c9372); }
 .feedback-section button:active { transform: translateY(0); }
 @media (max-width: 480px) {
     #feedbackSection { margin: 20px 12px !important; padding: 16px !important; }
+}
+
+/* ========== 分级筛选高亮（修复 2026-10-27 补 toggleTierFilter 配套样式） ========== */
+.tier-mini-card.tier-active {
+    outline: 2px solid var(--primary-color, var(--color-v-1a3a5c));
+    outline-offset: 2px;
+    background: var(--color-metal-gold-tint);
 }
 
 /* ========== PDF 导出样式 ========== */
 .pdf-export-btn {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 16px; border-radius: 8px;
-    background: linear-gradient(135deg, #1A3A5C, #1E40AF);
-    color: #fff; font-size: 13px; font-weight: 600;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-inverse); font-size: 13px; font-weight: 600;
     border: none; cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;
 }
 .pdf-export-btn:hover {
-    background: linear-gradient(135deg, #1E40AF, #d14d1f);
+    background: var(--color-bg-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(26,58,92,0.3);
+    box-shadow: 0 4px 12px var(--color-metal-gold-alpha-08);
 }
 .pdf-export-btn:active { transform: translateY(0); }
 .pdf-export-btn svg { width: 16px; height: 16px; fill: currentColor; }
 
 .pdf-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(10,15,26,0.85);
+    background: var(--color-metal-gold-tint-2);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     z-index: 99999;
     backdrop-filter: blur(4px);
 }
-.pdf-overlay-inner { text-align: center; color: #f1f5f9; }
+.pdf-overlay-inner { text-align: center; color: var(--color-v-f1f5f9); }
 .pdf-overlay .spinner {
     width: 48px; height: 48px;
-    border: 4px solid rgba(26,58,92,0.2);
-    border-top-color: #1A3A5C;
+    border: 4px solid var(--color-metal-gold);
+    border-top-color: var(--color-v-1a3a5c);
     border-radius: 50%;
     animation: pdf-spin 0.8s linear infinite;
     margin: 0 auto 16px;
 }
 @keyframes pdf-spin { to { transform: rotate(360deg); } }
 .pdf-overlay .msg { font-size: 15px; font-weight: 600; }
-.pdf-overlay .sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+.pdf-overlay .sub { font-size: 12px; color: var(--color-text-muted); margin-top: 6px; }
 
 .action-buttons { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 /* ===== 打印专用样式 ===== */
 @media print {
     .topbar, .footer, .pdf-export-btn, .badge-section,
-    .action-buttons, .fp-mark-btn, .issue-toggle,
+    .action-buttons, .report-actions, .fp-mark-btn, .issue-toggle,
     .filter-bar, .tab-nav, .drill-down-section,
     button:not(.pdf-export-btn), .btn { display: none !important; }
 
@@ -574,8 +966,8 @@
     }
 
     body {
-        background: #fff !important;
-        color: #1a1a1a !important;
+        background: var(--color-bg-primary) !important;
+        color: var(--color-v-1a1a1a) !important;
         font-size: 11pt !important;
         line-height: 1.5 !important;
         -webkit-print-color-adjust: exact;
@@ -586,94 +978,94 @@
     .main { padding: 0 !important; }
 
     .report-header {
-        background: #f8f9fa !important;
-        border: 2px solid #1A3A5C !important;
+        background: var(--color-v-f8f9fa) !important;
+        border: 2px solid var(--color-v-1a3a5c) !important;
         border-radius: 8px !important;
         padding: 20px !important;
         margin-bottom: 16px !important;
         page-break-inside: avoid;
     }
-    .report-header h1 { color: #1a1a1a !important; font-size: 18pt !important; }
+    .report-header h1 { color: var(--color-v-1a1a1a) !important; font-size: 18pt !important; }
 
     .score-circle { border-width: 3px !important; }
     .score-circle .score-num { font-size: 28pt !important; }
-    .score-excellent { border-color: #22c55e !important; color: #22c55e !important; }
-    .score-good { border-color: #1A3A5C !important; color: #1A3A5C !important; }
-    .score-fair { border-color: #f59e0b !important; color: #f59e0b !important; }
-    .score-poor { border-color: #ef4444 !important; color: #ef4444 !important; }
+    .score-excellent { border-color: var(--color-v-22c55e) !important; color: var(--color-success) !important; }
+    .score-good { border-color: var(--color-v-1a3a5c) !important; color: var(--color-v-1a3a5c) !important; }
+    .score-fair { border-color: var(--color-sev-high) !important; color: var(--color-warning) !important; }
+    .score-poor { border-color: var(--color-v-ef4444) !important; color: var(--color-danger) !important; }
 
-    .meta-label { color: #666 !important; }
-    .meta-value { color: #1a1a1a !important; }
+    .meta-label { color: var(--color-v-666666) !important; }
+    .meta-value { color: var(--color-v-1a1a1a) !important; }
 
     .stats-row { gap: 8px !important; margin-bottom: 16px !important; }
     .stat-card {
-        background: #f8f9fa !important;
-        border: 1px solid #ddd !important;
+        background: var(--color-v-f8f9fa) !important;
+        border: 1px solid var(--color-v-dddddd) !important;
         border-radius: 6px !important;
         padding: 12px !important;
         page-break-inside: avoid;
     }
-    .stat-num { color: #1a1a1a !important; font-size: 20pt !important; }
-    .stat-num.critical { color: #ef4444 !important; }
-    .stat-num.warning { color: #f59e0b !important; }
-    .stat-num.info { color: #3b82f6 !important; }
-    .stat-num.total { color: #1A3A5C !important; }
-    .stat-label { color: #666 !important; }
+    .stat-num { color: var(--color-v-1a1a1a) !important; font-size: 20pt !important; }
+    .stat-num.critical { color: var(--color-danger) !important; }
+    .stat-num.warning { color: var(--color-warning) !important; }
+    .stat-num.info { color: var(--color-info) !important; }
+    .stat-num.total { color: var(--color-v-1a3a5c) !important; }
+    .stat-label { color: var(--color-v-666666) !important; }
 
     .section-title {
         font-size: 13pt !important;
         margin-bottom: 10px !important;
         margin-top: 16px !important;
         page-break-after: avoid;
-        color: #1a1a1a !important;
+        color: var(--color-v-1a1a1a) !important;
     }
 
     .issue-section { margin-bottom: 16px !important; }
     .issue-item {
-        background: #fff !important;
-        border: 1px solid #e0e0e0 !important;
+        background: var(--color-bg-primary) !important;
+        border: 1px solid var(--color-v-e0e0e0) !important;
         border-radius: 6px !important;
         padding: 10px 14px !important;
         margin-bottom: 6px !important;
         page-break-inside: avoid;
     }
-    .issue-item.critical { border-left: 4px solid #ef4444 !important; }
-    .issue-item.warning { border-left: 4px solid #f59e0b !important; }
-    .issue-item.info { border-left: 4px solid #3b82f6 !important; }
+    .issue-item.critical { border-left: 4px solid var(--color-v-ef4444) !important; }
+    .issue-item.warning { border-left: 4px solid var(--color-sev-high) !important; }
+    .issue-item.info { border-left: 4px solid var(--color-v-3b82f6) !important; }
 
     .issue-severity { font-size: 9pt !important; padding: 1px 6px !important; }
-    .issue-severity.critical { background: #fef2f2 !important; color: #ef4444 !important; }
-    .issue-severity.warning { background: #fffbeb !important; color: #d97706 !important; }
-    .issue-severity.info { background: #eff6ff !important; color: #3b82f6 !important; }
+    .issue-severity.critical { background: var(--color-v-fef2f2) !important; color: var(--color-danger) !important; }
+    .issue-severity.warning { background: var(--color-v-fffbeb) !important; color: var(--color-warning) !important; }
+    .issue-severity.info { background: var(--color-v-eff6ff) !important; color: var(--color-info) !important; }
 
-    .issue-title { color: #1a1a1a !important; font-size: 11pt !important; }
-    .issue-file { color: #666 !important; font-size: 9pt !important; }
-    .issue-desc { color: #333 !important; font-size: 10pt !important; }
+    .issue-title { color: var(--color-v-1a1a1a) !important; font-size: 11pt !important; }
+    .issue-file { color: var(--color-v-666666) !important; font-size: 9pt !important; }
+    .issue-desc { color: var(--color-v-333333) !important; font-size: 10pt !important; }
 
     .issue-code, pre, code {
-        font-family: 'Courier New', Courier, monospace !important;
+        font-family: var(--font-v-courier-new-6c15e1);
         font-size: 9pt !important;
-        background: #f5f5f5 !important;
-        border: 1px solid #ddd !important;
+        background: var(--color-v-f5f5f5) !important;
+        border: 1px solid var(--color-v-dddddd) !important;
         border-radius: 4px !important;
         padding: 6px 8px !important;
         white-space: pre-wrap !important;
         word-break: break-all !important;
-        color: #1a1a1a !important;
+        color: var(--color-v-1a1a1a) !important;
     }
 
     .pdf-footer {
         display: block !important;
         text-align: center;
         font-size: 9pt;
-        color: #999;
+        color: var(--color-v-999999);
         margin-top: 24px;
         padding-top: 12px;
-        border-top: 1px solid #ddd;
+        border-top: 1px solid var(--color-v-dddddd);
     }
-    .pdf-footer .brand { color: #1A3A5C; font-weight: 700; }
+    .pdf-footer .brand { color: var(--color-v-1a3a5c); font-weight: 700; }
 
-    .empty-state { color: #666 !important; }
+    .empty-state { color: var(--color-v-666666) !important; }
 }
 
 .pdf-footer { display: none; }
@@ -711,13 +1103,13 @@
     justify-content: space-between;
     align-items: center;
     padding: 4px 8px;
-    background: rgba(99, 102, 241, 0.06);
+    background: var(--color-v-fc84988b8);
     border-radius: 6px;
-    border: 1px solid rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--color-v-fa5a6f8d9);
 }
 .bb-dim-item.not-detected {
-    background: rgba(156, 163, 175, 0.06);
-    border-color: rgba(156, 163, 175, 0.15);
+    background: var(--color-v-f2ad93e7a);
+    border-color: var(--color-metal-gold);
 }
 .bb-dim-name {
     color: var(--text-primary);
@@ -734,6 +1126,20 @@
 .bb-dim-item.not-detected .bb-dim-score {
     color: var(--text-muted);
     font-weight: 400;
+}
+/* 有命中时在等级旁边标出问题数：low 严重度在评分公式里扣 0 分，
+   只显示「S 级」等于把问题藏起来 */
+.bb-dim-count {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 3px;
+    background: var(--color-v-fa541f804);
+    color: var(--color-warning);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 600;
+    vertical-align: 1px;
 }
 @media (max-width: 768px) {
     .bb-radar-wrap {
@@ -758,14 +1164,14 @@
     vertical-align: middle;
 }
 .source-badge.source-rule {
-    background: rgba(99, 102, 241, 0.1);
-    color: #6366f1;
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    background: var(--color-v-fa5a6f8d9);
+    color: var(--color-v-6366f1);
+    border: 1px solid var(--color-v-f33555321);
 }
 .source-badge.source-ai {
-    background: rgba(37,99,235, 0.1);
-    color: #d97706;
-    border: 1px solid rgba(37,99,235, 0.2);
+    background: var(--color-v-ff28a1764);
+    color: var(--color-warning);
+    border: 1px solid var(--color-v-f728664f6);
 }
 .source-filter-btn {
     display: inline-flex;
@@ -778,7 +1184,7 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
     vertical-align: middle;
 }
 .source-filter-btn:hover {
@@ -830,8 +1236,8 @@
 .priority-segment-label {
     font-size: 12px;
     font-weight: 600;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    color: var(--color-text-inverse);
+    text-shadow: 0 1px 2px var(--color-v-f86967987);
 }
 .roadmap-priority-list {
     display: grid;
@@ -845,10 +1251,10 @@
     gap: 8px;
     padding: 8px 12px;
     border-radius: 8px;
-    background: var(--bg-secondary, rgba(255,255,255,0.03));
+    background: var(--bg-secondary, var(--color-v-f74b76757));
     transition: background 0.15s;
 }
-.priority-row:hover { background: rgba(255,255,255,0.06); }
+.priority-row:hover { background: var(--color-v-fe9ea3e30); }
 .priority-icon { font-size: 16px; }
 .priority-label { font-size: 14px; }
 .priority-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
@@ -869,7 +1275,7 @@
     gap: 8px;
     padding: 6px 0;
     font-size: 13px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--color-v-f84da7a19);
 }
 .top-fix-item:last-child { border-bottom: none; }
 .top-fix-num { font-size: 14px; font-weight: 700; min-width: 20px; }
@@ -910,7 +1316,7 @@
 .progress-stat {
     text-align: center;
     padding: 12px;
-    background: rgba(255,255,255,0.03);
+    background: var(--color-v-f74b76757);
     border-radius: 10px;
 }
 .progress-stat-num { font-size: 24px; font-weight: 700; }
@@ -929,8 +1335,8 @@
 .progress-rate-badge {
     margin-left: auto;
     padding: 4px 12px;
-    background: rgba(16, 185, 129, 0.1);
-    color: #10B981;
+    background: var(--color-v-fb0cabdd7);
+    color: var(--color-success);
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
@@ -945,7 +1351,7 @@
     overflow: hidden;
     transition: border-color 0.15s;
 }
-.file-group:hover { border-color: rgba(255,255,255,0.15); }
+.file-group:hover { border-color: var(--color-v-f274c1329); }
 .file-group-header {
     display: flex;
     align-items: center;
@@ -955,7 +1361,7 @@
     user-select: none;
     transition: background 0.15s;
 }
-.file-group-header:hover { background: rgba(255,255,255,0.03); }
+.file-group-header:hover { background: var(--color-v-f74b76757); }
 .file-group-toggle {
     font-size: 12px;
     color: var(--text-muted);
@@ -994,7 +1400,7 @@
 
 .file-group-body .issue-item {
     border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--color-v-f84da7a19);
     border-radius: 0;
     margin: 0;
     padding: 12px 0;
@@ -1018,11 +1424,11 @@
     color: var(--text-secondary);
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.15s;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, opacity 0.15s, transform 0.15s;
 }
 .p3-collapse-toggle:hover {
-    background: rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.15);
+    background: var(--color-v-f85f89ec1);
+    border-color: var(--color-v-f274c1329);
 }
 .p3-collapse-toggle .toggle-arrow { transition: transform 0.2s; }
 .p3-collapse-section.expanded .toggle-arrow { transform: rotate(180deg); }
@@ -1035,9 +1441,9 @@
 }
 
 .source-filter-btn.source-active {
-    background: var(--accent-orange);
-    color: #fff;
-    border-color: var(--accent-orange);
+    background: var(--accent-steel);
+    color: var(--color-text-inverse);
+    border-color: var(--accent-steel);
 }
 </style>
 
@@ -1264,32 +1670,6 @@ var labelsWithScore = labels;
 })();
 </script>
 
-<script>
-// B->E engine ID mapping
-(function() {
-    var B2E = {'1':'1','2':'2','3':'1','4':'3','5':'4','6':'4','7':'5','8':'2','9':'6','10':'2'};
-    document.querySelectorAll('.dimension-brain').forEach(function(el) {
-        var card = el.closest('.dimension-card');
-        if (card) {
-            var bid = card.getAttribute('data-brain');
-            var eid = B2E[bid] || bid;
-            el.textContent = 'E' + eid;
-        }
-    });
-    document.querySelectorAll('.issue-item').forEach(function(el) {
-        var bid = el.getAttribute('data-brain');
-        var eid = B2E[bid] || bid;
-        var spans = el.querySelectorAll('span');
-        for (var i = 0; i < spans.length; i++) {
-            var t = spans[i].textContent;
-            if (t.indexOf('B' + bid) === 0) {
-                spans[i].textContent = t.replace('B' + bid, 'E' + eid);
-                break;
-            }
-        }
-    });
-})();
-</script>
 
 <script>
 // ===== 修复路线图：文件分组 + 折叠交互 =====
@@ -1354,8 +1734,8 @@ var labelsWithScore = labels;
     };
     var PRIORITY_META = {
         'P0': {icon: '🔴', color: '#EF4444', label: '立即修复'},
-        'P1': {icon: '🟡', color: '#F59E0B', label: '计划修复'},
-        'P2': {icon: '🟠', color: '#F97316', label: '尽快修复'},
+        'P1': {icon: '🟡', color: xpColor('--color-warning'), label: '计划修复'},
+        'P2': {icon: '🟠', color: xpColor('--color-sev-high'), label: '尽快修复'},
         'P3': {icon: '⚪', color: '#9CA3AF', label: '建议优化'},
     };
 
@@ -1504,6 +1884,109 @@ var labelsWithScore = labels;
         // Scroll to issues section
         issuesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
+
+    // ===== 修复 2026-10-27：补齐 4 个 onclick 引用但从未定义的函数 =====
+    // 原 onclick="toggleTierFilter(...)/resetAllFilters()/showFixDetail(this)/copyFixCode(this)"
+    // 全站无定义，点击报 ReferenceError，功能完全失效。
+
+    // 1. 分级筛选：按 data-tier（spec/quality/security）筛选 issue
+    var _lastTierFilter = null;
+    window.toggleTierFilter = function(tier) {
+        var tag = document.getElementById('tier-filter-tag');
+        var resetBtn = document.getElementById('reset-all-filter');
+        var items = wrapper.querySelectorAll('.issue-item');
+
+        // 再次点击同一层级 = 取消筛选
+        if (_lastTierFilter === tier) {
+            _lastTierFilter = null;
+            items.forEach(function(it) { it.style.display = ''; });
+            if (tag) tag.style.display = 'none';
+            if (resetBtn) resetBtn.style.display = 'none';
+            // 恢复高亮
+            document.querySelectorAll('.tier-mini-card').forEach(function(c) { c.classList.remove('tier-active'); });
+            return;
+        }
+
+        _lastTierFilter = tier;
+        items.forEach(function(it) {
+            var t = it.getAttribute('data-tier') || '';
+            it.style.display = (t === tier) ? '' : 'none';
+        });
+        // 高亮选中卡片
+        document.querySelectorAll('.tier-mini-card').forEach(function(c) {
+            c.classList.toggle('tier-active', c.getAttribute('data-tier') === tier);
+        });
+        // 显示筛选标签
+        if (tag) {
+            var nameMap = { spec: '规范', quality: '质量', security: '安全' };
+            tag.textContent = '筛选：' + (nameMap[tier] || tier);
+            tag.style.display = '';
+        }
+        if (resetBtn) resetBtn.style.display = '';
+        issuesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // 2. 重置所有筛选
+    window.resetAllFilters = function() {
+        // 清除 tier 筛选
+        if (window.toggleTierFilter && _lastTierFilter !== null) {
+            window.toggleTierFilter(_lastTierFilter);
+        }
+        // 清除 priority 筛选
+        if (window._lastPriorityFilter) {
+            window.filterByPriority(window._lastPriorityFilter);
+        }
+        // 兜底：显示全部
+        wrapper.querySelectorAll('.issue-item').forEach(function(it) { it.style.display = ''; });
+        wrapper.querySelectorAll('.file-group').forEach(function(g) { g.style.display = ''; });
+        var p3sec = wrapper.querySelector('.p3-collapse-section');
+        if (p3sec) p3sec.style.display = '';
+        document.querySelectorAll('.tier-mini-card').forEach(function(c) { c.classList.remove('tier-active'); });
+    };
+
+    // 3. 展开/收起修复详情
+    window.showFixDetail = function(btn) {
+        if (!btn) return;
+        var detail = btn.nextElementSibling;
+        // 跳过空白文本节点，找到 .fix-detail-content
+        while (detail && detail.nodeType !== 1) detail = detail.nextElementSibling;
+        if (!detail) return;
+        if (detail.style.display === 'none') {
+            detail.style.display = 'block';
+            btn.textContent = '收起详情';
+        } else {
+            detail.style.display = 'none';
+            btn.textContent = '查看详情';
+        }
+    };
+
+    // 4. 复制 AI 修复代码
+    window.copyFixCode = function(btn) {
+        if (!btn) return;
+        var block = btn.closest('.ai-fix-block');
+        var content = block ? block.querySelector('.ai-fix-content') : null;
+        var text = content ? content.textContent.trim() : '';
+        if (!text) { btn.textContent = '无代码可复制'; setTimeout(function() { btn.textContent = '📋 复制代码'; }, 1500); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() {
+                btn.textContent = '✅ 已复制';
+                setTimeout(function() { btn.textContent = '📋 复制代码'; }, 1500);
+            }).catch(function() {
+                _fallbackCopy(text, btn);
+            });
+        } else {
+            _fallbackCopy(text, btn);
+        }
+    };
+    function _fallbackCopy(text, btn) {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); btn.textContent = '✅ 已复制'; }
+        catch (e) { btn.textContent = '复制失败'; }
+        document.body.removeChild(ta);
+        setTimeout(function() { btn.textContent = '📋 复制代码'; }, 1500);
+    }
 })();
 </script>
 
@@ -1560,42 +2043,40 @@ var labelsWithScore = labels;
         }).then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.status !== 'ok' && data.error) {
-                document.getElementById('feedbackThanks').innerHTML = '<p style="font-size:14px;color:#ef4444;margin:0;">' + data.error + '</p>';
+                document.getElementById('feedbackThanks').innerHTML = '<p style="font-size:14px;color: var(--color-danger);margin:0;">' + data.error + '</p>';
             }
         }).catch(function() {
-            document.getElementById('feedbackThanks').innerHTML = '<p style="font-size:14px;color:#ef4444;margin:0;">提交失败，请稍后重试</p>';
+            document.getElementById('feedbackThanks').innerHTML = '<p style="font-size:14px;color: var(--color-danger);margin:0;">提交失败，请稍后重试</p>';
         });
     }
 })();
 </script>
 
-{% endblock %}
-
 <!-- ===== 分享报告功能 ===== -->
 <style>
-.share-btn { background: linear-gradient(135deg, #0EA5E9, #0284C7); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition: all .2s; }
-.share-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14,165,233,.3); }
-.share-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.6); z-index:9999; justify-content:center; align-items:center; }
+.share-btn { background: var(--color-bg-secondary); color: var(--color-text-inverse); border:none; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s; }
+.share-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--color-v-fedbfd7c4); }
+.share-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--color-v-fb597da95); z-index:9999; justify-content:center; align-items:center; }
 .share-modal-overlay.active { display:flex; }
-.share-modal { background:#1e293b; border:1px solid #334155; border-radius:16px; padding:32px; max-width:480px; width:90%; color:#f1f5f9; position:relative; }
+.share-modal { background:var(--color-v-1e293b); border:1px solid var(--color-v-334155); border-radius:16px; padding:32px; max-width:480px; width:90%; color:var(--color-v-f1f5f9); position:relative; }
 .share-modal h3 { font-size:18px; font-weight:700; margin-bottom:8px; }
-.share-modal p { font-size:13px; color:#94a3b8; margin-bottom:20px; }
+.share-modal p { font-size:13px; color:var(--color-text-muted); margin-bottom:20px; }
 .share-link-box { display:flex; gap:8px; margin-bottom:16px; }
-.share-link-input { flex:1; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:10px 14px; color:#e2e8f0; font-size:13px; font-family:monospace; outline:none; }
-.share-link-input:focus { border-color:#0EA5E9; }
-.copy-btn { background:#0EA5E9; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition: all .2s; }
-.copy-btn:hover { background:#0284C7; }
-.copy-btn.copied { background:#22c55e; }
+.share-link-input { flex:1; background:var(--color-v-0f172a); border:1px solid var(--color-v-334155); border-radius:8px; padding:10px 14px; color:var(--color-v-e2e8f0); font-size:13px; font-family:monospace; outline:none; }
+.share-link-input:focus { border-color:var(--color-v-0ea5e9); }
+.copy-btn { background:var(--color-v-0ea5e9); color: var(--color-text-inverse); border:none; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s; }
+.copy-btn:hover { background:var(--color-v-0284c7); }
+.copy-btn.copied { background:var(--color-v-22c55e); }
 .share-modal-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; }
-.share-modal-actions button { background:transparent; border:1px solid #334155; color:#94a3b8; padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; }
-.share-modal-actions button:hover { border-color:#64748b; color:#e2e8f0; }
-.unshare-btn { color:#ef4444 !important; border-color:rgba(239,68,68,.3) !important; }
-.unshare-btn:hover { border-color:#ef4444 !important; background:rgba(239,68,68,.1) !important; }
-.share-badge-section { margin-top:20px; padding-top:16px; border-top:1px solid #334155; }
-.share-badge-section label { font-size:12px; color:#64748b; display:block; margin-bottom:8px; }
+.share-modal-actions button { background:transparent; border:1px solid var(--color-v-334155); color:var(--color-text-muted); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; }
+.share-modal-actions button:hover { border-color:var(--color-v-64748b); color:var(--color-v-e2e8f0); }
+.unshare-btn { color: var(--color-danger) !important; border-color:var(--color-v-f2ccfd631) !important; }
+.unshare-btn:hover { border-color:var(--color-v-ef4444) !important; background:var(--color-danger-tint) !important; }
+.share-badge-section { margin-top:20px; padding-top:16px; border-top:1px solid var(--color-v-334155); }
+.share-badge-section label { font-size:12px; color:var(--color-v-64748b); display:block; margin-bottom:8px; }
 .badge-preview-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .badge-preview-row img { height:22px; }
-.badge-md-box { background:#0f172a; border:1px solid #334155; border-radius:6px; padding:8px 12px; font-size:11px; font-family:monospace; color:#94a3b8; word-break:break-all; }
+.badge-md-box { background:var(--color-v-0f172a); border:1px solid var(--color-v-334155); border-radius:6px; padding:8px 12px; font-size:11px; font-family:monospace; color:var(--color-text-muted); word-break:break-all; }
 </style>
 
 {% if session.get('user_id') %}
@@ -1620,7 +2101,7 @@ var labelsWithScore = labels;
             <label>🏷️ 在 README 中展示徽章：</label>
             <div class="badge-preview-row">
                 <img id="badgeImg" src="" alt="badge">
-                <span style="font-size:12px;color:#64748b;">代码质量徽章</span>
+                <span style="font-size:12px;color:var(--color-v-64748b);">代码质量徽章</span>
             </div>
             <div class="badge-md-box" id="badgeMd"></div>
         </div>
@@ -1735,7 +2216,9 @@ var labelsWithScore = labels;
         if (e.target === this) closeShareModal();
     });
 })();
+</script>
 
+<script>
 // ========== 误报反馈功能 ==========
 var scanId = '{{ scan_id }}';
 
@@ -1800,6 +2283,13 @@ window.unmarkFalsePositive = function(btn, ruleId, file, line, title) {
     })
     .catch(function(e) { alert('网络错误'); });
 };
-
 </script>
+
+<!-- 免责声明 -->
+<div class="report-disclaimer" style="margin:24px auto;max-width:800px;padding:20px;background:var(--color-v-f8f9fa);border-radius:8px;border-left:3px solid var(--color-v-adb5bd);font-size:13px;color:var(--color-v-6b7280);line-height:1.6;">
+    <p style="margin:0 0 8px;font-weight:600;color:var(--color-v-495057);">免责声明</p>
+    <p style="margin:0;">本报告检测结果仅供参考，不构成法律意义上的安全认证。检测基于静态代码分析和已知漏洞特征库，无法保证发现所有安全漏洞。本报告不可替代CMA/CNAS认证的正式安全评估。用户应结合业务场景人工复核，因依赖检测结果导致的损失，煋鉴不承担法律责任。</p>
+</div>
 {% endif %}
+
+{% endblock %}

@@ -1,11 +1,23 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
+<head><script>
+/* 图表只认颜色字符串，统一从 tokens 读，别在脚本里抄色值 */
+window.xpColor = function (name, fallback) {
+  try {
+    var v = getComputedStyle(document.documentElement)
+              .getPropertyValue(name).trim();
+    if (v) return v;
+  } catch (e) {}
+  return fallback || 'currentColor';
+};
+</script>
+
+    <link rel="stylesheet" href="/static/css/tokens.css?v=20261118.1">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析{% endblock %}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="{% block meta_description %}煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎并行扫描，2881+检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持Python/Java/Go/JS等17种语言，规范层免费无限使用。{% endblock %}">
+    <meta name="description" content="{% block meta_description %}煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，9,500+ 条检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持 Python/Java/Go/JS 等 23 种语言，规范层免费无限使用。{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}代码质检,代码审计,静态分析,SAST,代码扫描,代码审查工具,AST分析,漏洞检测,煋鉴,Xinpect,代码质量检测{% endblock %}">
     <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
     <link rel="canonical" href="{% block canonical_url %}https://xinpect.xingwangzhineng.com{{ request.path }}{% endblock %}">
@@ -22,8 +34,16 @@
     <meta name="twitter:title" content="{{ self.og_title() }}">
     <meta name="twitter:description" content="{{ self.og_description() }}">
     <meta name="twitter:image" content="{{ self.og_image() }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260920v1">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231A2B4A'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-weight='bold' font-family='Arial'>X</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261117.1">
+    <link rel="stylesheet" href="/static/css/cool-fx.css?v=20261108">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/noto-serif-sc.local.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/noto-sans-sc.local.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/jetbrains-mono.local.css') }}">
+    <!-- 扫描等待界面：全站唯一一份，首页/试扫/上传页共用，不复制粘贴 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/scan-fx.css') }}?v=20261109.8">
+    <script src="{{ url_for('static', filename='js/scan-fx.js') }}?v=20261105"></script>
+    <link rel="icon" type="image/png" sizes="128x128" href="{{ url_for('static', filename='xinpect-mark-128.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 {% block extra_head %}{% endblock %}
 {% block extra_css %}{% endblock %}
     <style>
@@ -33,7 +53,13 @@
 <style>
 /* 全局UI交互增强 - 基于现代UX最佳实践 */
 button, .btn, [onclick], .clickable {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* 列明真正会变的属性，不写 all：all 会让浏览器为每次交互监听所有属性 */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     user-select: none;
 }
@@ -46,19 +72,19 @@ button:disabled, .btn:disabled {
     transform: none !important;
 }
 .card, .mode-card, .settings-panel {
-    transition: all 0.25s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .card:hover, .mode-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 24px var(--color-v-fcead0cbd);
 }
 input, select, textarea {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: var(--accent-orange, #1A3A5C);
-    box-shadow: 0 0 0 3px rgba(26,58,92,0.1);
+    border-color: var(--accent-steel, var(--color-v-1a3a5c));
+    box-shadow: 0 0 0 3px var(--color-metal-gold-alpha-08);
 }
 a {
     transition: color 0.2s, text-decoration-color 0.2s;
@@ -97,7 +123,7 @@ input[type="range"]:active::-webkit-slider-thumb {
     width: 20px;
     height: 20px;
     margin: -10px 0 0 -10px;
-    border: 2px solid var(--accent-orange, #1A3A5C);
+    border: 2px solid var(--accent-steel, var(--color-v-1a3a5c));
     border-top-color: transparent;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -130,7 +156,7 @@ input[type="range"]:active::-webkit-slider-thumb {
     left: 50%;
     transform: translateX(-50%) translateY(-8px);
     padding: 6px 12px;
-    background: rgba(0,0,0,0.8);
+    background: var(--color-v-f8c2b8e6a);
     color: white;
     font-size: 12px;
     border-radius: 6px;
@@ -148,11 +174,12 @@ button:focus-visible,
 a:focus-visible, 
 input:focus-visible, 
 [tabindex]:focus-visible {
-    outline: 2px solid var(--accent-orange, #1A3A5C);
+    outline: 2px solid var(--accent-steel, var(--color-v-1a3a5c));
     outline-offset: 2px;
 }
 html {
     scroll-behavior: smooth;
+    overflow-x: clip;
 }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -163,22 +190,28 @@ html {
 </style>
 </head>
 
-<body>
+<body{% block body_attr %}{% endblock %}>
     <!-- 导航栏 -->
     <nav class="navbar">
         <div class="container navbar-inner">
             <a href="{{ url_for('index') }}" class="logo">
-                <div class="logo-icon">X</div>
-                <span class="logo-text">煋鉴 Xinpect</span>
+                <img src="{{ url_for('static', filename='xinpect-mark-wide-128.png') }}" alt="煋鉴" class="logo-img" style="height:48px;width:auto;vertical-align:middle;">
+                <span class="logo-text">
+                    <span class="logo-cn">煋鉴</span>
+                </span>
             </a>
             <div class="nav-links">
                 <a href="/">首页</a>
                 <a href="/pages/product.html">产品介绍</a>
                 <a href="/pricing">定价</a>
-                <a href="/upload">快速体验</a>
-                <a href="/help">接入仓库</a>
+                <a href="/try">免费试扫</a>
+                <a href="/sample-report">报告样例</a>
+                {% if session.get('user_id') %}<a href="/upload">快速体验</a>{% endif %}
+                <a href="/help">文档</a>
                 <a href="{{ url_for('index') }}#features">功能</a>
                 <a href="/pages/about.html">关于我们</a>
+                <a href="/whitepaper">技术白皮书</a>
+                <a href="/blog">博客</a>
             </div>
             <div class="nav-actions">
                 {% if session.get('user_id') %}
@@ -198,52 +231,68 @@ html {
 
 
 
-    <!-- 推荐活动公告栏 -->
-    <div id="referral-banner" style="background:linear-gradient(90deg,#1A3A5C,#3B82F6);color:#fff;text-align:center;padding:10px 48px 10px 16px;font-size:14px;position:relative;cursor:pointer;" onclick="document.getElementById('referral-modal').style.display='flex';">
-        <span style="font-weight:600;">🎁 推荐有礼活动上线！</span>
+    <!-- 推荐活动公告栏：只对已登录用户显示，匿名首屏让给「能试什么」 -->
+    {% if session.get('user_id') %}
+    <div id="referral-banner" style="background:var(--color-bg-secondary);color: var(--color-text-inverse);text-align:center;padding:10px 48px 10px 16px;font-size:14px;position:relative;cursor:pointer;" onclick="document.getElementById('referral-modal').style.display='flex';">
+        <span style="font-weight:600;">推荐有礼活动上线！</span>
         <span style="margin-left:8px;opacity:0.95;">邀请好友注册双方各得30积分，好友首充再返利1/3！</span>
         <span style="margin-left:8px;text-decoration:underline;font-weight:600;">查看详情 →</span>
-        <button onclick="event.stopPropagation();document.getElementById('referral-banner').style.display='none';localStorage.setItem('referral_banner_closed','1');" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;" aria-label="关闭">×</button>
+        <button onclick="event.stopPropagation();document.getElementById('referral-banner').style.display='none';localStorage.setItem('referral_banner_closed','1');" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color: var(--color-text-inverse);font-size:18px;cursor:pointer;line-height:1;" aria-label="关闭">×</button>
     </div>
     <script>if(localStorage.getItem("referral_banner_closed")==="1"){document.getElementById("referral-banner").style.display="none";}</script>
+    {% endif %}
 
     <!-- 推荐活动弹窗 -->
-    <div id="referral-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:16px;max-width:480px;width:90%;padding:0;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:modalPop .3s ease;">
-            <div style="background:linear-gradient(135deg,#1A3A5C,#3B82F6);padding:28px 24px 20px;text-align:center;color:#fff;">
-                <div style="font-size:36px;margin-bottom:8px;">🎁</div>
+    <div id="referral-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--color-v-f91568c61);align-items:center;justify-content:center;">
+        <div style="background:var(--color-bg-primary);border-radius:16px;max-width:480px;width:90%;padding:0;overflow:hidden;box-shadow:0 20px 60px var(--color-v-f5613576c);animation:modalPop .3s ease;">
+            <div style="background:var(--color-bg-secondary);padding:28px 24px 20px;text-align:center;color: var(--color-text-inverse);">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">推荐有礼</div>
                 <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">推荐有礼 双方得利</h2>
                 <p style="font-size:14px;opacity:.9;margin:0;">邀请好友一起用煋鉴，你和好友都有奖励</p>
             </div>
             <div style="padding:24px;">
                 <div style="display:flex;gap:16px;margin-bottom:20px;">
-                    <div style="flex:1;background:#EFF6FF;border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:28px;font-weight:700;color:#1A3A5C;">30</div>
-                        <div style="font-size:12px;color:#666;margin-top:4px;">注册即送积分</div>
-                        <div style="font-size:11px;color:#999;margin-top:2px;">你和好友各得30积分</div>
+                    <div style="flex:1;background:var(--color-v-eff6ff);border-radius:12px;padding:16px;text-align:center;">
+                        <div style="font-size:28px;font-weight:700;color:var(--color-v-1a3a5c);">30</div>
+                        <div style="font-size:12px;color:var(--color-v-666666);margin-top:4px;">注册即送积分</div>
+                        <div style="font-size:11px;color:var(--color-v-999999);margin-top:2px;">你和好友各得30积分</div>
                     </div>
-                    <div style="flex:1;background:#EFF6FF;border-radius:12px;padding:16px;text-align:center;">
-                        <div style="font-size:28px;font-weight:700;color:#1A3A5C;">1/3</div>
-                        <div style="font-size:12px;color:#666;margin-top:4px;">首充返利</div>
-                        <div style="font-size:11px;color:#999;margin-top:2px;">好友首充你拿1/3</div>
+                    <div style="flex:1;background:var(--color-v-eff6ff);border-radius:12px;padding:16px;text-align:center;">
+                        <div style="font-size:28px;font-weight:700;color:var(--color-v-1a3a5c);">1/3</div>
+                        <div style="font-size:12px;color:var(--color-v-666666);margin-top:4px;">首充返利</div>
+                        <div style="font-size:11px;color:var(--color-v-999999);margin-top:2px;">好友首充你拿1/3</div>
                     </div>
                 </div>
-                <div style="background:#F7FAFC;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#555;line-height:1.6;">
-                    <strong style="color:#333;">💡 举例：</strong>好友购买年卡(899元/3600积分)，你和好友各得 <strong style="color:#1A3A5C;">1200积分</strong>
+                <div style="background:var(--color-v-f7fafc);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--color-v-555555);line-height:1.6;">
+                    <strong style="color:var(--color-v-333333);">举例：</strong>好友购买年卡(899元/3600积分)，你和好友各得 <strong style="color:var(--color-v-1a3a5c);">1200积分</strong>
                 </div>
                 <div style="text-align:center;">
-                    <a href="/dashboard/account" style="display:inline-block;background:linear-gradient(135deg,#1A3A5C,#3B82F6);color:#fff;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">获取我的推荐链接</a>
+                    {% if session.get('user_id') %}
+                    <a href="/dashboard/account" style="display:inline-block;background:var(--color-bg-secondary);color: var(--color-text-inverse);padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">获取我的推荐链接</a>
+                    {% else %}
+                    <a href="/register" style="display:inline-block;background:var(--color-bg-secondary);color: var(--color-text-inverse);padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">免费注册，开始赚积分</a>
+                    {% endif %}
                 </div>
             </div>
-            <button onclick="document.getElementById('referral-modal').style.display='none'" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="关闭">×</button>
+            <button onclick="document.getElementById('referral-modal').style.display='none'" style="position:absolute;top:12px;right:12px;background:var(--color-v-f9313786c);border:none;color: var(--color-text-inverse);font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="关闭">×</button>
         </div>
     </div>
 
-    <!-- 首次访问自动弹窗（auth页面不弹） -->
+    <!-- 推荐活动弹窗（只对已登录用户自动弹） -->
     <script>
     (function(){
         var isAuth = /^(\/login|\/register|\/forgot-password)/.test(location.pathname);
-        if(!isAuth && !localStorage.getItem("referral_modal_shown")){
+        // 首登引导优先：新用户注册完第一眼该看到「怎么开始用」，不是「去拉人」。
+        // 两种情况都让路：①页面上已经有引导遮罩；②他一次都还没扫过。
+        var onboardingActive = !!document.querySelector('#onboarding-overlay');
+        // suppress_promo：由页面显式关掉弹窗。报告页在用——客户正在看自己的检测结果，
+        // 弹窗盖住结论就是把推广塞进验货现场。横幅还留着，弹窗一律让路。
+        var skipPromo = {{ 'true' if (is_new_user|default(false)) or (suppress_promo|default(false)) else 'false' }};
+        // 推荐活动的前提是「你已经在用，才谈得上拉人」。
+        // 匿名访客连账号都没有，弹出的按钮却写着「获取我的推荐链接」——点进去就是登录页，
+        // 等于第一次见面先递张会员卡。匿名态只留顶部可关闭的横幅，弹窗只给登录用户。
+        var loggedIn = {{ 'true' if session.get('user_id') else 'false' }};
+        if(loggedIn && !isAuth && !onboardingActive && !skipPromo && !localStorage.getItem("referral_modal_shown")){
             document.getElementById("referral-modal").style.display="flex";
             localStorage.setItem("referral_modal_shown","1");
         }
@@ -256,6 +305,54 @@ html {
     <style>
     @keyframes modalPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
     </style>
+
+    <!-- 版本更新补偿公告条（仅老用户可见） -->
+    {% set comp = compensation_banner(session.get('user_id')) %}
+    {% if comp == 'eligible' %}
+    <div id="compensation-banner" style="background:var(--gradient-steel);border-bottom:1px solid var(--color-metal-gold);color: var(--color-text-inverse);text-align:center;padding:12px 48px 12px 16px;font-size:15px;position:relative;box-shadow:0 2px 8px var(--color-v-fa6f87266);">
+        <span style="font-weight:700;">v7.0 版本更新补偿</span>
+        <span style="margin-left:10px;opacity:.96;">为补偿 v7.0 更新期间服务受影响，<strong>10 月 30 日前注册的老用户</strong>可领取 <strong style="font-size:17px;">50 积分</strong></span>
+        <button id="claim-compensation-btn" onclick="claimCompensation()" style="margin-left:12px;background:var(--color-bg-primary);color:var(--color-bg-secondary);border:none;border-radius:20px;padding:6px 18px;font-weight:700;font-size:14px;cursor:pointer;vertical-align:middle;">立即领取</button>
+    </div>
+    {% elif comp == 'claimed' %}
+    <div id="compensation-banner" style="background:var(--color-success);color: var(--color-text-inverse);text-align:center;padding:10px 48px 10px 16px;font-size:14px;position:relative;">
+        <span>✅ 您已领取 v7.0 版本更新补偿（50 积分）</span>
+    </div>
+    {% endif %}
+
+{% if comp %}
+    <script>
+    function claimCompensation() {
+        var btn = document.getElementById('claim-compensation-btn');
+        if (btn) { btn.disabled = true; btn.textContent = '领取中…'; }
+        fetch('/claim-compensation', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ _csrf_token: '{{ csrf_token() }}' })
+        }).then(function(r) { return r.json(); })
+          .then(function(data) {
+              var banner = document.getElementById('compensation-banner');
+              if (data.ok) {
+                  if (banner) {
+                      banner.style.background = 'var(--color-success)';
+                      banner.innerHTML = '<span>✅ 已到账 50 积分，感谢您的支持！</span>';
+                  }
+              } else {
+                  if (btn) { btn.disabled = false; btn.textContent = '立即领取'; }
+                  alert(data.message || '领取失败，请稍后重试');
+              }
+          })
+          .catch(function() {
+              if (btn) { btn.disabled = false; btn.textContent = '立即领取'; }
+              alert('网络异常，请稍后重试');
+          });
+    }
+    </script>
+{% endif %}
 
     <!-- 消息提示 -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -280,35 +377,42 @@ html {
             <div class="footer-grid">
                 <div class="footer-brand">
                     <div class="logo">
-                        <div class="logo-icon">X</div>
-                        <span class="logo-text">煋鉴 Xinpect</span>
+                        <img src="{{ url_for('static', filename='xinpect-mark-wide-128.png') }}" alt="煋鉴" class="logo-img" style="height:40px;width:auto;vertical-align:middle;">
+                        <span class="logo-text">
+                            <span class="logo-cn" style="color: var(--color-text-inverse);">煋鉴</span>
+                        </span>
                     </div>
-                    <p>2881+条检测规则 · 7大规则引擎并行扫描 · AST级深度语义分析</p>
+                    <p>9,500+ 条检测规则、7 大规则引擎、AI 语义与 PoC 验证、AST 级深度语义分析</p>
                 </div>
                 <div class="footer-col">
-                    <h4>产品</h4>
+                    <h3>产品</h3>
                     <a href="{{ url_for('index') }}#features">功能介绍</a>
                     <a href="{{ url_for('index') }}#pricing">价格方案</a>
-                    <a href="{{ url_for('upload_page') }}" style="color:var(--accent-orange);font-weight:600;">在线检测</a>
+                    <a href="{{ url_for('upload_page') }}" style="color:var(--accent-steel);font-weight:600;">在线检测</a>
                 </div>
                 <div class="footer-col">
-                    <h4>支持</h4>
+                    <h3>支持</h3>
+                    <a href="/blog">技术博客</a>
                     <a href="{{ url_for('help_page') }}">帮助中心</a>
+                    <a href="/api-docs">API 文档</a>
                     <a href="{{ url_for('help_page') }}">技术支持</a>
                     <a href="{{ url_for('terms_page') }}">服务条款</a>
                 </div>
                 <div class="footer-col">
-                    <h4>关于</h4>
+                    <h3>关于</h3>
                     <a href="/pages/about.html">关于我们</a>
                     <a href="mailto:hdyabcd@163.com">联系我们</a>
                 </div>
             </div>
-            <div class="footer-bottom">
+            <div class="footer-bottom">            <div class="footer-disclaimer" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--color-metal-gold);font-size:12px;color:var(--color-v-f829bbf7d);line-height:1.6;">
+                <p><strong>免责声明：</strong>煋鉴检测结果仅供参考，不构成法律意义上的安全认证。检测基于静态分析和已知漏洞特征，无法保证发现所有安全隐患。本报告不可替代CMA/CNAS认证的正式安全评估。用户应结合业务场景人工复核，因依赖检测结果导致的损失，煋鉴不承担法律责任。</p>
+            </div>
                 <p>&copy; 2026 长沙煋旺智能科技有限公司 版权所有</p>
                 <p>统一社会信用代码：91430112MAKHCBC51R</p>
                 <p>注册地址：长沙市望城区大泽湖街道海归小镇湘商总部基地2号栋206-5</p>
                 <p>联系邮箱：hdyabcd@163.com · 联系电话：13789007691</p>
                 <p>煋鉴 Xinpect · 多引擎智能代码质检平台</p>
+                <p>{% include "_beian.html" %}</p>
             </div>
         </div>
     </footer>

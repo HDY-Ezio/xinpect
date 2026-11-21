@@ -31,14 +31,34 @@ PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
 PRIORITY_META = {
     "P0": {"label": "立即修复", "icon": "🔴", "color": "#EF4444", "bg": "rgba(239,68,68,0.08)"},
-    "P1": {"label": "计划修复", "icon": "🟡", "color": "#F59E0B", "bg": "rgba(245,158,11,0.08)"},
-    "P2": {"label": "尽快修复", "icon": "🟠", "color": "#F97316", "bg": "rgba(249,115,22,0.08)"},
+    "P1": {"label": "尽快修复", "icon": "🟠", "color": "#F97316", "bg": "rgba(249,115,22,0.08)"},
+    "P2": {"label": "计划修复", "icon": "🟡", "color": "#F59E0B", "bg": "rgba(245,158,11,0.08)"},
     "P3": {"label": "建议优化", "icon": "⚪", "color": "#9CA3AF", "bg": "rgba(156,163,175,0.08)"},
 }
 
 
 def _get_priority(issue):
-    """获取 issue 的优先级"""
+    """获取 issue 的优先级。
+
+    分层结论优先：写法改进项一律 P3，不许因为 severity 是 high 就挤进
+    「尽快修复」——「循环内字符串拼接」和「SQL 注入」不该同档。
+    """
+    tier = issue.get("_verdict_tier")
+    if tier == "should":
+        # 写法改进项不进修复排期，一律「建议优化」
+        return "P3"
+    if tier == "must":
+        # 必修的问题按严重度分三档。P0 的语义是「立即修」，
+        # 改之前只留给 critical，于是「有 2 个高危必须修」和
+        # 「立即修复 0 个问题」能同时出现在一屏上。
+        rank = issue.get("_verdict_rank")
+        if rank is None:
+            rank = SEVERITY_WEIGHT.get(issue.get("severity", ""), 0)
+        if rank >= 3:
+            return "P0"
+        if rank == 2:
+            return "P1"
+        return "P2"
     sev = issue.get("severity", "info")
     return PRIORITY_MAP.get(sev, "P3")
 
@@ -99,7 +119,14 @@ def build_fix_roadmap(visible_issues):
             }
 
     # 3. 生成 TOP N（最多5条，按 severity 降序，同 rule_id 合并计数）
-    sorted_issues = sorted(visible_issues, key=lambda i: (_get_severity_weight(i), i.get("line", 0)), reverse=True)
+    # 推荐优先修复只从「必须修」里选，不够 5 条再用「建议改」补。
+    # 改之前纯按 severity 权重排，于是「字符串大循环拼接」（写法建议）排第一、
+    # 「不安全哈希算法」（必须修）排第二——客户照第一条改，改的是不重要的那个。
+    def _top_key(i):
+        tier_rank = 0 if i.get("_verdict_tier") == "must" else 1
+        return (tier_rank, -_get_severity_weight(i), i.get("line", 0))
+
+    sorted_issues = sorted(visible_issues, key=_top_key)
     top_fixes = []
     seen_keys = {}  # (rule_id, file) -> index in top_fixes
     for issue in sorted_issues:
@@ -173,6 +200,40 @@ def build_fix_roadmap(visible_issues):
     }
 
 
+def same_project(cur_files_meta, prev_files_meta, threshold=0.5):
+    """两次扫描是不是在扫同一批文件。
+
+    「修复进度」的语义是「同一批代码，前后两次」。不满足这个前提时，
+    下游 compare_scans 会把「上次有、这次没有」全部算成已修复——
+    换了项目重扫，界面上就变成「修复率 100%」。
+
+    实测：1606 扫 tools/sandbox/ 的 5 个文件，上一次 1605 扫 tools/relay/ 的 19 个文件，
+    交集 0，却报出「已修复 339、修复率 100.0%」。
+
+    门槛 0.5：一半以上文件相同，才谈得上「修了哪些」。
+    认不出文件清单时一律返回 False —— 宁可不显示，也不许瞎比。
+    """
+    import json
+
+    def _parse(raw):
+        try:
+            v = json.loads(raw or "[]")
+        except (ValueError, TypeError):
+            return None
+        if not isinstance(v, list):
+            return None
+        return set(str(x) for x in v)
+
+    cur = _parse(cur_files_meta)
+    prev = _parse(prev_files_meta)
+    if cur is None or prev is None:
+        return False
+    union = cur | prev
+    if not union:
+        return False
+    return len(cur & prev) / float(len(union)) >= threshold
+
+
 def build_fix_progress(current_scan_id, user_id):
     """构建修复进度数据（与上一次扫描对比）
 
@@ -189,7 +250,7 @@ def build_fix_progress(current_scan_id, user_id):
 
         db = get_db()
         current = db.execute(
-            'SELECT id, scan_id, score, grade, issue_count, results, created_at, title '
+            'SELECT id, scan_id, score, grade, issue_count, results, created_at, title, files_meta '
             'FROM scans WHERE scan_id=? AND user_id=?',
             (current_scan_id, user_id)
         ).fetchone()
@@ -198,12 +259,15 @@ def build_fix_progress(current_scan_id, user_id):
             return None
 
         prev = db.execute(
-            'SELECT scan_id, score, grade, issue_count, results, created_at, title FROM scans '
+            'SELECT scan_id, score, grade, issue_count, results, created_at, title, files_meta FROM scans '
             'WHERE user_id=? AND id < ? ORDER BY id DESC LIMIT 1',
             (user_id, current['id'])
         ).fetchone()
 
         if not prev:
+            return None
+
+        if not same_project(current['files_meta'], prev['files_meta']):
             return None
 
         # 使用已有的 compare_scans
