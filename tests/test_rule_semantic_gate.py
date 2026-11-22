@@ -12,6 +12,10 @@
   3. **判据失去判别力** —— 评审模型若哪天开始一律说「不成立」，闸门会把全部
      规则下线（全红）；若一律说「成立」，闸门形同不存在（全绿）。两种都是假判据。
      所以要求评审结果里 sound 与 unsound 同时存在，比例在合理区间内。
+  4. **拿「判不了」当「判错了」** —— 评审手里的证据只有命中处几行代码。规则要证明
+     「文件行数超标」「圈复杂度 32」这类结论，几行代码永远不够。这一档必须单独存在
+     （undetermined），且**不许进隔离清单**。2026-11-22 实证：v1 缺这一档，
+     932 条里有 283 条其实只是判不了，被一并下线。
 
 跑法：python3 tests/test_rule_semantic_gate.py
 造坏自检：python3 tests/test_rule_semantic_gate.py --self-test
@@ -58,6 +62,10 @@ def _verdicts(doc):
 
 
 # ---------- 1. 评审结果必须是真跑出来的，不是空壳 ----------
+VERDICTS = ("sound", "unsound", "weak", "undetermined")
+MIN_NEEDS_LEN = 5         # 判「不了」必须说清缺什么证据，否则等于没说
+
+
 def test_audit_is_substantive():
     doc = _audit()
     rules = doc.get("rules") or {}
@@ -66,7 +74,7 @@ def test_audit_is_substantive():
         % (len(rules), MIN_AUDITED))
     bad = []
     for rid, v in rules.items():
-        if v.get("verdict") not in ("sound", "unsound", "weak"):
+        if v.get("verdict") not in VERDICTS:
             bad.append("%s verdict 非法：%r" % (rid, v.get("verdict")))
         if len(str(v.get("reason") or "")) < MIN_REASON_LEN:
             bad.append("%s 评审理由过短" % rid)
@@ -74,6 +82,9 @@ def test_audit_is_substantive():
             bad.append("%s 没有代码样本（评审没有依据）" % rid)
         if not v.get("audited_at"):
             bad.append("%s 缺评审时间" % rid)
+        # 「判不了」不是免罪符：必须写清需要看到什么才能判，否则就是偷懒
+        if v.get("verdict") == "undetermined" and len(str(v.get("needs") or "")) < MIN_NEEDS_LEN:
+            bad.append("%s 判 undetermined 却没写缺什么证据" % rid)
     assert not bad, "评审记录不完整：%s" % bad[:5]
     _note("%d 条规则都有结论、理由、代码样本与时间" % len(rules))
 
@@ -143,7 +154,38 @@ def test_quarantine_only_from_audit():
     _note("%d 条隔离规则全部可追到一次 unsound 评审" % len(q))
 
 
-# ---------- 5. 每条隔离都必须带证据 ----------
+# ---------- 5. 「判不了」的规则必须有独立记录，且不许被下线 ----------
+# 为什么不做「措辞检查」：试过用「片段看不到/无法确认」这类词去抓「拿看不见当不存在」，
+# 结果 57 条**结论正确**的理由也命中——它们的原话是「命中处均为 import 语句，与错误码
+# 毫无关系，正则支撑不了这个结论」，这是对的。文本词表冒充语义判据，只会挡住等价写法。
+# 真正该守的是结构：判 undetermined 的规则必须进独立清单（不许消失），且绝不进隔离清单。
+UNDETERMINED = os.path.join(SCANNER, "rules", "undetermined_rules.json")
+
+
+def test_undetermined_is_recorded_and_online():
+    assert os.path.exists(UNDETERMINED), (
+        "没有 undetermined_rules.json —— 判据缺了「判不了」这一档，规则会因为证据不足被判死")
+    doc = _load(UNDETERMINED, "证据不足清单")
+    items = doc.get("rules") or []
+    assert items, "证据不足清单是空的 —— 要么评审没跑，要么生成步骤漏了这一路"
+    verdicts = _verdicts(_audit())
+    bad = []
+    for r in items:
+        rid = r.get("id")
+        if verdicts.get(rid) != "undetermined":
+            bad.append("%s 在评审里是 %r，却进了证据不足清单" % (rid, verdicts.get(rid)))
+        if len(str(r.get("needs") or "")) < MIN_NEEDS_LEN:
+            bad.append("%s 没有写清缺什么证据" % rid)
+    assert not bad, "证据不足清单不可信：%s" % bad[:5]
+
+    quarantined = {r.get("id") for r in (_quarantine().get("rules") or [])}
+    overlap = sorted({r.get("id") for r in items} & quarantined)
+    assert not overlap, (
+        "有规则既判「判不了」又进了隔离清单（等于拿证据不足当判决）：%s" % overlap[:5])
+    _note("%d 条「判不了」单独登记、全部保持上线，无一进隔离清单" % len(items))
+
+
+# ---------- 6. 每条隔离都必须带证据 ----------
 def test_quarantine_entries_carry_evidence():
     q = (_quarantine().get("rules") or [])
     assert q, "隔离清单是空的 —— 要么评审还没跑完，要么生成步骤漏了"
@@ -252,8 +294,12 @@ def _self_test():
     tmpdir = tempfile.mkdtemp(prefix="gate_selftest_")
     bak_q = os.path.join(tmpdir, "q.json")
     bak_a = os.path.join(tmpdir, "a.json")
+    bak_u = os.path.join(tmpdir, "u.json")
     shutil.copy2(CANON, bak_q)
     shutil.copy2(AUDIT, bak_a)
+    has_unde = os.path.exists(UNDETERMINED)
+    if has_unde:
+        shutil.copy2(UNDETERMINED, bak_u)
     results = []
 
     def run(label, expect_fail):
@@ -275,6 +321,10 @@ def _self_test():
     def restore():
         shutil.copy2(bak_q, CANON)
         shutil.copy2(bak_a, AUDIT)
+
+    def restore_unde():
+        if has_unde:
+            shutil.copy2(bak_u, UNDETERMINED)
 
     try:
         # 基线：先确认干净状态下是绿的（否则后面全红都无意义）
@@ -313,8 +363,18 @@ def _self_test():
         json.dump({"rules": []}, open(CANON, "w", encoding="utf-8"), ensure_ascii=False)
         run("隔离清单被清空", True)
         restore()
+
+        # 造坏 5：证据不足清单消失（「判不了」这一档被抹掉，规则又会被判死）
+        json.dump({"count": 0, "rules": []}, open(UNDETERMINED, "w", encoding="utf-8"),
+                  ensure_ascii=False)
+        run("证据不足清单被清空", True)
+        restore_unde()
+
+        # 恢复后必须重新绿，否则「造坏能红」可能只是把东西弄坏了
+        run("恢复后重新变绿", False)
     finally:
         restore()
+        restore_unde()
         shutil.rmtree(tmpdir, ignore_errors=True)
 
     bad = [r for r in results if not r[1]]
