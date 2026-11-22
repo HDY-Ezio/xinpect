@@ -758,11 +758,13 @@
         </script>
     </div>
 </div>
-<div class="footer"><div class="container">此报告由 <a href="/">煋鉴 Xinpect</a> 用户分享 · <a href="https://xinpect.xingwangzhineng.com">立即体验代码质检</a><br>{% include "_beian.html" %}</div></div>
+<div class="footer"><div class="container">此报告由 <a href="/">煋鉴 Xinpect</a> 用户分享 · <a href="https://xinpect.xingwangzhineng.com">立即体验代码质检</a>
+<div style="margin-top:6px;opacity:.85;">本报告依扫描当时的规则集生成。规则会持续更新，历史报告不回溯修改——同一份代码在不同时间扫描，问题数可能不同。</div>
+<br>{% include "_beian.html" %}</div></div>
 
 <!-- PDF 页脚（仅打印时显示） -->
 <div class="pdf-footer">
-    <span class="brand">煋鉴 Xinpect</span> · 代码质检报告 · 扫描ID: {{ scan_id }}
+    <span class="brand">煋鉴 Xinpect</span> · 代码质检报告 · 扫描ID: {{ scan_id }}<br><span style="font-size:9pt;">本报告依扫描当时的规则集生成，历史报告不回溯修改。</span>
 </div>
 
 

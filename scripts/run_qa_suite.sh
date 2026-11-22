@@ -253,14 +253,14 @@ if [ -f "$VISITOR_GUARD" ] && [ -f "$VISITOR_SELFTEST" ]; then
     env PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 "$VISITOR_GUARD" 2>&1 | tee -a "$REPORTS/extended_tests.log"
     _vrc=${PIPESTATUS[0]}
     [ "$_vrc" -ne 0 ] && COST_RC=1
-    echo "[$(date +%F %T)] 访客口径守卫结束 rc=$_vrc"
+    echo "[$(date '+%F %T')] 访客口径守卫结束 rc=$_vrc"
 
     env PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 "$VISITOR_SELFTEST" 2>&1 | tee -a "$REPORTS/extended_tests.log"
     _vsrc=${PIPESTATUS[0]}
     [ "$_vsrc" -ne 0 ] && COST_RC=1
-    echo "[$(date +%F %T)] 访客口径造坏自检结束 rc=$_vsrc"
+    echo "[$(date '+%F %T')] 访客口径造坏自检结束 rc=$_vsrc"
 else
-    echo "[$(date +%F %T)] ❌ 访客口径守卫或自检缺失，套件不能绿" | tee -a "$REPORTS/extended_tests.log"
+    echo "[$(date '+%F %T')] ❌ 访客口径守卫或自检缺失，套件不能绿" | tee -a "$REPORTS/extended_tests.log"
     COST_RC=1
 fi
 
