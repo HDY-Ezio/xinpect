@@ -141,6 +141,7 @@ if ! /usr/bin/python3 -c "import pytest" 2>/dev/null; then
     /usr/bin/python3 tests/test_bb_dimension.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_scoring_single_source.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_retired_rules_gate.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
+    /usr/bin/python3 tests/test_rule_semantic_gate.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_membership_reminder.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_membership_renewal.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_paid_fulfillment.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
@@ -175,6 +176,7 @@ else
         tests/test_report_dimensions.py \
         tests/test_scoring_single_source.py \
         tests/test_retired_rules_gate.py \
+        tests/test_rule_semantic_gate.py \
         tests/test_dashboard_mobile.py \
         tests/test_mobile_responsive.py \
         tests/test_membership_reminder.py \
