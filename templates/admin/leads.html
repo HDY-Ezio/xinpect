@@ -1,0 +1,42 @@
+{% extends "admin/base.html" %}
+{% block title %}留资线索 - 煋鉴管理后台{% endblock %}
+{% block content %}
+<div class="header">
+    <h1>留资线索</h1>
+</div>
+
+<div class="filter-bar" style="gap:24px;">
+    <div class="filter-group"><label>累计：</label><b>{{ total }}</b> 条</div>
+    <div class="filter-group"><label>今天：</label><b>{{ today }}</b> 条</div>
+    <div class="filter-group" style="color:var(--color-v-8a8a8a);font-size:13px;">来自价格页 / 官网的意向留言，按时间倒序，最多显示 500 条</div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>邮箱</th>
+                <th>微信</th>
+                <th>想要什么</th>
+                <th>来源</th>
+                <th>时间</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+            <tr>
+                <td>{{ r['id'] }}</td>
+                <td>{{ r['email'] or '—' }}</td>
+                <td>{{ r['wechat'] or '—' }}</td>
+                <td style="max-width:420px;white-space:pre-wrap;">{{ r['need'] or '—' }}</td>
+                <td>{{ r['source'] or '—' }}</td>
+                <td>{{ r['created_at'] }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--color-v-8a8a8a);padding:28px;">还没有留资</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

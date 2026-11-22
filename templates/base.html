@@ -17,7 +17,7 @@ window.xpColor = function (name, fallback) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析{% endblock %}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="{% block meta_description %}煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，9,500+ 条检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持 Python/Java/Go/JS 等 23 种语言，规范层免费无限使用。{% endblock %}">
+    <meta name="description" content="{% block meta_description %}煋鉴(Xinpect)是AI驱动的代码质量检测平台，8 个规则引擎 + AI 语义 + PoC 验证并行扫描，9,400+ 条检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持 Python/Java/Go/JS 等 23 种语言，规范层免费无限使用。{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}代码质检,代码审计,静态分析,SAST,代码扫描,代码审查工具,AST分析,漏洞检测,煋鉴,Xinpect,代码质量检测{% endblock %}">
     <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
     <link rel="canonical" href="{% block canonical_url %}https://xinpect.xingwangzhineng.com{{ request.path }}{% endblock %}">
@@ -36,6 +36,7 @@ window.xpColor = function (name, fallback) {
     <meta name="twitter:image" content="{{ self.og_image() }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ asset_v }}">
     <link rel="stylesheet" href="/static/css/cool-fx.css?v={{ asset_v }}">
+    <link rel="stylesheet" href="/static/css/nav.css?v={{ asset_v }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/noto-serif-sc.local.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/noto-sans-sc.local.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='fonts/jetbrains-mono.local.css') }}">
@@ -191,42 +192,8 @@ html {
 </head>
 
 <body{% block body_attr %}{% endblock %}>
-    <!-- 导航栏 -->
-    <nav class="navbar">
-        <div class="container navbar-inner">
-            <a href="{{ url_for('index') }}" class="logo">
-                <img src="{{ url_for('static', filename='xinpect-mark-wide-128.png') }}" alt="煋鉴" class="logo-img" style="height:48px;width:auto;vertical-align:middle;">
-                <span class="logo-text">
-                    <span class="logo-cn">煋鉴</span>
-                </span>
-            </a>
-            <div class="nav-links">
-                <a href="/">首页</a>
-                <a href="/pages/product.html">产品介绍</a>
-                <a href="/pricing">定价</a>
-                <a href="/try">免费试扫</a>
-                <a href="/sample-report">报告样例</a>
-                {% if session.get('user_id') %}<a href="/upload">快速体验</a>{% endif %}
-                <a href="/help">文档</a>
-                <a href="{{ url_for('index') }}#features">功能</a>
-                <a href="/pages/about.html">关于我们</a>
-                <a href="/whitepaper">技术白皮书</a>
-                <a href="/blog">博客</a>
-            </div>
-            <div class="nav-actions">
-                {% if session.get('user_id') %}
-                    <span class="nav-user">
-                        <span>你好，<strong>{{ session.get('user_email', '')[:session.get('user_email', '').index('@') if '@' in session.get('user_email', '') else 8] }}</strong></span>
-                    </span>
-                    <a href="{{ url_for('dashboard_page') }}" class="btn btn-ghost">会员中心</a>
-                    <a href="{{ url_for('logout') }}" class="btn btn-ghost">退出</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}" class="btn btn-ghost">登录</a>
-                    <a href="{{ url_for('register') }}" class="btn btn-primary">免费注册</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
+    {# 导航栏：全站唯一一份，见 _nav.html。别在本文件里再写一套（那是「三页三样式」的来源） #}
+    {% include "_nav.html" %}
 
 
 
@@ -382,7 +349,7 @@ html {
                             <span class="logo-cn" style="color: var(--color-text-inverse);">煋鉴</span>
                         </span>
                     </div>
-                    <p>9,500+ 条检测规则、7 大规则引擎、AI 语义与 PoC 验证、AST 级深度语义分析</p>
+                    <p>9,400+ 条检测规则、8 个规则引擎、AI 语义与 PoC 验证、AST 级深度语义分析</p>
                 </div>
                 <div class="footer-col">
                     <h3>产品</h3>

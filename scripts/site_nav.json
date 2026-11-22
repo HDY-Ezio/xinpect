@@ -1,0 +1,46 @@
+{
+  "version": "2026-11-22-nav-single",
+  "note": "全站导航唯一依据。templates/_nav.html 按这份 core 渲染（app.py 注入 nav_core），scripts/patch_static_nav.py 按同一份生成静态页导航，tests/verify_site_consistency.py 逐页真请求校验。2026-11-22：把「能力 / 语言」两个定位点并入 core —— 它们写成绝对路径 /#features，所以每个页面都有、都能点；此前只有首页有，客户从首页跳到别的页就发现导航项变少了。改导航请只改这里。",
+  "core": [
+    {
+      "label": "首页",
+      "href": "/"
+    },
+    {
+      "label": "能力",
+      "href": "/#features"
+    },
+    {
+      "label": "语言",
+      "href": "/#languages"
+    },
+    {
+      "label": "产品介绍",
+      "href": "/pages/product.html"
+    },
+    {
+      "label": "定价",
+      "href": "/pricing"
+    },
+    {
+      "label": "免费试扫",
+      "href": "/try"
+    },
+    {
+      "label": "报告样例",
+      "href": "/sample-report"
+    },
+    {
+      "label": "文档",
+      "href": "/help"
+    },
+    {
+      "label": "博客",
+      "href": "/blog"
+    },
+    {
+      "label": "关于我们",
+      "href": "/pages/about.html"
+    }
+  ]
+}

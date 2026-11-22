@@ -3,38 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/static/css/tokens.css?v=20261106">
+<link rel="stylesheet" href="/static/css/cool-fx.css?v=20261108">
+<link rel="stylesheet" href="/static/css/nav.css?v=20261122">
 <title>关于我们 - 煋鉴 Xinpect</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
 
   /* === Brand & Primary === */
-  --primary: #FF6B35;
-  --primary-light: #FF8C5A;
-  --primary-dark: #E85A24;
-  --primary-bg: #FFF5F0;
-  --primary-rgb: 255, 107, 53;
+  --primary: #3E5C8A;
+  --primary-light: #5B7CB0;
+  --primary-dark: #2D4A7C;
+  --primary-bg: #F2F6FC;
+  --primary-rgb: 62, 92, 138;
 
   /* === Backgrounds === */
-  --bg: #FAF8F6;
+  --bg: #F7F9FC;
   --surface: #FFFFFF;
-  --surface-hover: #FFF9F5;
-  --surface-alt: #FDFAF8;
-  --surface-elevated: #F5F1ED;
+  --surface-hover: #F4F8FD;
+  --surface-alt: #FAFCFE;
+  --surface-elevated: #EEF3F9;
   --neutral-bg: #FAFAFA;
   --neutral-bg-hover: #F3F4F6;
 
   /* === Borders === */
-  --border: #EDE5DF;
-  --border-light: #F2ECE7;
+  --border: #E4EAF2;
+  --border-light: #EDF2F8;
   --border-neutral: #E5E7EB;
   --border-width: 1px;
   --border-width-accent: 4px;
 
   /* === Text === */
-  --text-primary: #2D2A28;
-  --text-secondary: #6B6560;
-  --text-muted: #9E9792;
+  --text-primary: #1A2B4A;
+  --text-secondary: #52637A;
+  --text-muted: #8A9AB0;
 
   /* === Spacing === */
   --space-25: 1px;
@@ -155,6 +158,7 @@ body { display: flex; flex-direction: column; }
   justify-content: center;
   font-size: var(--font-2xl);
   backdrop-filter: blur(10px);
+  color: var(--color-cool-beam);
 }
 .page-header .brand-text h1 {
   font-size: var(--font-xl);
@@ -222,6 +226,7 @@ body { display: flex; flex-direction: column; }
   border-color: var(--primary);
 }
 .feature-card .icon {
+  color: var(--color-accent-steel);
   font-size: var(--font-3xl);
   margin-bottom: var(--space-300);
 }
@@ -397,23 +402,45 @@ body { display: flex; flex-direction: column; }
   .info-row { flex-direction: column; gap: var(--space-100); }
   .info-label { width: auto; }
 }
+
+/* 核心导航在窄屏只做内部横向滚动，不让整页撑出横向滚动条 */
+@media(max-width:640px){
+  .site-nav{padding:0 var(--space-300)}
+  .site-nav-inner{overflow-x:auto;white-space:nowrap;gap:var(--space-300)}
+}
 </style>
 </head>
 <body>
 
-<nav class="site-nav">
-  <div class="site-nav-inner">
+<header class="xp-nav">
+  <div class="xp-nav-inner">
+    <a class="xp-nav-brand" href="/" aria-label="煋鉴首页">
+      <img src="/static/xinpect-mark-wide-128.png" alt="煋鉴">
+      <span>煋鉴</span>
+    </a>
+    <nav class="xp-nav-links" aria-label="主导航">
       <a href="/">首页</a>
+      <a href="/#features">能力</a>
+      <a href="/#languages">语言</a>
       <a href="/pages/product.html">产品介绍</a>
-      <a href="/pages/pricing.html">定价方案</a>
+      <a href="/pricing">定价</a>
+      <a href="/try">免费试扫</a>
+      <a href="/sample-report">报告样例</a>
+      <a href="/help">文档</a>
+      <a href="/blog">博客</a>
       <a href="/pages/about.html" class="active">关于我们</a>
+    </nav>
+    <div class="xp-nav-actions">
+      <a class="xp-nav-ghost" href="/login">登录</a>
+      <a class="xp-nav-solid" href="/register">免费注册</a>
+    </div>
   </div>
-</nav>
+</header>
 
 <div class="page-header">
   <div class="page-header-inner">
     <div class="brand">
-      <div class="brand-logo">🔥</div>
+      <div class="brand-logo">◆</div>
       <div class="brand-text">
         <h1>煋鉴 Xinpect</h1>
         <p>多引擎智能代码质检 · 公司介绍</p>

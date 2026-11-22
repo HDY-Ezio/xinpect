@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}免费在线代码检测 - 上传代码即刻扫描 | 煋鉴 Xinpect{% endblock %}
-{% block meta_description %}免费在线代码质量检测，支持上传文件、粘贴代码、GitHub仓库三种方式，覆盖Python/Java/Go/JS等17种语言，秒级返回检测报告，规范层无限次免费使用。{% endblock %}
+{% block meta_description %}免费在线代码质量检测，支持上传文件、粘贴代码、GitHub仓库三种方式，覆盖Python/Java/Go/JS等23 种语言，秒级返回检测报告，基础检查无限次免费使用。{% endblock %}
 {% block meta_keywords %}免费代码检测,在线代码扫描,代码审查工具,免费静态分析,上传代码检测,GitHub代码扫描{% endblock %}
 {% block og_title %}免费在线代码检测 - 上传/粘贴/GitHub仓库 即刻扫描 | 煋鉴{% endblock %}
 
@@ -10,14 +10,17 @@
 <style>
 /* 3D 按压按钮 */
 .btn3d { position:relative; border:none; background:transparent; padding:0; cursor:pointer; border-radius:8px; }
-.btn3d-edge { position:absolute; inset:0; border-radius:8px; background:linear-gradient(180deg, #1E40AF, #B03A1E); }
-.btn3d-front { position:relative; display:flex; align-items:center; justify-content:center; height:44px; padding:0 24px; border-radius:8px; background:var(--accent-orange,#1A3A5C); color:#fff; font-size:15px; font-weight:600; transform:translateY(-4px); box-shadow:0 3px 8px rgba(30,12,4,0.22); transition:transform 450ms cubic-bezier(0.34,1.3,0.64,1), box-shadow 450ms cubic-bezier(0.34,1.3,0.64,1); }
-.btn3d:active .btn3d-front { transform:translateY(-1px); box-shadow:0 1px 2px rgba(30,12,4,0.20); transition-duration:60ms; }
-.btn3d:disabled .btn3d-front { transform:translateY(0); box-shadow:none; background:#E5E2DC; color:#9A958D; cursor:not-allowed; }
+.btn3d-edge { position:absolute; inset:0; border-radius:8px; background:linear-gradient(180deg, var(--color-bg-secondary), var(--color-v-b03a1e)); }
+.btn3d-front { position:relative; display:flex; align-items:center; justify-content:center; height:44px; padding:0 24px; border-radius:8px; background:var(--accent-steel,var(--color-v-1a3a5c)); color: var(--color-text-inverse); font-size:15px; font-weight:600; transform:translateY(-4px); box-shadow:0 3px 8px var(--color-steel-alpha-15); transition:transform 450ms cubic-bezier(0.34,1.3,0.64,1), box-shadow 450ms cubic-bezier(0.34,1.3,0.64,1); }
+.btn3d:active .btn3d-front { transform:translateY(-1px); box-shadow:0 1px 2px var(--color-steel-alpha-15); transition-duration:60ms; }
+.btn3d:disabled .btn3d-front { transform:translateY(0); box-shadow:none; background:var(--color-v-e5e2dc); color:var(--color-v-9a958d); cursor:not-allowed; }
 .btn3d:disabled .btn3d-edge { display:none; }
 /* 模式卡片hover效果 */
-.tier-card:not(.tier-locked):hover { border-color:#ffb899 !important; background:#FFFAF7 !important; }
-.tier-card:not(.tier-locked):hover .mode-desc { color:#777; }
+.tier-card:not(.tier-locked):hover { border-color:var(--color-v-ffb899) !important; background:var(--color-v-fffaf7) !important; }
+.tier-card:not(.tier-locked):hover .mode-desc { color:var(--color-v-777777); }
+/* 文件已就位：拖拽框锁定态（实线边框 + 轻微底色，提示"文件已固定在此，检测前不能换"） */
+.upload-area.has-file { border-style: solid; border-color: var(--accent-steel, var(--color-accent-steel)); background: var(--color-v-f7fafd); cursor: default; }
+.upload-area.has-file.dragover { border-color: var(--accent-steel, var(--color-accent-steel)); }
 </style>
 {% endblock %}
 
@@ -42,15 +45,15 @@
         <div class="daily-remaining-bar">
             <span class="dr-label">免费版</span>
             <span class="dr-amount" style="color: var(--success);">
-                ✓ 规范层无限次免费
+                ✓ 基础检查无限次免费
             </span>
         </div>
         {% endif %}
 
         <!-- 使用引导 -->
-        <div style="margin-bottom:20px;padding:16px 20px;background:rgba(26,58,92,0.04);border:1px solid rgba(26,58,92,0.12);border-radius:12px;">
-            <div style="font-size:13px;color:var(--text-secondary,#666);line-height:1.8;">
-                <strong style="color:var(--accent-orange,#1A3A5C);">🎯 三种扫描方式</strong><br>
+        <div style="margin-bottom:20px;padding:16px 20px;background:var(--color-v-f6a3efd94);border:1px solid var(--color-metal-gold);border-radius:12px;">
+            <div style="font-size:13px;color:var(--text-secondary,var(--color-v-666666));line-height:1.8;">
+                <strong style="color:var(--accent-steel,var(--color-v-1a3a5c));">🎯 三种扫描方式</strong><br>
                 <span style="display:inline-block;margin-right:16px;">📁 <strong>上传文件</strong> — 拖拽代码文件或压缩包</span>
                 <span style="display:inline-block;margin-right:16px;">📝 <strong>粘贴代码</strong> — 直接粘贴单文件代码</span>
                 <span style="display:inline-block;">🔗 <strong>GitHub 仓库</strong> — 粘贴仓库地址扫描整个项目</span>
@@ -59,20 +62,20 @@
 
 <style>
 .tab-faq { margin-top:16px; }
-.tab-faq details { border:1px solid rgba(0,0,0,0.06);border-radius:8px;padding:12px 16px;background:rgba(0,0,0,0.02);margin-bottom:8px;transition:background 0.2s; }
-.tab-faq details:hover { background:rgba(26,58,92,0.04); }
-.tab-faq summary { font-weight:600;cursor:pointer;font-size:13px;color:var(--text-primary,#333);list-style:none;display:flex;align-items:center;gap:6px; }
+.tab-faq details { border:1px solid var(--color-metal-gold);border-radius:8px;padding:12px 16px;background:var(--color-v-f02c4d9ff);margin-bottom:8px;transition:background 0.2s; }
+.tab-faq details:hover { background:var(--color-v-f6a3efd94); }
+.tab-faq summary { font-weight:600;cursor:pointer;font-size:13px;color:var(--text-primary,var(--color-v-333333));list-style:none;display:flex;align-items:center;gap:6px; }
 .tab-faq summary::-webkit-details-marker { display:none; }
-.tab-faq summary::before { content:"▸";font-size:11px;color:var(--accent-orange,#1A3A5C);transition:transform 0.2s; }
+.tab-faq summary::before { content:"▸";font-size:11px;color:var(--accent-steel,var(--color-v-1a3a5c));transition:transform 0.2s; }
 .tab-faq details[open] summary::before { transform:rotate(90deg); }
-.tab-faq details p { margin-top:8px;font-size:12px;color:var(--text-secondary,#666);line-height:1.7;padding-left:16px; }
+.tab-faq details p { margin-top:8px;font-size:12px;color:var(--text-secondary,var(--color-v-666666));line-height:1.7;padding-left:16px; }
 </style>
 
 
         <!-- 源码安全承诺 -->
-        <div style="margin-bottom:20px;padding:14px 20px;background:rgba(5,150,105,0.04);border:1px solid rgba(5,150,105,0.15);border-radius:12px;">
-            <div style="font-size:13px;color:var(--text-secondary,#555);line-height:1.8;">
-                <strong style="color:#059669;">🔒 源码安全承诺</strong><br>
+        <div style="margin-bottom:20px;padding:14px 20px;background:var(--color-metal-gold-tint);border:1px solid var(--color-v-f7a484b0d);border-radius:12px;">
+            <div style="font-size:13px;color:var(--text-secondary,var(--color-v-555555));line-height:1.8;">
+                <strong style="color: var(--color-success);">🔒 源码安全承诺</strong><br>
                 <span style="display:inline-block;margin-right:20px;">✅ <strong>代码仅用于检测</strong> — 不会用于模型训练或任何第三方用途</span><br>
                 <span style="display:inline-block;margin-right:20px;">✅ <strong>扫描后自动清理</strong> — 上传代码在扫描完成后 24 小时内自动删除</span><br>
                 <span style="display:inline-block;margin-right:20px;">✅ <strong>一键删除</strong> — 可随时在报告页手动删除已上传的全部代码</span><br>
@@ -92,12 +95,14 @@
             <!-- 文件上传 -->
             <div class="upload-tab-content active" id="tab-content-file">
                 <div class="upload-area" id="upload-area" style="padding:16px;">
-                    <input type="file" id="file-input" multiple accept=".py,.js,.ts,.java,.cpp,.c,.cs,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.scss,.less,.vue,.jsx,.tsx,.json,.xml,.yml,.yaml,.md,.zip,.tar,.tar.gz,.tgz" style="display:none;">
-                    <div class="upload-title" style="font-size:14px;margin-bottom:3px;">拖拽文件到此处 或 点击上传</div>
-                    <div class="upload-desc" style="font-size:11px;">支持多文件 / ZIP / TAR.GZ，总大小 ≤ 50MB</div>
-                    <div style="font-size:10px;color:var(--text-tertiary,#bbb);margin-top:3px;font-style:italic;">💡 建议上传关键业务代码，无需上传 node_modules 等依赖目录</div>
+                    <input type="file" id="file-input" accept=".py,.js,.ts,.java,.cpp,.c,.cs,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.scss,.less,.vue,.jsx,.tsx,.json,.xml,.yml,.yaml,.properties,.conf,.md,.zip,.tar,.tar.gz,.tgz" style="display:none;">
+                    <div id="upload-prompt">
+                        <div class="upload-title" style="font-size:14px;margin-bottom:3px;">拖拽文件到此处 或 点击上传</div>
+                        <div class="upload-desc" style="font-size:11px;">支持单个文件 / ZIP / TAR.GZ 压缩包，总代码量 ≤ 10MB（最多 500 文件 / 20 万行）</div>
+                        <div style="font-size:10px;color:var(--text-tertiary,var(--color-text-muted));margin-top:3px;font-style:italic;">💡 建议上传关键业务代码，无需上传 node_modules 等依赖目录</div>
+                    </div>
+                    <div id="upload-selected" style="display:none;"></div>
                 </div>
-                <div class="file-list" id="file-list"></div>
             </div>
 
             <!-- 粘贴代码 -->
@@ -115,17 +120,17 @@
             <!-- GitHub 仓库扫描 -->
             <div class="upload-tab-content" id="tab-content-github">
                 <!-- GitHub OAuth 连接状态 -->
-                <div id="github-oauth-section" style="margin-bottom:16px;padding:14px 18px;background:rgba(36,41,47,0.04);border:1px solid rgba(36,41,47,0.12);border-radius:10px;">
+                <div id="github-oauth-section" style="margin-bottom:16px;padding:14px 18px;background:var(--color-v-fd6b6c28f);border:1px solid var(--color-v-f977b68b4);border-radius:10px;">
                     <div id="github-not-connected">
                         <div style="display:flex;align-items:center;gap:12px;">
                             <svg width="24" height="24" viewBox="0 0 16 16" fill="#24292f"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
                             <div style="flex:1;">
-                                <div style="font-size:13px;font-weight:600;color:#24292f;">连接 GitHub 账号</div>
-                                <div style="font-size:11px;color:#666;margin-top:2px;">一键授权后可选择仓库、扫描私有仓库、无需手动粘贴 Token</div>
+                                <div style="font-size:13px;font-weight:600;color:var(--color-v-24292f);">连接 GitHub 账号</div>
+                                <div style="font-size:11px;color:var(--color-v-666666);margin-top:2px;">一键授权后可选择仓库、扫描私有仓库、无需手动粘贴 Token</div>
                             </div>
                             <a href="/api/github/authorize" class="btn3d" style="flex-shrink:0;">
-                                <span class="btn3d-edge" style="background:linear-gradient(180deg,#2da44e,#1a7f37);"></span>
-                                <span class="btn3d-front" style="background:#2da44e;font-size:13px;padding:0 16px;height:36px;">授权连接</span>
+                                <span class="btn3d-edge" style="background:linear-gradient(180deg,var(--color-v-2da44e),var(--color-v-1a7f37));"></span>
+                                <span class="btn3d-front" style="background:var(--color-v-2da44e);font-size:13px;padding:0 16px;height:36px;">授权连接</span>
                             </a>
                         </div>
                     </div>
@@ -133,52 +138,52 @@
                         <div style="display:flex;align-items:center;gap:10px;">
                             <svg width="20" height="20" viewBox="0 0 16 16" fill="#24292f"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
                             <span style="font-size:13px;font-weight:600;">已连接：<span id="github-username">-</span></span>
-                            <select id="github-repo-select" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+                            <select id="github-repo-select" style="flex:1;padding:6px 10px;border:1px solid var(--color-v-dddddd);border-radius:6px;font-size:12px;">
                                 <option value="">- 选择仓库 -</option>
                             </select>
-                            <button onclick="fetchGitHubRepos()" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:white;font-size:11px;cursor:pointer;">刷新</button>
-                            <button onclick="disconnectGitHub()" style="padding:4px 10px;border:1px solid #e74c3c;border-radius:6px;background:white;color:#e74c3c;font-size:11px;cursor:pointer;margin-left:4px;">断开连接</button>
+                            <button onclick="fetchGitHubRepos()" style="padding:4px 10px;border:1px solid var(--color-v-dddddd);border-radius:6px;background:white;font-size:11px;cursor:pointer;">刷新</button>
+                            <button onclick="disconnectGitHub()" style="padding:4px 10px;border:1px solid var(--color-v-e74c3c);border-radius:6px;background:white;color: var(--color-danger);font-size:11px;cursor:pointer;margin-left:4px;">断开连接</button>
                         </div>
                     </div>
                 </div>
-                <div style="text-align:center;margin:8px 0;font-size:11px;color:#aaa;">- 或直接粘贴仓库地址 -</div>
+                <div style="text-align:center;margin:8px 0;font-size:11px;color:var(--color-v-aaaaaa);">- 或直接粘贴仓库地址 -</div>
                 <div class="form-group">
                     <label class="form-label">GitHub 仓库地址</label>
                     <input type="text" class="form-input" id="github-repo-url" placeholder="https://github.com/username/repo" style="font-size:14px;padding:12px 16px;">
                 </div>
                 <div class="form-group" style="margin-top:12px;">
-                    <label class="form-label">分支名称 <span style="color:#aaa;font-weight:400;font-size:12px;">（可选，默认使用默认分支）</span></label>
+                    <label class="form-label">分支名称 <span style="color:var(--color-v-aaaaaa);font-weight:400;font-size:12px;">（可选，默认使用默认分支）</span></label>
                     <input type="text" class="form-input" id="github-branch" placeholder="例如：main、develop" style="font-size:14px;padding:12px 16px;">
 
                 <!-- PR 内联评论选项 -->
                 <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
                     <div style="flex:1;min-width:150px;">
-                        <label class="form-label" style="font-size:13px;">PR 编号 <span style="color:#aaa;font-weight:400;font-size:11px;">（可选，自动评论到PR）</span></label>
+                        <label class="form-label" style="font-size:13px;">PR 编号 <span style="color:var(--color-v-aaaaaa);font-weight:400;font-size:11px;">（可选，自动评论到PR）</span></label>
                         <input type="number" class="form-input" id="github-pr-number" placeholder="例如：42" min="1" style="font-size:14px;padding:10px 14px;">
                     </div>
                     <div style="flex:1;min-width:200px;display:flex;align-items:flex-end;">
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#57606a;">
-                            <input type="checkbox" id="github-post-comment" style="width:16px;height:16px;accent-color:#1A3A5C;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--color-v-57606a);">
+                            <input type="checkbox" id="github-post-comment" style="width:16px;height:16px;accent-color:var(--color-v-1a3a5c);">
                             扫描后自动在 PR 发布质检评论
                         </label>
                     </div>
                 </div>
                 </div>
-                <div style="margin-top:12px;padding:12px 16px;background:rgba(26,58,92,0.06);border:1px solid rgba(26,58,92,0.15);border-radius:10px;">
-                    <div style="font-size:12px;color:var(--text-secondary,#888);line-height:1.8;">
-                        <span style="color:var(--accent-orange,#1A3A5C);font-weight:600;">💡 使用说明</span><br>
+                <div style="margin-top:12px;padding:12px 16px;background:var(--color-v-f77bc440b);border:1px solid var(--color-metal-gold);border-radius:10px;">
+                    <div style="font-size:12px;color:var(--text-secondary,var(--color-v-888888));line-height:1.8;">
+                        <span style="color:var(--accent-steel,var(--color-v-1a3a5c));font-weight:600;">💡 使用说明</span><br>
                         • 支持公开 GitHub 仓库，私有仓库需提供 Personal Access Token<br>
                         • 自动过滤 node_modules、.git、dist、build 等目录<br>
                         • 最多扫描 200 个代码文件，单文件不超过 500KB<br>
-                        • 支持 Python、JavaScript、TypeScript、Java、Go 等 40+ 种语言
+                        • 支持 Python、JavaScript、TypeScript、Java、Go 等 23 种语言
                     </div>
                 </div>
                 <div class="form-group" id="github-token-group" style="margin-top:12px;display:none;">
-                    <label class="form-label">GitHub Token <span style="color:#aaa;font-weight:400;font-size:12px;">（私有仓库需要）</span></label>
+                    <label class="form-label">GitHub Token <span style="color:var(--color-v-aaaaaa);font-weight:400;font-size:12px;">（私有仓库需要）</span></label>
                     <input type="password" class="form-input" id="github-token" placeholder="ghp_xxxxxxxxxxxx" style="font-size:14px;padding:12px 16px;">
                 </div>
                 <div style="margin-top:8px;">
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary,#888);">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary,var(--color-v-888888));">
                         <input type="checkbox" id="github-private-check" onchange="document.getElementById('github-token-group').style.display=this.checked?'block':'none'">
                         这是私有仓库
                     </label>
@@ -211,33 +216,33 @@
             <!-- 检测模式选择 - 紧凑横排v6 -->
             <div style="margin-top:14px;">
                 <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
-                    <span style="width:3px;height:11px;background:var(--accent-orange);border-radius:2px;display:inline-block;"></span>
+                    <span style="width:3px;height:11px;background:var(--accent-steel);border-radius:2px;display:inline-block;"></span>
                     检测方式
                 </div>
                 <div id="tier-list" style="display:flex;gap:6px;">
-                    <div class="tier-card" id="tier-free" onclick="selectScanMode('free')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                    <div class="tier-card" id="tier-free" onclick="selectScanMode('free')" style="flex:1;border:1.5px solid var(--border-color,var(--color-v-e5e6eb));border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:background-color 0.2s cubic-bezier(0.34,1.3,0.64,1), color 0.2s cubic-bezier(0.34,1.3,0.64,1), border-color 0.2s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.2s cubic-bezier(0.34,1.3,0.64,1), opacity 0.2s cubic-bezier(0.34,1.3,0.64,1), transform 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,var(--color-bg-primary));min-width:0;position:relative;overflow:hidden;">
                         <div style="font-size:13px;font-weight:700;margin-bottom:3px;">免费检查</div>
-                        <div style="font-size:10px;color:#999;line-height:1.4;">7引擎基础规范</div>
+                        <div style="font-size:10px;color:var(--color-v-999999);line-height:1.4;">基础体检<br>免费体验</div>
                     </div>
-                    <div class="tier-card" id="tier-quick" onclick="selectScanMode('quick')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                    <div class="tier-card" id="tier-quick" onclick="selectScanMode('quick')" style="flex:1;border:1.5px solid var(--border-color,var(--color-v-e5e6eb));border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:background-color 0.2s cubic-bezier(0.34,1.3,0.64,1), color 0.2s cubic-bezier(0.34,1.3,0.64,1), border-color 0.2s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.2s cubic-bezier(0.34,1.3,0.64,1), opacity 0.2s cubic-bezier(0.34,1.3,0.64,1), transform 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,var(--color-bg-primary));min-width:0;position:relative;overflow:hidden;">
                         <div style="font-size:13px;font-weight:700;margin-bottom:3px;">快速检查</div>
-                        <div style="font-size:10px;color:#999;line-height:1.4;">12引擎全量扫描<br>完整报告</div>
+                        <div style="font-size:10px;color:var(--color-v-999999);line-height:1.4;">几秒出结果<br>快速扫一遍</div>
                     </div>
-                    <div class="tier-card" id="tier-smart" onclick="selectScanMode('smart')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                    <div class="tier-card" id="tier-smart" onclick="selectScanMode('smart')" style="flex:1;border:1.5px solid var(--border-color,var(--color-v-e5e6eb));border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:background-color 0.2s cubic-bezier(0.34,1.3,0.64,1), color 0.2s cubic-bezier(0.34,1.3,0.64,1), border-color 0.2s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.2s cubic-bezier(0.34,1.3,0.64,1), opacity 0.2s cubic-bezier(0.34,1.3,0.64,1), transform 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,var(--color-bg-primary));min-width:0;position:relative;overflow:hidden;">
                         <div style="font-size:13px;font-weight:700;margin-bottom:3px;">智能检查</div>
-                        <div style="font-size:10px;color:#999;line-height:1.4;">+AI语义确认<br>自动标注误报</div>
+                        <div style="font-size:10px;color:var(--color-v-999999);line-height:1.4;">查得更深更细<br>多花一点时间</div>
                     </div>
-                    <div class="tier-card" id="tier-deep" onclick="selectScanMode('deep')" style="flex:1;border:1.5px solid var(--border-color,#e5e6eb);border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,#fff);min-width:0;position:relative;overflow:hidden;">
+                    <div class="tier-card" id="tier-deep" onclick="selectScanMode('deep')" style="flex:1;border:1.5px solid var(--border-color,var(--color-v-e5e6eb));border-radius:8px;padding:10px 8px 8px;text-align:center;cursor:pointer;transition:background-color 0.2s cubic-bezier(0.34,1.3,0.64,1), color 0.2s cubic-bezier(0.34,1.3,0.64,1), border-color 0.2s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.2s cubic-bezier(0.34,1.3,0.64,1), opacity 0.2s cubic-bezier(0.34,1.3,0.64,1), transform 0.2s cubic-bezier(0.34,1.3,0.64,1);background:var(--bg-card,var(--color-bg-primary));min-width:0;position:relative;overflow:hidden;">
                         <div style="font-size:13px;font-weight:700;margin-bottom:3px;">深度检查</div>
-                        <div style="font-size:10px;color:#999;line-height:1.4;">+AI深度分析<br>跨文件追踪</div>
+                        <div style="font-size:10px;color:var(--color-v-999999);line-height:1.4;">AI深度+PoC实弹验证<br>最全面最仔细</div>
                     </div>
                 </div>
-                <div id="tier-time-bar" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:#1976D2;background:rgba(25,118,210,0.06);border-radius:6px;padding:5px 0;">
+                <div id="tier-time-bar" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color: var(--color-info);background:var(--color-v-fc9f7e555);border-radius:6px;padding:5px 0;">
                     ⏱ 预计时间：<span id="tier-time-value" style="font-weight:700;">2-3 秒</span>
-                    <span style="color:var(--text-tertiary,#aaa);">·</span>
-                    <span id="tier-price-value" style="font-weight:600;color:var(--accent-orange);">按行数计费</span>
+                    <span style="color:var(--text-tertiary,var(--color-v-aaaaaa));">·</span>
+                    <span id="tier-price-value" style="font-weight:600;color:var(--accent-steel);">按档位计费</span>
                 </div>
-                <div style="font-size:11px;color:var(--text-tertiary,#aaa);text-align:center;margin-top:5px;" id="mode-hint">适合：日常开发、提交前快速自查</div>
+                <div style="font-size:11px;color:var(--text-tertiary,var(--color-v-aaaaaa));text-align:center;margin-top:5px;" id="mode-hint">适合日常写完代码随手查一下，速度快，几秒钟出结果</div>
             </div>
             </div>
 
@@ -253,9 +258,9 @@
             <div class="scan-actions">
                 <div class="scan-count-info">
                     {% if is_vip %}
-                        <span style="color:var(--accent-orange);">⚡ 专业会员 · 全维度AI检测 · 按积分计费</span>
+                        <span style="color:var(--accent-steel);">⚡ 专业会员 · 更全面更深入的检查</span>
                     {% else %}
-                        <span>规范层扫描 · 永久免费 · 不限次数</span>
+                        <span>基础检查 · 永久免费 · 不限次数</span>
                     {% endif %}
                 </div>
                 <button class="btn3d" id="scan-btn" disabled onclick="window.__uploadScanClick && window.__uploadScanClick()" style="min-width:180px;">
@@ -269,32 +274,22 @@
 
 
 
-        <!-- 检测进度 -->
+        <!-- 检测进度：只显示扫描引擎真实完成的步骤（2026-11-05） -->
         <div id="scan-progress" style="display:none;">
-            <div class="scan-progress">
-                <div class="progress-icon">
-                    <div class="progress-spinner"></div>
-                </div>
-                <div class="progress-text" id="progress-text">正在提交检测任务...</div>
-                <div style="font-size:13px;color:var(--accent-orange,#1A3A5C);margin-bottom:12px;font-weight:500;" id="progress-step">准备中...</div>
-                <div class="progress-desc">多引擎并行扫描，通常需要 10-30 秒。提交后可切换页面，无需等待</div>
-                <div class="progress-bar">
-                    <div class="progress-bar-fill" style="width: 5%;"></div>
-                </div>
-            </div>
+            <div id="xp-scanfx"></div>
         </div>
 
         
         <!-- 常见问题 (统一移至底部) -->
         <div class="tab-faq" style="margin-top:40px;max-width:640px;margin-left:auto;margin-right:auto;">
-            <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary,#333);">常见问题</h3>
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text-primary,var(--color-v-333333));">常见问题</h3>
             <details>
                 <summary>支持哪些文件格式？</summary>
                 <p>支持 Python、JavaScript、TypeScript、Java、Go、C/C++、PHP、Ruby、Swift、Kotlin、Rust、Shell、SQL、HTML/CSS 等 40+ 种代码文件，也支持 ZIP/TAR.GZ 压缩包上传。</p>
             </details>
             <details>
                 <summary>一次能上传多少文件？</summary>
-                <p>支持多文件同时上传，总大小不超过 50MB。建议只上传核心业务代码，无需上传 node_modules、.git 等依赖或版本控制目录，系统会自动过滤。</p>
+                <p>支持多文件同时上传，总代码量不超过 10MB（最多 500 个文件 / 20 万行）。建议只上传核心业务代码，无需上传 node_modules、.git 等依赖或版本控制目录，系统会自动过滤。</p>
             </details>
             <details>
                 <summary>上传的代码安全吗？会被保存吗？</summary>
@@ -327,8 +322,8 @@
         <div style="margin-top:32px;padding:20px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);display:flex;align-items:center;gap:16px;">
             <div style="font-size:32px;">⚡</div>
             <div style="flex:1;">
-                <div style="font-weight:600;margin-bottom:4px;">升级专业版，解锁全部 10 大脑检测</div>
-                <div style="font-size:13px;color:var(--text-secondary);">免费版开放规范层检测（B1+B6+B7+B9），问题全可见，升级后享全维度AI检测和完整报告</div>
+                <div style="font-weight:600;margin-bottom:4px;">升级专业版，解锁更全面更深入的检查</div>
+                <div style="font-size:13px;color:var(--text-secondary);">免费版可以先体验基础检查，升级后能查得更深更细，报告也更完整</div>
             </div>
             <a href="{{ url_for('dashboard_page', page='recharge') if session.get('user_id') else url_for('register') }}" class="btn btn-orange">立即升级</a>
         </div>
@@ -344,7 +339,7 @@
         return meta ? meta.getAttribute("content") : "";
     }
     // ===== 第一步：同步隐藏元素ID，让 main.js initUpload 找不到 =====
-    var ids = ['upload-area', 'file-input', 'file-list', 'scan-btn'];
+    var ids = ['upload-area', 'file-input', 'scan-btn'];
     ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.id = id + '-disabled';
@@ -368,7 +363,7 @@
     var estimateAbortController = null;
 
     // ===== DOM 缓存 =====
-    var fileInput, uploadArea, fileListEl, codeTextarea, fileNameInput;
+    var fileInput, uploadArea, codeTextarea, fileNameInput;
     var tabFile, tabCode, fileContent, codeContent;
     var scanBtn, langSelect;
 
@@ -398,48 +393,67 @@
         setTimeout(function() { div.remove(); }, 2500);
     }
 
+    // HTML 转义，防止文件名里的特殊字符破坏布局 / XSS
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // ===== 文件列表渲染 =====
+    // 单文件排队：文件固定显示在拖拽框内部（显眼），有文件时锁定拖拽框
     function renderFileList() {
-        if (!fileListEl) return;
+        var promptEl = document.getElementById('upload-prompt');
+        var selectedEl = document.getElementById('upload-selected');
+
         if (state.files.length === 0) {
-            fileListEl.innerHTML = '';
-            fileListEl.style.display = 'none';
+            if (promptEl) promptEl.style.display = '';
+            if (selectedEl) { selectedEl.style.display = 'none'; selectedEl.innerHTML = ''; }
+            if (uploadArea) uploadArea.classList.remove('has-file');
             return;
         }
-        fileListEl.style.display = 'block';
-        var html = '';
-        state.files.forEach(function(f, i) {
-            html += '<div class="file-item" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);border-radius:10px;margin-bottom:10px;">' +
-                '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
-                    '<span style="font-size:18px;">📄</span>' +
-                    '<span style="font-size:14px;color:#ffffff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + f.name + '</span>' +
-                    '<span style="font-size:12px;color:#cccccc;">(' + (f.size < 1024 ? f.size + 'B' : (f.size/1024).toFixed(1) + 'KB') + ')</span>' +
-                '</div>' +
-                '<button onclick="window.__uploadRemoveFile && window.__uploadRemoveFile(' + i + ')" style="border:none;background:transparent;color:var(--text-tertiary,#aaa);cursor:pointer;font-size:16px;padding:4px 8px;">✕</button>' +
-            '</div>';
-        });
-        fileListEl.innerHTML = html;
+
+        var f = state.files[0];
+        var sizeText = f.size < 1024 ? f.size + 'B' : (f.size / 1024).toFixed(1) + 'KB';
+        if (promptEl) promptEl.style.display = 'none';
+        if (uploadArea) uploadArea.classList.add('has-file');
+        if (selectedEl) {
+            selectedEl.style.display = 'block';
+            selectedEl.innerHTML =
+                '<div style="display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;margin-top:4px;">' +
+                    '<span style="font-size:20px;">📄</span>' +
+                    '<span style="font-size:15px;color:var(--text-primary,var(--color-bg-secondary));font-weight:600;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(f.name) + '">' + escapeHtml(f.name) + '</span>' +
+                    '<span style="font-size:12px;color:var(--text-secondary,var(--color-text-secondary));flex-shrink:0;">' + sizeText + '</span>' +
+                    '<button onclick="event.stopPropagation();window.__uploadRemoveFile(0)" style="border:none;background:var(--color-v-fff1f0);color:var(--color-danger);cursor:pointer;font-size:13px;padding:4px 10px;border-radius:6px;flex-shrink:0;" title="移除文件">✕ 移除</button>' +
+                '</div>';
+        }
     }
 
     window.__uploadRemoveFile = function(idx) {
-        state.files.splice(idx, 1);
+        state.files = [];
         renderFileList();
         updateScanBtn();
-        if (state.files.length > 0) debounceEstimate(); else hideEstimateBar();
+        hideEstimateBar();
     };
 
     function handleFiles(fileListObj) {
         var files = Array.from(fileListObj);
-        // 去重
-        var existingNames = state.files.map(function(f) { return f.name; });
-        files.forEach(function(f) {
-            if (existingNames.indexOf(f.name) === -1) {
-                state.files.push(f);
-            }
-        });
+        if (files.length === 0) return;
+        // 单文件排队：只保留一个文件（替换而非追加），避免无限堆文件打乱排队、拉爆服务器
+        var f = files[0];
+        // 上传大小校验：单文件 ≤ 10MB（与后端 _check_scan_limits 的 _MAX_BYTES 对齐）
+        var MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+        if (f.size > MAX_UPLOAD_BYTES) {
+            flash('文件「' + f.name + '」大小 ' + (f.size / 1024 / 1024).toFixed(1) + 'MB，超过单次 10MB 上限，请拆分或压缩后重试', 'error');
+            return;
+        }
+        state.files = [f];
         renderFileList();
         updateScanBtn();
-        if (state.files.length > 0) debounceEstimate();
+        debounceEstimate();
     }
 
     function updateScanBtn() {
@@ -516,8 +530,8 @@
         }
         if (isVip && data.cost > 0) {
             val.innerHTML =
-                '<span style="font-size:20px;font-weight:700;color:var(--accent-orange);">' + fmtNum(data.cost || 0) + '</span>' +
-                '<span style="font-size:13px;color:var(--text-secondary);margin-left:4px;">积分 · ' + fmtNum(data.total_lines || 0) + '行 · ' + (data.scan_mode || 'quick') + '模式</span>';
+                '<span style="font-size:20px;font-weight:700;color:var(--accent-steel);">' + fmtNum(data.cost || 0) + '</span>' +
+                '<span style="font-size:13px;color:var(--text-secondary);margin-left:4px;">积分 · ' + (data.scan_mode || 'quick') + '模式</span>';
         } else if (isVip) {
             val.innerHTML =
                 '<span style="font-size:14px;color:var(--text-secondary);">上传文件后自动预估积分</span>';
@@ -590,36 +604,20 @@
         }
     }
 
-    function showInsufficientModal(currentCredits, needCredits) {
-        var modal = document.getElementById('credit-insufficient-modal');
-        if (!modal) {
-            flash('积分不足，请充值后重试', 'error');
-            return;
-        }
-        var curEl = document.getElementById('insufficient-current-num');
-        var needEl = document.getElementById('insufficient-need-num');
-        var closeBtn = document.getElementById('insufficient-close-btn');
-        var rechargeBtn = document.getElementById('insufficient-recharge-btn');
-        if (curEl) curEl.textContent = fmtNum(currentCredits || 0);
-        if (needEl) needEl.textContent = fmtNum(needCredits || 0);
-        modal.style.display = 'flex';
-        closeBtn.onclick = function() { modal.style.display = 'none'; };
-        rechargeBtn.onclick = function() {
-            window.location.href = "{{ url_for('dashboard_page', page='recharge') }}";
-        };
-    }
-
-    
+    // 修复 2026-10-27：删除旧版 showInsufficientModal（指向不存在的 credit-insufficient-modal DOM，死代码），
+    // 统一使用下方 742 行操作 credit-insufficient-modal-v2 的生效版。
     // ===== 检测模式选择 =====
     var currentScanMode = {% if is_vip %}'quick'{% else %}'free'{% endif %};
     var isVip = {{ 'true' if is_vip else 'false' }};
+    // 团队身份：档位上限（quick/smart/deep）。团队无免费档，成员自选不超过上限。
+    var teamModeCap = {{ ('\'' + team_mode_cap + '\'') if team_mode_cap else 'null' }};
     
     // 模式数据
     var tierData = {
-        free:  { name:'免费检查', time:'1-2 秒',   price:'免费',       cost:null, hint:'适合：体验产品功能，快速了解代码质量', vipHint:'会员可享完整报告 · 7引擎' },
-        quick: { name:'快速检查', time:'2-3 秒',   price:'按行数计费', cost:null, hint:'适合：日常开发、提交前快速自查（1积分/300行）' },
-        smart: { name:'智能检查', time:'1-2 分钟', price:'按行数计费', cost:null, hint:'适合：提测验证、Code Review（2积分/300行）' },
-        deep:  { name:'深度检查', time:'5-10 分钟',price:'按行数计费', cost:null, hint:'适合：上线终审、安全合规审计（4积分/300行）' }
+        free:  { name:'免费检查', time:'1-2 秒',   price:'免费', cost:null, hint:'适合：先体验一下，做一轮基础体检，看看报告长什么样', vipHint:'升级后解锁更全面、更深入的检查' },
+        quick: { name:'快速检查', time:'2-3 秒',   price:'1积分/100行', cost:null, hint:'适合：日常写完代码随手查一下，速度快，几秒钟出结果' },
+        smart: { name:'智能检查', time:'1-2 分钟', price:'4积分/100行', cost:null, hint:'适合：重要一点的代码，AI 语义分析，比快速查得更深更细' },
+        deep:  { name:'深度检查', time:'5-10 分钟',price:'10积分/100行', cost:null, hint:'适合：最关键、不能出错的代码，AI深度分析 + PoC 实弹验证漏洞真伪' }
     };
 
     // 暴露到全局供onclick使用
@@ -661,7 +659,7 @@
         // 选中态：品牌橙色背景+白色文字
         if (card) {
             card.style.borderColor = '#1A3A5C';
-            card.style.background = 'linear-gradient(135deg, #1A3A5C, #1E40AF)';
+            card.style.background = '#1A2B4A';
             card.style.boxShadow = '0 4px 12px rgba(26,58,92,0.3)';
             // 文字变白色
             var titleEl = card.querySelector('div:first-child');
@@ -680,14 +678,46 @@
         var hint = document.getElementById('mode-hint');
         if (hint) hint.textContent = (isVip && mode === 'free') ? d.vipHint : d.hint;
         
-        // 更新预估消耗
-        if (typeof updateEstimate === 'function') updateEstimate();
+        // 更新预估消耗：切换检测方式后，必须重新请求预估接口（带上新的 scan_mode）
+        // 修复 2026-10-27：原先调用不存在的 updateEstimate()，被 typeof 守卫静默跳过，
+        // 导致预估积分不随检测方式变化而更新。改为 debounceEstimate()（走 callEstimate → /api/scan/estimate）。
+        debounceEstimate();
     }
 
     window.selectScanMode = selectScanMode;
 
     // 初始化锁定态
     (function initTierLocks() {
+        // ── 团队身份：无免费档，成员自选档位但不超过管理员上限 ──
+        if (teamModeCap) {
+            // 隐藏免费档（团队无免费档）
+            var freeCard = document.getElementById('tier-free');
+            if (freeCard) freeCard.style.display = 'none';
+
+            // 档位阶梯：quick < smart < deep
+            var modeRank = { 'quick': 1, 'smart': 2, 'deep': 3 };
+            var capRank = modeRank[teamModeCap] || 1;
+
+            // 超过管理员上限的档位锁定（不可选）
+            ['quick', 'smart', 'deep'].forEach(function(m) {
+                var card = document.getElementById('tier-' + m);
+                if (!card) return;
+                if ((modeRank[m] || 1) > capRank) {
+                    card.classList.add('tier-locked');
+                    card.style.opacity = '0.5';
+                    card.style.cursor = 'not-allowed';
+                    var lock = document.createElement('div');
+                    lock.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:var(--color-surface-veil);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;';
+                    lock.innerHTML = '<div style="font-size:14px;">🔒</div><div style="font-size:9px;color:var(--color-v-1a3a5c);font-weight:600;margin-top:2px;">管理员未开放</div>';
+                    card.appendChild(lock);
+                }
+            });
+
+            // 团队默认 quick（最保守），成员可自行切到不超上限的更高档
+            selectScanMode('quick');
+            return;
+        }
+
         if (!isVip) {
             ['quick','smart','deep'].forEach(function(m) {
                 var card = document.getElementById('tier-' + m);
@@ -697,8 +727,8 @@
                     card.style.cursor = 'not-allowed';
                     // 添加锁定遮罩
                     var lock = document.createElement('div');
-                    lock.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;';
-                    lock.innerHTML = '<div style="font-size:14px;">🔒</div><div style="font-size:9px;color:#1A3A5C;font-weight:600;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();window.location.href=\'/pricing\'">开通会员</div>';
+                    lock.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:var(--color-surface-veil);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;';
+                    lock.innerHTML = '<div style="font-size:14px;">🔒</div><div style="font-size:9px;color:var(--color-v-1a3a5c);font-weight:600;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();window.location.href=\'/pricing\'">开通会员</div>';
                     card.appendChild(lock);
                 }
             });
@@ -817,33 +847,11 @@
             progSec.style.display = 'block';
         }
 
-        var progBar = document.querySelector(".progress-bar-fill");
-        var stepEl = document.getElementById("progress-step");
-        var prog = 0;
-        var stepIdx = 0;
-        var steps = [
-            { pct: 10, text: "上传文件中" },
-            { pct: 18, text: "解析代码结构" },
-            { pct: 28, text: "B1 语法规范检查" },
-            { pct: 40, text: "B2 安全漏洞扫描" },
-            { pct: 52, text: "B3 语义深度分析" },
-            { pct: 62, text: "B4 性能瓶颈检测" },
-            { pct: 72, text: "B5 依赖安全审计" },
-            { pct: 80, text: "B6 代码质量评估" },
-            { pct: 88, text: "B7 架构规范检查" },
-            { pct: 93, text: "B8 业务风险检测" },
-            { pct: 97, text: "生成检测报告" }
-        ];
-        if (stepEl) stepEl.textContent = steps[0].text;
-        var progInterval = setInterval(function() {
-            prog += Math.random() * 6;
-            if (prog > 95) prog = 95;
-            if (progBar) progBar.style.width = prog + "%";
-            while (stepIdx < steps.length - 1 && prog >= steps[stepIdx + 1].pct) {
-                stepIdx++;
-                if (stepEl) stepEl.textContent = steps[stepIdx].text;
-            }
-        }, 350);
+        // 2026-11-05 治本：删掉「每 0.35 秒随机加数字」的假进度和 11 条编造阶段。
+        // 进度只来自 /api/scan/status 返回的扫描器真实事件；没拿到就老实写「检测中」。
+        XpScanFX.mount("xp-scanfx", { title: "正在检测你的代码" });
+        XpScanFX.render({ pct: null, text: "已提交，等待扫描引擎返回实际进度",
+                          events: [], files: [] });
 
         fetch('/api/scan/submit', {
             method: 'POST',
@@ -861,18 +869,17 @@
         }).then(function(data) {
             // 异步模式：拿到 scan_id，开始轮询状态
             if (data.scan_id && data.status === 'pending') {
-                pollScanStatus(data.scan_id, progInterval, progBar, stepEl, progSec, uploadSec);
+                pollScanStatus(data.scan_id, progSec, uploadSec);
             } else {
                 // 兼容旧的同步响应
-                clearInterval(progInterval);
-                if (progBar) progBar.style.width = '100%';
-                if (stepEl) stepEl.textContent = '检测完成 ✓';
+                XpScanFX.render({ pct: 100, text: "检测完成", events: [], files: [] });
+                XpScanFX.finish(true);
                 setTimeout(function() {
                     window.location.href = '/report/' + data.scan_id;
-                }, 500);
+                }, 700);
             }
         }).catch(function(error) {
-            clearInterval(progInterval);
+            XpScanFX.finish(false);
             scanBtn.disabled = false;
             var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '🔍 开始检测';
             if (progSec && uploadSec) {
@@ -880,52 +887,49 @@
                 uploadSec.style.display = 'block';
             }
             var d = error.data || {};
-            if (d.error === '积分不足' || error.message === '积分不足' || d.code === 'INSUFFICIENT_CREDITS') {
-                showInsufficientModal(d.credits_balance || d.current_credits || creditBalance, d.credits_needed || d.need_credits || 0);
+            // 修复 2026-10-27：后端积分不足返回 error 是完整句子（非精确"积分不足"）、无 code 字段，
+            // 原判断恒 false 导致弹窗永不触发。改为以 credits_needed 字段为确定性标志。
+            if (d.credits_needed !== undefined || d.code === 'INSUFFICIENT_CREDITS') {
+                showInsufficientModal(d.credits_needed || 0, d.credits_balance || 0);
             } else {
                 flash(error.message || '检测失败，请重试', 'error');
             }
         });
     }
 
-    // ===== 轮询扫描状态 =====
-    function pollScanStatus(scanId, progInterval, progBar, stepEl, progSec, uploadSec) {
-        // 停止假进度动画，改用服务器真实进度
-        clearInterval(progInterval);
+    // ===== 轮询扫描真实状态（0.8 秒一次，只显示引擎真的完成的步骤）=====
+    function pollScanStatus(scanId, progSec, uploadSec) {
         var pollCount = 0;
-        var maxPolls = 300; // 最多轮询5分钟 (300 * 1秒)
+        var maxPolls = 900; // 0.8s × 900 ≈ 12 分钟，覆盖大项目
 
         function doPoll() {
             pollCount++;
             if (pollCount > maxPolls) {
-                // 超时但任务可能还在跑，直接跳报告页
                 window.location.href = '/report/' + scanId;
                 return;
             }
-
             fetch('/api/scan/status/' + scanId)
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data.status === 'completed') {
-                        if (progBar) progBar.style.width = '100%';
-                        if (stepEl) stepEl.textContent = '检测完成 \u2713';
-                        setTimeout(function() { window.location.href = '/report/' + scanId; }, 500);
+                        XpScanFX.render({ pct: 100, text: '检测完成',
+                            events: data.events || [], files: data.files || [],
+                            engines_done: data.engines_done, engines_total: data.engines_total });
+                        XpScanFX.finish(true);
+                        setTimeout(function() { window.location.href = '/report/' + scanId; }, 700);
                         return;
                     }
                     if (data.status === 'failed') {
                         throw new Error(data.error || '扫描失败');
                     }
-                    // 更新进度
-                    var pct = data.progress || 0;
-                    if (progBar) progBar.style.width = Math.min(pct, 95) + '%';
-                    if (stepEl && data.progress_text) stepEl.textContent = data.progress_text;
-                    // 继续轮询
-                    setTimeout(doPoll, 2500);
+                    XpScanFX.render(data);
+                    setTimeout(doPoll, 800);
                 })
                 .catch(function(error) {
+                    XpScanFX.finish(false);
                     scanBtn.disabled = false;
                     var front = scanBtn.querySelector('.btn3d-front');
-                    if (front) front.textContent = '\U0001f50d 开始检测';
+                    if (front) front.textContent = '🔍 开始检测';
                     if (progSec && uploadSec) {
                         progSec.style.display = 'none';
                         uploadSec.style.display = 'block';
@@ -933,8 +937,7 @@
                     flash(error.message || '查询扫描状态失败', 'error');
                 });
         }
-
-        setTimeout(doPoll, 2000);
+        setTimeout(doPoll, 600);
     }
 
     // ===== GitHub 仓库扫描 =====
@@ -963,32 +966,10 @@
             progSec.style.display = 'block';
         }
 
-        var progBar = document.querySelector(".progress-bar-fill");
-        var stepEl = document.getElementById("progress-step");
-        var prog = 0;
-        var stepIdx = 0;
-        var steps = [
-            { pct: 8, text: "连接 GitHub" },
-            { pct: 20, text: "克隆仓库代码" },
-            { pct: 35, text: "解析代码结构" },
-            { pct: 48, text: "B1 语法规范检查" },
-            { pct: 58, text: "B2 安全漏洞扫描" },
-            { pct: 68, text: "B3 语义深度分析" },
-            { pct: 78, text: "B4 性能瓶颈检测" },
-            { pct: 85, text: "B5 依赖安全审计" },
-            { pct: 92, text: "B6 代码质量评估" },
-            { pct: 97, text: "生成检测报告" }
-        ];
-        if (stepEl) stepEl.textContent = steps[0].text;
-        var progInterval = setInterval(function() {
-            prog += Math.random() * 4;
-            if (prog > 95) prog = 95;
-            if (progBar) progBar.style.width = prog + "%";
-            while (stepIdx < steps.length - 1 && prog >= steps[stepIdx + 1].pct) {
-                stepIdx++;
-                if (stepEl) stepEl.textContent = steps[stepIdx].text;
-            }
-        }, 500);
+        // GitHub 扫描同样只显示真实进度，绝不另编一套假阶段
+        XpScanFX.mount("xp-scanfx", { title: "正在检测你的 GitHub 仓库" });
+        XpScanFX.render({ pct: null, text: "已提交，等待扫描引擎返回实际进度",
+                          events: [], files: [] });
 
         var prNumber = document.getElementById('github-pr-number');
         var postComment = document.getElementById('github-post-comment');
@@ -1019,25 +1000,25 @@
             if (data.scan_id && (data.status === 'pending' || data.status === 'ok')) {
                 if (data.status === 'ok') {
                     // 同步完成了（小仓库）
-                    clearInterval(progInterval);
-                    if (progBar) progBar.style.width = '100%';
-                    if (stepEl) stepEl.textContent = '检测完成 \u2713';
-                    setTimeout(function() { window.location.href = '/report/' + data.scan_id; }, 500);
+                    XpScanFX.render({ pct: 100, text: '检测完成', events: [], files: [] });
+                    XpScanFX.finish(true);
+                    setTimeout(function() { window.location.href = '/report/' + data.scan_id; }, 700);
                 } else {
-                    pollScanStatus(data.scan_id, progInterval, progBar, stepEl, progSec, uploadSec);
+                    pollScanStatus(data.scan_id, progSec, uploadSec);
                 }
             }
         }).catch(function(error) {
-            clearInterval(progInterval);
+            XpScanFX.finish(false);
             scanBtn.disabled = false;
-            var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '\U0001f50d 开始检测';
+            var front = scanBtn.querySelector('.btn3d-front'); if (front) front.textContent = '🔍 开始检测';
             if (progSec && uploadSec) {
                 progSec.style.display = 'none';
                 uploadSec.style.display = 'block';
             }
             var d = error.data || {};
-            if (d.error === 'credits_insufficient' || d.code === 'INSUFFICIENT_CREDITS') {
-                showInsufficientModal(d.credits_balance || 0, d.credits_needed || 0);
+            if (d.credits_needed !== undefined || d.error === 'credits_insufficient' || d.code === 'INSUFFICIENT_CREDITS') {
+                // 修复 2026-10-27：统一传参顺序为 (needCost, currentBalance)，与生效版签名一致
+                showInsufficientModal(d.credits_needed || 0, d.credits_balance || 0);
             } else {
                 flash(error.message || '扫描失败，请重试', 'error');
             }
@@ -1050,7 +1031,6 @@
         // 找元素（会自动恢复ID）
         fileInput = $('file-input');
         uploadArea = $('upload-area');
-        fileListEl = $('file-list');
         codeTextarea = $('code-textarea');
         fileNameInput = $('code-filename');
         tabFile = $('tab-file');
@@ -1062,7 +1042,7 @@
 
         console.log('[Upload] elements:', {
             fileInput: !!fileInput, uploadArea: !!uploadArea,
-            fileListEl: !!fileListEl, scanBtn: !!scanBtn
+            scanBtn: !!scanBtn
         });
 
         // 克隆替换 fileInput，清除可能的旧事件
@@ -1076,18 +1056,20 @@
             });
         }
 
-        // 上传区域点击
+        // 上传区域点击（已有文件时锁定，不再触发选择）
         if (uploadArea) {
             uploadArea.addEventListener('click', function(e) {
-                if (state.mode === 'file' && !e.target.closest('.file-list')) {
+                if (state.mode === 'file' && state.files.length === 0) {
                     if (fileInput) fileInput.click();
                 }
             });
-            // 拖拽
+            // 拖拽（已有文件时锁定，不再接收新文件）
             ['dragenter', 'dragover'].forEach(function(ev) {
                 uploadArea.addEventListener(ev, function(e) {
                     e.preventDefault(); e.stopPropagation();
-                    uploadArea.classList.add('dragover');
+                    if (state.mode === 'file' && state.files.length === 0) {
+                        uploadArea.classList.add('dragover');
+                    }
                 });
             });
             ['dragleave', 'drop'].forEach(function(ev) {
@@ -1097,7 +1079,7 @@
                 });
             });
             uploadArea.addEventListener('drop', function(e) {
-                if (state.mode === 'file' && e.dataTransfer.files.length > 0) {
+                if (state.mode === 'file' && state.files.length === 0 && e.dataTransfer.files.length > 0) {
                     handleFiles(e.dataTransfer.files);
                 }
             });
@@ -1235,18 +1217,18 @@
 </script>
 
 <!-- 积分不足弹窗v2 -->
-<div id="credit-insufficient-modal-v2" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:var(--bg-card,#fff);border-radius:14px;padding:28px 24px;width:360px;max-width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+<div id="credit-insufficient-modal-v2" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--color-overlay);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card,var(--color-bg-primary));border-radius:14px;padding:28px 24px;width:360px;max-width:90%;text-align:center;box-shadow:0 20px 60px var(--color-v-f86967987);">
         <div style="font-size:40px;margin-bottom:10px;">⚠️</div>
         <div style="font-size:18px;font-weight:700;margin-bottom:6px;">积分不足</div>
-        <div style="font-size:13px;color:var(--text-secondary,#888);margin-bottom:20px;">当前积分不足以完成本次扫描</div>
-        <div style="background:#EFF6FF;border:1px solid #FFE0CC;border-radius:10px;padding:14px;margin-bottom:20px;">
-            <div style="font-size:28px;font-weight:800;color:var(--accent-orange);"><span id="modal-need-cost">15</span><span style="font-size:13px;color:#888;font-weight:400;margin-left:2px;">积分</span></div>
-            <div style="font-size:11px;color:#aaa;margin-top:4px;">当前余额：<span id="modal-current-balance">0</span> 积分</div>
+        <div style="font-size:13px;color:var(--text-secondary,var(--color-v-888888));margin-bottom:20px;">当前积分不足以完成本次扫描</div>
+        <div style="background:var(--color-v-eff6ff);border:1px solid var(--color-v-ffe0cc);border-radius:10px;padding:14px;margin-bottom:20px;">
+            <div style="font-size:28px;font-weight:800;color:var(--accent-steel);"><span id="modal-need-cost">15</span><span style="font-size:13px;color:var(--color-v-888888);font-weight:400;margin-left:2px;">积分</span></div>
+            <div style="font-size:11px;color:var(--color-v-aaaaaa);margin-top:4px;">当前余额：<span id="modal-current-balance">0</span> 积分</div>
         </div>
         <div style="display:flex;gap:10px;">
-            <button onclick="modalSwitchToFree()" style="flex:1;padding:10px;border:1px solid var(--border-color,#ddd);background:#fff;color:#666;border-radius:7px;font-size:13px;cursor:pointer;">切换扫描模式</button>
-            <button onclick="modalGoRecharge()" style="flex:1;padding:10px;border:none;background:var(--accent-orange);color:#fff;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">充值积分包</button>
+            <button onclick="modalSwitchToFree()" style="flex:1;padding:10px;border:1px solid var(--border-color,var(--color-v-dddddd));background:var(--color-bg-primary);color:var(--color-v-666666);border-radius:7px;font-size:13px;cursor:pointer;">切换扫描模式</button>
+            <button onclick="modalGoRecharge()" style="flex:1;padding:10px;border:none;background:var(--accent-steel);color: var(--color-text-inverse);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;">充值积分包</button>
         </div>
     </div>
 </div>

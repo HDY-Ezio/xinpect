@@ -55,6 +55,42 @@ try_bp = Blueprint('try', __name__)
 # 每个访客每天免费试扫次数上限
 _TRY_DAILY_LIMIT = 3
 
+# 试扫支持的语言 —— 唯一事实来源。
+# 以前模板里手写一份下拉框、这里另写一份 ext_map，两份各自维护：
+# 页面上能选的语言接口不认（选了报「暂不支持」），接口认的页面上又没有。
+# 现在模板从这份表渲染，ext_map 也从这份表生成，加/删语言只改一处。
+# 每项：(接口值, 显示名, 文件扩展名)
+TRY_LANGS = [
+    ('python', 'Python', 'py'),
+    ('java', 'Java', 'java'),
+    ('javascript', 'JavaScript', 'js'),
+    ('typescript', 'TypeScript', 'ts'),
+    ('go', 'Go', 'go'),
+    ('php', 'PHP', 'php'),
+    ('c', 'C', 'c'),
+    ('cpp', 'C/C++', 'cpp'),
+    ('csharp', 'C#', 'cs'),
+    ('ruby', 'Ruby', 'rb'),
+    ('swift', 'Swift', 'swift'),
+    ('kotlin', 'Kotlin', 'kt'),
+    ('rust', 'Rust', 'rs'),
+    ('scala', 'Scala', 'scala'),
+    ('lua', 'Lua', 'lua'),
+    ('shell', 'Shell', 'sh'),
+    ('sql', 'SQL', 'sql'),
+]
+
+# 常见别名 → 接口值。用户/自动识别可能给出 'py'、'golang'、'c++' 这类写法。
+_LANG_ALIASES = {
+    'py': 'python', 'js': 'javascript', 'ts': 'typescript', 'golang': 'go',
+    'c++': 'cpp', 'cs': 'csharp', 'rb': 'ruby', 'kt': 'kotlin', 'kts': 'kotlin',
+    'rs': 'rust', 'bash': 'shell', 'sh': 'shell',
+}
+
+# 接口值 → 扩展名（含别名），由 TRY_LANGS 生成，不再手写第二份
+TRY_EXT_MAP = {v: ext for v, _label, ext in TRY_LANGS}
+TRY_EXT_MAP.update({alias: TRY_EXT_MAP[canon] for alias, canon in _LANG_ALIASES.items()})
+
 # 全站每天总次数上限：真正的成本兜底。
 # 「每个人 3 次」挡不住有意的刷（换个身份就是新的 3 次），而算力成本是全局的，
 # 所以天花板必须也建在全局这一层。超了就是今天不提供了，而不是被一个人吃光。
@@ -295,7 +331,8 @@ def try_page():
     """免费试扫页面（免登录）。"""
     from modules.visitor_analytics import current_vid
     remaining = _remaining_tries(current_vid())
-    return render_template('try.html', remaining=remaining, daily_limit=_TRY_DAILY_LIMIT)
+    return render_template('try.html', remaining=remaining, daily_limit=_TRY_DAILY_LIMIT,
+                           try_langs=TRY_LANGS, try_ext_map=TRY_EXT_MAP)
 
 
 @try_bp.route('/api/try-scan/progress/<job_id>')
@@ -345,14 +382,6 @@ def try_scan():
         return jsonify({'error': '试扫最多支持 100KB 代码，更大项目请注册后使用'}), 413
 
     # 构造 files_dict（试扫按「单文件」处理，路径后缀决定引擎走哪套语法分析）
-    ext_map = {
-        'python': 'py', 'py': 'py', 'java': 'java', 'javascript': 'js', 'js': 'js',
-        'typescript': 'ts', 'ts': 'ts', 'go': 'go', 'golang': 'go', 'c': 'c',
-        'cpp': 'cpp', 'c++': 'cpp', 'csharp': 'cs', 'cs': 'cs', 'php': 'php',
-        'ruby': 'rb', 'rb': 'rb', 'swift': 'swift', 'kotlin': 'kt', 'kt': 'kt',
-        'scala': 'scala', 'rust': 'rs', 'rs': 'rs', 'dart': 'dart',
-    }
-
     # 「自动识别」必须真的识别。原来这里默认落成 .txt，引擎拿不到语法信息，
     # 只能跑纯正则的通用规则：同一段 Python（SQL注入 + os.system）实测
     # 指定 python 出 2 条高危、健康度 40/D；落成 txt 只出 1 条中危、健康度 92/A。
@@ -369,7 +398,7 @@ def try_scan():
             }), 400
         language = guessed
 
-    ext = ext_map.get(language.lower())
+    ext = TRY_EXT_MAP.get(language.lower())
     if not ext:
         _track('try.fail', reason='unsupported', lang=language)
         return jsonify({

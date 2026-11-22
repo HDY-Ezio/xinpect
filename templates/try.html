@@ -1,8 +1,58 @@
 {% extends "base.html" %}
 
 {% block title %}免费试扫 - 粘贴代码立即体验 | 煋鉴 Xinpect{% endblock %}
-{% block meta_description %}无需注册，粘贴代码立即体验煋鉴代码质检：23 种语言、AST 级语义分析，10 万行代码 2~4 分钟扫完。免费试扫，快速做一次代码初筛。{% endblock %}
+{% block meta_description %}无需注册，粘贴代码或上传单个文件立即体验煋鉴代码质检：AST 级语义分析、安全与规范初筛，30 秒出结果。支持 Python/Java/Go/C/C++/PHP 等 23 种语言。{% endblock %}
 {% block og_title %}免费试扫 - 煋鉴代码质检{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 操作条：行数/体积 + 「开始免费检测」。
+   编辑框给足高度之后，按钮会掉到首屏以下 —— 那就把操作条粘在视口底部：
+   框再高，按钮也一直在。这比把框缩回一寸高要强，也比让人自己往下翻着找按钮强。
+   sticky 只在本卡片范围内生效，扫完出结果、卡片滚过去，它就跟着卡片离开，不会一直糊在页面上。 */
+.try-actionbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding: 10px 0 8px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    box-shadow: var(--shadow-actionbar-lift);
+}
+.try-actionbar .try-meta {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+#code-stats { font-weight: 600; }
+/* 按钮文案会从「开始免费检测」变成「检测中…」：给个最小宽度，别让操作条宽度跟着跳 */
+.try-actionbar #scan-btn { min-width: 172px; }
+/* 「选择文件」用的是白底卡片里的虚线按钮。原来套 .btn-ghost（金色字 + 悬停变白字），
+   在浅底上对比度只有 2.40，悬停还会白字隐身 —— 浅底就用浅底的字色。 */
+.try-file-btn {
+    color: var(--color-accent-steel);
+    background: transparent;
+}
+.try-file-btn:hover {
+    color: var(--color-accent-steel-hover);
+    background: var(--color-steel-alpha-06);
+    border-color: var(--color-accent-steel);
+}
+@media (max-width: 520px) {
+    .try-actionbar button { width: 100%; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container xp-has-ambient" style="padding:14px 20px 28px;max-width:900px;">
@@ -23,36 +73,42 @@
     </div>
 
     <div class="info-card" style="margin-bottom:18px;border:1px solid var(--border-color);border-radius:16px;padding:16px;background:var(--bg-card);">
-        <!-- 语言选择 -->
-        <div style="margin-bottom:16px;">
-            <label style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">代码语言（默认自动识别）</label>
-            <select id="language" style="width:100%;padding:8px 14px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-page);color:var(--text-primary);font-size:14px;">
-                <option value="auto">自动识别</option>
-                <option value="python">Python</option>
-                <option value="java">Java</option>
-                <option value="javascript">JavaScript</option>
-                <option value="typescript">TypeScript</option>
-                <option value="go">Go</option>
-                <option value="php">PHP</option>
-                <option value="cpp">C/C++</option>
-                <option value="csharp">C#</option>
-                <option value="ruby">Ruby</option>
-                <option value="swift">Swift</option>
-                <option value="kotlin">Kotlin</option>
-                <option value="rust">Rust</option>
-                <option value="scala">Scala</option>
-            </select>
+        <!-- 语言选择 + 文件上传：一行放完，别让用户先找框再找入口 -->
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div style="flex:1;min-width:200px;">
+                <label for="language" style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">代码语言（默认自动识别）</label>
+                <select id="language" style="width:100%;padding:9px 14px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-page);color:var(--text-primary);font-size:14px;">
+                    <option value="auto">自动识别</option>
+                    {# 选项来自服务端 TRY_LANGS（modules/free_try.py），不在模板里再抄一份 #}
+                    {% for value, label, _ext in try_langs %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:1;min-width:200px;">
+                <label for="code-file" style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">或者直接传一个源文件</label>
+                <label for="code-file" class="try-file-btn" style="display:block;width:100%;padding:9px 14px;border:1px dashed var(--border-color);border-radius:8px;text-align:center;font-size:14px;box-sizing:border-box;cursor:pointer;">
+                    选择文件（按扩展名自动选语言）
+                </label>
+                <input type="file" id="code-file" style="display:none;" accept=".py,.java,.js,.jsx,.ts,.tsx,.go,.php,.c,.h,.cpp,.cc,.hpp,.cs,.rb,.swift,.kt,.rs,.scala,.lua,.sh,.sql,.txt">
+            </div>
         </div>
 
-        <!-- 代码输入 -->
-        <label style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">粘贴你的代码</label>
-        <textarea id="code-input" placeholder="粘贴要检测的代码，例如：&#10;&#10;import sqlite3&#10;from flask import request&#10;&#10;def login():&#10;    user = request.args.get('user')&#10;    conn = sqlite3.connect('db.sqlite')&#10;    conn.execute(&quot;SELECT * FROM users WHERE name='&quot; + user + &quot;'&quot;)&#10;    return &quot;ok&quot;" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-v-jetbrains-mono-a1165c);font-size:13px;line-height:1.6;resize:vertical;box-sizing:border-box;"></textarea>
-        <p style="color:var(--text-secondary);font-size:12px;margin-top:8px;">最多 100KB，适合单文件快速体验。更大项目请注册后使用。</p>
-
-        <!-- 扫描按钮 -->
-        <button id="scan-btn" onclick="doTryScan()" class="btn btn-primary btn-lg" style="width:100%;margin-top:10px;font-size:16px;padding:13px;">
-            开始免费检测
-        </button>
+        <!-- 代码输入：整块给够高度，别让人在一寸窗口里滚代码 -->
+        <div id="drop-zone" style="position:relative;">
+            <label for="code-input" style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">粘贴你的代码（也可以把文件拖到框里）</label>
+            <textarea id="code-input" spellcheck="false" autocomplete="off" placeholder="粘贴要检测的代码，例如：&#10;&#10;import sqlite3&#10;from flask import request&#10;&#10;def login():&#10;    user = request.args.get('user')&#10;    conn = sqlite3.connect('db.sqlite')&#10;    conn.execute(&quot;SELECT * FROM users WHERE name='&quot; + user + &quot;'&quot;)&#10;    return &quot;ok&quot;" style="width:100%;height:clamp(260px,44vh,520px);padding:14px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-v-jetbrains-mono-a1165c);font-size:13px;line-height:1.65;resize:vertical;box-sizing:border-box;tab-size:4;"></textarea>
+        </div>
+        <!-- 统计 + 扫描按钮：粘在视口底部的操作条 -->
+        <div class="try-actionbar">
+            <div class="try-meta">
+                <span id="code-stats">0 行 · 0 KB</span>
+                <span>单文件上限 100KB（约 2500 行）。整个项目请注册后上传仓库或 ZIP。</span>
+            </div>
+            <button id="scan-btn" onclick="doTryScan()" class="btn btn-primary btn-lg" style="font-size:16px;padding:12px 26px;white-space:nowrap;">
+                开始免费检测
+            </button>
+        </div>
     </div>
 
     <!-- 结果区 -->
@@ -106,6 +162,81 @@ function trackEvent(name, props) {
 function trackCtaClick() {
     trackEvent('try.cta_click', lastTryResult || {});
 }
+
+// ---- 输入区：字数统计 / 选文件 / 拖文件 -----------------------------------
+// 上限跟服务端同一个数（modules/free_try.py 的 100KB），这里只做提前提示，
+// 判不判是服务端的事，前端不能自己决定放不放行。
+const TRY_MAX_BYTES = 100 * 1024;
+// 扩展名 → 语言，同样来自服务端 TRY_EXT_MAP，不在这里手抄一份
+const EXT_LANG = {{ (try_ext_map or {})|tojson }};
+
+function updateCodeStats() {
+    const el = document.getElementById('code-input');
+    const box = document.getElementById('code-stats');
+    if (!el || !box) return;
+    const v = el.value;
+    const lines = v ? v.split('\n').length : 0;
+    const kb = (new Blob([v]).size / 1024);
+    const over = new Blob([v]).size > TRY_MAX_BYTES;
+    box.innerHTML = lines + ' 行 · ' + kb.toFixed(1) + ' KB'
+        + (over ? ' <span style="color:var(--color-warning);font-weight:600;">· 已超过 100KB 上限，请删减或注册后传整个项目</span>' : '');
+}
+
+function loadCodeFromFile(file) {
+    if (!file) return;
+    if (file.size > TRY_MAX_BYTES) {
+        alert('这个文件 ' + (file.size / 1024).toFixed(0) + 'KB，超过免费试扫的 100KB 上限。\n'
+            + '单文件初筛请挑一个主要文件试试，整个项目请注册后上传。');
+        return;
+    }
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const lang = EXT_LANG[ext];
+    const reader = new FileReader();
+    reader.onload = function() {
+        const el = document.getElementById('code-input');
+        el.value = String(reader.result || '');
+        if (lang) {
+            const sel = document.getElementById('language');
+            sel.value = lang;
+            sel.style.borderColor = '';
+            sel.style.boxShadow = '';
+        }
+        updateCodeStats();
+        trackEvent('try.file_loaded', {ext: ext, kb: Math.round(file.size / 1024)});
+        el.focus();
+        el.scrollTop = 0;
+    };
+    reader.onerror = function() { alert('这个文件读不出来（可能不是纯文本），直接粘贴代码也可以。'); };
+    reader.readAsText(file);
+}
+
+(function bindTryInput() {
+    const ta = document.getElementById('code-input');
+    const fi = document.getElementById('code-file');
+    const dz = document.getElementById('drop-zone');
+    if (ta) ta.addEventListener('input', updateCodeStats);
+    if (fi) fi.addEventListener('change', function() { loadCodeFromFile(this.files && this.files[0]); });
+    if (dz) {
+        ['dragenter', 'dragover'].forEach(function(ev) {
+            dz.addEventListener(ev, function(e) {
+                e.preventDefault(); e.stopPropagation();
+                dz.style.outline = '2px dashed var(--accent-steel)';
+                dz.style.outlineOffset = '4px';
+            });
+        });
+        ['dragleave', 'drop'].forEach(function(ev) {
+            dz.addEventListener(ev, function(e) {
+                e.preventDefault(); e.stopPropagation();
+                dz.style.outline = 'none';
+            });
+        });
+        dz.addEventListener('drop', function(e) {
+            const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+            loadCodeFromFile(f);
+        });
+    }
+    updateCodeStats();
+})();
 
 async function doTryScan() {
     const code = document.getElementById('code-input').value.trim();

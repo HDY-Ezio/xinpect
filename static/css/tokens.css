@@ -1,0 +1,724 @@
+/* 煋鉴官网设计变量：唯一事实来源，2026-11-06 由字面量自动收敛生成。
+   一个值一个变量，变量名按值确定性生成；值不可手改，改色只改这里。
+   首页/后台等自带样式的独立模板也加载本文件，避免变量找不到定义。
+   新增颜色请先在这里找同名值，不要回写裸字面量，守卫会判红。 */
+:root {
+
+    /* === Color Tokens === */
+    /* Surfaces - 浅色系
+       层级：页面(page) → 卡片(card) → 浮层(raised) → 内嵌(inset)。
+       白/页 = 1.095、白/内嵌 = 1.165，三级各自看得见。
+       bg-primary 保持 #FFFFFF 只当「白」，不再兼职页面底色；
+       正文反过来用的白色一律走 --color-text-inverse。 */
+    --color-surface-page: #F1F5FA;
+    --color-surface-card: #FFFFFF;
+    --color-surface-raised: #FFFFFF;
+    --color-surface-inset: #E9EEF6;
+    --color-surface-hover: #E4EBF5;
+    /* 加载遮罩：压住内容但仍看得见底下，是面的半透明状态 */
+    --color-surface-veil: rgba(255,255,255,0.72);
+
+    --color-bg-primary: #FFFFFF;
+    --color-bg-secondary: #1A2B4A;
+    --color-bg-tertiary: #E9EEF6;
+    --color-bg-card: #FFFFFF;
+    --color-bg-hover: #E4EBF5;
+    --color-bg-white: #FFFFFF;
+
+    /* Text - 深蓝主色 + 灰色次要 */
+    --color-text-primary: #1A2B4A;
+    --color-text-secondary: #54637A;
+    --color-text-muted: #5E6B82;
+    --color-text-tertiary: #637087;
+    /* 深色块上的白字，别再用 bg-primary 兼职 */
+    --color-text-inverse: #FFFFFF;
+    /* 深底（藏青）上反白字的次要层级：两档就够，别按色值一档档抄 */
+    --color-text-inverse-soft: rgba(255,255,255,0.78);   /* 副标题/正文/次要按钮字 */
+    --color-text-inverse-muted: rgba(255,255,255,0.62);  /* 面包屑/元信息 */
+--color-text-on-subtle: #4B5A70;
+
+    /* Brand */
+    --color-accent-blue: #1A2B4A;
+    --color-accent-blue-hover: #0f1f38;
+    --color-accent-steel: #3E5C8A;
+    --color-accent-steel-hover: #2D4A7C;
+    /* Metal - 金属色（2026-11-09 用户拍板：橙黄一律换金银）
+       金只做描边、小面积底、深底文字，不铺大面积；白底上只有 deep 档能当文字。
+       一个档一个岗位，别再按色值抄 Tailwind。 */
+    --color-metal-gold-deep: #8A6A2E;      /* 白底文字 5.02 / 白底细边 */
+    --color-metal-gold: #A07C36;           /* 细边：白底 3.87、藏青 3.65 */
+    --color-metal-gold-bright: #C9A24A;    /* 深底文字/细边 5.88，白底禁用 */
+    --color-metal-gold-solid: #B5852F;     /* 实心点/进度条，配白字 4.02 */
+    --color-metal-gold-tint: #F5EBD6;      /* 浅金面，配深字 */
+    --color-metal-gold-tint-2: #EAD6AD;    /* 浅金面·深一档 / 浅金细边 */
+    --color-metal-gold-alpha-20: rgba(160,124,54,0.20);
+    --color-metal-gold-alpha-08: rgba(160,124,54,0.08);
+    --color-metal-silver: #7C8AA0;         /* 浅底细边 3.50 / 深底文字 4.03 */
+    --color-metal-silver-bright: #C9D6E6;  /* 深底文字 9.57 */
+    --color-danger-tint: #F6E3E4;          /* 高危/危险块的浅底，配 danger 深字 */
+    /* 等级色阶：四档必须彼此分得开，全在藏青/金/银/红家族里。
+       少了它，橙黄一换金，高危和中危就分不出来了。 */
+    --color-sev-critical: var(--color-danger);
+    --color-sev-high: var(--color-warning);
+    --color-sev-medium: #8F5606;
+    --color-sev-low: var(--color-accent-steel);
+    /* 严重度的淡底色：徽章/标签底用，和上面四档配套 */
+    --color-sev-high-tint: #FDF0E9;
+    --color-sev-high-tint-2: #FAE0D2;
+    --color-sev-medium-tint: #FBF0D0;
+    --color-sev-medium-tint-2: #F5E2AE;
+    /* 遮蔽层：弹窗压暗用藏青，不用暖黑（暖黑会让整页发黄） */
+    --color-overlay: rgba(10,15,26,0.55);
+    /* 旧名字保留，指向金属金，避免历史引用断链 */
+    --color-accent-gold: var(--color-metal-gold);
+
+    /* Semantic */
+    --color-success: #17795C;
+--color-success-deep: #12634B;
+    --color-warning: #C2410C;
+    --color-danger: #A8323C;
+    --color-info: #2C6C9E;
+    /* Semantic - 深底档（报告分享页等深色版面专用）
+       以前没有这一档，做深色页的人拿不到可读的颜色，只能自己抄一套 Tailwind。
+       前景小字在 #0A0F1A 上实测 >= 6:1。 */
+    --color-success-on-dark: #3FCF9E;
+    --color-warning-on-dark: #E0A93C;
+    --color-danger-on-dark: #F0656B;
+    --color-info-on-dark: #5BA3D9;
+    --color-blue-on-dark: #7E9BD0;
+    --color-grade-b-on-dark: var(--color-blue-on-dark);
+
+    /* Dark Surface - 深底版面（报告分享页）
+       以前没有这一档，做深底页的人只能自己抄一套 Tailwind Slate，结果 72 分
+       那个大数字、页脚链接、问题总数在 #111827 上对比度只有 1.52:1，肉眼看不见
+       （2026-11-09 实测）。这一组是深底版面的唯一来源：底色 / 面 / 边 / 文字 /
+       链接全从这里取，页面里不许再写色值。
+       层次靠「面比底亮一档 + 边框 + 阴影」拉开，不靠加大明度差（深底会发灰发糊）。 */
+    --color-dark-bg: #0A0F1A;
+    --color-dark-surface: #141C2B;
+    --color-dark-surface-2: #1B2436;
+    --color-dark-border: #2B3A52;
+    --color-dark-text: #F1F5F9;
+    --color-dark-text-2: #CBD5E1;
+    --color-dark-muted: #9AA9BD;
+    --color-dark-faint: #8595AB;
+
+    /* Border - 三档：分隔线 / 卡片边 / 强调边 */
+    --color-border: #D6E0EC;
+    --color-border-subtle: #E9EEF6;
+    --color-border-strong: #C7D4E4;
+
+    /* Silver tints (白银点缀，金生水) */
+    --color-steel-alpha-10: rgba(62,92,138,0.10);
+    --color-steel-alpha-15: rgba(62,92,138,0.15);
+    --color-steel-alpha-08: rgba(62,92,138,0.08);
+    --color-steel-alpha-06: rgba(62,92,138,0.06);
+    --color-steel-alpha-04: rgba(62,92,138,0.04);
+    --color-steel-alpha-12: rgba(62,92,138,0.12);
+    --color-steel-alpha-30: rgba(62,92,138,0.30);
+    --color-steel-alpha-40: rgba(62,92,138,0.40);
+    --color-steel-alpha-50: rgba(62,92,138,0.50);
+    --color-blue-alpha-10: rgba(26,43,74,0.08);
+    --color-blue-alpha-15: rgba(26,43,74,0.12);
+    --color-blue-alpha-30: rgba(26,43,74,0.20);
+    --color-blue-alpha-05: rgba(26,43,74,0.04);
+
+    /* Grade colors */
+    --color-grade-s: var(--color-success);
+    --color-grade-a: var(--color-accent-blue);
+    --color-grade-b: #17707E;
+    --color-grade-c: var(--color-warning);
+    --color-grade-d: var(--color-danger);
+
+    /* === Legacy aliases (for cross-page compat) === */
+    --bg-primary: var(--color-bg-primary);
+    --bg-secondary: var(--color-bg-secondary);
+    --bg-tertiary: var(--color-bg-tertiary);
+    --bg-card: var(--color-bg-card);
+    --bg-hover: var(--color-bg-hover);
+    --bg-white: var(--color-bg-white);
+    --bg-page: var(--color-bg-tertiary);
+    --border-color: var(--color-border);
+    --text-primary: var(--color-text-primary);
+    --text-secondary: var(--color-text-secondary);
+    --text-muted: var(--color-text-muted);
+    --text-tertiary: var(--color-text-tertiary);
+    --accent-blue: var(--color-accent-blue);
+    --accent-blue-hover: var(--color-accent-blue-hover);
+    --accent-steel: var(--color-accent-steel);
+    --accent-steel-hover: var(--color-accent-steel-hover);
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --danger: var(--color-danger);
+    --info: var(--color-info);
+    /* Index.html compatibility aliases */
+    --primary: #1A2B4A;
+    --primary-dark: #0f1f38;
+    --accent: #3E5C8A;
+    --accent-hover: #2D4A7C;
+    --bg: #FFFFFF;
+    --bg-alt: #F5F7FA;
+    --text: #1A2B4A;
+    --text-sec: #6B7B94;
+    --border: #E0E6ED;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+
+    /* === Gradients === */
+    --gradient-primary: linear-gradient(135deg, #1A2B4A 0%, #2d4a7a 100%);
+    --gradient-steel: linear-gradient(135deg, #1A2B4A 0%, #2D4A7C 100%);
+    --gradient-bar-steel: linear-gradient(90deg, #1A2B4A, #2D4A7C);
+
+    /* === Type Scale (1.25 ratio, clamp fluid) === */
+    --text-xs: clamp(0.694rem, 0.68rem + 0.07vw, 0.75rem);       /* ~11-12px */
+    --text-sm: clamp(0.833rem, 0.80rem + 0.1vw, 0.875rem);        /* ~13-14px */
+    --text-base: clamp(0.938rem, 0.90rem + 0.15vw, 1rem);         /* ~15-16px */
+    --text-md: clamp(1rem, 0.95rem + 0.2vw, 1.125rem);            /* ~16-18px */
+    --text-lg: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);         /* ~18-20px */
+    --text-xl: clamp(1.25rem, 1.1rem + 0.5vw, 1.563rem);          /* ~20-25px */
+    --text-2xl: clamp(1.5rem, 1.3rem + 0.7vw, 1.953rem);          /* ~24-31px */
+    --text-3xl: clamp(1.875rem, 1.5rem + 1.2vw, 2.441rem);        /* ~30-39px */
+    --text-4xl: clamp(2.25rem, 1.8rem + 1.5vw, 3.052rem);         /* ~36-49px */
+    --text-5xl: clamp(3rem, 2.5rem + 2vw, 3.815rem);              /* ~48-61px */
+
+    /* === Spacing (4px base) === */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+    --space-24: 96px;
+    --space-32: 128px;
+
+    /* === Radii === */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 100px;
+
+    /* === Elevation (multi-layer shadows) === */
+    /* flat: default cards */
+    --shadow-flat: 
+        0 1px 2px rgba(0,0,0,0.06),
+        0 0 0 1px rgba(0,0,0,0.04);
+    /* raised: hover, dropdowns */
+    --shadow-raised:
+        0 2px 4px rgba(0,0,0,0.06),
+        0 8px 24px rgba(0,0,0,0.10),
+        0 0 0 1px rgba(0,0,0,0.04);
+    /* overlay: modals, popovers */
+    --shadow-overlay:
+        0 4px 8px rgba(0,0,0,0.08),
+        0 16px 48px rgba(0,0,0,0.14),
+        0 0 0 1px rgba(0,0,0,0.04);
+
+    /* 卡片投影：浅底页面上把卡片「托起来」，别用中性黑，会发脏 */
+    --shadow-card:
+        0 1px 2px rgba(26,43,74,0.04),
+        0 10px 28px -14px rgba(26,43,74,0.22);
+    --shadow-card-hover:
+        0 2px 4px rgba(26,43,74,0.05),
+        0 16px 36px -16px rgba(26,43,74,0.26);
+
+    /* Colored shadows */
+    --shadow-blue-glow: 0 4px 16px rgba(26,43,74,0.20);
+    --shadow-steel-glow: 0 4px 16px rgba(62,92,138,0.25);
+    --shadow-blue-glow-lg: 0 8px 24px rgba(26,43,74,0.25);
+    --shadow-steel-glow-lg: 0 8px 24px rgba(62,92,138,0.30);
+
+    /* Legacy shadow aliases */
+    --shadow-sm: var(--shadow-flat);
+    --shadow-md: var(--shadow-raised);
+    --shadow-lg: var(--shadow-overlay);
+
+    /* === Motion === */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+    --ease-pop: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --dur-micro: 140ms;
+    --dur-layer: 200ms;
+    --dur-modal: 320ms;
+    --dur-press: 60ms;
+    --dur-rebound: 450ms;
+    /* --transition removed: all components now use specific property transitions */
+
+  /* ---- 收敛进来的颜色与字体 ---- */
+  --color-v-006699: #069;
+  --color-v-00b578: #00b578;
+  --color-v-0284c7: #0284C7;
+  --color-v-059669: #059669;
+  --color-v-065f46: #065f46;
+  --color-v-070b12: #070b12;
+  --color-v-0a0f18: #0a0f18;
+  --color-v-0d1117: #0d1117;
+  --color-v-0d1729: #0d1729;
+  --color-v-0ea5e9: #0ea5e9;
+  --color-v-0f172a: #0F172A;
+  --color-v-0f1923: #0f1923;
+  --color-v-0f1f18: #0f1f18;
+  --color-v-101722: #101722;
+  --color-v-10b981: #10b981;
+  --color-v-111827: #111827;
+  --color-v-13c2c2: #13C2C2;
+  --color-v-141d2b: #141d2b;
+  --color-v-14532d: #14532d;
+  --color-v-162035: #162035;
+  --color-v-16213e: #16213e;
+  --color-v-166534: #166534;
+  --color-v-16a34a: #16a34a;
+  --color-v-171e2a: #171e2a;
+  --color-v-1976d2: #1976D2;
+  --color-v-1a1040: #1a1040;
+  --color-v-1a1a1a: #1a1a1a;
+  --color-v-1a1a2e: #1a1a2e;
+  --color-v-1a2434: #1a2434;
+  --color-v-1a2436: #1a2436;
+  --color-v-1a2a42: #1a2a42;
+  --color-v-1a3a2e: #1a3a2e;
+  --color-v-1a3a5c: #1A3A5C;
+  --color-v-1a3a5c20: #1A3A5C20;
+  --color-v-1a7f37: #1a7f37;
+  --color-v-1a9a54: #1a9a54;
+  --color-v-1b2333: #1B2333;
+  --color-v-1c2432: #1c2432;
+  --color-v-1d4ed8: #1d4ed8;
+  --color-v-1e293b: #1e293b;
+  --color-v-1e3a8a: #1e3a8a;
+  --color-v-1e40af: #1e40af;
+  --color-v-1f2937: #1f2937;
+  --color-v-2196f3: #2196F3;
+  --color-v-22c55e: #22c55e;
+  --color-v-22c55e20: #22c55e20;
+  --color-v-22c55e30: #22c55e30;
+  --color-v-22c55e40: #22c55e40;
+  --color-v-24292e: #24292e;
+  --color-v-24292f: #24292f;
+  --color-v-2563eb: #2563EB;
+  --color-v-27ae60: #27ae60;
+  --color-v-2a3446: #2a3446;
+  --color-v-2a3547: #2A3547;
+  --color-v-2a3d5e: #2a3d5e;
+  --color-v-2a9d8f: #2a9d8f;
+  --color-v-2c4a7c: #2C4A7C;
+  --color-v-2c5282: #2C5282;
+  --color-v-2d4a7a: #2d4a7a;
+  --color-v-2da44e: #2da44e;
+  --color-v-2e7d32: #2e7d32;
+  --color-v-2f6ec4: #2f6ec4;
+  --color-v-333333: #333;
+  --color-v-334155: #334155;
+  --color-v-34495e: #34495e;
+  --color-v-34d399: #34d399;
+  --color-v-36b37e: #36B37E;
+  --color-v-3730a3: #3730a3;
+  --color-v-374151: #374151;
+  --color-v-3a3f47: #3a3f47;
+  --color-v-3a4a60: #3a4a60;
+  --color-v-3b82f6: #3b82f6;
+  --color-v-3f5370: #3f5370;
+  --color-v-475569: #475569;
+  --color-v-484f58: #484f58;
+  --color-v-495057: #495057;
+  --color-v-4a5568: #4a5568;
+  --color-v-4a7aff: #4A7AFF;
+  --color-v-4a7cde: #4a7cde;
+  --color-v-4caf50: #4CAF50;
+  --color-v-4e5b72: #4E5B72;
+  --color-v-4e6b4a: #4e6b4a;
+  --color-v-4f8fe0: #4f8fe0;
+  --color-v-555555: #555;
+  --color-v-57606a: #57606a;
+  --color-v-5a6268: #5a6268;
+  --color-v-5a6880: #5A6880;
+  --color-v-5b7ba6: #5b7ba6;
+  --color-v-5b7fa6: #5b7fa6;
+  --color-v-5b8def: #5B8DEF;
+  --color-v-60a5fa: #60a5fa;
+  --color-v-6366f1: #6366f1;
+  --color-v-63d2c3: #63d2c3;
+  --color-v-64748b: #64748B;
+  --color-v-666666: #666;
+  --color-v-6a5a48: #6a5a48;
+  --color-v-6b2020: #6b2020;
+  --color-v-6b7280: #6b7280;
+  --color-v-6b7a90: #6B7A90;
+  --color-v-6c757d: #6c757d;
+  --color-v-6d28d9: #6d28d9;
+  --color-v-6f7d90: #6f7d90;
+  --color-v-777777: #777;
+  --color-v-7aa2d6: #7aa2d6;
+  --color-v-7c3aed: #7c3aed;
+  --color-v-7dd3fc: #7dd3fc;
+  --color-v-7f8c9b: #7f8c9b;
+  --color-v-8593a8: #8593A8;
+  --color-v-868e96: #868e96;
+  --color-v-86efac: #86efac;
+  --color-v-888888: #888;
+  --color-v-8a94a6: #8a94a6;
+  --color-v-8b98ab: #8b98ab;
+  --color-v-8fa8c8: #8fa8c8;
+  --color-v-8fb57a: #8fb57a;
+  --color-v-93c5fd: #93C5FD;
+  --color-v-95a5a6: #95a5a6;
+  --color-v-991b1b: #991b1b;
+  --color-v-999999: #999;
+  --color-v-9a958d: #9A958D;
+  --color-v-9aa3ad: #9aa3ad;
+  --color-v-9aa5b1: #9AA5B1;
+  --color-v-9c27b0: #9C27B0;
+  --color-v-9ca3af: #9ca3af;
+  --color-v-9d174d: #9d174d;
+  --color-v-9fabbd: #9fabbd;
+  --color-v-9fb2cc: #9fb2cc;
+  --color-v-a0c4b4: #a0c4b4;
+  --color-v-aaaaaa: #aaa;
+  --color-v-adb5bd: #adb5bd;
+  --color-v-aeb9c9: #aeb9c9;
+  --color-v-aebdce: #aebdce;
+  --color-v-b03a1e: #B03A1E;
+  --color-v-b3321e: #B3321E;
+  --color-v-b7d4f7: #B7D4F7;
+  --color-v-b91c1c: #b91c1c;
+  --color-v-b9c7da: #b9c7da;
+  --color-v-bbbbbb: #bbb;
+  --color-v-bbf7d0: #bbf7d0;
+  --color-v-bdc3c7: #bdc3c7;
+  --color-v-bfdbfe: #bfdbfe;
+  --color-v-c0392b: #C0392B;
+  --color-v-c0c8d4: #c0c8d4;
+  --color-v-c2410c: #c2410c;
+  --color-v-c3cbd6: #c3cbd6;
+  --color-v-c8d2e0: #C8D2E0;
+  --color-v-cbd5e1: #CBD5E1;
+  --color-v-cc0000: #c00;
+  --color-v-cccccc: #ccc;
+  --color-v-cf1322: #CF1322;
+  --color-v-d14d1f: #d14d1f;
+  --color-v-d1d5db: #d1d5db;
+  --color-v-d1fae5: #d1fae5;
+  --color-v-d4380d: #D4380D;
+  --color-v-d6deeb: #D6DEEB;
+  --color-v-dbe4f0: #dbe4f0;
+  --color-v-dbeafe: #dbeafe;
+  --color-v-dc2626: #dc2626;
+  --color-v-dce3ed: #dce3ed;
+  --color-v-dce5f0: #dce5f0;
+  --color-v-dcfce7: #dcfce7;
+  --color-v-dddddd: #ddd;
+  --color-v-e0e0e0: #e0e0e0;
+  --color-v-e0e7ff: #e0e7ff;
+  --color-v-e2e8f0: #E2E8F0;
+  --color-v-e2e8f1: #e2e8f1;
+  --color-v-e3e7ec: #e3e7ec;
+  --color-v-e53e3e: #e53e3e;
+  --color-v-e55a2b: #e55a2b;
+  --color-v-e5e2dc: #E5E2DC;
+  --color-v-e5e6eb: #e5e6eb;
+  --color-v-e5e7eb: #e5e7eb;
+  --color-v-e6ebf2: #E6EBF2;
+  --color-v-e6ecf5: #e6ecf5;
+  --color-v-e6edf3: #e6edf3;
+  --color-v-e6edf6: #e6edf6;
+  --color-v-e6f7ee: #e6f7ee;
+  --color-v-e6f7ef: #e6f7ef;
+  --color-v-e74c3c: #e74c3c;
+  --color-v-e85d2c: #e85d2c;
+  --color-v-e8e8e8: #E8E8E8;
+  --color-v-e8eef7: #e8eef7;
+  --color-v-e8f0fb: #e8f0fb;
+  --color-v-e8f5e9: #e8f5e9;
+  --color-v-e9ecef: #e9ecef;
+  --color-v-eaf6ff: #EAF6FF;
+  --color-v-ede9fe: #ede9fe;
+  --color-v-edf1f7: #edf1f7;
+  --color-v-eeeeee: #eee;
+  --color-v-eef1f5: #eef1f5;
+  --color-v-eef2f7: #eef2f7;
+  --color-v-eef2f9: #EEF2F9;
+  --color-v-eef4ff: #EEF4FF;
+  --color-v-ef4444: #ef4444;
+  --color-v-ef444420: #ef444420;
+  --color-v-ef444430: #ef444430;
+  --color-v-ef444440: #ef444440;
+  --color-v-eff6ff: #EFF6FF;
+  --color-v-f0f0f0: #f0f0f0;
+  --color-v-f0f2f5: #f0f2f5;
+  --color-v-f0f4f8: #F0F4F8;
+  --color-v-f0f5ff: #F0F5FF;
+  --color-v-f0faf0: #F0FAF0;
+  --color-v-f0fdf4: #f0fdf4;
+  --color-v-f1f3f5: #f1f3f5;
+  --color-v-f1f5f9: #F1F5F9;
+  --color-v-f2f5fa: #f2f5fa;
+  --color-v-f3f4f6: #f3f4f6;
+  --color-v-f4f7fb: #f4f7fb;
+  --color-v-f59e0b: #f59e0b;
+  --color-v-f5f5f5: #f5f5f5;
+  --color-v-f6f8fc: #f6f8fc;
+  --color-v-f7f6f2: #f7f6f2;
+  --color-v-f7f8fa: #f7f8fa;
+  --color-v-f7f9fb: #F7F9FB;
+  --color-v-f7f9fc: #f7f9fc;
+  --color-v-f7fafc: #F7FAFC;
+  --color-v-f7fafd: #F7FAFD;
+  --color-v-f87171: #f87171;
+  --color-v-f8f8f8: #f8f8f8;
+  --color-v-f8f9fa: #f8f9fa;
+  --color-v-f8f9fb: #f8f9fb;
+  --color-v-f8fafc: #F8FAFC;
+  --color-v-f9fafb: #f9fafb;
+  --color-v-fafafa: #fafafa;
+  --color-v-fafbfc: #fafbfc;
+  --color-v-fafbfd: #FAFBFD;
+  --color-v-fafcff: #fafcff;
+  --color-v-fc6d26: #FC6D26;
+  --color-v-fca5a5: #fca5a5;
+  --color-v-fce7f3: #fce7f3;
+  --color-v-fdecea: #fdecea;
+  --color-v-fecaca: #fecaca;
+  --color-v-fee2e2: #fee2e2;
+  --color-v-fef2f2: #fef2f2;
+  --color-v-fefce8: #fefce8;
+  --color-v-ff4444: #FF4444;
+  --color-v-ff6600: #f60;
+  --color-v-ff9a6c: #ff9a6c;
+  --color-v-ffb899: #ffb899;
+  --color-v-ffd4c0: #FFD4C0;
+  --color-v-ffd4d4: #FFD4D4;
+  --color-v-ffe0cc: #ffe0cc;
+  --color-v-ffe8dd: #FFE8DD;
+  --color-v-ffe8e8: #FFE8E8;
+  --color-v-fff0f0: #FFF0F0;
+  --color-v-fff1eb: #FFF1EB;
+  --color-v-fff1f0: #FFF1F0;
+  --color-v-fff3e0: #fff3e0;
+  --color-v-fff7e6: #FFF7E6;
+  --color-v-fff8f5: #fff8f5;
+  --color-v-fffaf7: #FFFAF7;
+  --color-v-fffbeb: #fffbeb;
+  --color-v-f02bf5464: oklch(0.15 0.04 50 / 0.22);
+  --color-v-f95f7ca76: oklch(0.420 0.140 45);
+  --color-v-f0735ae89: oklch(0.580 0.200 265 / 0.10);
+  --color-v-f6551e10e: oklch(0.580 0.200 265 / 0.30);
+  --color-v-f71ff4ff6: oklch(0.620 0.220 25 / 0.10);
+  --color-v-fe58f9600: oklch(0.620 0.220 25 / 0.30);
+  --color-v-f33c2b4e5: oklch(0.620 0.220 340 / 0.04);
+  --color-v-fa302c94f: oklch(0.780 0.160 80 / 0.04);
+  --color-v-f2e4ec394: oklch(0.780 0.160 80 / 0.08);
+  --color-v-fb9eb3068: oklch(0.780 0.160 80 / 0.30);
+  --color-v-f46b78eeb: oklch(1 0 0);
+  --color-v-fe88a9066: oklch(1 0 0 / 0.02);
+  --color-v-fbb2c70ba: rgba(0,0,0,.02);
+  --color-v-fc5102c91: rgba(0,0,0,.08);
+  --color-v-fa6f87266: rgba(0,0,0,.12);
+  --color-v-fb41805d6: rgba(0,0,0,.15);
+  --color-v-f2bdb9741: rgba(0,0,0,.2);
+  --color-v-fa59544b1: rgba(0,0,0,.25);
+  --color-v-f5613576c: rgba(0,0,0,.3);
+  --color-v-f70cab986: rgba(0,0,0,.45);
+  --color-v-f91568c61: rgba(0,0,0,.5);
+  --color-v-fb597da95: rgba(0,0,0,.6);
+  --color-v-f2b2d13a6: rgba(0,0,0,0);
+  --color-v-f02c4d9ff: rgba(0,0,0,0.02);
+  --color-v-fd6658b54: rgba(0,0,0,0.04);
+  --color-v-fa107c331: rgba(0,0,0,0.05);
+  --color-v-f348c9372: rgba(0,0,0,0.08);
+  --color-v-fc7238605: rgba(0, 0, 0, 0.1);
+  --color-v-fcead0cbd: rgba(0,0,0,0.12);
+  --color-v-f20eaee86: rgba(0,0,0,0.14);
+  --color-v-f391df974: rgba(0, 0, 0, 0.2);
+  --color-v-f7371e081: rgba(0, 0, 0, 0.25);
+  --color-v-f86967987: rgba(0,0,0,0.3);
+  --color-v-fa213c9d7: rgba(0,0,0,0.32);
+  --color-v-f0729ae0e: rgba(0,0,0,0.4);
+  --color-v-ff91928c0: rgba(0, 0, 0, 0.6);
+  --color-v-fe946900b: rgba(0,0,0,0.7);
+  --color-v-f8c2b8e6a: rgba(0,0,0,0.8);
+  --color-v-f24e01036: rgba(100,116,139,0.15);
+  --color-v-f654cb1ce: rgba(100,116,139,0.28);
+  --color-v-fdad61bec: rgba(102, 204, 0, 0.7);
+  --color-v-f215d1740: rgba(114,46,209,0.06);
+  --color-v-f03946679: rgba(12,28,52,.97);
+  --color-v-f61ddfec6: rgba(122,162,214,.18);
+  --color-v-fbaf94e78: rgba(122,162,214,0);
+  --color-v-f3775015e: rgba(14,165,233,.05);
+  --color-v-f359526f7: rgba(14,165,233,.15);
+  --color-v-fedbfd7c4: rgba(14,165,233,.3);
+  --color-v-fe51db11c: rgba(14,165,233,0.08);
+  --color-v-f42afad87: rgba(148,163,184,.04);
+  --color-v-f03678454: rgba(148,163,184,.15);
+  --color-v-fd8ac8160: rgba(148,163,184,0.14);
+  --color-v-f4190728f: rgba(148,163,184,0.22);
+  --color-v-f2ad93e7a: rgba(156, 163, 175, 0.06);
+  --color-v-f816f09b1: rgba(16, 185, 129, 0.08);
+  --color-v-fb0cabdd7: rgba(16,185,129,0.1);
+  --color-v-fe3697202: rgba(16, 185, 129, 0.2);
+  --color-v-f04d2b2ea: rgba(220, 38, 38, 0.08);
+  --color-v-fa541f804: rgba(230, 126, 34, 0.12);
+  --color-v-f82619972: rgba(232,232,232,0.03);
+  --color-v-fa3f58602: rgba(232,232,232,0.1);
+  --color-v-fe012f956: rgba(232,232,232,0.15);
+  --color-v-f03cfbfe3: rgba(232,232,232,0.2);
+  --color-v-ff396b008: rgba(234,179,8,.2);
+  --color-v-f818ea61f: rgba(239,68,68,.06);
+  --color-v-fdc5f701a: rgba(239,68,68,.2);
+  --color-v-f2ccfd631: rgba(239,68,68,.3);
+  --color-v-ff2b9f694: rgba(24,144,255,0.1);
+  --color-v-f7725100a: rgba(24,144,255,0.20);
+  --color-v-f3addb415: rgba(245,247,250,0.5);
+  --color-v-f2bfbef1e: rgba(245,34,45,0.1);
+  --color-v-f91334b33: rgba(245,34,45,0.15);
+  --color-v-f090980c0: rgba(249, 115, 22, 0.15);
+  --color-v-fd4cfa75a: rgba(249, 115, 22, 0.2);
+  --color-v-fc9f7e555: rgba(25,118,210,0.06);
+  --color-v-f3d8cf7b6: rgba(250,173,20,0.1);
+  --color-v-f2e4fabc3: rgba(250,173,20,0.10);
+  --color-v-fd23db21d: rgba(250,173,20,0.15);
+  --color-v-f6e5bc0e0: rgba(255,255,255,.1);
+  --color-v-f661e9ea7: rgba(255, 255, 255, .10);
+  --color-v-f895780ff: rgba(255,255,255,.12);
+  --color-v-fe65a3569: rgba(255,255,255,.14);
+  --color-v-f9313786c: rgba(255,255,255,.2);
+  --color-v-fc22384a1: rgba(255,255,255,.4);
+  --color-v-f760a9c2b: rgba(255,255,255,.45);
+  --color-v-f8065ebf9: rgba(255,255,255,.5);
+  --color-v-f73a06625: rgba(255,255,255,.7);
+  --color-v-f069d9036: rgba(255,255,255,.9);
+  --color-v-f97cdf199: rgba(255, 255, 255, 0.02);
+  --color-v-f74b76757: rgba(255, 255, 255, 0.03);
+  --color-v-f84da7a19: rgba(255,255,255,0.04);
+  --color-v-f85f89ec1: rgba(255, 255, 255, 0.05);
+  --color-v-fe9ea3e30: rgba(255,255,255,0.06);
+  --color-v-fbfeccfcf: rgba(255,255,255,0.08);
+  --color-v-f274c1329: rgba(255,255,255,0.15);
+  --color-v-fa5a9c1a4: rgba(255,255,255,0.2);
+  --color-v-f338f97ac: rgba(255,255,255,0.3);
+  --color-v-f829bbf7d: rgba(255,255,255,0.5);
+  --color-v-fa7d7499c: rgba(255,255,255,0.55);
+  --color-v-f72c5f11b: rgba(255,255,255,0.62);
+  --color-v-ff0252325: rgba(255,255,255,0.65);
+  --color-v-fb67e9e7e: rgba(255,255,255,0.7);
+  --color-v-f8c3bc205: rgba(255,255,255,0.75);
+  --color-v-fc90ada57: rgba(255,255,255,0.78);
+  --color-v-f425bff1f: rgba(26,43,74,0.06);
+  --color-v-f01873b42: rgba(26,43,74,0.1);
+  --color-v-f293eba74: rgba(26,43,74,0.2);
+  --color-v-fe7440014: rgba(26,43,74,0.25);
+  --color-v-fec9f9974: rgba(26,58,92,.05);
+  --color-v-fd06ee2de: rgba(26,58,92,.2);
+  --color-v-fb2af6f0a: rgba(26,58,92,.3);
+  --color-v-f43dbcf94: rgba(26,58,92,.4);
+  --color-v-f90e16cc5: rgba(26,58,92, 0.03);
+  --color-v-f6a3efd94: rgba(26,58,92,0.04);
+  --color-v-f77bc440b: rgba(26,58,92,0.06);
+  --color-v-f6c3fa215: rgba(26,58,92,0.25);
+  --color-v-fcad925df: rgba(26,58,92,0.5);
+  --color-v-f5855aecd: rgba(34,197,94,.06);
+  --color-v-fc38e33da: rgba(34,197,94,.1);
+  --color-v-f7f8c5eb3: rgba(34,197,94,.15);
+  --color-v-fa3081af6: rgba(34,197,94,.2);
+  --color-v-fd6b6c28f: rgba(36,41,47,0.04);
+  --color-v-f977b68b4: rgba(36,41,47,0.12);
+  --color-v-fa1b6c5d9: rgba(37,99,235,.04);
+  --color-v-f53a4ea84: rgba(37,99,235,.15);
+  --color-v-f840df0bc: rgba(37,99,235,0.05);
+  --color-v-ff28a1764: rgba(37,99,235, 0.1);
+  --color-v-f728664f6: rgba(37,99,235, 0.2);
+  --color-v-f4d7cf53e: rgba(46,204,113,0.15);
+  --color-v-f7a484b0d: rgba(5,150,105,0.15);
+  --color-v-f374e011e: rgba(59,130,246,.15);
+  --color-v-f4eddd383: rgba(59, 130, 246, 0.2);
+  --color-v-fe75a1f38: rgba(62,92,138,0.25);
+  --color-v-f393801dd: rgba(82,196,26,0.04);
+  --color-v-fc3981b2a: rgba(82,196,26,0.08);
+  --color-v-f645ec907: rgba(82,196,26,0.1);
+  --color-v-f2eceb63f: rgba(82,196,26,0.10);
+  --color-v-f30bd60ce: rgba(82,196,26,0.12);
+  --color-v-fcaa932b9: rgba(82,196,26,0.15);
+  --color-v-fa7786ae4: rgba(82,196,26,0.30);
+  --color-v-fc84988b8: rgba(99, 102, 241, 0.06);
+  --color-v-fa5a6f8d9: rgba(99,102,241,0.1);
+  --color-v-f33555321: rgba(99, 102, 241, 0.2);
+  --color-v-f42e96660: rgba(99, 210, 195, .5);
+  --color-v-f74f10740: rgba(99, 210, 195, .75);
+    /* Typography - 语义名。旧的字面量字体变量按「一个值一个变量」生成，
+       名字带随机后缀（--font-v-segoe-ui-cdf606 之类），新页面不要再用；
+       需要正文字体用 --font-sans，等宽用 --font-mono。 */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+  --font-v-jetbrains-mono-7e0ea3: "JetBrains Mono", "SF Mono", monospace;
+  --font-v-jetbrains-mono-97c959: "JetBrains Mono","SFMono-Regular",Consolas,monospace;
+  --font-v-jetbrains-mono-64a8d5: "JetBrains Mono",monospace;
+  --font-v-noto-sans-sc-f83b75: "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --font-v-noto-serif-sc-f486ae: "Noto Serif SC","Songti SC","STSong",serif;
+  --font-v-noto-serif-sc-d6fd89: "Noto Serif SC", "STSong", serif;
+  --font-v-noto-serif-sc-0e618c: "Noto Serif SC",serif;
+  --font-v-sf-mono-05e4df: "SF Mono", Monaco, "Cascadia Code", Consolas, monospace;
+  --font-v-sf-mono-137dca: "SF Mono", Monaco, Consolas, monospace;
+  --font-v-courier-new-6c15e1: 'Courier New', Courier, monospace !important;
+  --font-v-courier-new-a54133: 'Courier New', monospace;
+  --font-v-jetbrains-mono-0fd54f: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-v-jetbrains-mono-a1165c: 'JetBrains Mono',monospace;
+  --font-v-jetbrains-mono-a90730: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-v-noto-serif-sc-c64c2e: 'Noto Serif SC',serif;
+  --font-v-sf-mono-f1ccdd: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+  --font-v-sf-mono-1df394: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  --font-v-sf-mono-5e9d53: 'SF Mono', monospace;
+  --font-v-pingfang-sc-d22062: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-v-pingfang-sc-759abb: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-v-segoe-ui-ff781c: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --font-v-segoe-ui-f87a9e: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-v-segoe-ui-c790ad: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-v-segoe-ui-cdf606: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    /* === Cool ambience（2026-11-08 冷光质感层，装饰只用冷色）===
+       五行口径：藏青属水、白银蓝属金（金生水）；忌红橙（火克金）、忌土黄（土克水）。
+       装饰用色一律从这里取，守卫 tests/verify_cool_palette.py 会判暖色。 */
+    --color-cool-page: #F7FAFD;
+    --color-cool-surface: #EEF4FA;
+    --color-cool-edge: rgba(62,92,138,0.22);
+    --color-cool-edge-soft: rgba(62,92,138,0.12);
+    --color-cool-grid: rgba(62,92,138,0.05);
+    --color-cool-glow: rgba(62,92,138,0.55);
+    --color-cool-sheen: rgba(255,255,255,0.28);
+    --color-cool-ink: #0B1830;
+    --color-cool-screen: #0D1729;
+    --color-cool-beam: #7FA9D8;
+    --color-cool-line: rgba(255,255,255,0.08);
+    --shadow-cool-soft: 0 2px 10px rgba(26,43,74,0.06);
+    --shadow-cool-raised: 0 10px 28px rgba(26,43,74,0.12);
+    /* 补齐历史遗留的变量闭环：部分内页一直引用 --border-light 却没人定义，
+       浏览器按无效处理。统一由色板给出冷色边框值，不改任何页面。 */
+    --border-light: var(--color-border-subtle);
+
+  --color-v-ffffff: #FFFFFF;
+  --color-v-1a2b4a: #1A2B4A;
+  --color-v-6b7b94: #6B7B94;
+  --color-v-eef1f6: #EEF1F6;
+  --color-v-rgba-1a2b4a-08: rgba(26,43,74,0.08);
+  --color-v-rgba-ffffff-78: rgba(255,255,255,0.78);
+  --color-v-rgba-ffffff-75: rgba(255,255,255,0.75);
+  --color-v-rgba-ffffff-70: rgba(255,255,255,0.70);
+  --color-v-rgba-ffffff-62: rgba(255,255,255,0.62);
+  --color-v-rgba-ffffff-55: rgba(255,255,255,0.55);
+
+  /* === 全站导航条（2026-11-22 三套导航合一）===
+     唯一使用方是 static/css/nav.css，被 templates/_nav.html 渲染出的导航引用。
+     这些值以前散在 nav.css 里写字面量，被 UI 门禁（gate 48）判红：
+     颜色一律收在 tokens 里，页面和样式表只许引用变量。 */
+  --color-nav-surface: rgba(12,28,52,0.97);        /* 深藏青导航底，沿用原首页那一档 */
+  --color-nav-hairline: rgba(255,255,255,0.08);    /* 导航与页面内容之间的发丝线 */
+  --color-nav-text: rgba(255,255,255,0.76);        /* 导航项常态字 */
+  --color-nav-ghost-text: rgba(255,255,255,0.86);  /* 右侧描边按钮常态字 */
+  --color-nav-item-hover: rgba(255,255,255,0.08);  /* 悬停底色 */
+  --color-nav-outline: rgba(255,255,255,0.22);     /* 描边按钮边框 */
+  --color-nav-outline-hover: rgba(255,255,255,0.42);
+  /* 粘在视口底部的操作条（免费试扫页）：往上打一层淡影，和下面的内容分开 */
+  --shadow-actionbar-lift: 0 -8px 16px -12px rgba(0,0,0,0.45);
+}

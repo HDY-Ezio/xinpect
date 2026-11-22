@@ -1,0 +1,33 @@
+{# 全站唯一导航条（2026-11-22）
+   导航项不在这里写：来自 scripts/site_nav.json 的 core，由 app.py 的 context_processor
+   注入成 nav_core。加/改/删导航项只改那个 JSON —— 这里和静态页都从它生成，
+   不许再各自抄一份（「三页三样式」就是这么来的）。
+   用法：{% include "_nav.html" %}，base.html 与 index.html 都用这一句。
+#}
+{% set _path = request.path %}
+<header class="xp-nav">
+  <div class="xp-nav-inner">
+    <a class="xp-nav-brand" href="/" aria-label="煋鉴首页">
+      <img src="/static/xinpect-mark-wide-128.png" alt="煋鉴">
+      <span>煋鉴</span>
+    </a>
+
+    <nav class="xp-nav-links" aria-label="主导航">
+      {% for it in nav_core %}
+        {% set _href = it.href %}
+        {% set _active = (_path == _href) or (_href != '/' and not _href.startswith('/#') and _path.startswith(_href)) %}
+        <a href="{{ _href }}"{% if _active %} class="active"{% endif %}>{{ it.label }}</a>
+      {% endfor %}
+    </nav>
+
+    <div class="xp-nav-actions">
+      {% if session.get('user_id') %}
+        <a class="xp-nav-ghost" href="{{ url_for('dashboard_page') }}">会员中心</a>
+        <a class="xp-nav-solid" href="{{ url_for('logout') }}">退出</a>
+      {% else %}
+        <a class="xp-nav-ghost" href="{{ url_for('login') }}">登录</a>
+        <a class="xp-nav-solid" href="{{ url_for('register') }}">免费注册</a>
+      {% endif %}
+    </div>
+  </div>
+</header>

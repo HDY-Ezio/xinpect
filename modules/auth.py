@@ -27,8 +27,12 @@ from .constants import (
     HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_FORBIDDEN,
 )
 from .db import get_db, is_admin_user
-from .helpers import login_required, get_current_user, is_vip_user, get_unread_announcements, mark_announcement_read
-from .scoring import get_user_credits, get_credit_pools, get_daily_usage, get_credit_transactions, grant_credits
+from .helpers import send_alert_email, login_required, get_current_user, is_vip_user, get_unread_announcements, mark_announcement_read
+from .scoring import get_user_credits, get_daily_usage, get_credit_transactions, grant_credits
+from .dashboard_context import (
+    list_user_teams as _list_user_teams,
+    dashboard_context,
+)
 from .referral import ensure_user_referral_code, get_referral_stats, generate_unique_referral_code
 from .payment import _menfang_login_with_hash, _menfang_ensure_registered
 from .csrf_protection import csrf_required
@@ -65,6 +69,19 @@ def _safe_local_next(next_url):
 
 def _complete_login_session(user, email, password, db):
     """登录成功后设置session、同步门房token"""
+    # 记录首登时间。此前 users.first_login_at 建了列但全库没有一行被写过，
+    # 导致「注册了到底有没有登录过」这个问题永远答不出来。收口在所有登录路径。
+    try:
+        if not user.get('first_login_at'):
+            db.execute(
+                "UPDATE users SET first_login_at = datetime('now','localtime') "
+                "WHERE id = ? AND first_login_at IS NULL",
+                (user.get('id'),)
+            )
+            db.commit()
+    except sqlite3.Error as e:
+        logger.warning('[登录] first_login_at 写入失败 user_id=%s: %s', user.get('id'), e)
+
     # 防会话固定：登录成功后清除旧 session，重建新 session
     session.clear()
     session['user_id'] = user.get('id')
@@ -126,6 +143,12 @@ def login():
 
         login_guard.clear_failures(db, 'login', email, _ip)
         login_guard.prune(db)
+
+        # 检查账号是否被封禁
+        if user.get('is_banned'):
+            errors['error_password'] = '该账号已被封禁，请联系管理员'
+            return render_template('login.html', email=email, **errors)
+
         _complete_login_session(user, email, password, db)
         flash('登录成功', 'success')
         next_url = _safe_local_next(request.args.get('next'))
@@ -229,6 +252,13 @@ def register():
 
         user_ref_code = generate_unique_referral_code(db)
         db.execute('UPDATE users SET referral_code = ? WHERE id = ?', (user_ref_code, user_id))
+        # 注册即首登：两列一起落库，首登引导靠它们判断。
+        db.execute(
+            "UPDATE users SET first_login_at = datetime('now','localtime'), "
+            "onboarding_completed = 0 WHERE id = ?",
+            (user_id,)
+        )
+        db.commit()
 
         referrer_id = _bind_referral(db, user_id)
         if referrer_id:
@@ -493,20 +523,8 @@ def api_force_logout():
 # Dashboard 拆分
 # ============================================================
 
-def _build_base_context(user, vip):
-    """构建 dashboard 通用上下文"""
-    credit_balance = get_user_credits(user.get('id')) if vip and user else 0
-    unread_anns = get_unread_announcements(user.get('id')) if user else []
-    credit_info = get_credit_pools(user.get('id')) if vip and user else None
-
-    return {
-        'user_email': user.get('email', '') if user else '',
-        'is_vip': vip,
-        'bonus_credits': user.get('bonus_credits', 0) if user else 0,
-        'credit_balance': credit_balance,
-        'credit_info': credit_info,
-        'unread_announcements': unread_anns,
-    }
+# 母版上下文（身份 / 会员 / 积分 / 未读公告 / 新用户 / 首登引导）已经收到
+# modules/dashboard_context.py：团队那 5 个页面也要用同一份，放在这里会变成两套。
 
 
 def _dashboard_overview_data(user, vip, db):
@@ -549,6 +567,9 @@ def _dashboard_overview_data(user, vip, db):
         },
         'vip_expire': vip_expire,
         'recent_scans': [dict(r) for r in recent],
+        # 从没扫过 = 新用户。后台首页据此切「三步开始」引导态，
+        # 而不是把四个 0 摆在最显眼的位置。
+        'is_new_user': total_scans_row['cnt'] == 0,
     }
 
 
@@ -567,7 +588,9 @@ def dashboard_page(page='overview'):
     vip = is_vip_user()
     db = get_db()
 
-    context = _build_base_context(user, vip)
+    # 母版上下文统一从 dashboard_context 取：新用户判定、首登引导开关都在里面，
+    # 团队那 5 个页面用的是同一份，不再各拼各的。
+    context = dashboard_context(user)
     context['page'] = page
 
     if page == 'overview':
@@ -607,7 +630,6 @@ def dashboard_page(page='overview'):
         'compare': ('dashboard/compare.html', None),
         'alerts': ('dashboard/alerts.html', None),
         'versions': ('dashboard/versions.html', None),
-        'deploy': ('dashboard/deploy.html', None),
         'benchmark': ('dashboard/benchmark.html', None),
     }
 
@@ -620,14 +642,115 @@ def dashboard_page(page='overview'):
     return redirect(url_for('dashboard_page', page='overview'))
 
 
+@app.route('/api/user/onboarding/status')
+@login_required
+def onboarding_status():
+    """首登引导状态。templates/onboarding.html 写死了这个接口，但此前从未实现。"""
+    uid = session.get('user_id')
+    db = get_db()
+    row = db.execute(
+        'SELECT first_login_at, onboarding_completed FROM users WHERE id = ?', (uid,)
+    ).fetchone()
+    scans = db.execute(
+        'SELECT COUNT(*) FROM scans WHERE user_id = ?', (uid,)
+    ).fetchone()[0]
+    return jsonify({
+        'first_login': bool(row and row['first_login_at']),
+        'onboarding_completed': bool(row and row['onboarding_completed']),
+        'scan_count': scans,
+    })
+
+
+@app.route('/api/user/onboarding/complete', methods=['POST'])
+@login_required
+def onboarding_complete():
+    """标记首登引导已走完。前端只在用户真点了「开始第一次检测」或关闭时调用。"""
+    uid = session.get('user_id')
+    try:
+        db = get_db()
+        db.execute('UPDATE users SET onboarding_completed = 1 WHERE id = ?', (uid,))
+        db.commit()
+    except sqlite3.Error as e:
+        logger.warning('[引导] 标记完成失败 user_id=%s: %s', uid, e)
+        return jsonify({'ok': False}), 500
+    return jsonify({'ok': True})
+
+
+@app.route('/api/identity/switch', methods=['POST'])
+@login_required
+def api_identity_switch():
+    """切换当前身份：个人身份 或 某个团队身份。
+
+    请求体: {"team_id": null | <int>}
+      - null / 0 / 缺省  → 切回个人身份
+      - <int>            → 切换到该团队身份（必须是该团队成员）
+    """
+    user = get_current_user()
+    if user is None:
+        return jsonify({'code': -1, 'msg': '登录已过期'}), HTTP_UNAUTHORIZED
+
+    data = request.get_json(silent=True) or {}
+    team_id = data.get('team_id')
+
+    if team_id in (None, 0, '', 'null'):
+        session.pop('active_team_id', None)
+        return jsonify({'code': 0, 'msg': '已切换为个人身份', 'data': {'identity': 'personal'}})
+
+    try:
+        team_id = int(team_id)
+    except (TypeError, ValueError):
+        return jsonify({'code': -1, 'msg': '无效的团队'}), HTTP_BAD_REQUEST
+
+    # 校验确实是该团队成员
+    my_teams = _list_user_teams(user.get('id'))
+    if not any(t['team_id'] == team_id for t in my_teams):
+        return jsonify({'code': -1, 'msg': '你不是该团队的子账号'}), HTTP_FORBIDDEN
+
+    session['active_team_id'] = team_id
+    team_name = next((t['name'] for t in my_teams if t['team_id'] == team_id), '')
+    return jsonify({
+        'code': 0,
+        'msg': f'已切换为团队身份：{team_name}',
+        'data': {'identity': 'team', 'team_id': team_id, 'team_name': team_name}
+    })
+
+
 def _dashboard_scans_data(user, vip, db):
-    """我的检测页数据"""
+    """我的检测页数据（分页 + 总量与最早时间）
+
+    改过什么（2026-11-22，客户评审录屏）：
+    1. 以前一次把该账号全部记录查出来，积累到上千条时页面越来越重；现在每页 50 条。
+    2. 更重要的：页面原来只有「一行行记录」，既没有总数也没有起始日期。客户看完
+       只记得「眼前就这些」，于是问出「你们公司干了几天」。事实是库里有 8 月以来的
+       记录，只是页面没说——这是展示问题，不该靠藏数据解决。
+    """
+    PAGE_SIZE = 50
+    uid = user.get('id')
+    try:
+        page = int(request.args.get('page', 1) or 1)
+    except (TypeError, ValueError):
+        page = 1
+    page = max(1, page)
+
+    total = int(db.execute('SELECT count(*) FROM scans WHERE user_id = ?', (uid,)).fetchone()[0] or 0)
+    earliest = db.execute('SELECT min(created_at) FROM scans WHERE user_id = ?', (uid,)).fetchone()[0]
+    total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+    if page > total_pages:
+        page = total_pages
+
     scans = db.execute(
         'SELECT scan_id, title, file_count, issue_count, score, grade, created_at '
-        'FROM scans WHERE user_id = ? ORDER BY created_at DESC',
-        (user.get('id'),)
+        'FROM scans WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?',
+        (uid, PAGE_SIZE, (page - 1) * PAGE_SIZE)
     ).fetchall()
-    return {'scans': [dict(s) for s in scans]}
+    return {
+        'scans': [dict(s) for s in scans],
+        'total_count': total,
+        'earliest_at': earliest,
+        'page': page,
+        'page_size': PAGE_SIZE,
+        'total_pages': total_pages,
+    }
 
 
 def _dashboard_orders_data(user, vip, db):
@@ -810,6 +933,15 @@ def api_invoice_request():
          f'订单: {order_ids_str} | 税号: {tax_number} | 邮箱: {email}')
     )
     db.commit()
+
+    # 发送邮件通知给管理员
+    try:
+        email_subject = f"新开票申请: {company_name} / ¥{total_amount:.2f}"
+        email_body = f"新的开票申请\n\n公司: {company_name}\n税号: {tax_number}\n金额: ¥{total_amount:.2f}\n订单: {order_ids_str}\n用户ID: {uid}\n联系邮箱: {email}\n\n请及时处理。"
+        from .helpers import send_alert_email
+        send_alert_email(email_subject, email_body)
+    except Exception as e:
+        logger.warning("发票申请邮件通知失败: %s", e)
 
     return jsonify({'success': True, 'message': f'开票申请已提交，合计金额 ¥{total_amount:.2f}，我们将在3个工作日内为您开具。'})
 

@@ -5,26 +5,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析</title>
-<meta name="description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，9,500+ 条检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持 Python/Java/Go/JS 等 23 种语言，规范层免费无限使用。">
+<meta name="description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，8 个规则引擎 + AI 语义 + PoC 验证并行扫描，9,400+ 条检测规则覆盖安全漏洞、性能瓶颈、代码规范等，支持 Python/Java/Go/C/C++/PHP 等 23 种语言，规范层免费无限使用。">
 <meta name="keywords" content="代码质检,代码审计,静态分析,SAST,代码扫描,代码审查工具,AST分析,漏洞检测,煋鉴,Xinpect,代码质量检测">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://xinpect.xingwangzhineng.com/">
 <meta property="og:site_name" content="煋鉴 Xinpect">
 <meta property="og:type" content="website">
 <meta property="og:title" content="煋鉴 Xinpect - AI代码质检工具 | 安全扫描·代码审查·静态分析">
-<meta property="og:description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，9,500+ 条检测规则，支持 23 种语言，10 万行代码 2~4 分钟扫完，每条结论都附判断依据与修复建议。">
+<meta property="og:description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，8 个规则引擎 + AI 语义 + PoC 验证并行扫描，9,400+ 条检测规则，支持 23 种语言，10 万行代码 2~4 分钟扫完，每条结论都附判断依据与修复建议。">
 <meta property="og:url" content="https://xinpect.xingwangzhineng.com/">
 <meta property="og:image" content="https://xinpect.xingwangzhineng.com/static/og-default.png">
 <meta property="og:locale" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="煋鉴 Xinpect - AI代码质检工具">
-<meta name="twitter:description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，7大规则引擎 + AI 语义 + PoC 验证并行扫描，10 万行代码 2~4 分钟扫完。">
+<meta name="twitter:description" content="煋鉴(Xinpect)是AI驱动的代码质量检测平台，8 个规则引擎 + AI 语义 + PoC 验证并行扫描，10 万行代码 2~4 分钟扫完。">
 <meta name="twitter:image" content="https://xinpect.xingwangzhineng.com/static/og-default.png">
 <link rel="icon" type="image/png" sizes="128x128" href="/static/xinpect-mark-128.png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/fonts/noto-serif-sc.local.css">
 <link rel="stylesheet" href="/static/fonts/noto-sans-sc.local.css">
 <link rel="stylesheet" href="/static/fonts/jetbrains-mono.local.css">
+<link rel="stylesheet" href="/static/css/nav.css?v={{ asset_v }}">
 <style>
   :root{
     /* 首页招牌用的是「深墨字 + 冷白纸」的印刷感，结构保持不动。
@@ -107,7 +108,10 @@
   }
   .screen::before{
     content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(180deg, var(--color-metal-gold) 0%, var(--color-v-f2b2d13a6) 40%);
+    /* 原来这里是把金色从顶端一路铺到 40%（--color-metal-gold 实色起渐变），
+       结果整块屏幕被一层黄蒙住：代码看不清、页面里突然一块黄，客户原话是「突兀」。
+       现在只留顶部一条 12% 的暖色高光当屏幕反光，代码区保持深底冷字。 */
+    background:linear-gradient(180deg, var(--color-metal-gold-alpha-08) 0%, transparent 22%);
   }
   .base{
     height:16px;background:linear-gradient(180deg,var(--color-v-2a3446) 0%,var(--color-v-171e2a) 100%);
@@ -119,11 +123,11 @@
   .codeflow{
     position:absolute;inset:0;z-index:0;
     font-family:var(--font-v-jetbrains-mono-97c959);
-    font-size:11px;line-height:1.9;color:var(--color-v-3f5370);
+    font-size:11px;line-height:1.9;color:var(--color-v-5b7ba6);
     overflow:hidden;white-space:nowrap;
   }
-  .cfline{display:block;color:var(--color-v-3f5370)}
-  .cfline .k{color:var(--color-v-5b7ba6)}
+  .cfline{display:block;color:var(--color-v-5b7ba6)}
+  .cfline .k{color:var(--color-v-7aa2d6)}
   .cfline .s{color:var(--color-v-8fa8c8)}   /* 字符串：曾用暖棕，2026-11-09 归冷 */
   .cfline .f{color:var(--color-info-on-dark)} /* 函数：曾用橄榄绿，同上 */
   .cfline.hot{color:var(--color-v-b9c7da)}
@@ -271,7 +275,7 @@
       "operatingSystem": "Web",
       "url": "https://xinpect.xingwangzhineng.com/",
       "inLanguage": "zh-CN",
-      "description": "AI 驱动的代码质检平台，7 大规则引擎 + AI 语义分析 + PoC 验证并行扫描，9,500+ 条检测规则，覆盖安全漏洞、性能瓶颈与代码规范，支持 23 种编程语言。",
+      "description": "AI 驱动的代码质检平台，8 个规则引擎 + AI 语义分析 + PoC 验证并行扫描，9,400+ 条检测规则，覆盖安全漏洞、性能瓶颈与代码规范，支持 23 种编程语言。",
       "featureList": [
         "安全漏洞检测（越权、注入、密钥泄露等）",
         "AI 语义分析与 PoC 验证",
@@ -288,7 +292,7 @@
           "name": "煋鉴 Xinpect 是什么？",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "煋鉴是 AI 驱动的代码质检平台，7 大规则引擎加 AI 语义分析与 PoC 验证并行扫描，9,500 多条检测规则覆盖安全漏洞、性能瓶颈与代码规范，支持 23 种编程语言。"
+            "text": "煋鉴是 AI 驱动的代码质检平台，8 个规则引擎加 AI 语义分析与 PoC 验证并行扫描，9,400 多条检测规则覆盖安全漏洞、性能瓶颈与代码规范，支持 23 种编程语言。"
           }
         },
         {
@@ -363,29 +367,8 @@
     </script>
 {% endif %}
 
-<header class="nav">
-  <div class="wrap nav-inner">
-    <a class="brand" href="/">
-      <img class="brand-logo" src="/static/xinpect-mark-wide-128.png" alt="煋鉴">
-      <span class="brand-name">煋鉴</span>
-    </a>
-    <nav class="nav-menu">
-      <a href="#features">能力</a>
-      <a href="#languages">语言</a>
-      <a href="/pages/product.html">产品介绍</a>
-      <a href="/pricing">定价</a>
-      <a href="/try">免费试扫</a>
-      <a href="/sample-report">报告样例</a>
-      <a href="/help">文档</a>
-      <a href="/pages/about.html">关于我们</a>
-      <a href="/blog">博客</a>
-    </nav>
-    <div class="nav-cta">
-      <a class="link-login" href="/login">登录</a>
-      <a class="btn btn-solid" href="/register">免费注册</a>
-    </div>
-  </div>
-</header>
+{# 导航栏：全站唯一一份，见 _nav.html（首页原来是自成一套 .nav，已并进来） #}
+{% include "_nav.html" %}
 
 <section class="hero">
   <div class="wrap hero-inner">
@@ -421,8 +404,8 @@
 <section class="stats">
   <div class="wrap stats-inner">
     <div class="stat"><div class="stat-in"><div class="stat-num">2~4<span class="u">分钟</span></div><div class="stat-label">10 万行代码扫完 · 单机实测</div></div></div>
-    <div class="stat"><div class="stat-in"><div class="stat-num">23<span class="u">种</span></div><div class="stat-label">主流编程语言覆盖</div></div></div>
-    <div class="stat"><div class="stat-in"><div class="stat-num">9,500<span class="u">+</span></div><div class="stat-label">条检测规则</div></div></div>
+    <div class="stat"><div class="stat-in"><div class="stat-num">17<span class="u">种</span></div><div class="stat-label">语言做 AST 深度解析</div></div></div>
+    <div class="stat"><div class="stat-in"><div class="stat-num">9,400<span class="u">+</span></div><div class="stat-label">条检测规则（规则库实测条数）</div></div></div>
   </div>
 </section>
 
@@ -433,15 +416,15 @@
       <p>从语法错误到安全漏洞，从性能瓶颈到 AI 应用健康，一次扫描全部覆盖。</p>
     </div>
     <div class="cap-grid">
-      <div class="cap"><div class="cap-idx">E1</div><h3>语法检测</h3><p>语法错误、AST 分析、类型检查，在代码跑起来之前先抓住写错的地方。</p></div>
-      <div class="cap"><div class="cap-idx">E2</div><h3>安全检测</h3><p>漏洞检测 + 业务逻辑安全，4,000+ 条规则深度扫描安全风险。</p></div>
-      <div class="cap"><div class="cap-idx">E3</div><h3>性能检测</h3><p>性能瓶颈、资源泄漏精准定位，优化代码运行效率。</p></div>
-      <div class="cap"><div class="cap-idx">E4</div><h3>代码质量</h3><p>代码规范、可维护性检测，确保代码整洁一致。</p></div>
-      <div class="cap"><div class="cap-idx">E5</div><h3>架构部署</h3><p>架构规范、部署就绪检查，保障工程结构合理。</p></div>
-      <div class="cap"><div class="cap-idx">E6</div><h3>组件合规</h3><p>依赖安全、小程序完整性检测，确保组件合规可靠。</p></div>
-      <div class="cap"><div class="cap-idx">E7</div><h3>AI 应用健康检测</h3><p>LLM 语义扫描、AI 健康度分析，智能发现潜在风险。</p></div>
-      <div class="cap"><div class="cap-idx">AI</div><h3>AI 语义分析</h3><p>用语义理解过滤误报，把真正的漏洞留下、把噪音挡在门外。</p></div>
-      <div class="cap"><div class="cap-idx">PoC</div><h3>PoC 验证</h3><p>自动生成漏洞验证代码，确认漏洞真实可利用，而不是「看起来像」。</p></div>
+      <div class="cap"><div class="cap-idx">E1</div><h3>语法与 AST 分析</h3><p>语法错误、类型与调用关系解析，在代码跑起来之前先抓住写错的地方。</p></div>
+      <div class="cap"><div class="cap-idx">E2</div><h3>安全检测</h3><p>注入、越权、密钥硬编码、反序列化等跨语言安全规则，配合跨文件污点追踪。</p></div>
+      <div class="cap"><div class="cap-idx">E3</div><h3>性能与可靠性</h3><p>性能瓶颈、资源泄漏、并发与超时风险，定位到具体调用位置。</p></div>
+      <div class="cap"><div class="cap-idx">E4</div><h3>代码质量与可观测性</h3><p>规范、可维护性、日志与埋点缺失，确保代码整洁且线上可查。</p></div>
+      <div class="cap"><div class="cap-idx">E5</div><h3>架构与部署</h3><p>分层越界、循环依赖、配置与部署就绪检查，保障工程结构合理。</p></div>
+      <div class="cap"><div class="cap-idx">E6</div><h3>组件合规</h3><p>依赖漏洞、许可证风险、小程序完整性检测，确保组件合规可靠。</p></div>
+      <div class="cap"><div class="cap-idx">E7</div><h3>AI 应用健康检测</h3><p>LLM 调用、提示词注入、密钥与越权风险，专治 AI 应用这一层的新问题。</p></div>
+      <div class="cap"><div class="cap-idx">E8</div><h3>部署就绪与 CI/CD 安全</h3><p>流水线配置、密钥泄露、容器与发布策略检查，上线前把门守住。</p></div>
+      <div class="cap"><div class="cap-idx">AI + PoC</div><h3>语义复核与可复现验证</h3><p>语义理解过滤误报；能复现的才升级为高危，判不准的折叠到报告末尾，不混进主清单。</p></div>
     </div>
   </div>
 </section>
@@ -449,16 +432,20 @@
 <section class="langs" id="languages">
   <div class="wrap" style="padding:80px 40px">
     <div class="sec-head">
-      <h2>23 种语言，前后端到运维全覆盖</h2>
+      <h2>23 种语言，从 Python 到 PL/SQL 全覆盖</h2>
       <p>覆盖应用、移动端、数据库、云编排，满足全栈检测需求。</p>
     </div>
     <div class="lang-grid">
-      <span class="lang">Python</span><span class="lang">JavaScript</span><span class="lang">TypeScript</span><span class="lang">Java</span><span class="lang">Go</span><span class="lang">PHP</span><span class="lang">C / C++</span><span class="lang">C#</span><span class="lang">Ruby</span><span class="lang">Swift</span><span class="lang">Kotlin</span><span class="lang">Rust</span><span class="lang">Scala</span><span class="lang">Lua</span><span class="lang">Shell / Bash</span><span class="lang">SQL</span><span class="lang">T-SQL</span><span class="lang">PL/SQL</span><span class="lang">R</span><span class="lang">HTML 模板</span><span class="lang">Dart</span><span class="lang">Ansible</span>
+      <span class="lang">Python</span><span class="lang">JavaScript</span><span class="lang">TypeScript</span><span class="lang">Java</span><span class="lang">Go</span><span class="lang">PHP</span><span class="lang">C</span><span class="lang">C++</span><span class="lang">C#</span><span class="lang">Ruby</span><span class="lang">Swift</span><span class="lang">Kotlin</span><span class="lang">Rust</span><span class="lang">Scala</span><span class="lang">Lua</span><span class="lang">Shell / Bash</span><span class="lang">SQL</span>
     </div>
     <div class="lang-extra">
-      <span class="lang-extra-label">另外还自动识别</span>
-      <span class="lang">Perl</span><span class="lang">Groovy</span><span class="lang">PowerShell</span><span class="lang">Vue</span><span class="lang">GraphQL</span><span class="lang">Terraform</span><span class="lang">Docker</span><span class="lang">CloudFormation</span><span class="lang">GitHub Actions</span>
+      <span class="lang-extra-label">另外还覆盖</span>
+      <span class="lang">T-SQL</span><span class="lang">PL/SQL</span><span class="lang">R</span><span class="lang">HTML 模板</span><span class="lang">Dart</span><span class="lang">Ansible</span>
+      <span style="font-size:13px;color:var(--text-secondary);">（方言与配置文件规则）</span>
     </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-top:18px;line-height:1.7;max-width:760px;">
+      上面列的 17 种有 AST 级语法解析和跨语言安全规则；另外 6 种（T-SQL / PL/SQL / R / HTML 模板 / Dart / Ansible）走规则级检测，不做 AST 深度解析。写清楚比多报几个数字管用。
+    </p>
   </div>
 </section>
 
@@ -472,7 +459,7 @@
     </div>
     <div class="steps">
       <div class="step"><div class="step-top"><span class="step-n">1</span><span class="step-line"></span></div><h3>上传代码</h3><p>Git 仓库、ZIP 压缩包，或直接粘贴。</p></div>
-      <div class="step"><div class="step-top"><span class="step-n">2</span><span class="step-line"></span></div><h3>选择引擎</h3><p>按需勾选，或一键全选七大规则引擎。</p></div>
+      <div class="step"><div class="step-top"><span class="step-n">2</span><span class="step-line"></span></div><h3>选择引擎</h3><p>按需勾选，或一键全选八个规则引擎。</p></div>
       <div class="step"><div class="step-top"><span class="step-n">3</span><span class="step-line"></span></div><h3>AI 扫描</h3><p>多引擎并行分析，毫秒级定位问题。</p></div>
       <div class="step"><div class="step-top"><span class="step-n">4</span><span class="step-line"></span></div><h3>查看报告</h3><p>问题清单、修复建议、一键导出。</p></div>
     </div>
@@ -540,19 +527,31 @@
     '    return redirect("/")'
   ];
 
-  function render(html){
-    return html
-      .replace(/\b(from|import|def|return|if|else|for|while|class|None|True|False|not|and|or|in)\b/g, function(m){ return '<span class="k">'+m+'</span>'; })
-      .replace(/(&quot;[^&]*&quot;|"[^"]*")/g, function(m){ return '<span class="s">'+m+'</span>'; })
-      .replace(/([a-zA-Z_][a-zA-Z0-9_]*)(\()/g, '<span class="f">$1</span>(');
-  }
-
+  // 语法着色：一次扫描出结果。
+  // 原来是三段 replace 串着跑：第一段插入 <span class="k">，第二段又把这段刚生成的
+  // 「"k"」当成字符串字面量再包一层 —— 页面上直接显示成 `"k">if` 这种残片。
+  // 自己生成的标签不能再被自己扫到，所以改成：先转义、再用一个正则一边扫一边拼。
   function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  var SYNTAX = /(&quot;[^&]*&quot;)|(\b(?:from|import|def|return|if|else|for|while|class|None|True|False|not|and|or|in)\b)|([A-Za-z_][A-Za-z0-9_]*(?=\())/g;
+
+  function render(raw){
+    var s = esc(raw), out = [], last = 0, m;
+    SYNTAX.lastIndex = 0;
+    while ((m = SYNTAX.exec(s))) {
+      if (m.index > last) out.push(s.slice(last, m.index));
+      if (m[1])      out.push('<span class="s">' + m[1] + '</span>');
+      else if (m[2]) out.push('<span class="k">' + m[2] + '</span>');
+      else           out.push('<span class="f">' + m[3] + '</span>');
+      last = SYNTAX.lastIndex;
+    }
+    out.push(s.slice(last));
+    return out.join('');
+  }
 
   var html = '';
   for(var rep=0; rep<4; rep++){
     for(var i=0;i<lines.length;i++){
-      html += '<span class="cfline'+(i===11||i===15?' hot':'')+'">'+render(esc(lines[i]))+'</span>';
+      html += '<span class="cfline'+(i===11||i===15?' hot':'')+'">'+render(lines[i])+'</span>';
     }
   }
   wrap.innerHTML = html;

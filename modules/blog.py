@@ -178,3 +178,25 @@ def related(slug, n=3):
     # 一次排序：标签重叠数降序 → 日期降序
     posts.sort(key=lambda p: (len(my_tags & set(p["tags"])), p["date"]), reverse=True)
     return posts[:n]
+
+
+def slug_is_offline(slug):
+    """这个 slug 是不是「发布过、后来下线」的文章（文件还在，只是标了 draft: true）。
+
+    为什么要区分：下线文章直接返回 404，搜索引擎和收藏过的人都会撞空页。
+    知道它曾经存在，就 301 回博客首页——比 404 体面，也不会把权重全丢掉。
+    """
+    for path in glob.glob(os.path.join(BLOG_DIR, "*.md")):
+        meta, _body = _parse_front_matter(_read_head(path))
+        if (meta.get("slug") or _slug_from_path(path)) == slug and meta.get("draft") is True:
+            return True
+    return False
+
+
+def _read_head(path, limit=4096):
+    """只读文件头：判 draft 不需要整篇正文。"""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read(limit)
+    except OSError:
+        return ""

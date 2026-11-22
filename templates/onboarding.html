@@ -31,15 +31,15 @@
       <div class="onboarding-features">
         <div class="feature-item">
           <span class="feature-icon">🔍</span>
-          <span>8大引擎并行检测</span>
+          <span>8 个规则引擎 + AI 语义</span>
         </div>
         <div class="feature-item">
           <span class="feature-icon">🛡️</span>
-          <span>2400+检测规则</span>
+          <span>9,400+ 检测规则</span>
         </div>
         <div class="feature-item">
           <span class="feature-icon">⚡</span>
-          <span>支持17种编程语言</span>
+          <span>支持23 种编程语言</span>
         </div>
       </div>
       <button class="onboarding-btn primary" onclick="goToStep(2)">
@@ -130,7 +130,7 @@
         </div>
         <div class="tip-item">
           <span class="tip-dot"></span>
-          支持 Python / Java / Go / JS 等 17 种语言
+          支持 Python / Java / Go / JS 等 23 种语言
         </div>
         <div class="tip-item">
           <span class="tip-dot"></span>
@@ -177,8 +177,8 @@
 .onboarding-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
-  background: rgba(0, 0, 0, 0.6);
+  z-index: 100000;
+  background: var(--color-v-ff91928c0);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -194,14 +194,14 @@
 
 /* --- 容器 --- */
 .onboarding-container {
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-v-e5e7eb);
   border-radius: 20px;
   padding: 40px;
   max-width: 520px;
   width: 100%;
   position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px var(--color-v-f7371e081);
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -223,28 +223,28 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--border-color, #e5e7eb);
-  transition: all 0.3s ease;
+  background: var(--color-v-e5e7eb);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
 }
 
 .step-dot.active {
-  background: #1A3A5C;
-  box-shadow: 0 0 0 4px rgba(26,58,92, 0.2);
+  background: var(--color-v-1a3a5c);
+  box-shadow: 0 0 0 4px var(--color-metal-gold-alpha-08);
 }
 
 .step-dot.completed {
-  background: #10B981;
+  background: var(--color-success);
 }
 
 .step-line {
   width: 40px;
   height: 2px;
-  background: var(--border-color, #e5e7eb);
+  background: var(--color-v-e5e7eb);
   transition: background 0.3s ease;
 }
 
 .step-line.completed {
-  background: #10B981;
+  background: var(--color-success);
 }
 
 /* --- 步骤内容 --- */
@@ -273,14 +273,14 @@
 .onboarding-title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary, #111827);
+  color: var(--color-v-111827);
   margin: 0 0 8px;
   line-height: 1.3;
 }
 
 .onboarding-desc {
   font-size: 15px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   margin: 0 0 24px;
   line-height: 1.5;
 }
@@ -298,10 +298,10 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-secondary, #f9fafb);
+  background: var(--color-v-f9fafb);
   border-radius: 10px;
   font-size: 14px;
-  color: var(--text-primary, #111827);
+  color: var(--color-v-111827);
 }
 
 .feature-icon {
@@ -322,18 +322,18 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border: 1px solid var(--border-color, #e5e7eb);
+  border: 1px solid var(--color-v-e5e7eb);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
   text-align: left;
 }
 
 .method-card:hover {
-  border-color: #1A3A5C;
-  background: rgba(26,58,92, 0.03);
+  border-color: var(--color-v-1a3a5c);
+  background: var(--color-v-f90e16cc5);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(26,58,92, 0.1);
+  box-shadow: 0 4px 12px var(--color-metal-gold-alpha-08);
 }
 
 .method-icon {
@@ -348,19 +348,19 @@
 .method-content h3 {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #111827);
+  color: var(--color-v-111827);
   margin: 0 0 2px;
 }
 
 .method-content p {
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   margin: 0;
   line-height: 1.4;
 }
 
 .method-arrow {
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   font-size: 16px;
   flex-shrink: 0;
   transition: transform 0.2s ease;
@@ -368,7 +368,7 @@
 
 .method-card:hover .method-arrow {
   transform: translateX(3px);
-  color: #1A3A5C;
+  color: var(--color-v-1a3a5c);
 }
 
 /* --- 完成页提示 (Step 3) --- */
@@ -376,7 +376,7 @@
   text-align: left;
   margin-bottom: 24px;
   padding: 16px;
-  background: var(--bg-secondary, #f9fafb);
+  background: var(--color-v-f9fafb);
   border-radius: 12px;
 }
 
@@ -385,7 +385,7 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   padding: 6px 0;
 }
 
@@ -393,7 +393,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #1A3A5C;
+  background: var(--color-v-1a3a5c);
   flex-shrink: 0;
 }
 
@@ -408,41 +408,41 @@
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
   text-decoration: none;
 }
 
 .onboarding-btn.primary {
-  background: #1A3A5C;
-  color: #fff;
+  background: var(--color-v-1a3a5c);
+  color: var(--color-text-inverse);
 }
 
 .onboarding-btn.primary:hover {
-  background: #e55a2b;
+  background: var(--color-v-e55a2b);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(26,58,92, 0.3);
+  box-shadow: 0 4px 12px var(--color-metal-gold-alpha-08);
 }
 
 .onboarding-btn.outline {
   background: transparent;
-  color: var(--text-secondary, #6b7280);
-  border: 1px solid var(--border-color, #e5e7eb);
+  color: var(--color-v-6b7280);
+  border: 1px solid var(--color-v-e5e7eb);
 }
 
 .onboarding-btn.outline:hover {
-  border-color: #1A3A5C;
-  color: #1A3A5C;
+  border-color: var(--color-v-1a3a5c);
+  color: var(--color-v-1a3a5c);
 }
 
 .onboarding-btn.ghost {
   background: transparent;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   padding: 10px 20px;
   font-size: 14px;
 }
 
 .onboarding-btn.ghost:hover {
-  color: var(--text-primary, #111827);
+  color: var(--color-v-111827);
 }
 
 .onboarding-actions {
@@ -463,17 +463,17 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
 }
 
 .onboarding-close:hover {
-  background: var(--bg-secondary, #f3f4f6);
-  color: var(--text-primary, #111827);
+  background: var(--color-v-f3f4f6);
+  color: var(--color-v-111827);
 }
 
 /* --- 轻量提示条 --- */
@@ -496,10 +496,10 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-v-e5e7eb);
   border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px -5px var(--color-v-fc7238605);
   font-size: 14px;
 }
 
@@ -509,12 +509,12 @@
 }
 
 .nudge-text {
-  color: var(--text-primary, #111827);
+  color: var(--color-v-111827);
   white-space: nowrap;
 }
 
 .nudge-btn {
-  color: #1A3A5C;
+  color: var(--color-v-1a3a5c);
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -531,7 +531,7 @@
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #6b7280);
+  color: var(--color-v-6b7280);
   cursor: pointer;
   font-size: 16px;
   display: flex;
@@ -541,7 +541,7 @@
 }
 
 .nudge-dismiss:hover {
-  background: var(--bg-secondary, #f3f4f6);
+  background: var(--color-v-f3f4f6);
 }
 
 /* --- 响应式设计 --- */
@@ -598,46 +598,46 @@
 /* --- 暗色模式适配 --- */
 @media (prefers-color-scheme: dark) {
   .onboarding-container {
-    background: #1f2937;
-    border-color: #374151;
+    background: var(--color-v-1f2937);
+    border-color: var(--color-v-374151);
   }
 
   .onboarding-title {
-    color: #f9fafb;
+    color: var(--color-v-f9fafb);
   }
 
   .onboarding-desc {
-    color: #9ca3af;
+    color: var(--color-v-9ca3af);
   }
 
   .feature-item {
-    background: #111827;
-    color: #f9fafb;
+    background: var(--color-v-111827);
+    color: var(--color-v-f9fafb);
   }
 
   .method-card {
-    border-color: #374151;
+    border-color: var(--color-v-374151);
   }
 
   .method-card:hover {
-    background: rgba(26,58,92, 0.05);
+    background: var(--color-metal-gold-tint-2);
   }
 
   .method-content h3 {
-    color: #f9fafb;
+    color: var(--color-v-f9fafb);
   }
 
   .onboarding-tips {
-    background: #111827;
+    background: var(--color-v-111827);
   }
 
   .nudge-content {
-    background: #1f2937;
-    border-color: #374151;
+    background: var(--color-v-1f2937);
+    border-color: var(--color-v-374151);
   }
 
   .nudge-text {
-    color: #f9fafb;
+    color: var(--color-v-f9fafb);
   }
 }
 </style>

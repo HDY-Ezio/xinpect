@@ -8,28 +8,28 @@
 .diff-inline td { padding: 4px 0 16px !important; }
 .diff-summary-bar {
     display:flex; gap:20px; flex-wrap:wrap; padding:14px 18px; border-radius:12px;
-    background:var(--bg-card,#FFFFFF); border:1px solid var(--border-color,#E2E8F0); margin-bottom:12px;
+    background:var(--bg-card,var(--color-bg-primary)); border:1px solid var(--border-color,var(--color-v-e2e8f0)); margin-bottom:12px;
 }
 .diff-stat { text-align:center; min-width:70px; }
 .diff-stat .num { font-size:24px; font-weight:700; }
-.diff-stat .label { font-size:11px; color:var(--text-muted,#64748B); margin-top:2px; }
-.diff-stat.new .num { color:#ef4444; }
-.diff-stat.fixed .num { color:#22c55e; }
-.diff-stat.remaining .num { color:var(--text-secondary,#475569); }
-.diff-stat.score .num { color:#1A3A5C; }
+.diff-stat .label { font-size:11px; color:var(--text-muted,var(--color-v-64748b)); margin-top:2px; }
+.diff-stat.new .num { color: var(--color-danger); }
+.diff-stat.fixed .num { color: var(--color-success); }
+.diff-stat.remaining .num { color:var(--text-secondary,var(--color-v-475569)); }
+.diff-stat.score .num { color:var(--color-v-1a3a5c); }
 
-.diff-issue { padding:6px 12px; border-radius:6px; margin-bottom:4px; font-size:12px; border-left:3px solid transparent; color:var(--text-secondary,#475569); }
-.diff-issue.new-issue { background:rgba(239,68,68,.06); border-left-color:#ef4444; }
-.diff-issue.fixed-issue { background:rgba(34,197,94,.06); border-left-color:#22c55e; }
+.diff-issue { padding:6px 12px; border-radius:6px; margin-bottom:4px; font-size:12px; border-left:3px solid transparent; color:var(--text-secondary,var(--color-v-475569)); }
+.diff-issue.new-issue { background:var(--color-v-f818ea61f); border-left-color:var(--color-v-ef4444); }
+.diff-issue.fixed-issue { background:var(--color-v-f5855aecd); border-left-color:var(--color-v-22c55e); }
 .diff-section-title { font-size:13px; font-weight:600; margin:10px 0 6px; }
-.diff-section-title.new-title { color:#ef4444; }
-.diff-section-title.fixed-title { color:#22c55e; }
+.diff-section-title.new-title { color: var(--color-danger); }
+.diff-section-title.fixed-title { color: var(--color-success); }
 .compare-btn-sm {
-    padding:4px 10px; border-radius:6px; border:1px solid var(--border-color,#E2E8F0);
-    background:transparent; color:var(--text-secondary,#475569); font-size:12px; cursor:pointer; transition:all .2s;
+    padding:4px 10px; border-radius:6px; border:1px solid var(--border-color,var(--color-v-e2e8f0));
+    background:transparent; color:var(--text-secondary,var(--color-v-475569)); font-size:12px; cursor:pointer; transition:background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s;
 }
-.compare-btn-sm:hover { border-color:#1A3A5C; color:#1A3A5C; }
-.compare-btn-sm.active { border-color:#1A3A5C; color:#1A3A5C; background:rgba(26,58,92,.1); }
+.compare-btn-sm:hover { border-color:var(--color-v-1a3a5c); color:var(--color-v-1a3a5c); }
+.compare-btn-sm.active { border-color:var(--color-v-1a3a5c); color:var(--color-v-1a3a5c); background:var(--color-metal-gold-tint-2); }
 </style>
 {% endblock %}
 
@@ -39,7 +39,18 @@
     <p>查看所有历史检测记录，点击「对比」可查看与上次扫描的差异</p>
 </div>
 
+{% if total_count %}
+{# 历史到底有多少条、从哪天开始，写在这儿。
+   只列最近几十条而不给总数，访客会以为「你们就这么点记录」，客户会直接问
+   「你们公司干了几天」——事实是库里有，只是页面没说。 #}
+<p style="font-size:13px;color:var(--text-secondary);margin:-8px 0 14px;">
+    共 <strong>{{ total_count }}</strong> 次检测{% if earliest_at %}，最早一次在 <strong>{{ earliest_at[:10] }}</strong>{% endif %}。
+    下面按时间倒序显示第 {{ (page - 1) * page_size + 1 }}–{{ (page - 1) * page_size + scans|length }} 条。
+</p>
+{% endif %}
+
 {% if scans %}
+<div class="table-scroll">
 <table class="data-table">
     <thead>
         <tr>
@@ -63,7 +74,7 @@
                 </span>
             </td>
             <td>
-                <span style="color:{% if scan.score >= 85 %}#10b981{% elif scan.score >= 65 %}#0ea5e9{% elif scan.score >= 50 %}#6366f1{% elif scan.score >= 30 %}#f59e0b{% else %}#ef4444{% endif %};font-weight:600;">
+                <span style="color:{% if scan.score >= 85 %}var(--color-success){% elif scan.score >= 65 %}var(--color-info){% elif scan.score >= 50 %}var(--color-accent-steel){% elif scan.score >= 30 %}var(--color-sev-medium){% else %}var(--color-danger){% endif %};font-weight:600;">
                     {{ scan.score }}
                 </span>
             </td>
@@ -88,6 +99,14 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+{% if total_pages and total_pages > 1 %}
+<div style="display:flex;justify-content:center;align-items:center;gap:14px;margin-top:18px;font-size:13px;">
+    {% if page > 1 %}<a class="btn btn-secondary" href="{{ url_for('dashboard_page', page='scans') }}?page={{ page - 1 }}">上一页</a>{% endif %}
+    <span style="color:var(--text-secondary);">第 {{ page }} / {{ total_pages }} 页</span>
+    {% if page < total_pages %}<a class="btn btn-secondary" href="{{ url_for('dashboard_page', page='scans') }}?page={{ page + 1 }}">下一页</a>{% endif %}
+</div>
+{% endif %}
 {% else %}
 <div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
     <div class="empty-state-icon">📭</div>
@@ -111,13 +130,19 @@ function toggleDiff(scanId, btn) {
     row.style.display = 'table-row';
     if (content.dataset.loaded === 'true') return;
 
-    content.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted,#64748B);">加载中...</div>';
+    content.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted,var(--color-v-64748b));">加载中...</div>';
 
     fetch('/api/scan/' + scanId + '/prev')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (!data.success) {
-                content.innerHTML = '<div style="padding:16px;color:var(--text-muted,#64748B);">' + (data.error || '无对比数据') + '</div>';
+                content.innerHTML = '<div style="padding:16px;color:var(--text-muted,var(--color-v-64748b));">' + (data.error || '无对比数据') + '</div>';
+                return;
+            }
+            // 修复 2026-10-27：后端无更早记录时返回 {success:true, message:'没有更早...'}，
+            // 无 diff 字段，原代码 data.diff.summary 会抛 TypeError。改为优先展示 message。
+            if (!data.diff) {
+                content.innerHTML = '<div style="padding:16px;color:var(--text-muted,var(--color-v-64748b));">' + (data.message || '无对比数据') + '</div>';
                 return;
             }
             var d = data.diff;
@@ -148,24 +173,24 @@ function toggleDiff(scanId, btn) {
                 newIssues.slice(0, 15).forEach(function(i) {
                     html += '<div class="diff-issue new-issue">' + (i.rule_id || i.check_id || '?') + ' — ' + i.file + ':' + i.line + ' ' + (i.title || '') + '</div>';
                 });
-                if (newIssues.length > 15) html += '<div style="font-size:11px;color:var(--text-muted,#64748B);padding:4px 12px;">还有 ' + (newIssues.length - 15) + ' 个...</div>';
+                if (newIssues.length > 15) html += '<div style="font-size:11px;color:var(--text-muted,var(--color-v-64748b));padding:4px 12px;">还有 ' + (newIssues.length - 15) + ' 个...</div>';
             }
             if (fixedIssues.length) {
                 html += '<div class="diff-section-title fixed-title">✅ 已修复 (' + fixedIssues.length + ')</div>';
                 fixedIssues.slice(0, 15).forEach(function(i) {
                     html += '<div class="diff-issue fixed-issue">' + (i.rule_id || i.check_id || '?') + ' — ' + i.file + ':' + i.line + ' ' + (i.title || '') + '</div>';
                 });
-                if (fixedIssues.length > 15) html += '<div style="font-size:11px;color:var(--text-muted,#64748B);padding:4px 12px;">还有 ' + (fixedIssues.length - 15) + ' 个...</div>';
+                if (fixedIssues.length > 15) html += '<div style="font-size:11px;color:var(--text-muted,var(--color-v-64748b));padding:4px 12px;">还有 ' + (fixedIssues.length - 15) + ' 个...</div>';
             }
             if (!newCount && !fixedCount) {
-                html += '<div style="padding:12px;color:var(--text-muted,#64748B);font-size:13px;">两次扫描结果一致，无新增或修复</div>';
+                html += '<div style="padding:12px;color:var(--text-muted,var(--color-v-64748b));font-size:13px;">两次扫描结果一致，无新增或修复</div>';
             }
 
             content.innerHTML = html;
             content.dataset.loaded = 'true';
         })
         .catch(function() {
-            content.innerHTML = '<div style="padding:16px;color:var(--text-muted,#64748B);">加载失败，请重试</div>';
+            content.innerHTML = '<div style="padding:16px;color:var(--text-muted,var(--color-v-64748b));">加载失败，请重试</div>';
         });
 }
 </script>

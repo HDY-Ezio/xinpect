@@ -3,38 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/static/css/tokens.css?v=20261106">
+<link rel="stylesheet" href="/static/css/cool-fx.css?v=20261108">
+<link rel="stylesheet" href="/static/css/nav.css?v=20261122">
 <title>产品介绍 - 煋鉴 Xinpect</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
 
   /* === Brand & Primary === */
-  --primary: #FF6B35;
-  --primary-light: #FF8C5A;
-  --primary-dark: #E85A24;
-  --primary-bg: #FFF5F0;
-  --primary-rgb: 255, 107, 53;
+  --primary: #3E5C8A;
+  --primary-light: #5B7CB0;
+  --primary-dark: #2D4A7C;
+  --primary-bg: #F2F6FC;
+  --primary-rgb: 62, 92, 138;
 
   /* === Backgrounds === */
-  --bg: #FAF8F6;
+  --bg: #F7F9FC;
   --surface: #FFFFFF;
-  --surface-hover: #FFF9F5;
-  --surface-alt: #FDFAF8;
-  --surface-elevated: #F5F1ED;
+  --surface-hover: #F4F8FD;
+  --surface-alt: #FAFCFE;
+  --surface-elevated: #EEF3F9;
   --neutral-bg: #FAFAFA;
   --neutral-bg-hover: #F3F4F6;
 
   /* === Borders === */
-  --border: #EDE5DF;
-  --border-light: #F2ECE7;
+  --border: #E4EAF2;
+  --border-light: #EDF2F8;
   --border-neutral: #E5E7EB;
   --border-width: 1px;
   --border-width-accent: 4px;
 
   /* === Text === */
-  --text-primary: #2D2A28;
-  --text-secondary: #6B6560;
-  --text-muted: #9E9792;
+  --text-primary: #1A2B4A;
+  --text-secondary: #52637A;
+  --text-muted: #8A9AB0;
 
   /* === Spacing === */
   --space-25: 1px;
@@ -155,6 +158,7 @@ body { display: flex; flex-direction: column; }
   justify-content: center;
   font-size: var(--font-2xl);
   backdrop-filter: blur(10px);
+  color: var(--color-cool-beam);
 }
 .page-header .brand-text h1 {
   font-size: var(--font-xl);
@@ -222,6 +226,7 @@ body { display: flex; flex-direction: column; }
   border-color: var(--primary);
 }
 .feature-card .icon {
+  color: var(--color-accent-steel);
   font-size: var(--font-3xl);
   margin-bottom: var(--space-300);
 }
@@ -397,23 +402,45 @@ body { display: flex; flex-direction: column; }
   .info-row { flex-direction: column; gap: var(--space-100); }
   .info-label { width: auto; }
 }
+
+/* 核心导航在窄屏只做内部横向滚动，不让整页撑出横向滚动条 */
+@media(max-width:640px){
+  .site-nav{padding:0 var(--space-300)}
+  .site-nav-inner{overflow-x:auto;white-space:nowrap;gap:var(--space-300)}
+}
 </style>
 </head>
 <body>
 
-<nav class="site-nav">
-  <div class="site-nav-inner">
+<header class="xp-nav">
+  <div class="xp-nav-inner">
+    <a class="xp-nav-brand" href="/" aria-label="煋鉴首页">
+      <img src="/static/xinpect-mark-wide-128.png" alt="煋鉴">
+      <span>煋鉴</span>
+    </a>
+    <nav class="xp-nav-links" aria-label="主导航">
       <a href="/">首页</a>
+      <a href="/#features">能力</a>
+      <a href="/#languages">语言</a>
       <a href="/pages/product.html" class="active">产品介绍</a>
-      <a href="/pages/pricing.html">定价方案</a>
+      <a href="/pricing">定价</a>
+      <a href="/try">免费试扫</a>
+      <a href="/sample-report">报告样例</a>
+      <a href="/help">文档</a>
+      <a href="/blog">博客</a>
       <a href="/pages/about.html">关于我们</a>
+    </nav>
+    <div class="xp-nav-actions">
+      <a class="xp-nav-ghost" href="/login">登录</a>
+      <a class="xp-nav-solid" href="/register">免费注册</a>
+    </div>
   </div>
-</nav>
+</header>
 
 <div class="page-header">
   <div class="page-header-inner">
     <div class="brand">
-      <div class="brand-logo">🔥</div>
+      <div class="brand-logo">◆</div>
       <div class="brand-text">
         <h1>煋鉴 Xinpect</h1>
         <p>多引擎智能代码质检 · 产品功能</p>
@@ -427,51 +454,51 @@ body { display: flex; flex-direction: column; }
 <h2>产品介绍</h2>
 
 <div class="card" style="border-left: var(--border-width-accent) solid var(--primary);">
-  <p style="font-size: var(--font-lg); color: var(--text-primary); font-weight: 500;">煋鉴是基于AI的多引擎代码质检平台，集成了9大检测引擎，支持17种主流编程语言，为开发团队提供全方位的代码质量保障。</p>
+  <p style="font-size: var(--font-lg); color: var(--text-primary); font-weight: 500;">煋鉴是基于AI的多引擎代码质检平台，集成了 8 个规则引擎 + AI 语义 + PoC 验证，支持 23 种主流编程语言，为开发团队提供全方位的代码质量保障。</p>
 </div>
 
-<h3>9大引擎</h3>
+<h3>8 个规则引擎</h3>
 <div class="card-grid">
   <div class="feature-card">
-    <div class="icon">🔍</div>
+    <div class="icon">◆</div>
     <h4>E1 语法检查引擎</h4>
     <p>基于AST抽象语法树的深度语法分析，检测语法错误、未定义变量、类型不匹配等基础问题。</p>
   </div>
   <div class="feature-card">
-    <div class="icon">🛡️</div>
+    <div class="icon">◆</div>
     <h4>E2 安全漏洞检测</h4>
     <p>覆盖SQL注入、XSS、硬编码密钥等常见漏洞，新增业务逻辑安全检测（越权访问、支付篡改、Session劫持等50+条规则），对标OWASP Top 10。</p>
   </div>
   <div class="feature-card">
-    <div class="icon">⚡</div>
+    <div class="icon">◆</div>
     <h4>E3 性能分析引擎</h4>
     <p>检测内存泄漏风险、死循环、无效计算、N+1查询等性能问题，优化代码运行效率。</p>
   </div>
   <div class="feature-card">
-    <div class="icon">📐</div>
+    <div class="icon">◆</div>
     <h4>E4 代码风格引擎</h4>
     <p>统一的代码风格规范检查，包括命名规范、缩进格式、注释规范、圈复杂度等。</p>
   </div>
   <div class="feature-card">
-    <div class="icon">🏗️</div>
+    <div class="icon">◆</div>
     <h4>E5 架构规范引擎</h4>
     <p>检测循环依赖、分层违规、接口设计缺陷等架构层面的问题，维护代码可维护性。</p>
   </div>
   <div class="feature-card">
-    <div class="icon">🎯</div>
+    <div class="icon">◆</div>
     <h4>E6 专项检测引擎</h4>
     <p>针对特定框架和库的专项检测规则，如React、Vue、Spring等主流框架的最佳实践检查。</p>
   </div>
   <div class="feature-card">
-    <div class="icon">🤖</div>
-    <h4>E7 AI深度分析</h4>
+    <div class="icon">◆</div>
+    <h4>E7 AI应用健康检测</h4>
     <p>基于大语言模型的智能代码理解，发现逻辑漏洞、业务风险，提供修复建议和代码优化方案。</p>
   </div>
 </div>
 
 <h3>支持语言</h3>
 <div class="card">
-  <p style="margin-bottom: var(--space-300);">煋鉴支持17种主流编程语言，覆盖前后端、移动端、数据科学等全栈开发场景：</p>
+  <p style="margin-bottom: var(--space-300);">煋鉴支持 23 种主流编程语言，覆盖前后端、移动端、数据科学等全栈开发场景：</p>
   <p style="color: var(--text-primary);"><strong>Python</strong> · <strong>JavaScript</strong> · <strong>TypeScript</strong> · <strong>Java</strong> · <strong>Go</strong> · <strong>C/C++</strong> · <strong>Rust</strong> · <strong>PHP</strong> · <strong>Ruby</strong> · <strong>Swift</strong> · <strong>Kotlin</strong> · <strong>C#</strong> · <strong>Shell</strong> · <strong>SQL</strong> 等更多语言持续扩展中</p>
 </div>
 
@@ -482,8 +509,8 @@ body { display: flex; flex-direction: column; }
     <p>集成大语言模型进行代码语义理解，不仅检测表面问题，更能发现深层逻辑漏洞和业务风险。</p>
   </div>
   <div class="feature-card">
-    <h4>⚡ 多引擎并行检测</h4>
-    <p>9大引擎并行运行，全维度覆盖代码质量、安全性、性能、风格等方面，一次扫描全面体检。</p>
+    <h4>◆ 多引擎并行检测</h4>
+    <p>8 个规则引擎并行运行，全维度覆盖代码质量、安全性、性能、风格等方面，一次扫描全面体检。</p>
   </div>
   <div class="feature-card">
     <h4>📊 实时结果可视化</h4>
@@ -512,7 +539,7 @@ body { display: flex; flex-direction: column; }
 </div>
 
 <div style="text-align: center; margin-top: var(--space-900);">
-  <a href="/" class="btn-primary">立即体验扫描</a>
+  <a href="/try" class="btn-primary">立即体验扫描</a>
 </div>
 
 </main>

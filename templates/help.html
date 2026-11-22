@@ -11,6 +11,17 @@
         <p style="color:var(--text-secondary);font-size:16px;">常见问题解答与技术支持</p>
     </div>
 
+    <!-- 开发者 API 入口（/api-docs 是唯一说明书，这里是最主要的发现路径） -->
+    <div class="info-card" style="margin-bottom:24px;border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);display:flex;gap:20px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="min-width:0;flex:1 1 320px;">
+            <h2 style="font-size:19px;margin-bottom:8px;">想让 AI 自己调？</h2>
+            <p style="color:var(--text-secondary);line-height:1.7;font-size:14px;margin:0;">
+                充了会员，在后台生成一把密钥交给你的 AI 助手，之后它检查代码直接用你的积分，不用再打开网页上传。接口地址、参数、返回字段和示例代码都在说明里。
+            </p>
+        </div>
+        <a href="/api-docs" class="btn btn-primary" style="text-decoration:none;flex-shrink:0;">看 API 说明 →</a>
+    </div>
+
     <!-- 联系支持 -->
     <div class="info-card" style="margin-bottom:40px;border:1px solid var(--border-color);border-radius:16px;padding:32px;background:var(--bg-card);">
         <h2 style="font-size:20px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
@@ -39,14 +50,14 @@
         <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
             <summary style="font-weight:600;cursor:pointer;font-size:15px;">煋鉴支持哪些编程语言？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
-                目前支持 17种语言：Python、JavaScript、TypeScript、Java、Go、PHP、C/C++、C#、Ruby、Swift、Kotlin、Rust、Scala、Lua、Shell、SQL、HTML/CSS。同时支持 Vue、React、微信小程序等框架的自动识别。持续扩展中。
+                目前支持 23 种编程语言：Python、JavaScript、TypeScript、Java、Go、PHP、C、C++、C#、Ruby、Swift、Kotlin、Rust、Scala、Lua、Shell/Bash、SQL、T-SQL、PL/SQL、R、HTML、Dart、Ansible。同时支持 Terraform、Docker、CloudFormation 等 IaC 配置与 Vue、微信小程序等框架的自动识别。持续扩展中。
             </p>
         </details>
 
         <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
             <summary style="font-weight:600;cursor:pointer;font-size:15px;">免费版和会员版有什么区别？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
-                <strong>免费版</strong>：规范层扫描（700+条规则），无限次免费使用，不限文件数，适合轻度体验。<br>
+                <strong>免费版</strong>：规范层扫描（800+ 条规则），无限次免费使用，不限文件数，适合轻度体验。<br>
                 <strong>会员版</strong>：E1~E7 全维度检测 + AI语义分析 + AI 深度分析 + 报告下载 + 批量检测 + 积分按行计费 + 优先技术支持。
             </p>
         </details>
@@ -56,14 +67,14 @@
             <summary style="font-weight:600;cursor:pointer;font-size:15px;">什么是AST级深度检测？和普通正则检测有什么区别？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
                 AST（抽象语法树）级检测是煋鉴v6.0的核心升级。普通正则检测只能匹配代码表面模式，容易误报和漏报；AST检测先把代码解析成语法树，再基于语法结构进行语义分析，能精准识别变量作用域、污染传播、函数调用链等深层问题。<br><br>
-                煋鉴目前已有 700+ 条 AST 级深度规则，覆盖XSS注入、SSRF、SQL注入、命令注入、SSTI、JWT安全、异常吞没、性能瓶颈、作用域风险等高价值检测场景，检测精度远高于正则级。同时支持跨文件数据流追踪（Python/Java/JS/PHP/Go），SSRF检测覆盖5语言100%。
+                煋鉴目前已有 800+ 条 AST 级深度规则，覆盖XSS注入、SSRF、SQL注入、命令注入、SSTI、JWT安全、异常吞没、性能瓶颈、作用域风险等高价值检测场景，检测精度远高于正则级。同时支持跨文件数据流追踪（Python/Java/JS/PHP/Go），SSRF 检测覆盖 11 种语言。
             </p>
         </details>
 
         <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
             <summary style="font-weight:600;cursor:pointer;font-size:15px;">什么是组件契组合规检测（E6）？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
-                E6 组件契组合规引擎是煋鉴专为前端/小程序团队打造的检测引擎，用于检查组件使用是否符合设计规范和契约约束。
+                E6 组件组合规引擎是煋鉴专为前端/小程序团队打造的检测引擎，用于检查组件使用是否符合设计规范和契约约束。
                 <br><br>
                 <strong>检测范围包括：</strong>
                 <br>• 属性约束：组件必填属性、类型校验、枚举值合法性
@@ -78,21 +89,32 @@
         <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
             <summary style="font-weight:600;cursor:pointer;font-size:15px;">积分怎么算？够不够用？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
-                积分按<strong>代码行数</strong>计费：每 300 行 1 积分（完整版），不足300行按300行算。<br>
-                一个中等项目（约 5000 行代码）约消耗 17 积分。所有会员每月 300 积分，约可扫 17 个中等项目。不够用可以单独购买积分包。
+                积分按<strong>代码行数</strong>计费，按实际代码量精确计算，用多少扣多少。<br>
+                三档扫描计费不同：快速检查 1 积分 / 100 行，智能检查 4 积分 / 100 行，深度检查 10 积分 / 100 行（不足 100 行按 100 行算）。<br>
+                快速检查几秒出结果，深度检查加入 PoC 实弹验证，能力越深、价值越高。不够用可以单独购买积分包。
             </p>
         </details>
 
         <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
-            <summary style="font-weight:600;cursor:pointer;font-size:15px;">煋鉴的 7 大规则引擎架构是什么？</summary>
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">上传和代码长度有什么限制？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
-                煋鉴采用 7 大规则引擎并行扫描架构（E1~E7），外加 AI 语义分析和 PoC 验证两大独立模块，共 2881+ 条检测规则，其中 700+ 条为 AST 级深度检测规则，将代码质量检测分为四个层级：
+                单次扫描的<strong>总代码量上限为 10MB</strong>，最多 500 个文件、约 20 万行代码。<br><br>
+                <strong>文件上传</strong>：支持单个文件 / ZIP / TAR.GZ 压缩包，系统会自动过滤 node_modules、.git、dist、build 等无关目录，只扫描核心业务代码。<br>
+                <strong>代码粘贴</strong>：建议单次粘贴不超过 5000 行，更大的项目建议改用「上传文件」或「GitHub 仓库」方式。<br><br>
+                超出 10MB 上限时，建议拆分项目、或只上传核心业务代码后重试。系统会自动跳过单文件超过 5MB 的超大文件。
+            </p>
+        </details>
+
+        <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
+            <summary style="font-weight:600;cursor:pointer;font-size:15px;">煋鉴的检测引擎架构是什么？</summary>
+            <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
+                煋鉴采用 8 个规则引擎（E1~E7）并行扫描，外加 AI 语义分析和 PoC 验证两道智能防线，共 9,400+ 条检测规则，其中 800+ 条为 AST 级深度检测规则，将代码质量检测分为四个层级：
                 <br><br>
                 <strong>📐 规范层（代码骨架）</strong>：E1 语法格式 + E4 代码质量 + E5 架构合规
                 <br><strong>🧠 安全层（代码防线）</strong>：E2 安全与依赖审计 + E6 组件契约合规
                 <br><strong>⚡ 性能层（代码血脉）</strong>：E3 性能与可靠性 + E7 AI 应用健康保障
                 <br><strong>🔍 AI 智能层</strong>：AI 语义降噪与幻觉检测（独立模块）
-                7 大规则引擎 + AI 语义分析并行工作，全链路扫描仅需 ~150ms，真正实现极速检测。v6.0 全面升级 AST 级深度检测，覆盖安全、性能、质量、架构等 8 大方向，检测精度大幅提升。
+                8 个规则引擎 + AI 语义分析 + PoC 验证并行工作，全链路扫描仅需 ~150ms，真正实现极速检测。v6.0 全面升级 AST 级深度检测，覆盖安全、性能、质量、架构等核心方向，检测精度大幅提升。
             </p>
         </details>
 
@@ -113,7 +135,7 @@
         <details style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);">
             <summary style="font-weight:600;cursor:pointer;font-size:15px;">可以开发票吗？</summary>
             <p style="margin-top:12px;color:var(--text-secondary);line-height:1.7;">
-                可以。支付完成后，发送订单号和开票信息到 <a href="mailto:hdyabcd@163.com" style="color:var(--accent-orange);">hdyabcd@163.com</a>，我们会在 3 个工作日内开具电子发票。
+                可以。支付完成后，发送订单号和开票信息到 <a href="mailto:hdyabcd@163.com" style="color:var(--accent-steel);">hdyabcd@163.com</a>，我们会在 3 个工作日内开具电子发票。
             </p>
         </details>
 
@@ -161,11 +183,11 @@
             </p>
         </details>
 
-    <div style="text-align:center;margin-top:48px;padding:32px;background:linear-gradient(135deg,rgba(26,58,92,0.08),rgba(37,99,235,0.08));border-radius:16px;">
+    <div style="text-align:center;margin-top:48px;padding:32px;background:linear-gradient(135deg,var(--color-metal-gold-tint),var(--color-metal-gold-tint-2));border-radius:16px;">
         <h3 style="margin-bottom:8px;">没找到答案？</h3>
         <p style="color:var(--text-secondary);margin-bottom:20px;">发送邮件至以下邮箱，24 小时内回复</p>
         <div style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
-            <code style="background:rgba(255,255,255,0.8);padding:10px 16px;border-radius:8px;font-size:15px;font-weight:500;user-select:all;">hdyabcd@163.com</code>
+            <code style="background:var(--color-metal-gold-tint-2);padding:10px 16px;border-radius:8px;font-size:15px;font-weight:500;user-select:all;">hdyabcd@163.com</code>
             <button onclick="copyEmail()" class="btn btn-orange" style="padding:8px 20px;">📋 复制邮箱</button>
         </div>
     </div>

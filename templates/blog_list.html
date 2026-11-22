@@ -18,12 +18,23 @@
 <section class="blog-hero">
     <div class="container">
         <h1>技术博客</h1>
-        <p>代码安全检测的实测数据、方法学和工程实践。误报率怎么测出来的、越权漏洞为什么扫不出来、规则库怎么分类——每个数字都写明测试条件和出处。</p>
+        <p>代码安全检测的实测数据、方法学和工程实践。误报率怎么测出来的、规则怎么判、AI 写的代码该怎么验收——每个数字都写明测试条件和出处。</p>
     </div>
 </section>
 
 <section class="blog-body">
     <div class="container">
+        {# 主题标签：博客不能写成一个话题的复读机。
+           放在最上面，一眼看出我们写过哪几类，也方便按主题翻。 #}
+        {% if tags %}
+        <div class="blog-tagbar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:26px;">
+            <a href="/blog" style="padding:6px 14px;border-radius:100px;font-size:13px;text-decoration:none;border:1px solid {% if not active_tag %}var(--color-v-1a3a5c){% else %}var(--border-color){% endif %};color:{% if not active_tag %}var(--color-text-primary){% else %}var(--text-secondary){% endif %};">全部</a>
+            {% for t, n in tags[:10] %}
+            <a href="/blog?tag={{ t|urlencode }}" style="padding:6px 14px;border-radius:100px;font-size:13px;text-decoration:none;border:1px solid {% if active_tag == t %}var(--color-v-1a3a5c){% else %}var(--border-color){% endif %};color:{% if active_tag == t %}var(--color-text-primary){% else %}var(--text-secondary){% endif %};">{{ t }} · {{ n }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% if posts %}
         <div class="blog-grid">
             {% for p in posts %}
@@ -43,7 +54,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="blog-empty">文章正在陆续上线。</p>
+        <p class="blog-empty">{% if active_tag %}这个话题下暂时没有文章，<a href="/blog">看看全部</a>。{% else %}文章正在陆续上线。{% endif %}</p>
         {% endif %}
 
         <div class="blog-cta">
