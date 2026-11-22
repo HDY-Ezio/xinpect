@@ -27,7 +27,7 @@
                 <li><strong>跨方法污点追踪：</strong>调用函数时自动追踪实参到形参的污染传播</li>
                 <li><strong>Sanitizer 智能识别：</strong>通过语言特定的净化函数赋值的新变量自动排除污染</li>
                 <li><strong>批量扫描 5 层防御：</strong>资源监控 / 文件数上限(50000) / 大文件过滤(>5MB) / 自适应分片 / 总超时保护(600s)</li>
-                <li><strong>基准表现：</strong>OWASP Benchmark 精确率 100%，零误报，F1=91.9%</li>
+                <li><strong>基准表现：</strong>OWASP Benchmark（Java 题库，2740 用例）精确率 100%、F1=91.9%<span style="color: var(--color-warning);"> — 题库内成绩，含按题库补规则成分，不代表真实项目表现，不得对外引用</span></li>
             </ul>
         </div>
     </div>
@@ -39,7 +39,7 @@
             <span class="version-date">2026-09-05</span>
         </div>
         <div class="version-body">
-            <h3>🚀 7 大引擎架构 + 四档扫描体系</h3>
+            <h3>🚀 7 大规则引擎架构 + 四档扫描体系</h3>
             <div class="version-tags">
                 <span class="tag tag-arch">架构升级</span>
                 <span class="tag tag-feature">新功能</span>
@@ -122,16 +122,16 @@
             <span class="version-date">2026-08-29</span>
         </div>
         <div class="version-body">
-            <h3>⚡ B1 语法引擎 3S 架构重构 + 8 语言扩展</h3>
+            <h3>⚡ E1 语法引擎 3S 架构重构 + 8 语言扩展</h3>
             <div class="version-tags">
                 <span class="tag tag-arch">架构升级</span>
                 <span class="tag tag-security">安全规则</span>
             </div>
             <ul>
-                <li><strong>B1 语法引擎 3S 架构重构：</strong>全新语法分析架构，检测效率大幅提升</li>
+                <li><strong>E1 语法引擎 3S 架构重构：</strong>全新语法分析架构，检测效率大幅提升</li>
                 <li><strong>新增 8 种语言语法规则：</strong>JS / Java / Go / C / C++ / Rust / PHP / C#</li>
                 <li><strong>Go 语言 27 条安全规则：</strong>覆盖注入、XSS、路径遍历、硬编码、弱加密等 10 大类</li>
-                <li><strong>tree-sitter 多语言 AST 架构：</strong>B3 语义引擎全面支持多语言深度分析</li>
+                <li><strong>tree-sitter 多语言 AST 架构：</strong>E1 语法引擎全面支持多语言深度分析</li>
             </ul>
         </div>
     </div>
@@ -170,19 +170,19 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background: var(--border, #e0e0e0);
+    background: var(--border, var(--color-v-e0e0e0));
 }
 .version-card {
     position: relative;
     margin-bottom: 28px;
-    background: var(--bg-card, #fff);
-    border: 1px solid var(--border, #e5e7eb);
+    background: var(--bg-card, var(--color-bg-primary));
+    border: 1px solid var(--border, var(--color-v-e5e7eb));
     border-radius: 12px;
     overflow: hidden;
     transition: box-shadow 0.2s;
 }
 .version-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 16px var(--color-v-f348c9372);
 }
 .version-card::before {
     content: '';
@@ -192,21 +192,21 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: var(--primary, #1A3A5C);
-    border: 2px solid var(--bg-card, #fff);
-    box-shadow: 0 0 0 2px var(--primary, #1A3A5C);
+    background: var(--primary, var(--color-v-1a3a5c));
+    border: 2px solid var(--bg-card, var(--color-bg-primary));
+    box-shadow: 0 0 0 2px var(--primary, var(--color-v-1a3a5c));
 }
 .version-badge {
     display: inline-flex;
     align-items: center;
     gap: 10px;
     padding: 10px 18px;
-    background: linear-gradient(135deg, var(--primary, #1A3A5C), #60A5FA);
-    color: #fff;
+    background: linear-gradient(135deg, var(--primary, var(--color-v-1a3a5c)), var(--color-v-60a5fa));
+    color: var(--color-text-inverse);
     border-radius: 12px 12px 0 0;
 }
 .version-badge.major {
-    background: linear-gradient(135deg, #1E40AF, #60A5FA);
+    background: linear-gradient(135deg, var(--color-v-1e40af), var(--color-v-60a5fa));
 }
 .version-number {
     font-size: 1.2em;
@@ -223,7 +223,7 @@
 .version-body h3 {
     margin: 0 0 10px 0;
     font-size: 1.05em;
-    color: var(--text-primary, #1a1a1a);
+    color: var(--text-primary, var(--color-v-1a1a1a));
 }
 .version-tags {
     display: flex;
@@ -238,17 +238,17 @@
     font-size: 0.75em;
     font-weight: 600;
 }
-.tag-security { background: #fee2e2; color: #b91c1c; }
-.tag-arch { background: #dbeafe; color: #1d4ed8; }
-.tag-perf { background: #DBEAFE; color: #92400e; }
-.tag-ai { background: #ede9fe; color: #6d28d9; }
-.tag-core { background: #d1fae5; color: #065f46; }
-.tag-feature { background: #fce7f3; color: #9d174d; }
-.tag-product { background: #e0e7ff; color: #3730a3; }
+.tag-security { background: var(--color-v-fee2e2); color: var(--color-danger); }
+.tag-arch { background: var(--color-v-dbeafe); color: var(--color-info); }
+.tag-perf { background: var(--color-v-dbeafe); color: var(--color-warning); }
+.tag-ai { background: var(--color-v-ede9fe); color: var(--color-v-6d28d9); }
+.tag-core { background: var(--color-v-d1fae5); color: var(--color-success); }
+.tag-feature { background: var(--color-v-fce7f3); color: var(--color-v-9d174d); }
+.tag-product { background: var(--color-v-e0e7ff); color: var(--color-v-3730a3); }
 .version-body ul {
     margin: 0;
     padding-left: 18px;
-    color: var(--text-secondary, #555);
+    color: var(--text-secondary, var(--color-v-555555));
     font-size: 0.92em;
     line-height: 1.7;
 }

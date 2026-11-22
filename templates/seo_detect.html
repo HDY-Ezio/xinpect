@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - 煋鉴 Xinpect{% endblock %}
+
+{% block meta_description %}{{ summary | truncate(150, true) }} 煋鉴(Xinpect)提供{{ vuln_name }}自动化检测，23 种语言，10 万行代码 2~4 分钟扫完，免费试用。{% endblock %}
+
+{% block meta_keywords %}{{ vuln_name }},{{ vuln_name_en }},{{ cwe }},代码检测,漏洞扫描,静态分析,SAST,煋鉴,Xinpect{% endblock %}
+
+{% block canonical_url %}https://xinpect.xingwangzhineng.com/detect/{{ slug }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ title }}{% endblock %}
+{% block og_description %}{{ summary | truncate(150, true) }}{% endblock %}
+{% block og_url %}https://xinpect.xingwangzhineng.com/detect/{{ slug }}{% endblock %}
+
+{% block extra_head %}<!-- seo-jsonld-20261103 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": {{ title | tojson }},
+      "description": {{ summary | tojson }},
+      "url": "https://xinpect.xingwangzhineng.com/detect/{{ slug }}",
+      "inLanguage": "zh-CN",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "煋鉴 Xinpect",
+        "url": "https://xinpect.xingwangzhineng.com/"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "长沙煋旺智能科技有限公司",
+        "url": "https://www.xingwangzhineng.com/"
+      },
+      "about": {
+        "@type": "Thing",
+        "name": {{ vuln_name | tojson }},
+        "description": {{ cwe | tojson }}
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": {{ ("煋鉴能检测「" ~ vuln_name ~ "」吗？") | tojson }},
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": {{ ("能。煋鉴内置" ~ vuln_name ~ "（" ~ cwe ~ "）检测规则，7 大规则引擎 + AI 语义 + PoC 验证并行扫描，每条结论都写清凭什么算问题，支持 23 种编程语言，网页上传代码或 Git 仓库即可扫描，提供可直接试用的免费档。") | tojson }}
+          }
+        },
+        {
+          "@type": "Question",
+          "name": {{ ("「" ~ vuln_name ~ "」是什么？") | tojson }},
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": {{ summary | tojson }}
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "煋鉴的误报率是多少？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "检测规则共 9,500+ 条（含 AST 结构规则，去重 9,542 条），覆盖 23 种编程语言；10 万行代码 2~4 分钟扫完，每条结论都附判断依据与修复建议。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "怎么用煋鉴检测代码里的漏洞？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "无需安装。打开 xinpect.xingwangzhineng.com 上传代码、Git 仓库或 ZIP 压缩包，选择检测引擎后开始扫描，完成后在网页上查看问题清单、风险等级与修复建议。免费档可直接试用，核心风险项直接可见。"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "煋鉴",
+          "item": "https://xinpect.xingwangzhineng.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "漏洞检测",
+          "item": "https://xinpect.xingwangzhineng.com/detect"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": {{ vuln_name | tojson }},
+          "item": "https://xinpect.xingwangzhineng.com/detect/{{ slug }}"
+        }
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="seo-page">
+  <div class="seo-hero">
+    <div class="seo-breadcrumb">
+      <a href="{{ url_for('seo.detect_index') }}">漏洞检测</a>
+      <span>›</span>
+      <span>{{ vuln_name }}</span>
+    </div>
+    <h1 class="seo-title">{{ title }}</h1>
+    <div class="seo-meta">
+      <span class="seo-badge seo-badge-sev">{{ severity }}</span>
+      <span class="seo-badge">{{ cwe }}</span>
+      <span class="seo-badge">{{ owasp }}</span>
+    </div>
+    <p class="seo-summary">{{ summary }}</p>
+  </div>
+
+  <div class="seo-body">
+    <section class="seo-section">
+      <h2>漏洞危害</h2>
+      <ul class="seo-list">
+        {% for h in harm %}
+        <li>{{ h }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="seo-section">
+      <h2>代码示例（{{ code_sample_lang }}）</h2>
+      <h3 class="seo-sub">❌ 危险写法</h3>
+      <pre class="seo-code seo-code-bad"><code>{{ code_sample }}</code></pre>
+      <h3 class="seo-sub">✅ 安全写法</h3>
+      <pre class="seo-code seo-code-good"><code>{{ fix_sample }}</code></pre>
+    </section>
+
+    <section class="seo-section">
+      <h2>煋鉴如何检测</h2>
+      <ul class="seo-list">
+        {% for d in detect_points %}
+        <li>{{ d }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="seo-section seo-related">
+      <h2>相关漏洞检测</h2>
+      <div class="seo-related-links">
+        {% for r in related %}
+        <a href="{{ url_for('seo.detect_index') }}#{{ r }}" class="seo-related-link">{{ r }}</a>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="seo-cta">
+    <h2>让煋鉴帮你守住代码安全</h2>
+    <p>7 大规则引擎 + AI 语义 + PoC 验证，10 万行代码 <strong>2~4 分钟</strong>扫完，一次扫描覆盖 {{ vuln_name }} 等 20+ 类漏洞。</p>
+    <div class="seo-cta-actions">
+      <a href="/upload" class="seo-btn seo-btn-primary">免费扫描一次</a>
+      <a href="/pricing" class="seo-btn seo-btn-ghost">查看定价</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.seo-page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+.seo-hero { margin-bottom: 40px; }
+.seo-breadcrumb { font-size: 14px; color: var(--color-v-8b98ab); margin-bottom: 16px; }
+.seo-breadcrumb a { color: var(--color-v-8b98ab); text-decoration: none; }
+.seo-breadcrumb a:hover { color: var(--color-bg-secondary); }
+.seo-title { font-size: 34px; line-height: 1.3; color: var(--color-bg-secondary); margin: 0 0 16px; font-weight: 700; }
+.seo-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.seo-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 13px; background: var(--color-bg-hover); color: var(--color-v-4a5568); }
+.seo-badge-sev { background: var(--color-v-fdecea); color: var(--color-danger); font-weight: 600; }
+.seo-summary { font-size: 17px; line-height: 1.8; color: var(--color-v-4a5568); }
+.seo-body { display: flex; flex-direction: column; gap: 36px; }
+.seo-section h2 { font-size: 24px; color: var(--color-bg-secondary); margin: 0 0 16px; font-weight: 700; }
+.seo-list { padding-left: 20px; margin: 0; }
+.seo-list li { font-size: 16px; line-height: 1.8; color: var(--color-v-4a5568); margin-bottom: 8px; }
+.seo-sub { font-size: 15px; color: var(--color-bg-secondary); margin: 20px 0 8px; font-weight: 600; }
+.seo-code { background: var(--color-v-0f172a); color: var(--color-v-e2e8f0); padding: 20px; border-radius: 8px; overflow-x: auto; font-family: var(--font-v-jetbrains-mono-a1165c); font-size: 14px; line-height: 1.6; margin: 0; }
+.seo-code-bad { border-left: 3px solid var(--color-v-e74c3c); }
+.seo-code-good { border-left: 3px solid var(--color-v-27ae60); }
+.seo-related-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.seo-related-link { padding: 8px 16px; border: 1px solid var(--color-v-e2e8f0); border-radius: 6px; color: var(--color-bg-secondary); text-decoration: none; font-size: 14px; }
+.seo-related-link:hover { border-color: var(--color-bg-secondary); background: var(--color-v-f7f9fc); }
+.seo-cta { margin-top: 48px; padding: 36px; background: var(--color-bg-secondary); border-radius: 12px; text-align: center; }
+.seo-cta h2 { color: var(--color-text-inverse); font-size: 24px; margin: 0 0 12px; }
+.seo-cta p { color: var(--color-v-cbd5e1); font-size: 15px; margin: 0 0 24px; }
+.seo-cta p strong { color: var(--color-text-inverse); }
+.seo-cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.seo-btn { display: inline-block; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none; }
+.seo-btn-primary { background: var(--color-bg-primary); color: var(--color-bg-secondary); }
+.seo-btn-primary:hover { background: var(--color-v-e2e8f0); }
+.seo-btn-ghost { border: 1px solid var(--color-v-cbd5e1); color: var(--color-text-inverse); }
+.seo-btn-ghost:hover { border-color: var(--color-bg-primary); }
+@media (max-width: 640px) {
+  .seo-title { font-size: 26px; }
+  .seo-page { padding: 24px 16px 60px; }
+}
+</style>
+{% endblock %}

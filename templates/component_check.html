@@ -19,19 +19,19 @@
                 <div class="cc-feature"><span class="cc-feat-icon">⚡</span>秒级检测</div>
                 <div class="cc-feature"><span class="cc-feat-icon">📋</span>8条契约规则</div>
                 <div class="cc-feature"><span class="cc-feat-icon">🧩</span>20+组件覆盖</div>
-                <div class="cc-feature"><span class="cc-feat-icon">🎯</span>零误报率</div>
+                <div class="cc-feature"><span class="cc-feat-icon">🎯</span>结论可复核</div>
             </div>
         </div>
     </div>
 </section>
 
 <!-- 登录提示条 -->
-<section style="background:rgba(26,58,92,0.08);padding:12px 0;border-bottom:1px solid rgba(26,58,92,0.15);">
+<section style="background:var(--color-metal-gold-tint);padding:12px 0;border-bottom:1px solid var(--color-metal-gold);">
     <div class="container-md" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
-        <span style="color:var(--accent-orange);font-size:14px;font-weight:500;">🔔 登录后即可免费使用组件契约检测，无限次，不限量</span>
-        <a href="/login?next=/component-check" style="background:var(--accent-orange);color:white;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">立即登录</a>
+        <span style="color:var(--accent-steel);font-size:14px;font-weight:500;">🔔 登录后即可免费使用组件契约检测，无限次，不限量</span>
+        <a href="/login?next=/component-check" style="background:var(--accent-steel);color:white;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">立即登录</a>
         <span style="color:var(--text-muted);font-size:13px;">|</span>
-        <a href="/register?next=/component-check" style="color:var(--accent-orange);font-size:13px;font-weight:500;text-decoration:none;">没有账号？免费注册</a>
+        <a href="/register?next=/component-check" style="color:var(--accent-steel);font-size:13px;font-weight:500;text-decoration:none;">没有账号？免费注册</a>
     </div>
 </section>
 
@@ -143,7 +143,7 @@
                 <div class="cc-cta-left">
                     <div class="cc-cta-icon">🔒</div>
                     <div>
-                        <div class="cc-cta-title">注册解锁全部修复建议 + 7大规则引擎全量检测</div>
+                        <div class="cc-cta-title">注册解锁全部修复建议 + 全量规则引擎检测</div>
                         <div class="cc-cta-desc">免费版仅展示问题描述，注册后即可查看完整修复方案，还可体验全维度代码质检</div>
                     </div>
                 </div>
@@ -210,7 +210,7 @@
 /* ===== 组件契约检测页样式 ===== */
 .cc-hero {
     padding: 60px 0 40px;
-    background: linear-gradient(180deg, rgba(26,58,92, 0.08) 0%, transparent 100%);
+    background: linear-gradient(180deg, var(--color-metal-gold-tint) 0%, transparent 100%);
 }
 .cc-hero-text {
     text-align: center;
@@ -220,10 +220,10 @@
     align-items: center;
     gap: 8px;
     padding: 6px 16px;
-    background: rgba(26,58,92, 0.15);
-    border: 1px solid rgba(26,58,92, 0.3);
+    background: var(--color-metal-gold-tint);
+    border: 1px solid var(--color-metal-gold);
     border-radius: 20px;
-    color: var(--accent-orange);
+    color: var(--accent-steel);
     font-size: 13px;
     font-weight: 500;
     margin-bottom: 20px;
@@ -241,8 +241,8 @@
 .cc-title-tag {
     display: inline-block;
     padding: 4px 12px;
-    background: var(--gradient-orange);
-    color: #fff;
+    background: var(--gradient-steel);
+    color: var(--color-text-inverse);
     font-size: 18px;
     font-weight: 700;
     border-radius: 8px;
@@ -301,7 +301,7 @@
     justify-content: space-between;
     padding: 14px 20px;
     border-bottom: 1px solid var(--border-color);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--color-v-f97cdf199);
 }
 .cc-panel-title {
     font-size: 15px;
@@ -319,8 +319,8 @@
     transition: var(--transition);
 }
 .cc-clear-btn:hover {
-    border-color: var(--accent-orange);
-    color: var(--accent-orange);
+    border-color: var(--accent-steel);
+    color: var(--accent-steel);
 }
 
 /* 代码输入区 */
@@ -328,10 +328,10 @@
     flex: 1;
     width: 100%;
     padding: 16px 20px;
-    background: #0d1117;
+    background: var(--color-v-0d1117);
     border: none;
-    color: #e6edf3;
-    font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+    color: var(--color-v-e6edf3);
+    font-family: var(--font-v-sf-mono-f1ccdd);
     font-size: 13px;
     line-height: 1.7;
     resize: none;
@@ -340,7 +340,7 @@
     tab-size: 2;
 }
 .cc-code-textarea::placeholder {
-    color: #484f58;
+    color: var(--color-v-484f58);
 }
 .cc-editor-footer {
     display: flex;
@@ -348,12 +348,12 @@
     justify-content: space-between;
     padding: 12px 20px;
     border-top: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-v-f391df974);
 }
 .cc-line-count {
     font-size: 13px;
     color: var(--text-muted);
-    font-family: 'SF Mono', monospace;
+    font-family: var(--font-v-sf-mono-5e9d53);
 }
 .cc-scan-btn {
     display: flex;
@@ -407,7 +407,7 @@
     width: 40px;
     height: 40px;
     border: 3px solid var(--border-color);
-    border-top-color: var(--accent-orange);
+    border-top-color: var(--accent-steel);
     border-radius: 50%;
     animation: cc-spin 0.8s linear infinite;
     margin-bottom: 16px;
@@ -423,7 +423,7 @@
 }
 .cc-loading-sub {
     font-size: 13px;
-    color: var(--accent-orange);
+    color: var(--accent-steel);
     font-weight: 500;
 }
 
@@ -447,21 +447,21 @@
     align-items: center;
     justify-content: center;
     padding: 12px 20px;
-    background: linear-gradient(135deg, rgba(26,58,92, 0.15) 0%, rgba(26,58,92, 0.05) 100%);
-    border: 1px solid rgba(26,58,92, 0.3);
+    background: linear-gradient(135deg, var(--color-metal-gold-tint) 0%, var(--color-metal-gold-tint-2) 100%);
+    border: 1px solid var(--color-metal-gold);
     border-radius: 10px;
     min-width: 100px;
 }
 .cc-score-label {
     font-size: 12px;
-    color: var(--accent-orange);
+    color: var(--accent-steel);
     font-weight: 500;
     margin-bottom: 2px;
 }
 .cc-score-value {
     font-size: 32px;
     font-weight: 800;
-    color: var(--accent-orange);
+    color: var(--accent-steel);
     line-height: 1;
 }
 .cc-stats-grid {
@@ -476,7 +476,7 @@
     align-items: center;
     justify-content: center;
     padding: 8px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-v-f74b76757);
     border-radius: 8px;
     border: 1px solid var(--border-color);
 }
@@ -490,7 +490,7 @@
     color: var(--text-muted);
     margin-top: 2px;
 }
-.cc-stat-high .cc-stat-num { color: #f97316; }
+.cc-stat-high .cc-stat-num { color: var(--color-warning); }
 .cc-stat-medium .cc-stat-num { color: var(--warning); }
 .cc-stat-low .cc-stat-num { color: var(--info); }
 .cc-stat-time .cc-stat-num { color: var(--success); font-size: 16px; }
@@ -518,23 +518,23 @@
     white-space: nowrap;
 }
 .cc-filter-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--color-v-f85f89ec1);
     color: var(--text-primary);
 }
 .cc-filter-tab.active {
-    background: rgba(26,58,92, 0.15);
-    border-color: rgba(26,58,92, 0.3);
-    color: var(--accent-orange);
+    background: var(--color-metal-gold-tint);
+    border-color: var(--color-metal-gold);
+    color: var(--accent-steel);
     font-weight: 600;
 }
 .cc-filter-tab span {
     font-size: 11px;
     padding: 1px 6px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-metal-gold-alpha-20);
     border-radius: 10px;
 }
 .cc-filter-tab.active span {
-    background: rgba(26,58,92, 0.3);
+    background: var(--color-metal-gold-tint);
 }
 
 /* 问题列表 */
@@ -544,7 +544,7 @@
     padding: 12px 20px 20px;
 }
 .cc-issue-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--color-v-f97cdf199);
     border: 1px solid var(--border-color);
     border-radius: 10px;
     margin-bottom: 10px;
@@ -552,8 +552,8 @@
     transition: var(--transition);
 }
 .cc-issue-card:hover {
-    border-color: rgba(26,58,92, 0.3);
-    background: rgba(26,58,92, 0.03);
+    border-color: var(--color-metal-gold);
+    background: var(--color-v-f90e16cc5);
 }
 .cc-issue-header {
     display: flex;
@@ -571,15 +571,15 @@
     line-height: 1.6;
 }
 .cc-severity-tag.high {
-    background: rgba(249, 115, 22, 0.2);
-    color: #f97316;
+    background: var(--color-v-fd4cfa75a);
+    color: var(--color-warning);
 }
 .cc-severity-tag.medium {
-    background: rgba(37,99,235, 0.2);
+    background: var(--color-v-f728664f6);
     color: var(--warning);
 }
 .cc-severity-tag.low {
-    background: rgba(59, 130, 246, 0.2);
+    background: var(--color-v-f4eddd383);
     color: var(--info);
 }
 .cc-issue-main {
@@ -600,8 +600,8 @@
     color: var(--text-muted);
 }
 .cc-issue-rule-id {
-    font-family: 'SF Mono', monospace;
-    color: var(--accent-orange);
+    font-family: var(--font-v-sf-mono-5e9d53);
+    color: var(--accent-steel);
 }
 .cc-issue-toggle {
     flex-shrink: 0;
@@ -635,19 +635,19 @@
     margin-bottom: 10px;
 }
 .cc-issue-code {
-    background: #0d1117;
+    background: var(--color-v-0d1117);
     border-radius: 6px;
     padding: 10px 12px;
-    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-family: var(--font-v-sf-mono-1df394);
     font-size: 12px;
     line-height: 1.6;
-    color: #e6edf3;
+    color: var(--color-v-e6edf3);
     overflow-x: auto;
     margin-bottom: 10px;
 }
 .cc-issue-code .cc-line-current {
-    background: rgba(249, 115, 22, 0.15);
-    color: #fbbf24;
+    background: var(--color-v-f090980c0);
+    color: var(--color-warning);
     display: block;
     margin: 0 -12px;
     padding: 0 12px;
@@ -666,16 +666,16 @@
     color: var(--text-secondary);
     line-height: 1.7;
     padding: 10px 12px;
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: var(--color-v-f816f09b1);
+    border: 1px solid var(--color-v-fe3697202);
     border-radius: 6px;
 }
 /* 免费版遮罩 */
 .cc-suggestion-locked {
     position: relative;
     padding: 14px 12px;
-    background: rgba(26,58,92, 0.05);
-    border: 1px dashed rgba(26,58,92, 0.3);
+    background: var(--color-metal-gold-tint-2);
+    border: 1px dashed var(--color-metal-gold);
     border-radius: 6px;
     text-align: center;
 }
@@ -691,8 +691,8 @@
 .cc-suggestion-locked .cc-lock-btn {
     display: inline-block;
     padding: 6px 16px;
-    background: var(--accent-orange);
-    color: #fff;
+    background: var(--accent-steel);
+    color: var(--color-text-inverse);
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
@@ -700,7 +700,7 @@
     transition: var(--transition);
 }
 .cc-suggestion-locked .cc-lock-btn:hover {
-    background: var(--accent-orange-hover);
+    background: var(--accent-steel-hover);
 }
 
 /* 全通过状态 */
@@ -738,8 +738,8 @@
     justify-content: space-between;
     gap: 24px;
     padding: 28px 32px;
-    background: linear-gradient(135deg, rgba(26,58,92, 0.1) 0%, rgba(26,58,92, 0.03) 100%);
-    border: 1px solid rgba(26,58,92, 0.3);
+    background: linear-gradient(135deg, var(--color-metal-gold-tint-2) 0%, var(--color-v-f90e16cc5) 100%);
+    border: 1px solid var(--color-metal-gold);
     border-radius: var(--radius-lg);
 }
 .cc-cta-left {
@@ -794,9 +794,9 @@
     transition: var(--transition);
 }
 .cc-rule-card:hover {
-    border-color: rgba(26,58,92, 0.3);
+    border-color: var(--color-metal-gold);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 24px var(--color-v-f86967987);
 }
 .cc-rule-icon {
     font-size: 28px;
@@ -1124,7 +1124,7 @@
         div.textContent = msg;
         div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;color:#fff;z-index:10000;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
         if (type === 'error') div.style.background = '#ef4444';
-        else if (type === 'success') div.style.background = '#10b981';
+        else if (type === 'success') div.style.background = xpColor('--color-success');
         else div.style.background = '#374151';
         document.body.appendChild(div);
         setTimeout(function() {

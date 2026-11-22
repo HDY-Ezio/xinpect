@@ -27,6 +27,11 @@ import re
 # 首页实测声明按语义判：同一句里要有实测样本数与「漏报 123」条数。
 # 2026-11-08 用户拍板：口径改为「误报 0 条 + 漏报 123 条」，不再宣称 0 漏报。
 # 不写死具体文案——数字条改写时曾因写死旧句子假红、造坏静默失效。
+# 对外物料不得出现的「绝对误报承诺」。
+# 为什么禁：2026-11-21 核实 OWASP Benchmark 上那个零误报是照题库补规则刷出来的
+# 过拟合成绩；2026-11-22 实测真实库里 9,535 条问题有 2,982 条（31.3%）被判不成立。
+# 一句绝对承诺可以被任意一份真实报告推翻，写上去就是把品牌押在那个数字上。
+FP_ABSOLUTE = re.compile(r'(?:0\s*误报|零误报|误报\s*0\s*[条个]?)')
 ZERO_FN_SEMANTIC = re.compile(r'2,740[^<]{0,42}漏报\s*123|漏报\s*123[^<]{0,42}2,740')
 import shutil
 import subprocess
@@ -220,14 +225,18 @@ def static_checks(root):
         hits.append(LLMS_REL)
     c['no_legacy_91_3'] = not hits
     c['no_legacy_1_7'] = not hits
-    c['llms_txt_current'] = ('漏报 123' in llms) and ('误报 0' in llms) \
+    # 只禁止、不强求：旧的写法是「必须含漏报 123 且必须含误报 0」，
+    # 等于要求页面宣称零误报 —— 那个数字是过拟合成绩，不该对外。
+    c['llms_no_absolute_fp_claim'] = not FP_ABSOLUTE.search(llms) \
         and not any(b in llms for b in banned)
     blog = read(root, BLOG_REL) or ''
     # 只要这篇在，口径说明就必须在正文最前面，且 1,415 / 1,292 / 123 都在。
     # 不再钉某一句原文（换措辞就误报），也不只看「字符串在不在」（挪到文末
     # 也恒绿）。位置判据见 climate_note_on_top。
     c['blog_legacy_marked'] = (not blog) or climate_note_on_top(blog)
-    c['home_states_zero_fn'] = bool(ZERO_FN_SEMANTIC.search(index))
+    # 首页同样只禁止绝对承诺（原判据要求首页必须出现「2,740 + 漏报 123」，
+    # 那是把错误口径固化成规矩）
+    c['home_no_absolute_fp_claim'] = not FP_ABSOLUTE.search(index)
 
     # 动画：A 方案只管三个对外页，B 批次扩到全站活跃模板
     shared = base + pricing
@@ -473,9 +482,10 @@ def self_test(root):
 
         cases = [
             ('旧口径 91.3 复活会判红', 'templates/index.html',
-             lambda t: ZERO_FN_SEMANTIC.sub('91.3% 检出率', t), 'no_legacy_91_3'),
-            ('首页漏报口径消失会判红', 'templates/index.html',
-             lambda t: ZERO_FN_SEMANTIC.sub('检出率百分比', t), 'home_states_zero_fn'),
+             lambda t: t.replace('</body>', '<p>真问题抓到 91.3%</p></body>'), 'no_legacy_91_3'),
+            ('首页复活绝对误报承诺会判红', 'templates/index.html',
+             lambda t: t.replace('</body>', '<p>2,740 个项目零误报</p></body>'),
+             'home_no_absolute_fp_claim'),
             ('transition: all 复活会判红', 'templates/base.html',
              lambda t: t.replace('/* 列明真正会变的属性',
                                  'div{transition:all .2s}\n/* 列明真正会变的属性'),
@@ -501,10 +511,10 @@ def self_test(root):
              lambda t: t.replace('scaleX(', '.style.width = '), 'progress_bar_uses_scaleX'),
             ('AI 爬虫说明退回旧口径会判红', LLMS_REL,
              lambda t: t.replace('漏报 123 条', '真问题抓到 91.3%'), 'no_legacy_91_3'),
-            ('AI 爬虫说明不带现行结论会判红', LLMS_REL,
-             lambda t: t.replace('漏报 123 条', '实测数据'), 'llms_txt_current'),
+            ('AI 爬虫说明复活绝对误报承诺会判红', LLMS_REL,
+             lambda t: t + '\n误报 0 条。\n', 'llms_no_absolute_fp_claim'),
             ('AI 爬虫说明复活 1.7% 旧误报率会判红', LLMS_REL,
-             lambda t: t.replace('误报 0 条', '1.7%（误报率）'), 'no_legacy_1_7'),
+             lambda t: t + '\n实测误报率 1.7%。\n', 'no_legacy_1_7'),
             ('博客把口径说明挪到文末会判红', BLOG_REL,
              _move_climate_note_to_end, 'blog_legacy_marked'),
             ('博客删掉口径说明会判红', BLOG_REL,

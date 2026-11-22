@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}漏洞检测 - 常见安全漏洞自动化检测 | 煋鉴 Xinpect{% endblock %}
+
+{% block meta_description %}煋鉴(Xinpect)提供 SQL 注入、命令注入、XSS、SSRF、路径遍历、不安全反序列化、硬编码密钥等 20+ 类安全漏洞的自动化检测，支持 23 种语言，10 万行代码 2~4 分钟扫完，每条结论都附判断依据与修复建议。{% endblock %}
+
+{% block meta_keywords %}漏洞检测,SQL注入,命令注入,XSS,SSRF,路径遍历,反序列化,硬编码密钥,弱加密,代码扫描,煋鉴,Xinpect{% endblock %}
+
+{% block content %}
+<div class="seo-index">
+  <div class="seo-index-hero">
+    <h1>常见安全漏洞检测</h1>
+    <p>每一个漏洞类型都有一页详细的原理、代码示例、修复建议，以及煋鉴的自动化检测方案。</p>
+  </div>
+  <div class="seo-index-grid">
+    {% for item in items %}
+    <a href="{{ url_for('seo.detect_page', slug=item.slug) }}" class="seo-card" id="{{ item.vuln_name }}">
+      <div class="seo-card-head">
+        <h2>{{ item.vuln_name }}</h2>
+        <span class="seo-badge seo-badge-sev">{{ item.severity }}</span>
+      </div>
+      <p class="seo-card-cwe">{{ item.cwe }}</p>
+      <p class="seo-card-desc">{{ item.summary | truncate(80, true) }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.seo-index { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+.seo-index-hero { margin-bottom: 32px; }
+.seo-index-hero h1 { font-size: 32px; color: var(--color-bg-secondary); margin: 0 0 12px; font-weight: 700; }
+.seo-index-hero p { font-size: 16px; color: var(--color-v-4a5568); line-height: 1.7; margin: 0; }
+.seo-index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.seo-card { display: block; padding: 24px; border: 1px solid var(--color-v-e2e8f0); border-radius: 10px; text-decoration: none; transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s; background: var(--color-bg-primary); }
+.seo-card:hover { border-color: var(--color-bg-secondary); box-shadow: 0 6px 20px var(--color-blue-alpha-10); transform: translateY(-2px); }
+.seo-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.seo-card-head h2 { font-size: 19px; color: var(--color-bg-secondary); margin: 0; font-weight: 700; }
+.seo-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12px; background: var(--color-bg-hover); color: var(--color-v-4a5568); white-space: nowrap; }
+.seo-badge-sev { background: var(--color-v-fdecea); color: var(--color-danger); font-weight: 600; }
+.seo-card-cwe { font-size: 13px; color: var(--color-v-8b98ab); margin: 0 0 8px; }
+.seo-card-desc { font-size: 14px; color: var(--color-v-4a5568); line-height: 1.6; margin: 0; }
+@media (max-width: 640px) {
+  .seo-index-hero h1 { font-size: 26px; }
+}
+</style>
+{% endblock %}
