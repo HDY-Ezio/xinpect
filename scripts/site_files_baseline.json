@@ -59,7 +59,6 @@
     "modules/membership_reminder.py": "151b43c19b1d08f53fe2f8c22206e30f",
     "modules/monitor_collector.py": "015a1d53396892312ba00a29b54de79b",
     "modules/payment.py": "6054dfaf7f88cb1be389a45fac25e19b",
-    "modules/payment.py.backup_api_addition": "a1c9106620797a1b2b0f25f3a0c316df",
     "modules/quality_gate.py": "a4ef4de61b5b19b9e4a5a1822a324422",
     "modules/referral.py": "6b171d9e0e19b7232a26d764915cafac",
     "modules/report_verdict.py": "e0461b96dfcbbad47d719224d5e2eb2d",
@@ -80,6 +79,7 @@
     "modules/webhook_manager.py": "4f9f6b29675abcf599acd2c667b62780",
     "monitoring/full_scan.py": "61171b065cfde9a4129d2c056e0f6da8",
     "monitoring/safe_write.py": "f5c4d36cbed561f6e22cbe23c8964d18",
+    "monitoring/secrets_env.py": "3bc3b52d211ae4a4e0b3b629728596cb",
     "monitoring/xinpect_monitor.py": "ab31abeb3af9b199d26ebb2f75890c9f",
     "ops/coverage_baseline.sh": "cd65730ac8086d28954cf99dc168fac9",
     "ops/flaky_guard.py": "b03d9c57f560ee3426a22065aa3f0558",
@@ -124,7 +124,7 @@
     "scripts/purge_scan_cache.py": "931d632e0f471d9aa980a43c30426593",
     "scripts/record_qa_result.py": "246dc521db7117c874d1886f154aa879",
     "scripts/redcheck_report_dims.py": "035758d22e87a3678c03b29f8d3a1030",
-    "scripts/repo_secrets_allowlist.json": "a4f07fa55dcfb297a483d9a66c8c9eb3",
+    "scripts/repo_secrets_allowlist.json": "fcb907c18ccc64b458a1fd425f59160b",
     "scripts/restore_database.sh": "e215b9b37861aa80748eeff089a263d0",
     "scripts/run_all_tests.sh": "90c482eec80ac8c40d97dd91ef19612b",
     "scripts/run_benchmark.py": "23902b461b036ca6bdf18331bbd33331",
@@ -147,7 +147,7 @@
     "scripts/validate_js_syntax.py": "89bf1dac9805ada1566cfe3f1b3e3d33",
     "scripts/verify_export_e2e.py": "bb32b611588782dc70742cd21b6bb9f5",
     "scripts/verify_legacy_reports.py": "f6cc2742b446ca87ffd535c9d6bb215a",
-    "scripts/verify_repo_secrets.py": "68caab86cf3847311887dbb63029e50c",
+    "scripts/verify_repo_secrets.py": "b54a6bcb693b06803979bac79ec7aa51",
     "scripts/verify_report_dims_e2e.py": "d8d767fdd1c4a00c0909cc8fbf87e56e",
     "scripts/verify_report_verdict.py": "96fef88bf9e40f577098850fc14c8a9c",
     "scripts/verify_rule_kind_sync.py": "56af4584df9a63375d11689899dd7bf6",
@@ -535,7 +535,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T22:00:56+08:00",
+  "generated_at": "2026-11-23T22:37:32+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -552,9 +552,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "675ef9fba0592df6f8c44cab54b44f6ef9bc1779f7bc6c8a8fc9360a16625736",
+  "integrity": "723625afb0a906a47b763ada2cfd1fa0557710653d398b277d732a9a16d57f02",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "仓库与线上对齐：112 文件入库、产物移出索引、凭据挪出仓库、新增漂移守卫"
+  "task": "历史重写：清掉数据库转储与旧授权码，台账清零，新增凭据读取模块"
 }
