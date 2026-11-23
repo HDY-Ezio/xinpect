@@ -336,7 +336,7 @@ async function doTryScan() {
             const h = s.health;
             // 档位与报告页同一套（S/A/B/C/D）。试扫是免费通道，上限 A，
             // 但档位表要留全 —— 少一个键会静默变灰，看起来像「没评级」。
-            const gradeColors = {S:'#1e9e5a', A:'#27ae60', B:'#2ecc71', C:xpColor('--color-sev-medium'), D:xpColor('--color-sev-high')};
+            const gradeColors = {S:'#1e9e5a', A:'#27ae60', B:'#2ecc71', C:xpColor('--color-sev-medium'), D:xpColor('--color-sev-high'), '文件级':'#95a5a6'};
             const cov = h.coverage || {};
             const gc = gradeColors[h.grade] || (h.grade === '—' ? xpColor('--color-sev-high') : '#95a5a6');
             // 维度分可能是数字，也可能是「未检测」——数字原样给，文字用警示色
@@ -348,7 +348,13 @@ async function doTryScan() {
             html += '<div style="text-align:center;"><div style="font-size:36px;font-weight:700;color:' + gc + ';line-height:1;">' + h.score + '</div><div style="font-size:11px;color:var(--text-secondary);">分</div></div>';
             html += '</div>';
             html += '<div style="text-align:left;">';
-            html += '<div style="font-size:22px;font-weight:700;color:' + gc + ';margin-bottom:6px;">' + h.grade + ' · ' + h.grade_cn + '</div>';
+            // 片段级不给字母：写「文件级 · 文件级评估」是同一句话说两遍
+            const gradeLine = (h.grade === '文件级') ? h.grade_cn : (h.grade + ' · ' + h.grade_cn);
+            html += '<div style="font-size:22px;font-weight:700;color:' + gc + ';margin-bottom:6px;">' + gradeLine + '</div>';
+            // 没有字母时要说清「为什么没有」，否则用户以为页面坏了
+            if (h.grade === '文件级') {
+                html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">这是单个文件的评估结果；扫描整个项目，可以得到项目级评级</div>';
+            }
             html += '<div style="font-size:13px;color:var(--text-secondary);">安全 ' + dimVal(h.dims.security) + ' · 质量 ' + dimVal(h.dims.quality) + ' · 架构 ' + dimVal(h.dims.arch) + '</div>';
             html += '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">性能等完整维度 · 注册后解锁</div>';
             // 没查全就把原因写出来。「未检测」单独杵在那儿，用户不知道是坏了还是没扫。

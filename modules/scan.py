@@ -31,6 +31,7 @@ from .constants import (
     MOCK_SCAN_TIMEOUT,
     DAILY_LIMIT_FREE,
     CC_SCORE_S, CC_SCORE_A, CC_SCORE_B,
+    GRADE_SCOPE_FRAGMENT,
     MAX_WXML_CODE_LENGTH,
     HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_INTERNAL_ERROR,
     HTTP_PAYMENT_REQUIRED, HTTP_ENTITY_TOO_LARGE,
@@ -1621,7 +1622,13 @@ def _build_md_header(scan, all_issues, vip):
                        file_count=_md_scale_files, total_lines=_md_scale_lines)
 
     # 查不全时不能写「S 级」——那是把没查的地方当成干净
-    _md_grade_text = '未完整检测（评级不可用）' if md_grade == '—' else f'{md_grade} 级'
+    # 片段级不给字母，写清楚「为什么没有等级」，否则用户看到空格子以为坏了
+    if md_grade == '—':
+        _md_grade_text = '未完整检测（评级不可用）'
+    elif md_grade == GRADE_SCOPE_FRAGMENT:
+        _md_grade_text = '文件级评估（审查范围不足以下项目级结论）'
+    else:
+        _md_grade_text = f'{md_grade} 级'
     md_lines.append(f'**综合评级：** {_md_grade_text}')
     md_lines.append(f'**综合得分：** {md_score} / 100')
     md_lines.append('')

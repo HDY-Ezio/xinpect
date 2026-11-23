@@ -265,7 +265,10 @@ def _health_score(result):
         grade = '—'
     else:
         # 试扫永远是免费通道：等级上限 A，与报告页对免费用户的规矩一致。
-        grade = grade_of(score, tier_scores=None, is_vip=False)
+        # 而且试扫是「粘一段代码」——永远只有一个文件，只能是片段级评估。
+        # 不传这一项的话，粘 5 行没报错的代码会拿到「A · 良好」，
+        # 那正是这次要治的通胀：没看多少东西，却给了质量结论。
+        grade = grade_of(score, tier_scores=None, is_vip=False, file_count=1)
     grade_cn = GRADE_TEXT.get(grade, '未完整检测')
 
     return {

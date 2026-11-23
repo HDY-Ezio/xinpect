@@ -81,6 +81,8 @@
         .score-good      { border-color:var(--color-grade-b-on-dark); color:var(--color-grade-b-on-dark); }
         .score-fair      { border-color:var(--color-warning-on-dark); color:var(--color-warning-on-dark); }
         .score-poor      { border-color:var(--color-danger-on-dark);  color:var(--color-danger-on-dark); }
+        /* 片段级：不打分颜色——绿圈配「文件级评估」看起来仍像优秀 */
+        .score-scope     { border-color:var(--color-dark-muted); color:var(--color-dark-muted); }
 
         .report-meta { flex:1; min-width:0; }
         .report-meta h1 { font-size:22px; font-weight:700; margin-bottom:16px; }
@@ -537,6 +539,11 @@
         </div>
         <div class="report-header">
             {# 「100 分 · A 级」在免费通道是正常的（等级上限 A），但要写出来 #}
+            {# 片段级扫描不给等级字母：能说「这段代码查过」，不能说「这个项目很好」 #}
+            {% if grade == '文件级' %}
+            {% set score_label = '分 · 文件级评估' %}
+            <div class="score-circle score-scope"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
+            {% else %}
             {% set score_label = '分 · ' ~ grade ~ '级' ~ ('（免费版上限）' if grade_capped else '') %}
             {% if score >= 80 %}
             <div class="score-circle score-excellent"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
@@ -546,6 +553,7 @@
             <div class="score-circle score-fair"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
             {% else %}
             <div class="score-circle score-poor"><span class="score-num">{{ score }}</span><span class="score-label">{{ score_label }}</span></div>
+            {% endif %}
             {% endif %}
             <div class="report-meta">
                 <h1>代码质检报告</h1>

@@ -194,29 +194,35 @@ RISK_SCORE_CAP = {
     'low': 94,         # 低危：最高 A（有低危就不算满分）
 }
 
-# 审查规模门槛（2026-11-23）
+# 审查范围（2026-11-23）
 #
 # 评级的含义是「这个项目质量如何」，不是「这段代码有没有报错」。一个 5 行的
 # t.py 扫完没报错就是 100 分——那是「没看」不是「优秀」。实测全库 975 份 S
 # 里 603 份（62%）是单文件或不到 200 行的片段快检，S 因此从荣誉变成默认值。
 #
-# 治本判据：分数回答「查出来的东西有多严重」，规模回答「这份审查够不够格
-# 被评优」。两条轴都过才给 S。和 RISK_SCORE_CAP 同一个形状——封顶，不是
-# 另写一套算法。
+# 判据：分数回答「查出来的东西有多严重」，范围回答「这份审查够不够格下结论」。
+# 片段扫描不给等级字母，只标「文件级」——不是压到 A，是不占这个刻度；低档
+# 仍然照给，因为找到问题不需要样本量，只有「没问题」才需要。
 #
 # 未知规模（两个数都没记）不设限：判不了不等于该判死。
 SAMPLE_SINGLE_FILE_MAX_FILES = 1    # 文件数不超过这个 → 片段快检
 SAMPLE_SNIPPET_MAX_LINES = 200      # 总行数不到这个 → 片段快检
 SAMPLE_SMALL_MAX_FILES = 10         # 小样本：文件数不到这个…
 SAMPLE_SMALL_MAX_LINES = 2000       # …且总行数不到这个
-SAMPLE_GRADE_CAP = 'A'              # 片段/小样本能拿到的最高等级
+
+SCOPE_PROJECT = 'project'           # 规模够下一个项目级结论
+SCOPE_FRAGMENT = 'fragment'         # 片段/小样本：只能说「这段代码查过」
+SCOPE_UNKNOWN = 'unknown'           # 规模没记下来：不设限
+GRADE_SCOPE_FRAGMENT = '文件级'      # 片段扫描拿到的不是等级，是范围标注
 
 
-def sample_grade_cap(file_count, total_lines):
-    """审查规模能支撑到的最高等级；返回 None 表示不设限。
+def scan_scope(file_count, total_lines):
+    """这份审查覆盖了多大范围：项目级 / 片段级 / 未知。
 
-    只看规模，不看分数——分数是另一条轴，两条轴都过才给 S。
-    两个数都拿不到时不设限：判不了不等于该判死。
+    只看规模，不看分数——分数是另一条轴。
+    两个数都拿不到时返回「未知」而不是判片段：判不了不等于该判死。
+    历史扫描的 file_count / total_lines 默认是 0，把它们当「0 行代码」
+    会把整批老报告无理由降级。
     """
     def _int(v):
         if v is None or v == '':
@@ -228,20 +234,20 @@ def sample_grade_cap(file_count, total_lines):
 
     files = _int(file_count)
     lines = _int(total_lines)
-    # 0 与 None 同义：都是「规模没记下来」。判不了不等于该判死——
-    # 默认 file_count=0 / total_lines=0 的历史扫描不能被当成 0 行小样本。
+    # 0 与 None 同义：都是「规模没记下来」。
     if not files and not lines:
-        return None
+        return SCOPE_UNKNOWN
     # 片段快检：单个文件，或总行数太少
     if files is not None and 0 < files <= SAMPLE_SINGLE_FILE_MAX_FILES:
-        return SAMPLE_GRADE_CAP
+        return SCOPE_FRAGMENT
     if lines is not None and lines < SAMPLE_SNIPPET_MAX_LINES:
-        return SAMPLE_GRADE_CAP
+        return SCOPE_FRAGMENT
     # 小样本：文件少且行数少（任一维度够大就放行）
     if (files is not None and lines is not None
             and files < SAMPLE_SMALL_MAX_FILES and lines < SAMPLE_SMALL_MAX_LINES):
-        return SAMPLE_GRADE_CAP
-    return None
+        return SCOPE_FRAGMENT
+    return SCOPE_PROJECT
+
 
 # 验证码常量
 RESET_CODE_LENGTH = 6

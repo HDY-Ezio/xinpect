@@ -53,9 +53,11 @@ ALL_OK = {'1': _ok(), '2': _ok(), '4': _ok(), '5': _ok(), '6': _ok()}
 
 
 def test_all_engines_ran_keeps_normal_scores():
-    """全跑成、无问题：三维 100、A 级、complete=True。
+    """全跑成、无问题：三维 100、complete=True，等级是「文件级」。
 
     这是基准——覆盖判定不能把正常结果也弄坏，否则用户会以为产品坏了。
+    等级为什么不是 A：试扫是「粘一段代码」，永远只有一个文件，属于片段级。
+    片段不给等级字母（2026-11-23），能说「这段代码查过」，不能说「这个项目好」。
     """
     ft = _free_try()
     h = ft._health_score({
@@ -64,7 +66,8 @@ def test_all_engines_ran_keeps_normal_scores():
         'unsupported_count': 0, 'trimmed_count': 0,
     })
     assert h['dims'] == {'security': 100, 'quality': 100, 'arch': 100}, h['dims']
-    assert h['grade'] == 'A', h['grade']
+    assert h['grade'] == '文件级', h['grade']
+    assert h['grade_cn'] == '文件级评估', h['grade_cn']
     assert h['coverage']['complete'] is True, h['coverage']
 
 

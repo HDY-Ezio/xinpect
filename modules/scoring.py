@@ -18,7 +18,7 @@ from .constants import (
     SCORE_COLOR_AMBER, MAX_SCORE,
     DEDUCTION_PER_CRITICAL, DEDUCTION_PER_HIGH, DEDUCTION_PER_MEDIUM, DEDUCTION_PER_LOW,
     MAX_DEDUCTION_MEDIUM, MAX_DEDUCTION_LOW, RISK_SCORE_CAP,
-    sample_grade_cap,
+    scan_scope, SCOPE_FRAGMENT, GRADE_SCOPE_FRAGMENT,
     DEFAULT_CREDIT_TX_LIMIT,
     DAILY_LIMIT_FREE, DAILY_LIMIT_REGISTERED,
     SUBSCRIPTION_CREDITS, CREDIT_PACKS,
@@ -1012,6 +1012,8 @@ def score_to_grade(score):
 GRADE_TEXT = {
     'SSS': '卓越', 'SS': '卓越', 'S': '卓越',
     'A': '良好', 'B': '及格', 'C': '待改进', 'D': '较差',
+    # 片段扫描不是等级，是范围标注：说「这段代码查过」，不说「这个项目多好」
+    '文件级': '文件级评估',
     '—': '未完整检测',
 }
 
@@ -1068,13 +1070,13 @@ def grade_of(score, tier_scores=None, is_vip=True, file_count=None, total_lines=
     if not is_vip and grade in ('S', 'SS', 'SSS'):
         grade = 'A'
 
-    # 审查规模门槛（2026-11-23）：片段快检/小样本不评最高档。
-    # 分数回答「查出来的问题有多严重」，规模回答「这份审查够不够格被评优」。
-    _cap = sample_grade_cap(file_count, total_lines)
-    if _cap:
-        _order = ('D', 'C', 'B', 'A', 'S')
-        if grade in _order and _order.index(grade) > _order.index(_cap):
-            grade = _cap
+    # 审查范围（2026-11-23）：片段快检/小样本不给等级字母。
+    # 分数回答「查出来的问题有多严重」，范围回答「这份审查够不够格下结论」。
+    # 只抹掉高档（S/A），低档照给：找到问题不需要样本量，「没问题」才需要。
+    # 不是把片段压到 A——那只是把通胀从 S 挪到 A，A 还是被占着。
+    if (scan_scope(file_count, total_lines) == SCOPE_FRAGMENT
+            and grade in ('S', 'A', 'SS', 'SSS')):
+        return GRADE_SCOPE_FRAGMENT
     return grade
 
 

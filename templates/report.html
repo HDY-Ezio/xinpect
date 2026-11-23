@@ -2300,7 +2300,7 @@ window.unmarkFalsePositive = function(btn, ruleId, file, line, title) {
 <div class="report-disclaimer" style="margin:24px auto;max-width:800px;padding:20px;background:var(--color-v-f8f9fa);border-radius:8px;border-left:3px solid var(--color-v-adb5bd);font-size:13px;color:var(--color-v-6b7280);line-height:1.6;">
     <p style="margin:0 0 6px;font-weight:600;color:var(--color-v-495057);">报告说明</p>
     <p style="margin:0 0 14px;">本报告依扫描当时的规则集生成。规则会持续更新，历史报告不回溯修改——同一份代码在不同时间扫描，问题数可能不同。</p>
-    <p style="margin:0 0 14px;">评级同时看两件事：查出来的问题有多严重，以及这次审查覆盖了多大范围。S 级要求覆盖不少于 10 个文件或 2000 行、且没有需要修复的问题。只扫一个文件或几百行代码时样本不足，最高评为 A 级——那是「查得少」，不代表代码本身有问题。</p>
+    <p style="margin:0 0 14px;">评级同时看两件事：查出来的问题有多严重，以及这次审查覆盖了多大范围。要评 S，除了没有问题需要修，还得覆盖不少于 10 个文件或 2000 行。只扫一个文件或几百行代码时样本不足，不给等级字母，标注为「文件级评估」——那表示这段代码查过了、没查出什么，不代表整个项目怎么样。查出问题则照常给等级，因为找到问题不需要样本量。</p>
     <p style="margin:0 0 8px;font-weight:600;color:var(--color-v-495057);">免责声明</p>
     <p style="margin:0;">本报告检测结果仅供参考，不构成法律意义上的安全认证。检测基于静态代码分析和已知漏洞特征库，无法保证发现所有安全漏洞。本报告不可替代CMA/CNAS认证的正式安全评估。用户应结合业务场景人工复核，因依赖检测结果导致的损失，煋鉴不承担法律责任。</p>
 </div>
