@@ -11,28 +11,167 @@
 {% block og_type %}website{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="/static/css/blog.css?v={{ asset_v }}">
+<style>
+/* 颜色一律走 tokens.css 的语义变量，不写字面量：
+   UI 门禁 gate48 会把内联样式里的裸色值判红（历史上绕过一次，教训在案）。 */
+.blog-hero {
+    background: linear-gradient(135deg, var(--color-dark-bg) 0%, var(--color-dark-surface-2) 100%);
+    padding: 68px 0 60px;
+    color: var(--color-text-inverse);
+}
+.blog-hero .container { max-width: 1080px; }
+.blog-hero h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin: 0 0 14px;
+    color: var(--color-text-inverse);
+    letter-spacing: 0.5px;
+}
+.blog-hero p {
+    font-size: 1.02rem;
+    line-height: 1.8;
+    color: var(--color-text-inverse-soft);
+    margin: 0;
+    max-width: 640px;
+}
+
+.blog-body { background: var(--color-bg-tertiary); padding: 56px 0 80px; }
+.blog-body .container { max-width: 1080px; }
+
+/* 主题标签栏：读者一眼看出我们写哪几类，也避免整站只剩一个话题 */
+.bt-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+.bt-filter a {
+    font-size: 0.82rem;
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-color);
+    background: var(--color-bg-card);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.bt-filter a:hover {
+    border-color: var(--color-accent-steel);
+    color: var(--color-accent-steel);
+}
+.bt-filter a.active {
+    background: var(--color-dark-bg);
+    border-color: var(--color-dark-bg);
+    color: var(--color-text-inverse);
+}
+.bt-filter .n { opacity: 0.65; margin-left: 4px; }
+
+.blog-grid { display: grid; gap: 20px; }
+
+.blog-card {
+    display: block;
+    background: var(--color-bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    padding: 26px 30px;
+    text-decoration: none;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-left-color 0.2s ease;
+}
+.blog-card:hover {
+    border-left-color: var(--color-accent-steel);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+}
+.bc-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 0.83rem;
+    color: var(--color-text-muted);
+    margin-bottom: 10px;
+}
+.bc-meta span::before { content: "·"; margin-right: 8px; }
+.blog-card h2 {
+    font-size: 1.28rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 10px;
+    line-height: 1.5;
+}
+.blog-card p {
+    font-size: 0.94rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin: 0 0 14px;
+}
+.bc-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.bc-tags span {
+    font-size: 0.76rem;
+    color: var(--color-accent-steel);
+    background: var(--color-bg-tertiary);
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+}
+.blog-empty {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: 60px 0;
+    font-size: 0.95rem;
+}
+.blog-empty a { color: var(--color-accent-steel); }
+
+.blog-cta {
+    margin-top: 44px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    padding: 30px 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.blog-cta-text { font-size: 1rem; color: var(--color-text-primary); font-weight: 600; }
+.blog-cta-text small { display: block; font-weight: 400; color: var(--color-text-tertiary); font-size: 0.87rem; margin-top: 6px; }
+.blog-cta a {
+    display: inline-block;
+    background: var(--color-dark-bg);
+    color: var(--color-text-inverse);
+    padding: 12px 28px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-size: 0.94rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background-color 0.2s ease;
+}
+.blog-cta a:hover { background: var(--color-accent-steel); }
+
+@media (max-width: 640px) {
+    .blog-hero { padding: 44px 0 40px; }
+    .blog-hero h1 { font-size: 1.55rem; }
+    .blog-card { padding: 20px 20px; }
+    .blog-card h2 { font-size: 1.1rem; }
+    .blog-cta { padding: 24px 20px; }
+}
+</style>
 {% endblock %}
 
 {% block content %}
 <section class="blog-hero">
     <div class="container">
         <h1>技术博客</h1>
-        <p>代码安全检测的实测数据、方法学和工程实践。误报率怎么测出来的、规则怎么判、AI 写的代码该怎么验收——每个数字都写明测试条件和出处。</p>
+        <p>代码安全检测的实测数据、方法学和工程实践。误报率怎么测出来的、越权漏洞为什么扫不出来、规则库怎么分类——每个数字都写明测试条件和出处。</p>
     </div>
 </section>
 
 <section class="blog-body">
     <div class="container">
-        {# 主题标签：博客不能写成一个话题的复读机。
-           放在最上面，一眼看出我们写过哪几类，也方便按主题翻。 #}
         {% if tags %}
-        <div class="blog-tagbar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:26px;">
-            <a href="/blog" style="padding:6px 14px;border-radius:100px;font-size:13px;text-decoration:none;border:1px solid {% if not active_tag %}var(--color-v-1a3a5c){% else %}var(--border-color){% endif %};color:{% if not active_tag %}var(--color-text-primary){% else %}var(--text-secondary){% endif %};">全部</a>
+        <nav class="bt-filter" aria-label="按主题筛选">
+            <a href="/blog"{% if not active_tag %} class="active"{% endif %}>全部<span class="n">{{ posts|length if not active_tag else '' }}</span></a>
             {% for t, n in tags[:10] %}
-            <a href="/blog?tag={{ t|urlencode }}" style="padding:6px 14px;border-radius:100px;font-size:13px;text-decoration:none;border:1px solid {% if active_tag == t %}var(--color-v-1a3a5c){% else %}var(--border-color){% endif %};color:{% if active_tag == t %}var(--color-text-primary){% else %}var(--text-secondary){% endif %};">{{ t }} · {{ n }}</a>
+            <a href="/blog?tag={{ t|urlencode }}"{% if active_tag == t %} class="active"{% endif %}>{{ t }}<span class="n">{{ n }}</span></a>
             {% endfor %}
-        </div>
+        </nav>
         {% endif %}
 
         {% if posts %}
@@ -54,7 +193,13 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="blog-empty">{% if active_tag %}这个话题下暂时没有文章，<a href="/blog">看看全部</a>。{% else %}文章正在陆续上线。{% endif %}</p>
+        <p class="blog-empty">
+            {% if active_tag %}
+            「{{ active_tag }}」这个主题下暂时没有文章。<a href="/blog">看全部文章</a>
+            {% else %}
+            文章正在陆续上线。
+            {% endif %}
+        </p>
         {% endif %}
 
         <div class="blog-cta">

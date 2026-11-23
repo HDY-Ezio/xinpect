@@ -3,7 +3,7 @@ title: AI 写完的代码，上线前该问自己这 6 个问题
 slug: ai-code-pre-launch-checklist
 date: 2026-11-03
 summary: AI 生成的代码有个共同特点：能跑、能过测试、看起来干净。问题都藏在"没写的那几行"里。这是一份 6 条的清单，每条都给出 30 秒能自己查的办法。
-tags: AI编程, 代码审查, 上线检查
+tags: AI 编程, 代码审查, 上线检查
 keywords: AI生成代码, 上线前检查清单, 硬编码密钥, 越权漏洞, slopsquatting, 日志注入, 代码审查清单, vibe coding 安全
 ---
 
