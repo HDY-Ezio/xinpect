@@ -168,7 +168,7 @@
     "static/css/scan-fx.css": "f2f9019bb005a111e89c720936ae6314",
     "static/css/style.css": "efe038b3ae924fee6c558c7175977406",
     "static/css/team.css": "7e314e67f8b3bedbe53897a58e7bf64b",
-    "static/css/tokens.css": "0468fced0f161dee7e5123074af4f9fb",
+    "static/css/tokens.css": "29cbb9991c806ecaf6e528522e0ed7e5",
     "static/deploy/xinpect-1.0.0.vsix": "d2bf8428ae371293c729c893b69c520b",
     "static/favicon.ico": "222ada919c6d1c0dbe51ac5957b24f19",
     "static/fonts/H4chBXePl9DZ0Xe7gG9cyOj7kq-Wbghq.woff2": "cfc2935a2047f479ce76de250eb15eae",
@@ -447,7 +447,7 @@
     "templates/dashboard/versions.html": "93e25aea961df7cd66c3aa96553b1513",
     "templates/forgot_password.html": "a92bf2b6f376da8feeb6399cde4eb4e1",
     "templates/help.html": "e31b167b274c0bef8c1d904f53c2ded9",
-    "templates/index.html": "5c20ea48fce265b7c19bae4b38608551",
+    "templates/index.html": "2ad2a77c4a34ca224003920fcd25b551",
     "templates/license.html": "a20e1eb8ff36ce59f8045fe4daf79493",
     "templates/login.html": "6f4d237bab3767330f7ef44f3f304cbc",
     "templates/monitor.html": "e92d12a91d15f9589e570ab1a8bd776f",
@@ -527,7 +527,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T13:12:48+08:00",
+  "generated_at": "2026-11-23T13:43:37+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -544,9 +544,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "00941bdc242d6e93ba3da277ecfb8ff691bc13a60c5a3da86a973315e5bf65c0",
+  "integrity": "e3c77d0736b0536911c5c4c588017291bc34960318dc5094ce568adc2d089601",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "仓库泄漏守卫：按内容+全历史查明文Key/私钥/数据库转储，装 pre-push 钩子；QA 挂载并修无 pytest 分支取码 bug；旧测试判据收敛到单一来源"
+  "task": "首页 hero 补最小高度：大屏上避免代码墙铺不开"
 }
