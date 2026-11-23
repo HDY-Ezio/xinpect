@@ -441,7 +441,7 @@
       <span style="font-size:13px;color:var(--text-secondary);">（方言与配置文件规则）</span>
     </div>
     <p style="font-size:13px;color:var(--text-secondary);margin-top:18px;line-height:1.7;max-width:760px;">
-      上面列的 17 种有 AST 级语法解析和跨语言安全规则；另外 6 种（T-SQL / PL/SQL / R / HTML 模板 / Dart / Ansible）走规则级检测，不做 AST 深度解析。写清楚比多报几个数字管用。
+      上面列的 17 种做 AST 级解析：先把代码解析成语法树，再按变量作用域、污染传播和调用链判断问题是否真的成立；另外 6 种（T-SQL / PL/SQL / R / HTML 模板 / Dart / Ansible）走规则级检测，覆盖常见写法与配置问题，不做语法树解析。
     </p>
   </div>
 </section>

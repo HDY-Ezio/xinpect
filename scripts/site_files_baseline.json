@@ -447,7 +447,7 @@
     "templates/dashboard/versions.html": "93e25aea961df7cd66c3aa96553b1513",
     "templates/forgot_password.html": "a92bf2b6f376da8feeb6399cde4eb4e1",
     "templates/help.html": "e31b167b274c0bef8c1d904f53c2ded9",
-    "templates/index.html": "fb3f4681d272aae69c82d4643877063f",
+    "templates/index.html": "cc3bf8b2754db9d7eab21891fae3c30d",
     "templates/license.html": "a20e1eb8ff36ce59f8045fe4daf79493",
     "templates/login.html": "6f4d237bab3767330f7ef44f3f304cbc",
     "templates/monitor.html": "e92d12a91d15f9589e570ab1a8bd776f",
@@ -529,7 +529,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T15:31:40+08:00",
+  "generated_at": "2026-11-23T15:41:42+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -546,9 +546,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "9ff669aafd1e1765c34ef44f4f430de2244bcbae1d786e1e8d1722ebc82c0b39",
+  "integrity": "f32912dd90366162853619062283efa0ea20bf55e2904668aa01cd47aa044745",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "规范/风格类不参与扣分：分类器加 is_style_rule，scoring 剔除，报告页区分待修与改善建议"
+  "task": "首页语言区块：删掉内部评判口吻「写清楚比多报几个数字管用」，改写成 AST 带来什么的解释"
 }
