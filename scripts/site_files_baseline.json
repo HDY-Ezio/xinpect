@@ -1,5 +1,5 @@
 {
-  "count": 534,
+  "count": 535,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -75,7 +75,7 @@
     "modules/team_governance.py": "1d50a0ae3c7404d43b9a18fe9aab4bed",
     "modules/trends.py": "48f8fd4125aa7ac1f5ff66bc29fd5f57",
     "modules/visitor_analytics.py": "a7ee5cab490d09a31ee8d06c07d67539",
-    "modules/visitor_scope.py": "c1224004d0f9c1c3efd76abb70cef7dd",
+    "modules/visitor_scope.py": "260b0a39cc1eae05fc8b37ca1124ae06",
     "modules/webhook_manager.py": "4f9f6b29675abcf599acd2c667b62780",
     "monitoring/full_scan.py": "61171b065cfde9a4129d2c056e0f6da8",
     "monitoring/safe_write.py": "f5c4d36cbed561f6e22cbe23c8964d18",
@@ -131,7 +131,7 @@
     "scripts/run_cache_purge.sh": "a761075c2ccba09a6ba78a023400bc9a",
     "scripts/run_membership_reminder.sh": "38593ebb4f88548113aa0f02405312c1",
     "scripts/run_paid_audit.sh": "67d7e55b1696b31357281b4172fb0e14",
-    "scripts/run_qa_suite.sh": "9afcb9c7719b45147fad9f738560f2d5",
+    "scripts/run_qa_suite.sh": "b9558f93c3c258324857569066493d36",
     "scripts/run_scan_cost_report.sh": "9296332670be4e88af7c8ff44ac64855",
     "scripts/sample_report.json": "1ae98bd60c5fbfb6568e395f3bfdcbba",
     "scripts/scan_channel_auto_heal.py": "bf08551c22a2b228768a68946947cb76",
@@ -152,7 +152,7 @@
     "scripts/verify_report_dims_e2e.py": "d8d767fdd1c4a00c0909cc8fbf87e56e",
     "scripts/verify_report_verdict.py": "96fef88bf9e40f577098850fc14c8a9c",
     "scripts/verify_rule_kind_sync.py": "56af4584df9a63375d11689899dd7bf6",
-    "scripts/visitor_report.py": "d351cbbca149705ed18125b738bcf1bc",
+    "scripts/visitor_report.py": "e067742ccfdd6816b69a152ca52b507f",
     "scripts/watchdog_ping.py": "3dd0570b4f4b376aa49425ab848c8c8d",
     "scripts/xinpect-cli.py": "a85b2d088cd4ad2512676355146d3a39",
     "scripts/xinpect-upload.py": "af6f7f61ef63dcf1ae26ac39041326b1",
@@ -517,6 +517,7 @@
     "tests/test_try_quota.py": "9467f4f694864804ae837d5e7e7d5335",
     "tests/test_upgrade_url_is_reachable.py": "823edd656d6c09446ae7281393b33907",
     "tests/test_uptime_watchdog.py": "8533341c2fbb0b634936a384c9f026cb",
+    "tests/test_visitor_no_cookie.py": "2f960ba0bfe9686c33c8210069c21ae8",
     "tests/verify_backend_names.py": "353321bb0cd05916a68f5e4801301238",
     "tests/verify_badge.py": "e9bfff925715a7c42514e2ee295a681e",
     "tests/verify_bypass_ledger.py": "65099047e2bdb0a0a7dc5494e08fa9c6",
@@ -536,7 +537,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T23:08:29+08:00",
+  "generated_at": "2026-11-24T03:31:16+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -553,9 +554,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "91be010363b331fc1f567f8abf6abd41f6a6aa6aca567de9be2f75eb326a2947",
+  "integrity": "e0cc54777a3d5cd79ec9ae890b76c79accbec845d0192612bcae628eca50826e",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "新增换授权码的命令行工具，新值不落 shell 历史"
+  "task": "访客口径：剔除一次一换 cookie 的机器，报表显式报出剔除量"
 }

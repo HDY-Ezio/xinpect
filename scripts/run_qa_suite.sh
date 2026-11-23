@@ -140,6 +140,7 @@ if ! /usr/bin/python3 -c "import pytest" 2>/dev/null; then
         test_free_try_funnel.py \
         test_lang_detect.py \
         test_funnel_analytics.py \
+        test_visitor_no_cookie.py \
         test_try_quota.py \
         test_engine_coverage.py \
         test_bb_dimension.py \
@@ -190,6 +191,7 @@ else
         tests/test_free_try_funnel.py \
         tests/test_lang_detect.py \
         tests/test_funnel_analytics.py \
+        tests/test_visitor_no_cookie.py \
         tests/test_try_quota.py \
         tests/test_engine_coverage.py \
         tests/test_category_dimension.py \

@@ -8,7 +8,10 @@
 口径说明（重要）：
 - 「访客」= 独立 vid，且不是爬虫、也不是我们自己的工具。
   判据只有一处出处：`modules/visitor_scope.py` 的 `VISITOR_FILTER`。
-  vid 是匿名 cookie，不依赖 IP（443 前端是 sslh，nginx 拿不到真实 IP）。
+  vid 是匿名 cookie。**2026-11-24 更正**：443 现在由 nginx 直接监听
+  （sslh 那份配置已不生效），真实 IP 已经拿得到——`visitor_events.ip`
+  每天有几十到几百个公网 IP。但独立访客仍按 vid 数、不按 IP：同一个出口
+  IP 后面可能是很多人。
   **2026-11-18 修正**：此前只排除 `is_bot=1`，而我们自己的监控/守卫脚本
   （UA 是 `xinpect-*` / `xp-*`）没命中爬虫特征，被算成了真人——报表上
   每天一千多人，实际真人零。现在它们单独记 `is_internal=1`，见文末那行。
@@ -102,7 +105,13 @@ def main():
     if not internal_ready:
         print('[提示] 表里还没有 is_internal 列（迁移未生效），'
               '自检流量仍会被算进访客。\n')
-    VF = scope.VISITOR_FILTER if internal_ready else scope.VISITOR_FILTER_LEGACY
+    VF_BASE = scope.VISITOR_FILTER if internal_ready else scope.VISITOR_FILTER_LEGACY
+    # 「一次一换 cookie」的机器（爬虫、代理池、拨测）每个请求都领一张新 vid，
+    # 会把独立访客数灌成请求数（11-23 实测：56 个「访客」里 43 个来自 Google 爬虫段）。
+    # 判据唯一出处 `visitor_scope.suspect_ips_sql()`；这里就地并进 VF，
+    # 后面所有用到 VF 的查询自动一致，不会出现两套数。
+    SUS = scope.suspect_ips_sql(args.days, VF_BASE)
+    VF = f'({VF_BASE}) AND ip NOT IN ({SUS})'
 
     print(f'===== 访客与转化（最近 {args.days} 天）=====\n')
 
@@ -118,6 +127,14 @@ def main():
         r = rows[0]
         print(f'页面请求 {r["请求数"]} 次 / 独立访客 {r["独立访客"]} 人 '
               f'/ 登录态请求 {r["登录态请求"]} 次')
+        # 剔除了多少必须写出来：数字变小而不说原因，下一个人只会以为埋点坏了。
+        sus = q(conn, f'''
+            SELECT count(*) c, count(DISTINCT vid) v FROM visitor_events
+            WHERE {where} AND {VF_BASE} AND ip IN ({SUS})
+        ''', since_args)
+        if sus and sus[0]['c']:
+            print(f'（其中疑似「一次一换 cookie」的机器 {sus[0]["v"]} 个 id / '
+                  f'{sus[0]["c"]} 次，已剔除——它们不存 cookie，每个请求都算新访客）')
 
     bots = q(conn, f'SELECT count(*) c FROM visitor_events WHERE {where} AND is_bot = 1',
              since_args)
