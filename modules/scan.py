@@ -30,7 +30,6 @@ from .constants import (
     MIN_ESTIMATED_LINES, MIN_ESTIMATED_SIZE_ADDITION,
     MOCK_SCAN_TIMEOUT,
     DAILY_LIMIT_FREE,
-    CC_SCORE_S, CC_SCORE_A, CC_SCORE_B,
     GRADE_SCOPE_FRAGMENT,
     MAX_WXML_CODE_LENGTH,
     HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_INTERNAL_ERROR,
@@ -1914,7 +1913,13 @@ def _save_component_check_record(filename, raw_issues, score, wxml_code):
         cc_scan_id = 'cc_' + uuid.uuid4().hex[:12]
         db = get_db()
         cc_results = {'results': {'9': {'issues': raw_issues, 'score': score}}}
-        cc_grade = 'S' if score >= CC_SCORE_S else ('A' if score >= CC_SCORE_A else ('B' if score >= CC_SCORE_B else 'C'))
+        # 等级只有一个出口（2026-11-24）：组件契约检测审的是单个 wxml 文件，
+        # 交给 grade_of() 得到「文件级」。以前这里自带第六套阈值表
+        # （CC_SCORE_*，S 线 90），一个组件的合规分能拿到项目级 S，
+        # 而同一张表里只审一个文件的试扫记录写的是「文件级」——
+        # 同一列两种含义，历史页和报告页读的是两套字母。
+        _cc_lines = len(wxml_code.splitlines())
+        cc_grade = grade_of(score, file_count=1, total_lines=_cc_lines)
         db.execute('''
             INSERT INTO scans (scan_id, user_id, title, file_count, files_meta,
                               results, score, grade, issue_count, language,
@@ -1925,7 +1930,7 @@ def _save_component_check_record(filename, raw_issues, score, wxml_code):
             json.dumps([filename], ensure_ascii=False),
             json.dumps(cc_results, ensure_ascii=False),
             score, cc_grade, len(raw_issues), 'wxml', 0,
-            len(wxml_code.splitlines()), 'basic', 'component_check',
+            _cc_lines, 'basic', 'component_check',
         ))
         db.commit()
     except (sqlite3.Error, OSError) as e:
@@ -1967,7 +1972,7 @@ def api_component_check():
     raw_issues = b9_result.get('issues', [])
     # 注：扫描器返回的 per-brain score 基于旧的五级严重度模型，对组件契约类问题（已归为四级
     # 梯度 restriction/suspicious）不扣分，恒为 100；与主扫描流程一致，改用本站 calculate_score
-    # 依据问题列表计算契约合规分，使 CC_SCORE_S/A/B（90/75/60）分档真实生效。
+    # 依据问题列表计算契约合规分；等级不在这一层定，交给 grade_of() 统一读。
     score = calculate_score(raw_issues)
 
     issues, sev_counts = _format_component_issues(raw_issues, wxml_code, filename)

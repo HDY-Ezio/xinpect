@@ -283,11 +283,6 @@ ARCHIVE_SKIP_DIRS = ('__pycache__', 'node_modules', '.git/',
                      'dist/', 'build/', '.venv', 'venv/',
                      '.DS_Store', 'Thumbs.db')
 
-# 组件检测评分阈值
-CC_SCORE_S = 90
-CC_SCORE_A = 75
-CC_SCORE_B = 60
-
 # 代码长度限制
 MAX_WXML_CODE_LENGTH = 50000
 

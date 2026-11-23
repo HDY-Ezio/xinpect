@@ -130,9 +130,8 @@ def test_fragment_label_is_not_a_letter_grade():
 # 「xxx if score >= N else 'X'」这种就地写死的等级表，一旦存在，
 # 同一份代码走不同入口就会拿到不同等级。api.py 曾有第四套（S 线 90）、
 # ci.py 曾有第五套（S 线 90 且没有 S 档）。
-# 只抓「给 grade 赋值」的写法。`cc_grade = ...` 是组件契约检测自己的
-# 评分体系（CC_SCORE_* 阈值，语义是「单个组件写得合不合规」），
-# 不是代码质量评级，不在本守卫范围内。
+# 只抓「给 grade 赋值」的写法。2026-11-24 起组件契约检测也走 grade_of()
+# （单文件 → 「文件级」），第六套 CC_SCORE_* 阈值表已删除，这里不再留例外。
 _INLINE_GRADE = re.compile(r"(?:^|\s)grade\s*=\s*['\"][SABCD]['\"]\s*if\s+score\s*>=")
 
 
@@ -164,3 +163,43 @@ def test_pages_know_the_fragment_label():
         assert GRADE_SCOPE_FRAGMENT in text, (
             "%s 不认识「%s」——片段级报告在这一页会显示成空白或「文件级级」"
             % (tpl, GRADE_SCOPE_FRAGMENT))
+
+
+# ── 5. 组件契约检测不许自带等级表（曾经的第六套） ───────────────
+# 它审的是单个 wxml 文件，却按 CC_SCORE_*（S 线 90）自己分档，于是
+# scans 表里 5 条组件检测记录带着 S/A/B/C，而同表 972 条只审一个文件的
+# 试扫记录写的是「文件级」——同一列两种字母含义。现在两条都走 grade_of()。
+_COMPONENT_SAVE = "_save_component_check_record"
+
+
+def _component_save_body(text):
+    idx = text.find("def " + _COMPONENT_SAVE)
+    assert idx != -1, (
+        "找不到 %s —— 函数改名了这个守卫就失效，改名时同步改这里" % _COMPONENT_SAVE)
+    end = text.find("\ndef ", idx + 1)
+    return text[idx:end if end != -1 else len(text)]
+
+
+def _has_inline_grade_table(body):
+    """出现「if score >= ...」这种就地分档，说明又造了一套阈值表。"""
+    return bool(re.search(r"if\s+score\s*>=", body))
+
+
+def test_component_check_uses_single_grade_outlet():
+    path = os.path.join(ROOT, "modules", "scan.py")
+    with open(path, encoding="utf-8") as fh:
+        body = _component_save_body(fh.read())
+    assert "grade_of(" in body, (
+        "组件契约检测没走 grade_of() —— 一个组件的合规分会拿到项目级字母（S），"
+        "和「只审一个文件不给字母」的规则打架")
+    assert not _has_inline_grade_table(body), (
+        "组件契约检测又在自己分档（if score >= ...），应交给 grade_of()")
+
+
+def test_component_grade_guard_catches_old_code():
+    """造坏自检：把删掉的那行原样放回来，上面的判据必须判红。"""
+    old = ("cc_grade = 'S' if score >= CC_SCORE_S else "
+           "('A' if score >= CC_SCORE_A else 'B')")
+    assert _has_inline_grade_table(old), (
+        "守卫认不出旧的第六套等级表 —— 换成旧代码它照样报绿，等于没守")
+    assert "grade_of(" not in old

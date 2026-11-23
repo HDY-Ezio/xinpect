@@ -35,7 +35,7 @@
     "modules/blog.py": "4a999a31fa9c5f4d11693f16903a1505",
     "modules/ci.py": "28d5f4f7e37131aafc0ce7b73021fdf3",
     "modules/compensation.py": "b644c7aa85d145be9e9e8339feab121c",
-    "modules/constants.py": "6251400aeedd76f3f6cf7a319f66d249",
+    "modules/constants.py": "f1a6b467139bd98849b96e85bc904339",
     "modules/csrf_protection.py": "91d3b9b8081cc48e226ee578a538149d",
     "modules/dashboard_context.py": "e37be5c3464f6075e31d55f10e1f9323",
     "modules/dashboard_enhance.py": "aac8f36d1b83224543a96fa7775cc782",
@@ -64,7 +64,7 @@
     "modules/report_verdict.py": "e0461b96dfcbbad47d719224d5e2eb2d",
     "modules/result_retention.py": "dc9cb231d806c27d0d5d19b136c8a08b",
     "modules/rule_kind.py": "54db4c5ff5b9404556f19ce61996c154",
-    "modules/scan.py": "549444754cfd1cb1dd990e8eb378de39",
+    "modules/scan.py": "082ebdb0d9f99ac2568a0f50fc4751e5",
     "modules/scan_diff.py": "258714c0ff8328a67d04fe9e79735af4",
     "modules/scan_progress_bridge.py": "03905801770c1a6301c8d64d1485e1ac",
     "modules/scan_worker.py": "d218e5ffcb7122a6e80d7e972661619e",
@@ -483,7 +483,7 @@
     "tests/test_free_try_funnel.py": "d46c7037ddc7de4f13da7d93fcc8bfcd",
     "tests/test_funnel_analytics.py": "bac10a17da728ca23b09a8d403424e80",
     "tests/test_grade_risk_cap.py": "bb61e1b8445baa94d7a01a8f504e5c14",
-    "tests/test_grade_sample_cap.py": "364dab738482f1ee763bfbaf87f55c7f",
+    "tests/test_grade_sample_cap.py": "e8369e4233ba677b56836acecffd2b0c",
     "tests/test_health_check_budget.py": "890dbf1b6cb836cd749863b2d9ab2d27",
     "tests/test_lang_detect.py": "faba682c69371b2390753baf80e0d4e9",
     "tests/test_membership_reminder.py": "5a4ac9c5b742d42932a82e2d7c9f04e2",
@@ -537,7 +537,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-24T03:45:49+08:00",
+  "generated_at": "2026-11-24T05:45:21+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -554,9 +554,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "aef0a9846c72ff29af3fa0cdb36e2b9084bad75ab87cad684271be4359197575",
+  "integrity": "816a3497b533f204571bfdb67008aec3a379c4502c2c2a725bb6d23302d7bde3",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "更正两处关于真实 IP 的过时断言（sslh 已不生效，443 由 nginx 直接监听）"
+  "task": "组件契约检测等级合并到 grade_of 单一出口（去掉第六套 CC_SCORE_* 阈值表）"
 }
