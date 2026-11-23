@@ -63,7 +63,10 @@ _MAIL_LITERAL = r"\b(?:%s)\b\s*[=:]\s*[%s][^%s\s]{8,}[%s]" % (_MAIL_VARS, _Q, _Q
 
 CONTENT_RULES = [
     (re.compile(r"\bxk_[0-9a-f]{32}\b"), "明文 API Key"),
-    (re.compile(re.escape(_BEGIN) + r"(?:RSA |OPENSSH |EC |DSA )?" + re.escape(_END)), "私钥"),
+    # 头之后必须跟 base64 正文：检测规则里的样本常量
+    # （'-----BEGIN RSA PRIVATE KEY-----' 单独一行）没有正文，不算真私钥。
+    (re.compile(re.escape(_BEGIN) + r"(?:RSA |OPENSSH |EC |DSA )?" + re.escape(_END)
+                + r"\s*\r?\n[A-Za-z0-9+/=]{20,}"), "私钥"),
     # 第三位 True = 落在字符串字面量里时不算，见 _in_string_literal
     (re.compile(_MAIL_LITERAL, re.I), "写死的邮箱授权码", True),
 ]
@@ -322,7 +325,8 @@ def self_test(verbose=True):
 
     def case_private_key():
         # 样本也拆开拼，否则守卫把自己的自测样本扫成命中
-        pem = "-" * 5 + "BEGIN RSA " + "PRIVATE KEY" + "-" * 5 + "\nAAA\n"
+        pem = ("-" * 5 + "BEGIN RSA " + "PRIVATE KEY" + "-" * 5 + "\n"
+               + "MIIEowIBAAKCAQEA" * 4 + "\n")
         r = _mk_repo([{"deploy/id_rsa": pem}])
         f, _ = scan_index(r)
         return any(x["reason"] == "私钥" for x in f)
@@ -347,6 +351,14 @@ def self_test(verbose=True):
     def case_stale_allowlist():
         r = _mk_repo([{"a.py": "x = 1\n"}])
         return bool(check_allowlist_alive(r, {"0" * 40: {}}))
+
+    def case_rule_sample():
+        """检测规则里的私钥头常量不算真私钥——它只有头，没有 base64 正文。"""
+        head = "-" * 5 + "BEGIN RSA " + "PRIVATE KEY" + "-" * 5
+        src = "PATTERNS = [\n    %s%s%s,\n]\n" % (chr(39), head, chr(39))
+        r = _mk_repo([{"rules/x.py": src}])
+        f, _ = scan_index(r)
+        return not f
 
     def case_mail_literal():
         """写死的邮箱授权码必须判红。变量名和引号都拆开拼，别把自测样本扫成命中。"""
@@ -385,6 +397,7 @@ def self_test(verbose=True):
     check("阴性对照：拼 key 的代码与 schema.sql 不许判红", case_negative_control)
     check("历史里删掉的 Key 必须靠历史扫描抓到", case_history_only)
     check("白名单过期条目必须被识别", case_stale_allowlist)
+    check("规则文件里的私钥头常量不许判红", case_rule_sample)
     check("写死的邮箱授权码必须判红", case_mail_literal)
     check("题库形态：字符串里的假凭据不许判红", case_mail_inside_string)
     check("阴性对照：从环境变量读授权码不许判红", case_mail_from_env)

@@ -147,7 +147,7 @@
     "scripts/validate_js_syntax.py": "89bf1dac9805ada1566cfe3f1b3e3d33",
     "scripts/verify_export_e2e.py": "bb32b611588782dc70742cd21b6bb9f5",
     "scripts/verify_legacy_reports.py": "f6cc2742b446ca87ffd535c9d6bb215a",
-    "scripts/verify_repo_secrets.py": "b54a6bcb693b06803979bac79ec7aa51",
+    "scripts/verify_repo_secrets.py": "3bb53956da5b21133898ae61ff08d973",
     "scripts/verify_report_dims_e2e.py": "d8d767fdd1c4a00c0909cc8fbf87e56e",
     "scripts/verify_report_verdict.py": "96fef88bf9e40f577098850fc14c8a9c",
     "scripts/verify_rule_kind_sync.py": "56af4584df9a63375d11689899dd7bf6",
@@ -535,7 +535,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T22:37:32+08:00",
+  "generated_at": "2026-11-23T22:39:06+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -552,9 +552,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "723625afb0a906a47b763ada2cfd1fa0557710653d398b277d732a9a16d57f02",
+  "integrity": "4d00ded75a1c4841b3dcf771fc0d3397c7bcf6f21f541a350b1f7cad1c832412",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "历史重写：清掉数据库转储与旧授权码，台账清零，新增凭据读取模块"
+  "task": "私钥判据收紧：头部须跟 base64 正文，规则文件里的样本常量不再误判"
 }
