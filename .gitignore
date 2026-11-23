@@ -11,3 +11,32 @@ backups/
 *.sqlite3
 *.dump
 *.md5
+
+# ── 运行产物与状态：不是源码，不进版本库（2026-11-23 对齐）─────────────
+# 这些文件每天被定时任务整篇重写，进库只会制造假差异，
+# 把「今天跑了什么」误读成「代码改了」。tests/verify_site_fingerprint.py
+# 的自测里本来就按「运行产物」口径排除它们，这里补齐成同一套判据。
+tests/reports/
+scripts/reports/
+reports/
+monitoring/alerts/
+monitoring/adversarial/*.log
+monitoring/adversarial/state.json
+monitoring/slo/*.log
+monitoring/slo/slo_state.json
+monitoring/slow_state.json
+monitoring/status.json
+monitoring/heal_state.json
+critical_path_state.json
+data/queue_payloads/
+
+# ── 凭据：只存在于仓库外 ─────────────────────────────────────────────
+# 扫描器 API 凭据在 /etc/xinpect/monitor.key（640 root:ubuntu），
+# 源码只留「先环境变量、后凭据文件、都没有就报错」的读取逻辑。
+.secrets/
+monitor.key
+
+# ── 一次性归档：留在磁盘当现场快照，不进仓库（仓库自己就是历史）──────
+_archive/
+_backup_*/
+_seo_backup_*/
