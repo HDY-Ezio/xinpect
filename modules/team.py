@@ -17,6 +17,7 @@ from flask import (
 from .constants import app, logger, DB_PATH, HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED
 from .db import get_db
 from .helpers import login_required, get_current_user
+from .dashboard_context import dashboard_context
 from .csrf_protection import csrf_required
 try:
     from .email_sender import send_team_invitation_email
@@ -34,6 +35,13 @@ TEAM_QUOTA_DEFAULT = 100        # 团队每日默认配额
 TEAM_ROLE_OWNER = 'owner'
 TEAM_ROLE_ADMIN = 'admin'
 TEAM_ROLE_MEMBER = 'member'
+
+
+def _governance():
+    """延迟 import 治理模块，避免模块加载顺序/循环依赖。"""
+    from . import team_governance
+    return team_governance
+
 
 
 # ══════════════════════════════════════════════════════════
@@ -90,12 +98,12 @@ def init_team_tables():
             );
         """)
 
-        # scan_results 加 team_id 列
-        cursor = conn.execute("PRAGMA table_info(scan_results)")
+        # scans 表加 team_id 列（结果归属团队；scans 是个人/团队扫描共用的真实结果表）
+        cursor = conn.execute("PRAGMA table_info(scans)")
         columns = [row[1] for row in cursor.fetchall()]
         if 'team_id' not in columns:
-            conn.execute("ALTER TABLE scan_results ADD COLUMN team_id INTEGER REFERENCES teams(id)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_scan_results_team ON scan_results(team_id)")
+            conn.execute("ALTER TABLE scans ADD COLUMN team_id INTEGER REFERENCES teams(id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_scans_team ON scans(team_id)")
 
         conn.commit()
         conn.close()
@@ -206,6 +214,18 @@ def _consume_team_quota(team_id, db):
     return True
 
 
+def _release_team_quota(team_id, db):
+    """回滚一次团队配额（扫描失败时调用，避免误扣）"""
+    try:
+        db.execute("""
+            UPDATE team_quotas SET used_today = MAX(0, used_today - 1), updated_at = CURRENT_TIMESTAMP
+            WHERE team_id = ?
+        """, (team_id,))
+        db.commit()
+    except Exception:
+        pass  # 回滚失败不影响主流程
+
+
 def _generate_invitation_token():
     """生成唯一邀请token"""
     return secrets.token_urlsafe(32)
@@ -235,11 +255,25 @@ def team_dashboard():
         ORDER BY ti.created_at DESC
     """, (user['email'],)).fetchall()
 
-    return render_template('dashboard/team.html',
-                           user=user,
-                           teams=teams,
-                           pending_invites=[dict(i) for i in pending_invites],
-                           pending_count=len(pending_invites))
+    # 团队版套餐（供「购买团队版」独立入口展示，付费后自动建团+设管理员）
+    try:
+        from . import team_governance as _gov
+        team_plans = _gov.TEAM_PLANS
+    except Exception:
+        team_plans = {}
+
+    # 这 5 个团队页现在都走后台母版（侧栏 / 身份切换 / 未读公告 / 首登引导），
+    # 母版要的上下文统一从 dashboard_context 取，page 钉成 team 让侧栏高亮「团队协作」。
+    ctx = dashboard_context(user)
+    ctx.update({
+        'user': user,
+        'page': 'team',
+        'teams': teams,
+        'pending_invites': [dict(i) for i in pending_invites],
+        'pending_count': len(pending_invites),
+        'team_plans': team_plans,
+    })
+    return render_template('dashboard/team.html', **ctx)
 
 
 @app.route('/dashboard/team/<int:team_id>')
@@ -277,22 +311,26 @@ def team_detail(team_id):
 
     # 获取团队扫描历史（最近20条）
     recent_scans = db.execute("""
-        SELECT sr.id, sr.filename, sr.language, sr.score, sr.created_at,
+        SELECT s.id, s.title, s.language, s.score, s.issue_count, s.created_at,
                u.email as scanner_email
-        FROM scan_results sr
-        LEFT JOIN users u ON u.id = sr.user_id
-        WHERE sr.team_id = ?
-        ORDER BY sr.created_at DESC
+        FROM scans s
+        LEFT JOIN users u ON u.id = s.user_id
+        WHERE s.team_id = ?
+        ORDER BY s.created_at DESC
         LIMIT 20
     """, (team_id,)).fetchall()
 
-    return render_template('dashboard/team_detail.html',
-                           user=user,
-                           team=team,
-                           members=[dict(m) for m in members],
-                           quota=quota,
-                           pending_invites=[dict(i) for i in pending_invites],
-                           recent_scans=[dict(s) for s in recent_scans])
+    ctx = dashboard_context(user)
+    ctx.update({
+        'user': user,
+        'page': 'team',
+        'team': team,
+        'members': [dict(m) for m in members],
+        'quota': quota,
+        'pending_invites': [dict(i) for i in pending_invites],
+        'recent_scans': [dict(s) for s in recent_scans],
+    })
+    return render_template('dashboard/team_detail.html', **ctx)
 
 
 @app.route('/dashboard/team/<int:team_id>/settings')
@@ -328,12 +366,16 @@ def team_settings(team_id):
         LIMIT 20
     """, (team_id, user['id'])).fetchall()
 
-    return render_template('dashboard/team_settings.html',
-                           user=user,
-                           team=team,
-                           members=[dict(m) for m in members],
-                           invite_links=[dict(l) for l in invite_links],
-                           is_owner=team['my_role'] == TEAM_ROLE_OWNER)
+    ctx = dashboard_context(user)
+    ctx.update({
+        'user': user,
+        'page': 'team',
+        'team': team,
+        'members': [dict(m) for m in members],
+        'invite_links': [dict(l) for l in invite_links],
+        'is_owner': team['my_role'] == TEAM_ROLE_OWNER,
+    })
+    return render_template('dashboard/team_settings.html', **ctx)
 
 
 @app.route('/team/invite/<token>')
@@ -363,10 +405,14 @@ def team_invite_accept_page(token):
         flash(f'该邀请发送给 {invite["invitee_email"]}，请使用对应账号登录', 'error')
         return redirect(url_for('team_dashboard'))
 
-    return render_template('dashboard/team_invite.html',
-                           user=user,
-                           invite=dict(invite),
-                           token=token)
+    ctx = dashboard_context(user)
+    ctx.update({
+        'user': user,
+        'page': 'team',
+        'invite': dict(invite),
+        'token': token,
+    })
+    return render_template('dashboard/team_invite.html', **ctx)
 
 
 # ══════════════════════════════════════════════════════════
@@ -507,7 +553,7 @@ def api_delete_team(team_id):
         db.execute("DELETE FROM team_quotas WHERE team_id = ?", (team_id,))
         db.execute("DELETE FROM team_members WHERE team_id = ?", (team_id,))
         # 解除扫描结果的团队关联
-        db.execute("UPDATE scan_results SET team_id = NULL WHERE team_id = ?", (team_id,))
+        db.execute("UPDATE scans SET team_id = NULL WHERE team_id = ?", (team_id,))
         db.execute("DELETE FROM teams WHERE id = ?", (team_id,))
         db.commit()
 
@@ -532,7 +578,7 @@ def api_invite_member(team_id):
     db = get_db()
 
     if not _is_team_admin(team_id, user['id'], db):
-        return jsonify({'code': -1, 'msg': '仅管理员可邀请成员'}), HTTP_UNAUTHORIZED
+        return jsonify({'code': -1, 'msg': '仅管理员可添加子账号'}), HTTP_UNAUTHORIZED
 
     data = request.get_json(silent=True) or {}
     invitee_email = (data.get('email') or '').strip().lower()
@@ -547,7 +593,7 @@ def api_invite_member(team_id):
         WHERE tm.team_id = ? AND u.email = ?
     """, (team_id, invitee_email)).fetchone()
     if existing:
-        return jsonify({'code': -1, 'msg': '该用户已是团队成员'}), HTTP_BAD_REQUEST
+        return jsonify({'code': -1, 'msg': '该用户已是团队子账号'}), HTTP_BAD_REQUEST
 
     # 检查是否有待处理的邀请
     pending = db.execute("""
@@ -621,7 +667,7 @@ def api_update_member_role(team_id, target_user_id):
 
     # 仅owner可修改角色
     if not _is_team_owner(team_id, user['id'], db):
-        return jsonify({'code': -1, 'msg': '仅团队所有者可修改成员角色'}), HTTP_UNAUTHORIZED
+        return jsonify({'code': -1, 'msg': '仅团队所有者可修改子账号角色'}), HTTP_UNAUTHORIZED
 
     data = request.get_json(silent=True) or {}
     new_role = data.get('role', '')
@@ -637,7 +683,7 @@ def api_update_member_role(team_id, target_user_id):
         SELECT role FROM team_members WHERE team_id = ? AND user_id = ?
     """, (team_id, target_user_id)).fetchone()
     if not target:
-        return jsonify({'code': -1, 'msg': '该用户不是团队成员'}), HTTP_BAD_REQUEST
+        return jsonify({'code': -1, 'msg': '该用户不是团队子账号'}), HTTP_BAD_REQUEST
 
     db.execute("""
         UPDATE team_members SET role = ? WHERE team_id = ? AND user_id = ?
@@ -655,14 +701,14 @@ def api_remove_member(team_id, target_user_id):
     db = get_db()
 
     if not _is_team_admin(team_id, user['id'], db):
-        return jsonify({'code': -1, 'msg': '仅管理员可移除成员'}), HTTP_UNAUTHORIZED
+        return jsonify({'code': -1, 'msg': '仅管理员可移除子账号'}), HTTP_UNAUTHORIZED
 
     # 不能移除owner
     target = db.execute("""
         SELECT role FROM team_members WHERE team_id = ? AND user_id = ?
     """, (team_id, target_user_id)).fetchone()
     if not target:
-        return jsonify({'code': -1, 'msg': '该用户不是团队成员'}), HTTP_BAD_REQUEST
+        return jsonify({'code': -1, 'msg': '该用户不是团队子账号'}), HTTP_BAD_REQUEST
     if target['role'] == TEAM_ROLE_OWNER:
         return jsonify({'code': -1, 'msg': '不能移除团队所有者'}), HTTP_BAD_REQUEST
 
@@ -675,7 +721,7 @@ def api_remove_member(team_id, target_user_id):
     db.commit()
 
     logger.info(f"[团队] 用户{user['id']}从团队{team_id}移除了成员{target_user_id}")
-    return jsonify({'code': 0, 'msg': '成员已移除'})
+    return jsonify({'code': 0, 'msg': '子账号已移除'})
 
 
 @app.route('/api/teams/invitations/<int:invitation_id>/accept', methods=['POST'])
@@ -705,7 +751,23 @@ def api_accept_invitation(invitation_id):
         SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?
     """, (team_id, user['id'])).fetchone()
     if existing:
-        return jsonify({'code': -1, 'msg': '你已是该团队成员'}), HTTP_BAD_REQUEST
+        return jsonify({'code': -1, 'msg': '你已是该团队子账号'}), HTTP_BAD_REQUEST
+
+    # 席位满员校验：当前成员数 >= 团队席位上限时，拒绝加入。
+    try:
+        gov = _governance()
+        member_limit = gov.get_team_member_limit(team_id)
+        current_count = db.execute(
+            "SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?",
+            (team_id,)
+        ).fetchone()
+        if current_count and current_count['cnt'] >= member_limit:
+            return jsonify({
+                'code': -1,
+                'msg': f'该团队席位已满（{member_limit} 人），请联系管理员升级团队版或移除成员'
+            }), HTTP_BAD_REQUEST
+    except Exception as e:
+        logger.warning('[团队] 席位校验失败 team_id=%s: %s', team_id, e)
 
     try:
         # 添加成员
@@ -756,10 +818,58 @@ def api_reject_invitation(invitation_id):
 #  API路由 - 团队扫描
 # ══════════════════════════════════════════════════════════
 
+def _team_scan_credits(team_id, vip, user_id, total_lines, file_count, scan_mode):
+    """团队扫描积分：只扣团队共享积分池，绝不扣个人积分。
+
+    团队身份扫描只认共享池——共享池余额不足就明确报错（提示找管理员充值），
+    绝不回退个人积分（谁上班还自己贴钱）。团队无免费档，必然产生积分消耗。
+
+    返回 (credits_cost, error_response, paid_from)。
+    paid_from: 'team_pool'
+    """
+    from .scoring import calculate_scan_cost
+    credits_cost = calculate_scan_cost(total_lines, scan_mode=scan_mode, user_id=user_id)
+
+    if credits_cost <= 0:
+        # 极端情况（如 0 行代码）不产生费用，但仍走团队路径，不扣个人
+        return 0, None, 'team_pool'
+
+    # 只扣团队共享积分池
+    try:
+        gov = _governance()
+        ref_id = f'team:{team_id}:{user_id}:{int(datetime.now().timestamp())}'
+        if gov.consume_team_credits(
+            team_id, credits_cost, user_id,
+            ref_type='team_scan', ref_id=ref_id,
+            remark=f'团队扫描：{total_lines}行，{file_count}个文件，{scan_mode}模式'
+        ):
+            # 共享池扣费成功，credits_cost 传 0 给 _do_async_scan（避免再走个人扣费）
+            return 0, None, 'team_pool'
+
+        # 共享池余额不足 → 明确报错，不回退个人积分
+        balance = gov.get_team_credit_balance(team_id)
+        return 0, (
+            jsonify({
+                'error': (
+                    f'团队共享积分不足，本次扫描需 {credits_cost} 积分，'
+                    f'团队共享池当前余额 {balance} 积分。请联系团队管理员充值团队积分。'
+                ),
+                'credits_needed': credits_cost,
+                'team_credit_balance': balance,
+                'total_lines': total_lines,
+            }), HTTP_BAD_REQUEST
+        ), 'team_pool'
+    except Exception as e:
+        logger.error('[团队扫描] 共享积分池扣费异常 team_id=%s: %s', team_id, e)
+        return 0, (
+            jsonify({'error': '团队共享积分扣费失败，请稍后重试或联系团队管理员'})
+        ), HTTP_BAD_REQUEST
+
+
 @app.route('/api/teams/<int:team_id>/scan', methods=['POST'])
 @login_required
 def api_team_scan(team_id):
-    """团队扫描（使用团队配额）"""
+    """团队扫描（复用个人扫描链路，结果归属到团队 team_id）"""
     user = get_current_user()
     db = get_db()
 
@@ -780,14 +890,76 @@ def api_team_scan(team_id):
     if not _consume_team_quota(team_id, db):
         return jsonify({'code': -1, 'msg': '配额不足'}), HTTP_BAD_REQUEST
 
-    # 此处调用实际扫描逻辑，返回结果时带上team_id
-    # 实际扫描逻辑在各引擎模块中，这里只做配额管理和结果关联
-    # 返回配额信息供前端展示
+    # ── 复用个人扫描链路 ──
+    # 延迟 import 避免模块加载顺序/循环依赖问题
+    from .scan import (
+        _collect_files_from_request, _brain_ids_for_scan_mode,
+        _scan_credits_handling, _do_async_scan, count_total_lines,
+    )
+
+    files_dict = _collect_files_from_request()
+    if not files_dict:
+        # 回收刚才消耗的团队配额（没有代码可扫）
+        _release_team_quota(team_id, db)
+        return jsonify({'code': -1, 'msg': '请上传文件或粘贴代码'}), HTTP_BAD_REQUEST
+
+    # 大文件前置过滤（与个人扫描一致）
+    _max_single = 1024 * 1024
+    for _fn in list(files_dict.keys()):
+        _fc = files_dict[_fn]
+        if isinstance(_fc, str) and len(_fc.encode('utf-8', errors='replace')) > _max_single:
+            del files_dict[_fn]
+    if not files_dict:
+        _release_team_quota(team_id, db)
+        return jsonify({'code': -1, 'msg': '请上传文件或粘贴代码'}), HTTP_BAD_REQUEST
+
+    language = request.form.get('language', 'auto')
+    user_id = session.get('user_id')
+
+    # ── 档位 = 管理员上限 + 成员自选，与子账号本人是否会员无关 ──
+    # 管理员配置的 scan_mode 是「上限」，成员自选不超过上限。
+    # 子账号本人会员/个人积分只影响「个人身份」扫描，不影响团队身份。
+    gov = _governance()
+    req_scan_mode = request.form.get('scan_mode', '')
+    actual_scan_mode = gov.resolve_team_scan_mode(team_id, req_scan_mode)
+    scan_mode = actual_scan_mode
+
+    # 团队无免费档，只有 quick/smart/deep，必然走引擎能力，故 engine_vip 恒 True
+    # （vip 在这里仅代表「引擎可以调 AI/PoC」，档位已经由 scan_mode 单独控制）
+    engine_vip = True
+
+    brain_ids = _brain_ids_for_scan_mode(engine_vip, actual_scan_mode)
+    file_count = len(files_dict)
+    total_lines = count_total_lines(files_dict)
+
+    # ── 团队扫描积分：只扣团队共享积分池，绝不扣个人积分 ──
+    credits_cost, err, paid_from = _team_scan_credits(
+        team_id, engine_vip, user_id, total_lines, file_count, actual_scan_mode
+    )
+    if err:
+        _release_team_quota(team_id, db)
+        return err
+
+    # 提交扫描，结果归属到团队
+    scan_id, err_resp, err_code = _do_async_scan(
+        files_dict, brain_ids, language, engine_vip, user_id,
+        credits_cost, total_lines, scan_mode, 'team', team_id=team_id
+    )
+    if err_resp:
+        _release_team_quota(team_id, db)
+        return err_resp, err_code
+
     return jsonify({
         'code': 0,
-        'msg': '团队扫描',
+        'msg': '团队扫描已提交',
         'data': {
             'team_id': team_id,
+            'scan_id': scan_id,
+            'report_url': url_for('report_page', scan_id=scan_id),
+            'file_count': file_count,
+            'total_lines': total_lines,
+            'credits_spent': credits_cost if user_id else 0,
+            'paid_from': paid_from,
             'quota_used': quota['used_today'] + 1,
             'quota_limit': quota['daily_limit'],
             'quota_remaining': quota['daily_limit'] - quota['used_today'] - 1
@@ -810,16 +982,16 @@ def api_team_scans(team_id):
     offset = (page - 1) * per_page
 
     total = db.execute("""
-        SELECT COUNT(*) as cnt FROM scan_results WHERE team_id = ?
+        SELECT COUNT(*) as cnt FROM scans WHERE team_id = ?
     """, (team_id,)).fetchone()['cnt']
 
     scans = db.execute("""
-        SELECT sr.id, sr.filename, sr.language, sr.score, sr.issue_count,
-               sr.created_at, u.email as scanner_email
-        FROM scan_results sr
-        LEFT JOIN users u ON u.id = sr.user_id
-        WHERE sr.team_id = ?
-        ORDER BY sr.created_at DESC
+        SELECT s.id, s.title, s.language, s.score, s.issue_count,
+               s.created_at, u.email as scanner_email
+        FROM scans s
+        LEFT JOIN users u ON u.id = s.user_id
+        WHERE s.team_id = ?
+        ORDER BY s.created_at DESC
         LIMIT ? OFFSET ?
     """, (team_id, per_page, offset)).fetchall()
 
@@ -860,7 +1032,7 @@ def api_transfer_ownership(team_id):
         SELECT role FROM team_members WHERE team_id = ? AND user_id = ?
     """, (team_id, target_user_id)).fetchone()
     if not target:
-        return jsonify({'code': -1, 'msg': '目标用户不是团队成员'}), HTTP_BAD_REQUEST
+        return jsonify({'code': -1, 'msg': '目标用户不是团队子账号'}), HTTP_BAD_REQUEST
 
     try:
         # 原owner降级为admin

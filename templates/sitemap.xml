@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url><loc>https://xinpect.xingwangzhineng.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-    <url><loc>https://xinpect.xingwangzhineng.com/upload</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+    <url><loc>https://xinpect.xingwangzhineng.com/try</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
     <url><loc>https://xinpect.xingwangzhineng.com/pricing</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://xinpect.xingwangzhineng.com/sample-report</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
     <url><loc>https://xinpect.xingwangzhineng.com/help</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+    <url><loc>https://xinpect.xingwangzhineng.com/api-docs</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
     <url><loc>https://xinpect.xingwangzhineng.com/component-check</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
     <url><loc>https://xinpect.xingwangzhineng.com/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-</urlset>
+    <url><loc>https://xinpect.xingwangzhineng.com/detect</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+{% for v in vulns %}    <url><loc>https://xinpect.xingwangzhineng.com/detect/{{ v }}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    {% endfor %}
+    <url><loc>https://xinpect.xingwangzhineng.com/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    {% for p in posts %}    <url><loc>https://xinpect.xingwangzhineng.com/blog/{{ p.slug }}</loc><lastmod>{{ p.date }}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    {% endfor %}</urlset>

@@ -9,6 +9,7 @@
 </div>
 
 {% if orders %}
+<div class="table-scroll">
 <table class="data-table">
     <thead>
         <tr>
@@ -42,6 +43,7 @@
         </tr>
         {% endfor %}
     </tbody>
+</div>
 </table>
 {% else %}
 <div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">

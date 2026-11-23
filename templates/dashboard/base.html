@@ -1,18 +1,61 @@
 {% extends "base.html" %}
 {% block meta_robots %}noindex, nofollow{% endblock %}
+{# 给 body 打个标记：手机端的侧栏抽屉、工具条只对后台页面生效，营销页不受影响 #}
+{% block body_attr %} class="dashboard-page"{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 {% endblock %}
 
 {% block content %}
 <div class="dashboard">
+    <!-- 手机端工具条：窄屏才出现，点☰ 拉出侧栏抽屉 -->
+    <div class="dashboard-mobilebar">
+        <button type="button" class="dashboard-nav-toggle" id="dashNavToggle"
+                aria-label="打开导航菜单" aria-expanded="false" aria-controls="dashSidebar">
+            <i class="fas fa-bars" aria-hidden="true"></i>
+        </button>
+        <span class="dashboard-mobilebar-title">控制台</span>
+        <span class="dashboard-mobilebar-identity">
+            {% if active_team %}{{ active_team.name }}
+            {%- else %}个人身份{% endif %}
+        </span>
+    </div>
+
     <!-- 侧边栏 -->
-    <aside class="dashboard-sidebar">
+    <aside class="dashboard-sidebar" id="dashSidebar">
         <div class="dashboard-user">
             <div class="dashboard-user-avatar">{{ user_email[0].upper() if user_email else 'U' }}</div>
             <div class="dashboard-user-name">{{ user_email or '用户' }}</div>
             <span class="dashboard-user-role">{% if is_vip %}⚡ 专业会员{% else %}免费用户{% endif %}</span>
         </div>
+
+        {% if my_teams %}
+        <div class="identity-switcher">
+            <div class="identity-label">当前身份</div>
+            <div class="identity-current" onclick="toggleIdentitySwitcher()">
+                <span class="identity-dot {% if active_team %}dot-team{% else %}dot-personal{% endif %}"></span>
+                <span class="identity-name">
+                    {% if active_team %}{{ active_team.name }}（{% if active_team.role == 'owner' %}所有者{% elif active_team.role == 'admin' %}管理员{% else %}子账号{% endif %}）
+                    {% else %}个人身份{% endif %}
+                </span>
+                <span class="identity-caret">▾</span>
+            </div>
+            <div class="identity-dropdown" id="identityDropdown">
+                <div class="identity-option {% if not active_team %}active{% endif %}" onclick="switchIdentity(null, this)">
+                    <span class="identity-dot dot-personal"></span>
+                    <span>个人身份</span>
+                    <span class="identity-desc">用自己的积分扫描</span>
+                </div>
+                {% for t in my_teams %}
+                <div class="identity-option {% if active_team and active_team.team_id == t.team_id %}active{% endif %}" onclick="switchIdentity({{ t.team_id }}, this)">
+                    <span class="identity-dot dot-team"></span>
+                    <span>{{ t.name }}</span>
+                    <span class="identity-desc">{% if t.role == 'owner' %}所有者{% elif t.role == 'admin' %}管理员{% else %}子账号{% endif %} · 用团队积分</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
                 <nav class="dashboard-menu">
             {# ── 核心功能 ── #}
             <a href="{{ url_for('dashboard_page', page='overview') }}" class="dashboard-menu-item {% if page == 'overview' %}active{% endif %}">
@@ -71,7 +114,7 @@
             </div>
 
             {# ── 账户中心 ── #}
-            <div class="menu-group {% if page in ('account','recharge','orders','invoice','recommend','credits') %}menu-group-open{% endif %}">
+            <div class="menu-group {% if page in ('account','recharge','orders','invoice','recommend','credits','team') %}menu-group-open{% endif %}">
                 <div class="menu-group-header" onclick="this.parentElement.classList.toggle('menu-group-open')">
                     <span class="dashboard-menu-icon">💰</span>
                     <span class="menu-group-title">账户中心</span>
@@ -114,12 +157,15 @@
                     <span>帮助与反馈</span>
                 </a>
             </div>
-            <a href="{{ url_for('logout') }}" class="dashboard-menu-item" style="margin-top:8px;color:var(--danger);">
+            <a href="{{ url_for('logout') }}" class="dashboard-menu-item" style="margin-top:8px;color:var(--color-danger-on-dark);">
                 <span class="dashboard-menu-icon">🚪</span>
                 <span>退出登录</span>
             </a>
         </nav>
         </aside>
+
+    <!-- 抽屉拉出时的遮罩，点一下收回 -->
+    <div class="dashboard-backdrop" id="dashBackdrop" aria-hidden="true"></div>
 
     <!-- 主内容 -->
     <div class="dashboard-content">
@@ -151,22 +197,29 @@
     </div>
 </div>
 
+{% if show_onboarding %}
+{# 首登全屏引导。组件本身 825 行、完全自包含（自带 style/script，不依赖外部 CSS 变量），
+   但此前全站零引用、无路由，从上线到现在一次都没被渲染过。
+   挂在这里 = 所有后台页面共用，用户从任何入口进来都能看到。 #}
+{% include "onboarding.html" %}
+{% endif %}
+
 <!-- 公告样式 -->
 <style>
     .ann-type-info {
-        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-        color: #1e3a8a;
-        border: 1px solid #93c5fd;
+        background: linear-gradient(135deg, var(--color-v-dbeafe), var(--color-v-bfdbfe));
+        color: var(--color-v-1e3a8a);
+        border: 1px solid var(--color-v-93c5fd);
     }
     .ann-type-success {
-        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-        color: #14532d;
-        border: 1px solid #86efac;
+        background: linear-gradient(135deg, var(--color-v-dcfce7), var(--color-v-bbf7d0));
+        color: var(--color-success);
+        border: 1px solid var(--color-v-86efac);
     }
     .ann-type-warning {
-        background: linear-gradient(135deg, #DBEAFE, #fde68a);
-        color: #78350f;
-        border: 1px solid #93C5FD;
+        background: linear-gradient(135deg, var(--color-v-dbeafe), var(--color-metal-gold-tint-2));
+        color: var(--color-warning);
+        border: 1px solid var(--color-v-93c5fd);
     }
     .ann-close:hover {
         opacity: 1 !important;
@@ -178,14 +231,14 @@
     display: flex; align-items: center; gap: 8px;
     padding: 10px 16px; border-radius: 8px;
     cursor: pointer; user-select: none;
-    color: rgba(255,255,255,0.6);
+    color: var(--color-metal-gold-bright);
     font-size: 14px; font-weight: 500;
     transition: background .2s;
 }
-.menu-group-header:hover { background: rgba(255,255,255,.08); }
+.menu-group-header:hover { background: var(--color-surface-hover); }
 .menu-group-title { flex: 1; }
 .menu-group-arrow {
-    font-size: 10px; transition: transform .25s; color: rgba(255,255,255,0.4);
+    font-size: 10px; transition: transform .25s; color: var(--color-metal-gold-bright);
 }
 .menu-group-open .menu-group-arrow { transform: rotate(90deg); }
 .menu-group-items {
@@ -199,11 +252,101 @@
 /* === Content breathing room === */
 
 .page-desc {
-    font-size: 13px; color: #6B7B94; margin: 0 0 20px 0; line-height: 1.7;
+    font-size: 13px; color: var(--color-text-secondary); margin: 0 0 20px 0; line-height: 1.7;
 }
+
+/* === Identity Switcher ===
+   侧栏是藏青底，这里的字必须按「深底」配色。
+   原来 .identity-current 是白字（rgba 255,.9）压浅底 surface-hover，
+   实际渲染出来是一块空白的白条，全后台所有页面都看不见自己当前是什么身份。 */
+.identity-switcher { position: relative; padding: 0 12px 10px; border-bottom: 1px solid var(--color-border-subtle); }
+.identity-label { font-size: 11px; color: var(--color-metal-silver-bright); margin-bottom: 6px; padding: 0 4px; }
+.identity-current {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: var(--color-v-fbfeccfcf); border-radius: 8px; cursor: pointer;
+    color: var(--color-text-inverse); font-size: 13px; user-select: none;
+}
+.identity-current:hover { background: var(--color-v-fe65a3569); }
+.identity-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.identity-caret { font-size: 10px; color: var(--color-metal-silver-bright); transition: transform .2s; }
+.identity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-personal { background: var(--color-v-60a5fa); }
+.dot-team { background: var(--color-metal-gold); }
+.identity-dropdown {
+    display: none; position: absolute; left: 12px; right: 12px; top: 100%; z-index: 100;
+    background: var(--color-bg-primary); border-radius: 10px; box-shadow: 0 8px 24px var(--color-v-fa59544b1);
+    padding: 6px; margin-top: 4px; overflow: hidden;
+}
+.identity-dropdown.open { display: block; }
+.identity-option {
+    display: flex; align-items: center; gap: 8px; padding: 9px 10px;
+    border-radius: 7px; cursor: pointer; color: var(--color-text-primary); font-size: 13px;
+}
+.identity-option:hover { background: var(--color-surface-inset); }
+.identity-option.active { background: var(--color-surface-inset); }
+.identity-desc { margin-left: auto; font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
 </style>
 
 <script>
+// === 手机端侧栏抽屉 ===
+// 窄屏时侧栏不再整块压在正文上面，而是收到屏幕外，点☰拉出来。
+// 菜单项都是跳转链接，点完页面重载，抽屉自然复位，不需要额外记状态。
+(function () {
+    var root = document.querySelector('.dashboard');
+    var btn = document.getElementById('dashNavToggle');
+    var mask = document.getElementById('dashBackdrop');
+    if (!root || !btn || !mask) return;
+
+    function setOpen(open) {
+        root.classList.toggle('is-nav-open', open);
+        document.body.classList.toggle('nav-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.setAttribute('aria-label', open ? '收起导航菜单' : '打开导航菜单');
+    }
+
+    btn.addEventListener('click', function () {
+        setOpen(!root.classList.contains('is-nav-open'));
+    });
+    mask.addEventListener('click', function () { setOpen(false); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) setOpen(false);
+    });
+    // 转横屏/拉宽到桌面尺寸时复位，避免抽屉状态残留在宽屏
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 900) setOpen(false);
+    });
+})();
+</script>
+
+<script>
+// === 身份切换 ===
+function toggleIdentitySwitcher() {
+    var dd = document.getElementById('identityDropdown');
+    if (dd) dd.classList.toggle('open');
+}
+function switchIdentity(teamId, el) {
+    var body = teamId === null ? JSON.stringify({ team_id: null }) : JSON.stringify({ team_id: teamId });
+    fetch('/api/identity/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body
+    }).then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.code === 0) {
+            window.location.reload();
+        } else {
+            alert(data.msg || '切换失败');
+        }
+      }).catch(function() { alert('网络错误，请重试'); });
+}
+document.addEventListener('click', function(e) {
+    var sw = document.querySelector('.identity-switcher');
+    var dd = document.getElementById('identityDropdown');
+    if (sw && dd && !sw.contains(e.target)) {
+        dd.classList.remove('open');
+    }
+});
+
 function closeAnnouncement(id, btn) {
     var banner = btn.closest('.announcement-banner');
     if (!banner) return;
@@ -226,34 +369,6 @@ function closeAnnouncement(id, btn) {
     }, 100);
 }
 </script>
-
-<!-- 推荐活动弹窗 -->
-<div class="referral-modal-overlay" id="referral-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;justify-content:center;align-items:center;">
-    <div class="referral-modal" style="background:#fff;border-radius:20px;max-width:420px;width:90%;padding:0;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2);">
-        <button onclick="closeReferralModal()" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;background:rgba(255,255,255,.8);border-radius:50%;cursor:pointer;font-size:18px;color:#6b7280;z-index:2;">&times;</button>
-        <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);padding:32px 24px 24px;text-align:center;color:#fff;">
-            <div style="font-size:48px;margin-bottom:8px;">&#127873;</div>
-            <div style="font-size:22px;font-weight:700;margin-bottom:6px;">推荐好友，赚积分！</div>
-            <div style="font-size:13px;opacity:.9;">分享你的专属推荐码，好友首充你得积分</div>
-        </div>
-        <div style="padding:24px;">
-            <div style="background:#EFF6FF;border:1px dashed #93C5FD;border-radius:12px;padding:16px;text-align:center;margin-bottom:16px;">
-                <div style="font-size:12px;color:#78350f;margin-bottom:6px;">你的专属推荐码</div>
-                <div style="font-family:monospace;font-size:28px;font-weight:700;letter-spacing:4px;color:#92400e;" id="modal-referral-code">--</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-                <button onclick="copyModalCode()" style="padding:10px 12px;background:#f59e0b;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;">复制推荐码</button>
-                <button onclick="copyModalLink()" style="padding:10px 12px;background:#fff;color:#f59e0b;border:1px solid #f59e0b;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;">复制链接</button>
-                <button onclick="copyModalPitch()" style="grid-column:span 2;padding:10px 12px;background:#1e40af;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;">&#128231; 复制推荐语</button>
-            </div>
-            <div style="font-size:12px;color:#6b7280;line-height:1.6;background:#f9fafb;border-radius:8px;padding:10px 12px;">
-                <strong style="color:#374151;">奖励规则：</strong><br>
-                &#127873; 好友通过你的链接注册 → 好友得 50 积分<br>
-                &#9889; 好友首次充值 → 你得积分（月卡100/季卡300/半年卡800/年卡2000）
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 // 推荐活动弹窗逻辑
@@ -340,7 +455,7 @@ function closeAnnouncement(id, btn) {
 
     function showToast(msg) {
         var toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+        toast.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:var(--color-success);color:var(--color-text-inverse);padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15);';
         toast.textContent = msg;
         document.body.appendChild(toast);
         setTimeout(function() { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; }, 2000);
@@ -365,10 +480,10 @@ function closeAnnouncement(id, btn) {
                 });
             } catch(e) {}
         }
-        if (!closed) {
-            // 延迟一点弹出，体验更好
-            setTimeout(showReferralModal, 800);
-        }
+        // 后台不再自动弹推广：全站只有 templates/base.html 那一个推荐弹窗。
+        // 这里原来也有一个同 id="referral-modal" 的副本，两个 ID 重复导致
+        // getElementById 永远只拿到第一个，关也关不掉、控制也控制不了。
+        // 新用户首登优先看引导，扫过一次之后 base.html 那套会正常弹。
     });
 
     // 点击遮罩关闭

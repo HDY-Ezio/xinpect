@@ -1,0 +1,102 @@
+{% extends "admin/base.html" %}
+{% block title %}发票管理 - 煋鉴管理后台{% endblock %}
+{% block content %}
+<div class="header">
+    <h1>发票管理</h1>
+</div>
+
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>状态：</label>
+        <select class="filter-select" id="status-filter" onchange="loadInvoices()">
+            <option value="">全部</option>
+            <option value="pending">待处理</option>
+            <option value="completed">已开具</option>
+            <option value="rejected">已拒绝</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>起始日期：</label>
+        <input type="date" class="filter-date" id="start-date" onchange="loadInvoices()">
+    </div>
+    <div class="filter-group">
+        <label>截止日期：</label>
+        <input type="date" class="filter-date" id="end-date" onchange="loadInvoices()">
+    </div>
+    <button class="btn btn-primary" onclick="loadInvoices()">筛选</button>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户</th>
+                <th>公司抬头</th>
+                <th>税号</th>
+                <th>金额</th>
+                <th>邮箱</th>
+                <th>申请时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="invoices-table"></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+
+async function loadInvoices(page = 1) {
+    currentPage = page;
+    const params = new URLSearchParams({page});
+    const status = document.getElementById("status-filter").value;
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    if (status) params.set("status", status);
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+
+    const res = await fetch(`/api/admin/invoices?${params}`);
+    const data = await res.json();
+
+    const statusMap = {pending: ['待处理','badge-warning'], completed: ['已开具','badge-success'], rejected: ['已拒绝','badge-danger']};
+    const tbody = document.getElementById("invoices-table");
+    tbody.innerHTML = data.invoices.map(i => {
+        const st = statusMap[i.status] || [i.status, ''];
+        return `<tr>
+            <td>${i.id}</td>
+            <td>${i.user_email || "用户#" + i.user_id}</td>
+            <td>${i.company_name}</td>
+            <td><code>${i.tax_number}</code></td>
+            <td>¥${i.amount}</td>
+            <td>${i.email}</td>
+            <td>${i.created_at || "-"}</td>
+            <td><span class="badge ${st[1]}">${st[0]}</span></td>
+            <td>
+                ${i.status === "pending" ? `<button class="btn btn-success" onclick="completeInvoice(${i.id})">标记已开具</button>` : ""}
+            </td>
+        </tr>`;
+    }).join("");
+
+    const totalPages = Math.ceil(data.total / data.per_page);
+    const pagination = document.getElementById("pagination");
+    pagination.innerHTML = "";
+    for (let i = 1; i <= totalPages; i++) {
+        pagination.innerHTML += `<button class="${i === page ? 'active' : ''}" onclick="loadInvoices(${i})">${i}</button>`;
+    }
+}
+
+async function completeInvoice(id) {
+    if (!confirm("确定标记为已开具？")) return;
+    await fetch(`/api/admin/invoices/${id}/complete`, {method: "POST"});
+    loadInvoices(currentPage);
+}
+
+loadInvoices();
+</script>
+{% endblock %}

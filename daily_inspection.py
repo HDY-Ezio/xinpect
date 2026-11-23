@@ -108,7 +108,7 @@ def check_engine_syntax():
 # ===== 4. xss_vectors.py 语法验证 =====
 def check_xss_syntax():
     section("4. xss_vectors.py 语法验证")
-    fp = f"{ENGINE_DIR}/b2_security_html/xss_vectors.py"
+    fp = f"{ENGINE_DIR}/e2_security_html/xss_vectors.py"
     if not os.path.exists(fp):
         warn("xss_vectors.py 文件不存在")
         return
@@ -124,7 +124,7 @@ def check_xss_syntax():
 # ===== 5. SSRF constants 完整性 =====
 def check_ssrf_constants():
     section("5. SSRF constants.py 完整性检查")
-    fp = f"{ENGINE_DIR}/b3_semantic/checks/security/_ssrf_sub/constants.py"
+    fp = f"{ENGINE_DIR}/e1_syntax/checks/security/_ssrf_sub/constants.py"
     if not os.path.exists(fp):
         check("constants.py 存在", False)
         return
@@ -191,16 +191,35 @@ def check_refund_logic():
 # ===== 8. 启动日志WARNING检查 =====
 def check_startup_warnings():
     section("8. 启动日志WARNING检查（仅最近启动）")
-    # 只看最近一次启动后的日志
-    rc, out, _ = run("journalctl -u xinpect-scanner-green --no-pager -b -n 50")
-    if out:
-        lines = [l for l in out.split("\n") if any(kw in l.upper() for kw in ("WARNING", "ERROR", "TRACEBACK"))][:10]
-        if lines:
-            warn("最近启动日志存在告警", f"({len(lines)}条)")
-            for line in lines[:3]:
-                results["details"].append(f"    {line[:120]}")
-        else:
-            check("最近启动日志无WARNING/ERROR", True)
+    # 修复（2026-11-02）：原实现用 `-n 50` 取「最近 50 行」日志，与「启动日志」名不副实——
+    # 扫描频繁时最近 50 行几乎必然包含运行期 WARNING（如正常的文件类型跳过），导致每日质检
+    # 持续误报。改为定位最后一次 `Started ...service` 标记，只检查其后的启动阶段日志（前 60 行）。
+    rc, out, _ = run("journalctl -u xinpect-scanner-green --no-pager -b")
+    if not out:
+        check("最近启动日志无WARNING/ERROR", True)
+        return
+
+    # 找最后一次启动标记
+    marker = "Started xinpect-scanner-green.service"
+    idx = out.rfind(marker)
+    if idx < 0:
+        # 找不到启动标记（服务由其他方式拉起），退回最近 50 行
+        startup_seg = "\n".join(out.split("\n")[-50:])
+    else:
+        startup_seg = "\n".join(out[idx:].split("\n")[:60])
+
+    # 已知的预期内跳过状态（.properties/.md 等不支持类型、空文件）属于正常降级，不算告警
+    IGNORE = ("unsupported_extension", "按预期跳过")
+    lines = [
+        l for l in startup_seg.split("\n")
+        if any(kw in l.upper() for kw in ("WARNING", "ERROR", "TRACEBACK"))
+        and not any(kw in l for kw in IGNORE)
+    ][:10]
+
+    if lines:
+        warn("最近启动日志存在告警", f"({len(lines)}条)")
+        for line in lines[:3]:
+            results["details"].append(f"    {line[:120]}")
     else:
         check("最近启动日志无WARNING/ERROR", True)
 

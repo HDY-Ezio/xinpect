@@ -266,7 +266,7 @@ def admin_create_license():
         )
         db.commit()
     except Exception as e:
-        logger.error('Create license error: %s', e)
+        logger.exception('Create license error: %s', e)
         return jsonify({'error': '创建失败', 'detail': str(e)}), 500
 
     return jsonify({

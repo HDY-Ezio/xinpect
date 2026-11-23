@@ -10,7 +10,7 @@
 <!-- 配额概览卡片组 -->
 <div class="usage-overview">
     <div class="usage-card">
-        <div class="usage-card-icon" style="background: rgba(26,58,92,0.1); color: #1A3A5C;">
+        <div class="usage-card-icon" style="background: var(--color-metal-gold-tint-2); color: var(--color-v-1a3a5c);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
             </svg>
@@ -22,7 +22,7 @@
         </div>
     </div>
     <div class="usage-card">
-        <div class="usage-card-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">
+        <div class="usage-card-icon" style="background: var(--color-v-fb0cabdd7); color: var(--color-success);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
             </svg>
@@ -34,7 +34,7 @@
         </div>
     </div>
     <div class="usage-card">
-        <div class="usage-card-icon" style="background: rgba(99,102,241,0.1); color: #6366f1;">
+        <div class="usage-card-icon" style="background: var(--color-v-fa5a6f8d9); color: var(--color-v-6366f1);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
             </svg>
@@ -46,7 +46,7 @@
         </div>
     </div>
     <div class="usage-card">
-        <div class="usage-card-icon" style="background: rgba(37,99,235,0.1); color: #f59e0b;">
+        <div class="usage-card-icon" style="background: var(--color-v-ff28a1764); color: var(--color-warning);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -125,8 +125,8 @@
     margin-bottom: 24px;
 }
 .usage-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--card-bg, var(--color-bg-primary));
+    border: 1px solid var(--border-color, var(--color-v-e5e7eb));
     border-radius: 12px;
     padding: 20px;
     display: flex;
@@ -148,22 +148,22 @@
 }
 .usage-card-label {
     font-size: 12px;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
 }
 .usage-card-value {
     font-size: 24px;
     font-weight: 700;
-    color: var(--text-primary, #1f2937);
+    color: var(--text-primary, var(--color-v-1f2937));
 }
 .usage-card-sub {
     font-size: 12px;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
 }
 
 /* 主进度条 */
 .quota-main-bar {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--card-bg, var(--color-bg-primary));
+    border: 1px solid var(--border-color, var(--color-v-e5e7eb));
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 24px;
@@ -177,7 +177,7 @@
 }
 .quota-main-track {
     height: 12px;
-    background: var(--border-color, #e5e7eb);
+    background: var(--border-color, var(--color-v-e5e7eb));
     border-radius: 6px;
     overflow: hidden;
     margin-bottom: 8px;
@@ -185,20 +185,20 @@
 .quota-main-fill {
     height: 100%;
     border-radius: 6px;
-    transition: width 0.8s ease;
-    background: linear-gradient(90deg, #10b981, #34d399);
+    transition: none;
+    background: linear-gradient(90deg, var(--color-success), var(--color-success-on-dark));
 }
 .quota-main-fill.warning {
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    background: linear-gradient(90deg, var(--color-metal-gold-solid), var(--color-metal-gold-bright));
 }
 .quota-main-fill.danger {
-    background: linear-gradient(90deg, #ef4444, #f87171);
+    background: linear-gradient(90deg, var(--color-v-ef4444), var(--color-v-f87171));
 }
 .quota-main-footer {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
 }
 
 /* 图表 */
@@ -209,8 +209,8 @@
     margin-bottom: 24px;
 }
 .usage-chart-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--card-bg, var(--color-bg-primary));
+    border: 1px solid var(--border-color, var(--color-v-e5e7eb));
     border-radius: 12px;
     padding: 20px;
 }
@@ -218,13 +218,13 @@
     font-size: 14px;
     font-weight: 600;
     margin-bottom: 16px;
-    color: var(--text-primary, #1f2937);
+    color: var(--text-primary, var(--color-v-1f2937));
 }
 
 /* 限流记录表 */
 .usage-table-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--card-bg, var(--color-bg-primary));
+    border: 1px solid var(--border-color, var(--color-v-e5e7eb));
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 24px;
@@ -242,18 +242,18 @@
 .rate-limit-table td {
     padding: 10px 12px;
     text-align: left;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color, var(--color-v-e5e7eb));
     font-size: 13px;
 }
 .rate-limit-table th {
     font-weight: 600;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
     font-size: 12px;
 }
 .empty-state {
     text-align: center;
     padding: 30px;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
     font-size: 14px;
 }
 .badge-warning-sm {
@@ -261,8 +261,8 @@
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 11px;
-    background: rgba(37,99,235, 0.1);
-    color: #d97706;
+    background: var(--color-v-ff28a1764);
+    color: var(--color-warning);
 }
 
 .page-header {
@@ -278,9 +278,9 @@
 <script>
 (function() {
     const ORANGE = '#1A3A5C';
-    const GREEN = '#10b981';
+    const GREEN = xpColor('--color-success');
     const BLUE = '#6366f1';
-    const YELLOW = '#f59e0b';
+    const YELLOW = xpColor('--color-sev-medium');
     
     let hourlyChart, weeklyChart, endpointChart, monthlyChart;
     
@@ -350,7 +350,7 @@
         const ctx = document.getElementById('endpointChart').getContext('2d');
         const labels = data.map(d => d.endpoint.replace('/api/', ''));
         const values = data.map(d => d.count);
-        const colors = [ORANGE, GREEN, BLUE, YELLOW, '#ec4899', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#64748b'];
+        const colors = [ORANGE, GREEN, BLUE, YELLOW, '#ec4899', '#8b5cf6', '#06b6d4', '#84cc16', xpColor('--color-sev-high'), '#64748b'];
         
         if (endpointChart) endpointChart.destroy();
         endpointChart = new Chart(ctx, {

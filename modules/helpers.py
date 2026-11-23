@@ -1,4 +1,5 @@
 """Xinpect - Auth decorators, announcements, HTTP helpers"""
+import sqlite3
 from datetime import datetime, timedelta
 import secrets
 from functools import wraps
@@ -11,11 +12,20 @@ from .db import get_db
 # --- Auth decorators ---
 
 def login_required(f):
-    """登录装饰器"""
+    """登录装饰器
+
+    不仅校验 session 里有 user_id，还校验该用户真实存在且 session 版本匹配。
+    用户被删除或 session_version 过期时（get_current_user 返回 None），
+    清理 session 并重定向登录，避免下游路由 user['id'] 抛 TypeError 500。
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('user_id'):
             flash('请先登录', 'warning')
+            return redirect(url_for('login', next=request.path))
+        if get_current_user() is None:
+            session.clear()
+            flash('登录已失效，请重新登录', 'warning')
             return redirect(url_for('login', next=request.path))
         return f(*args, **kwargs)
     return decorated_function
@@ -154,7 +164,7 @@ def send_alert_email(subject, body):
     msg["From"] = SMTP_USER
     msg["To"] = ADMIN_EMAIL
     
-    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as server:  # 2026-10-23 修复：加超时防SMTP挂死
         server.login(SMTP_USER, SMTP_PASS)
         server.send_message(msg)
     return True

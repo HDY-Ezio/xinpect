@@ -52,7 +52,7 @@ def api_get(path):
     """GET请求"""
     url = f"{BASE_URL}{path}"
     req = urllib_request.Request(url, method="GET")
-    req.add_header("Authorization", f"Bearer {API_KEY}")
+    req.add_header("X-API-Key", API_KEY)  # 2026-10-23 修复：扫描器只认 X-API-Key 头
     with urllib_request.urlopen(req, timeout=TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -67,7 +67,7 @@ def api_scan(code, language="python"):
     }).encode("utf-8")
     req = urllib_request.Request(url, data=payload, method="POST")
     req.add_header("Content-Type", "application/json")
-    req.add_header("Authorization", f"Bearer {API_KEY}")
+    req.add_header("X-API-Key", API_KEY)  # 2026-10-23 修复：扫描器只认 X-API-Key 头
     with urllib_request.urlopen(req, timeout=TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8"))
 

@@ -1,198 +1,345 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的团队 - 煋鉴</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f7fa; color: #333; }
-        .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
-        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
-        .page-header h1 { font-size: 24px; font-weight: 600; color: #1a1a1a; }
-        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background: #1A3A5C; color: #fff; }
-        .btn-primary:hover { background: #1E40AF; }
-        .btn-secondary { background: #fff; color: #1A3A5C; border: 1px solid #1A3A5C; }
-        .btn-secondary:hover { background: #EFF6FF; }
-        .btn-sm { padding: 6px 14px; font-size: 13px; }
+{% extends "dashboard/base.html" %}
 
-        /* 邀请通知 */
-        .invite-banner { background: #EFF6FF; border: 1px solid #FFD4C0; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; }
-        .invite-banner h3 { font-size: 15px; color: #1A3A5C; margin-bottom: 8px; }
-        .invite-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #FFE8DD; }
-        .invite-item:last-child { border-bottom: none; }
-        .invite-item .team-name { font-weight: 500; color: #333; }
-        .invite-actions { display: flex; gap: 8px; }
+{% block title %}我的团队 - 会员中心 - 煋鉴 Xinpect{% endblock %}
 
-        /* 团队卡片 */
-        .teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-        .team-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: all 0.2s; cursor: pointer; }
-        .team-card:hover { box-shadow: 0 4px 16px rgba(26,58,92,0.12); transform: translateY(-2px); }
-        .team-card .team-name { font-size: 18px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
-        .team-card .team-desc { font-size: 13px; color: #888; margin-bottom: 16px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .team-card .team-meta { display: flex; gap: 16px; font-size: 13px; color: #666; }
-        .team-card .team-meta span { display: flex; align-items: center; gap: 4px; }
-        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-        .role-owner { background: #EFF6FF; color: #1A3A5C; }
-        .role-admin { background: #F0F5FF; color: #4A7AFF; }
-        .role-member { background: #F0FAF0; color: #36B37E; }
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/team.css') }}?v=20261109.1">
+<style>
+    .team-page .teams-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: var(--space-4);
+    }
+    .team-page .team-card {
+        display: block;
+        background: var(--color-surface-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-6);
+        box-shadow: var(--shadow-card);
+        text-decoration: none;
+        color: inherit;
+        transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out), border-color .2s var(--ease-out);
+    }
+    .team-page .team-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-card-hover);
+        border-color: var(--color-border-strong);
+        text-decoration: none;
+    }
+    .team-page .team-card .name { font-size: var(--text-lg); font-weight: 600; }
+    .team-page .team-card .desc {
+        font-size: 13px;
+        color: var(--color-text-secondary);
+        margin: 6px 0 var(--space-4);
+        line-height: 1.55;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .team-page .team-card .meta {
+        display: flex;
+        gap: var(--space-5);
+        font-size: 13px;
+        color: var(--color-text-muted);
+    }
+    .team-page .team-card .meta span { display: flex; align-items: center; gap: 4px; }
+    .team-page .card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 2px;
+    }
 
-        /* 空状态 */
-        .empty-state { text-align: center; padding: 60px 20px; }
-        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
-        .empty-state h3 { font-size: 18px; color: #666; margin-bottom: 8px; }
-        .empty-state p { font-size: 14px; color: #999; margin-bottom: 24px; }
+    /* 套餐选择：一码一款，选中态用边色标出来，不靠 JS 抢点击 */
+    .team-page .plans { display: flex; gap: 12px; flex-wrap: wrap; }
+    .team-page .plan-option {
+        flex: 1;
+        min-width: 190px;
+        display: block;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: 14px;
+        cursor: pointer;
+    }
+    .team-page .plan-option:has(input:checked) {
+        border-color: var(--color-accent-steel);
+        box-shadow: 0 0 0 1px var(--color-accent-steel);
+    }
+    .team-page .plan-option .plan-name { font-weight: 600; color: var(--color-text-primary); }
+    .team-page .plan-option .plan-price {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--color-accent-blue);
+        margin: 6px 0;
+    }
+    .team-page .plan-option .plan-price small {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--color-text-muted);
+    }
+    .team-page .plan-option .plan-desc { font-size: 12px; color: var(--color-text-secondary); }
+    .team-page .qr-box {
+        display: none;
+        text-align: center;
+        margin-top: 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--color-border-subtle);
+    }
+    .team-page .qr-box img {
+        width: 220px;
+        height: 220px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+    }
+</style>
+{% endblock %}
 
-        /* 弹窗 */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: #fff; border-radius: 16px; padding: 32px; width: 90%; max-width: 440px; }
-        .modal h2 { font-size: 20px; margin-bottom: 20px; color: #1a1a1a; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 14px; color: #666; margin-bottom: 6px; font-weight: 500; }
-        .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border 0.2s; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #1A3A5C; }
-        .form-group textarea { resize: vertical; min-height: 80px; }
-        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
-
-        /* 响应式 */
-        @media (max-width: 640px) {
-            .teams-grid { grid-template-columns: 1fr; }
-            .page-header { flex-direction: column; align-items: flex-start; }
-            .container { padding: 16px 12px; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="page-header">
+{% block dashboard_content %}
+<div class="team-page">
+    <div class="hd">
+        <div>
             <h1>我的团队</h1>
-            <button class="btn btn-primary" onclick="openCreateModal()">+ 创建团队</button>
+            <p>一个团队共用一份积分和一套扫描标准。团队扫描从共享积分池扣费，不占成员自己的积分。</p>
         </div>
+        <div class="hd-actions">
+            <button class="btn btn-primary" onclick="openPurchaseModal()">+ 创建团队</button>
+        </div>
+    </div>
 
-        <!-- 待处理邀请 -->
-        {% if pending_invites %}
-        <div class="invite-banner">
-            <h3>待处理邀请 ({{ pending_count }})</h3>
-            {% for inv in pending_invites %}
-            <div class="invite-item">
-                <div>
-                    <span class="team-name">{{ inv.team_name }}</span>
-                    <span style="font-size:12px;color:#999;margin-left:8px;">邀请你加入</span>
-                </div>
-                <div class="invite-actions">
-                    <button class="btn btn-primary btn-sm" onclick="acceptInvite({{ inv.id }})">接受</button>
-                    <button class="btn btn-secondary btn-sm" onclick="rejectInvite({{ inv.id }})">拒绝</button>
-                </div>
+    {% if pending_invites %}
+    <div class="panel-card">
+        <h2>
+            待处理邀请
+            <span class="tag tag-warning">{{ pending_count }} 条</span>
+        </h2>
+        {% for inv in pending_invites %}
+        <div class="row">
+            <div class="row-main">
+                <span class="row-title">{{ inv.team_name }}</span>
+                <span class="row-sub">邀请你加入</span>
             </div>
-            {% endfor %}
+            <div class="hd-actions">
+                <button class="btn btn-primary btn-sm" onclick="acceptInvite({{ inv.id }})">接受</button>
+                <button class="btn btn-secondary btn-sm" onclick="rejectInvite({{ inv.id }})">拒绝</button>
+            </div>
         </div>
-        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
 
-        <!-- 团队列表 -->
-        {% if teams %}
-        <div class="teams-grid">
-            {% for team in teams %}
-            <div class="team-card" onclick="window.location='/dashboard/team/{{ team.id }}'">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                    <div class="team-name">{{ team.name }}</div>
-                    <span class="role-badge role-{{ team.role }}">
-                        {% if team.role == 'owner' %}所有者{% elif team.role == 'admin' %}管理员{% else %}成员{% endif %}
-                    </span>
-                </div>
-                <div class="team-desc">{{ team.description or '暂无描述' }}</div>
-                <div class="team-meta">
-                    <span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        {{ team.member_count }} 人
-                    </span>
-                    <span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        {{ team.created_at[:10] if team.created_at else '' }}
-                    </span>
-                </div>
+    {% if teams %}
+    <div class="teams-grid">
+        {% for team in teams %}
+        <a class="team-card" href="/dashboard/team/{{ team.id }}">
+            <div class="card-top">
+                <span class="name">{{ team.name }}</span>
+                <span class="tag tag-{{ team.role }}">
+                    {% if team.role == 'owner' %}所有者{% elif team.role == 'admin' %}管理员{% else %}子账号{% endif %}
+                </span>
             </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <div class="icon">👥</div>
+            <div class="desc">{{ team.description or '暂无描述' }}</div>
+            <div class="meta">
+                <span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    {{ team.member_count }} 人
+                </span>
+                <span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    {{ team.created_at[:10] if team.created_at else '' }}
+                </span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="panel-card">
+        <div class="empty">
+            <div class="ico" aria-hidden="true">👥</div>
             <h3>还没有团队</h3>
-            <p>创建一个团队，邀请成员一起共享扫描结果和配额</p>
-            <button class="btn btn-primary" onclick="openCreateModal()">创建第一个团队</button>
+            <p>购买团队版会自动建好团队、你成为管理员，再邀请成员一起用同一套扫描标准和共享积分。</p>
+            <button class="btn btn-primary" onclick="openPurchaseModal()">创建第一个团队</button>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 
-    <!-- 创建团队弹窗 -->
-    <div class="modal-overlay" id="createModal">
-        <div class="modal">
+    <!-- 创建团队弹窗（统一为购买团队版：付费自动建团 + 设管理员） -->
+    <div class="modal-overlay" id="purchaseModal">
+        <div class="modal" style="max-width:520px;">
             <h2>创建团队</h2>
-            <div class="form-group">
-                <label>团队名称</label>
-                <input type="text" id="teamName" placeholder="例如：煋旺技术团队" maxlength="100">
+            <p class="note">选择套餐并支付，支付成功后自动创建团队、你自动成为管理员（所有者）。团队名默认「我的团队」，之后可在团队设置里修改。</p>
+
+            <div class="field" id="planSection">
+                <label>选择套餐</label>
+                <div class="plans">
+                    {% for pid, plan in team_plans.items() %}
+                    <label class="plan-option" id="plan-card-{{ pid }}">
+                        <input type="radio" name="purchasePlan" value="{{ pid }}" {% if pid == 'team_basic' %}checked{% endif %} style="margin-right:6px;">
+                        <span class="plan-name">{{ plan.name }}</span>
+                        <div class="plan-price">¥{{ plan.amount }}<small>/月</small></div>
+                        <div class="plan-desc">含 {{ plan.credits }} 共享积分 · {{ plan.member_limit }} 席位</div>
+                    </label>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="form-group">
-                <label>团队描述（可选）</label>
-                <textarea id="teamDesc" placeholder="简单描述团队用途" maxlength="500"></textarea>
+
+            <div class="qr-box" id="purchaseQr">
+                <p id="purchaseQrPlan" style="font-size:14px;font-weight:600;color:var(--color-accent-blue);margin-bottom:10px;"></p>
+                <p id="purchaseQrTip" style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px;">请用微信扫一扫完成支付</p>
+                <img id="purchaseQrImg" src="" alt="支付二维码">
+                <p id="purchaseQrSub" style="font-size:12px;color:var(--color-text-muted);margin-top:8px;">二维码 2 小时内有效，支付完成后团队将自动创建</p>
             </div>
+
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeCreateModal()">取消</button>
-                <button class="btn btn-primary" onclick="createTeam()">创建</button>
+                <button class="btn btn-secondary" onclick="closePurchaseModal()">取消</button>
+                <button class="btn btn-primary" onclick="purchaseTeam()">去支付</button>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        function openCreateModal() { document.getElementById('createModal').classList.add('active'); }
-        function closeCreateModal() { document.getElementById('createModal').classList.remove('active'); }
+{% block extra_js %}
+<script>
+    function openPurchaseModal() {
+        // 每次打开都重置为「未出码」状态：解锁套餐、清空二维码、按钮恢复
+        resetPurchase();
+        document.getElementById('purchaseModal').classList.add('active');
+    }
+    function closePurchaseModal() {
+        document.getElementById('purchaseModal').classList.remove('active');
+    }
 
-        async function createTeam() {
-            const name = document.getElementById('teamName').value.trim();
-            const description = document.getElementById('teamDesc').value.trim();
-            if (!name || name.length < 2) { alert('团队名称至少2个字符'); return; }
-
-            try {
-                const resp = await fetch('/api/teams', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, description })
-                });
-                const data = await resp.json();
-                if (data.code === 0) {
-                    window.location = '/dashboard/team/' + data.data.team_id;
-                } else {
-                    alert(data.msg || '创建失败');
-                }
-            } catch (e) {
-                alert('网络错误，请重试');
-            }
-        }
-
-        async function acceptInvite(invId) {
-            if (!confirm('确认加入该团队？')) return;
-            try {
-                const resp = await fetch(`/api/teams/invitations/${invId}/accept`, { method: 'POST' });
-                const data = await resp.json();
-                if (data.code === 0) { location.reload(); }
-                else { alert(data.msg); }
-            } catch (e) { alert('操作失败'); }
-        }
-
-        async function rejectInvite(invId) {
-            try {
-                const resp = await fetch(`/api/teams/invitations/${invId}/reject`, { method: 'POST' });
-                const data = await resp.json();
-                if (data.code === 0) { location.reload(); }
-                else { alert(data.msg); }
-            } catch (e) { alert('操作失败'); }
-        }
-
-        // 点击弹窗外部关闭
-        document.getElementById('createModal').addEventListener('click', function(e) {
-            if (e.target === this) closeCreateModal();
+    function resetPurchase() {
+        document.querySelectorAll('input[name="purchasePlan"]').forEach(function (r) { r.disabled = false; });
+        document.querySelectorAll('label[id^="plan-card-"]').forEach(function (c) {
+            c.style.opacity = '1';
+            c.style.cursor = 'pointer';
+            c.style.pointerEvents = 'auto';
         });
-    </script>
-</body>
-</html>
+        var section = document.getElementById('planSection');
+        if (section) section.style.display = '';
+        var box = document.getElementById('purchaseQr');
+        if (box) box.style.display = 'none';
+        var img = document.getElementById('purchaseQrImg');
+        if (img) img.src = '';
+        var planText = document.getElementById('purchaseQrPlan');
+        if (planText) planText.textContent = '';
+        var tip = document.getElementById('purchaseQrTip');
+        if (tip) {
+            tip.textContent = '请用微信扫一扫完成支付';
+            tip.style.color = xpColor('--color-text-secondary');
+        }
+        var sub = document.getElementById('purchaseQrSub');
+        if (sub) sub.textContent = '二维码 2 小时内有效，支付完成后团队将自动创建';
+        var btn = document.querySelector('#purchaseModal .btn-primary');
+        if (btn) { btn.textContent = '去支付'; btn.setAttribute('onclick', 'purchaseTeam()'); }
+    }
+
+    async function acceptInvite(invId) {
+        if (!confirm('确认加入该团队？')) return;
+        try {
+            var resp = await fetch('/api/teams/invitations/' + invId + '/accept', { method: 'POST' });
+            var data = await resp.json();
+            if (data.code === 0) { location.reload(); }
+            else { alert(data.msg); }
+        } catch (e) { alert('操作失败'); }
+    }
+
+    async function rejectInvite(invId) {
+        try {
+            var resp = await fetch('/api/teams/invitations/' + invId + '/reject', { method: 'POST' });
+            var data = await resp.json();
+            if (data.code === 0) { location.reload(); }
+            else { alert(data.msg); }
+        } catch (e) { alert('操作失败'); }
+    }
+
+    async function purchaseTeam() {
+        var checked = document.querySelector('input[name="purchasePlan"]:checked');
+        if (!checked) { alert('请先选择套餐'); return; }
+        var planId = checked.value;
+        if (!confirm('确认购买该团队版套餐？将发起微信支付，支付成功后自动创建团队、你成为管理员。')) return;
+        try {
+            var resp = await fetch('/api/team/purchase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan_id: planId })
+            });
+            var data = await resp.json();
+            if (data.code !== 0) { alert(data.msg || '下单失败'); return; }
+            showQr(data.qr_url);
+            hidePlanAndShowQr(planId);
+            pollPurchaseStatus(data.order_id);
+        } catch (e) { alert('下单失败，请重试'); }
+    }
+
+    // 出码后收起套餐选择区，只显示二维码 + 「正在支付 XX 套餐」，
+    // 杜绝扫码后切套餐导致金额错位
+    function hidePlanAndShowQr(planId) {
+        var section = document.getElementById('planSection');
+        if (section) section.style.display = 'none';
+        var checkedLabel = document.querySelector('input[name="purchasePlan"]:checked');
+        var card = checkedLabel ? checkedLabel.closest('label') : null;
+        var planName = card && card.querySelector('.plan-name') ? card.querySelector('.plan-name').textContent : '';
+        var planText = document.getElementById('purchaseQrPlan');
+        if (planText && planName) planText.textContent = '正在支付：' + planName;
+    }
+
+    // 二维码数据直接显示；微信链接则本地转成图片，绝不跳转/开新窗
+    function showQr(qrUrl) {
+        var box = document.getElementById('purchaseQr');
+        var img = document.getElementById('purchaseQrImg');
+        if (!qrUrl) { alert('生成支付二维码失败，请重试'); return; }
+        if (qrUrl.indexOf('data:image') === 0) {
+            img.src = qrUrl;
+        } else if (qrUrl.indexOf('weixin://') === 0 || qrUrl.indexOf('http') === 0) {
+            img.src = '/api/team/purchase/qrcode?url=' + encodeURIComponent(qrUrl);
+        } else {
+            alert('生成支付二维码失败，请重试');
+            return;
+        }
+        box.style.display = 'block';
+        var btn = document.querySelector('#purchaseModal .btn-primary');
+        if (btn) {
+            btn.textContent = '重新选择套餐';
+            btn.setAttribute('onclick', 'resetPurchase()');
+        }
+    }
+
+    async function pollPurchaseStatus(orderId) {
+        var tip = document.getElementById('purchaseQrTip');
+        var sub = document.getElementById('purchaseQrSub');
+        for (var i = 0; i < 40; i++) {
+            await new Promise(function (r) { setTimeout(r, 3000); });
+            try {
+                var resp = await fetch('/api/team/purchase/status/' + orderId);
+                var data = await resp.json();
+                if (data.status === 'paid') {
+                    if (tip) { tip.textContent = '支付成功！正在创建团队…'; tip.style.color = xpColor('--color-success'); }
+                    await new Promise(function (r) { setTimeout(r, 600); });
+                    window.location = '/dashboard/team/' + data.team_id;
+                    return;
+                }
+                if (data.status === 'expired') {
+                    if (tip) { tip.textContent = '二维码已过期，请关闭后重新下单'; tip.style.color = xpColor('--color-danger'); }
+                    if (sub) sub.textContent = '二维码已过期，请重新选择套餐';
+                    return;
+                }
+                if (i === 4 && tip) tip.textContent = '等待支付确认中… 请用微信扫码';
+            } catch (e) { return; }
+        }
+        if (tip) {
+            tip.textContent = '支付状态未确认，请稍后到团队页查看';
+            tip.style.color = xpColor('--color-warning');
+        }
+    }
+
+    document.getElementById('purchaseModal').addEventListener('click', function (e) {
+        if (e.target === this) closePurchaseModal();
+    });
+</script>
+{% endblock %}

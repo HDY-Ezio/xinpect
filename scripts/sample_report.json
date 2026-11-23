@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-08T17:25:33+08:00",
+  "source": "生产扫描器真跑（modules.scanner.call_scanner），未经人工改写",
+  "scanner_version": "5.163.0",
+  "scan_time_seconds": 4.7620000000000005,
+  "sample_file": "demo_app.py",
+  "sample_language": "python",
+  "sample_code": "import hashlib\nimport os\nimport sqlite3\nfrom flask import Flask, request\n\napp = Flask(__name__)\nDB_PASSWORD = \"demo_secret_123\"\n\ndef get_user(name):\n    conn = sqlite3.connect(\"demo.db\")\n    sql = \"SELECT * FROM users WHERE name = '\" + name + \"'\"\n    return conn.execute(sql).fetchall()\n\ndef make_token(payload):\n    return hashlib.md5(payload.encode()).hexdigest()\n\ndef run_task(cmd):\n    os.system(\"sh -c \" + cmd)\n\n@app.route(\"/user\")\ndef user():\n    try:\n        return str(get_user(request.args.get(\"name\")))\n    except:\n        pass\n",
+  "sample_code_sha256": "7d02807ef015fa44bc9d56964cf58cd7955411fe003b4225e5ffc49c0f208f70",
+  "scan_mode": "basic",
+  "brains": [
+    "1",
+    "2",
+    "4",
+    "5",
+    "6"
+  ],
+  "total_issues": 6,
+  "severity_breakdown": {
+    "high": 6
+  },
+  "issues": [
+    {
+      "rule_id": "E1-AST-RET-001",
+      "title": "返回值不一致",
+      "severity": "high",
+      "severity_label": "高危",
+      "brain_name": "E1 语法与AST分析",
+      "file": "demo_app.py",
+      "line": 21,
+      "description": "函数 'user' 有的分支返回值，有的分支隐式返回 None，可能造成调用方错误",
+      "suggestion": "确保函数所有分支都有一致的返回值类型，或在末尾明确 return None",
+      "code_snippet": "    19: \n    20: @app.route(\"/user\")\n>   21: def user():\n    22:     try:\n    23:         return str(get_user(request.args.get(\"name\")))"
+    },
+    {
+      "rule_id": "E1-COR-PYBC-001",
+      "title": "宽泛异常捕获",
+      "severity": "high",
+      "severity_label": "高危",
+      "brain_name": "E1 语法与AST分析",
+      "file": "demo_app.py",
+      "line": 24,
+      "description": "bare except 会捕获所有异常（包括 SystemExit、KeyboardInterrupt），可能掩盖预期外错误",
+      "suggestion": "捕获具体的异常类型，或至少使用 except Exception:",
+      "code_snippet": "    22:     try:\n    23:         return str(get_user(request.args.get(\"name\")))\n>   24:     except:\n    25:         pass\n    26: "
+    },
+    {
+      "rule_id": "E2-SEC-HCS-001",
+      "title": "硬编码密钥",
+      "severity": "high",
+      "severity_label": "高危",
+      "brain_name": "E2 安全检测",
+      "file": "demo_app.py",
+      "line": 7,
+      "description": "变量 'DB_PASSWORD' 被硬编码为字符串，存在敏感信息泄露风险",
+      "suggestion": "敏感信息应从环境变量、配置文件或密钥管理服务中读取，避免硬编码在源代码中",
+      "code_snippet": "     5: \n     6: app = Flask(__name__)\n>    7: DB_PASSWORD = \"demo_secret_123\"\n     8: \n     9: def get_user(name):"
+    },
+    {
+      "rule_id": "E3-TAINT-PY-001",
+      "title": "Python 污点数据流：不可信输入流入危险函数",
+      "severity": "high",
+      "severity_label": "高危",
+      "brain_name": "E2 安全检测",
+      "file": "demo_app.py",
+      "line": 12,
+      "description": "不可信输入 request.args.get() 流入 conn.execute，可导致SQL 注入",
+      "suggestion": "使用参数化查询（占位符 + 参数），不要拼接 SQL 字符串",
+      "code_snippet": "    10:     conn = sqlite3.connect(\"demo.db\")\n    11:     sql = \"SELECT * FROM users WHERE name = '\" + name + \"'\"\n>   12:     return conn.execute(sql).fetchall()\n    13: \n    14: def make_token(payload):"
+    },
+    {
+      "rule_id": "E2-SEC-HSH-001",
+      "title": "不安全哈希算法",
+      "severity": "high",
+      "severity_label": "高危",
+      "brain_name": "E2 安全检测",
+      "file": "demo_app.py",
+      "line": 15,
+      "description": "使用 hashlib.md5()，MD5 算法已被证明不安全，存在碰撞攻击风险",
+      "suggestion": "使用更安全的哈希算法，如 SHA-256（hashlib.sha256）、SHA-3 或 BLAKE2",
+      "code_snippet": "    13: \n    14: def make_token(payload):\n>   15:     return hashlib.md5(payload.encode()).hexdigest()\n    16: \n    17: def run_task(cmd):"
+    },
+    {
+      "rule_id": "E2-SEC-PY-006",
+      "title": "os.system调用",
+      "severity": "high",
+      "severity_label": "高危",
+      "brain_name": "E2 安全检测",
+      "file": "demo_app.py",
+      "line": 18,
+      "description": "os.system执行系统命令",
+      "suggestion": "用subprocess.run()替代",
+      "code_snippet": "    16: \n    17: def run_task(cmd):\n>   18:     os.system(\"sh -c \" + cmd)\n    19: \n    20: @app.route(\"/user\")"
+    }
+  ],
+  "note": "免费试扫只跑规范层与安全引擎，本样例与试扫同口径，属初筛，不等于完整报告。"
+}

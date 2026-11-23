@@ -687,7 +687,7 @@ window.fetch = function(url, options = {}) {
             var modalHtml = '<div id="pay-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;">' +
                 '<div class="payment-modal">' +
                 '<h3 style="font-size:18px;margin-bottom:8px;">扫码支付</h3>' +
-                '<p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">支付金额：<strong style="color:var(--accent-orange);font-size:24px;">¥' + safeAmount + '</strong></p>' +
+                '<p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">支付金额：<strong style="color:var(--accent-steel);font-size:24px;">¥' + safeAmount + '</strong></p>' +
                 '<div class="qr-code">' +
                 (safeQrUrl ? '<img src="' + safeQrUrl + '" alt="支付二维码" style="width:100%;height:100%;">' : '二维码生成中...') +
                 '</div>' +
@@ -923,53 +923,88 @@ window.fetch = function(url, options = {}) {
         reportError('promise_error', msg, stack);
     });
     
-    // 3. 捕获按钮/链接点击后无响应或跳转失败
+    // 3. 捕获按钮/链接点击后「真的没有响应」
+    // 治本（2026-11-08）：旧版拿「页面上有没有某几个 loading / 弹窗 class」当响应证据，
+    // 还挂了一串「这类按钮不检查」的例外。试扫换成 XpScanFX 容器之后，
+    // 一次 4 秒的正常扫描被写成 click_no_response，错误日志里全是假警。
+    // 现在只认一件事：这次点击之后，页面有没有发生任何可观察的真实变化。
+    // 网址 / 可见文字 / 节点数 / 被点元素自身状态 / 元素是否还在 / 点击同拍发起的请求，
+    // 任一变化即视为有响应。不列组件名、不列例外，UI 怎么改版判据都不会失效。
     var clickTimeout = null;
+    var activitySeq = 0;
+    var clickPending = false;
+
+    // 只有「这次点击的同一次任务里发起的动作」才算点击引起的；
+    // 页面常驻轮询、定时刷新不算，否则后台一有请求，死按钮也会被判成有响应。
+    function noteActivity() { if (clickPending) activitySeq += 1; }
+
+    document.addEventListener('submit', noteActivity, true);
+    window.addEventListener('hashchange', noteActivity);
+    (function() {
+        var push = history.pushState, replace = history.replaceState;
+        history.pushState = function() { noteActivity(); return push.apply(history, arguments); };
+        history.replaceState = function() { noteActivity(); return replace.apply(history, arguments); };
+    }());
+    if (window.XMLHttpRequest && XMLHttpRequest.prototype.send) {
+        var origSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function() { noteActivity(); return origSend.apply(this, arguments); };
+    }
+
+    function visibleTextHash() {
+        var s = (document.body && document.body.innerText) || '';
+        var h = 5381;
+        for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return h + ':' + s.length;
+    }
+
+    function elementState(el) {
+        return [
+            el.getAttribute('disabled'), el.getAttribute('class'),
+            el.getAttribute('style'), el.getAttribute('aria-expanded'),
+            el.getAttribute('aria-pressed'), el.getAttribute('checked'),
+            (el.textContent || '').trim().substring(0, 80)
+        ].join('|');
+    }
+
+    // 必须用捕获阶段：按钮自己的 onclick 在目标阶段先跑，
+    // 等冒泡到 document 才拍快照，拍到的已经是「改完之后」的样子了。
     document.addEventListener('click', function(event) {
-        var target = event.target;
-        // 只关注可交互元素
-        var interactive = target.closest('button, a, [onclick], [role="button"], input[type="submit"]');
+        var interactive = event.target.closest('button, a, [onclick], [role="button"], input[type="submit"]');
         if (!interactive) return;
-        
-        // × 关闭按钮（toast/notification/announcement），点击即移除，无需检测响应
-        var clickedText = (target === interactive) ? interactive.innerHTML : target.textContent;
-        if (clickedText.trim() === '×' || clickedText.trim() === '&times;' || (interactive.childElementCount <= 1 && interactive.innerHTML.trim().indexOf('×') > -1 && interactive.innerHTML.trim().length < 10)) return;
-        
-        // 菜单折叠/展开（menu-group-header），不期望导航
-        if (interactive.classList.contains('menu-group-header') || interactive.closest('menu-group-header')) return;
-        
-        // 质量门禁模板选择卡片（g-tpl），点击只切换高亮
-        if (interactive.classList.contains('g-tpl') || interactive.closest('g-tpl')) return;
-        
-        // 对比按钮（compare-btn-sm），点击展开内联diff
-        if (interactive.classList.contains('compare-btn-sm')) return;
-        
-        // toggle开关（质量门禁规则开关）
-        if (interactive.classList.contains('toggle')) return;
-        
-        // 清除上次的检测
+
+        // 点击那一刻的现场快照：3 秒后只跟这份现场比，不猜组件叫什么名字。
+        var before = {
+            url: window.location.href,
+            text: visibleTextHash(),
+            nodes: document.getElementsByTagName('*').length,
+            state: elementState(interactive),
+            seq: activitySeq,
+            el: interactive
+        };
+
+        clickPending = true;
+        setTimeout(function() { clickPending = false; }, 0);
+
         if (clickTimeout) clearTimeout(clickTimeout);
-        
         clickTimeout = setTimeout(function() {
-            // 3秒后检查：如果页面没有变化（没有导航、没有弹窗、没有loading），可能有问题
-            var urlBefore = window.location.href;
-            var hasLoading = document.querySelector('.loading, .spinner, [data-loading], .scan-progress');
-            var hasModal = document.querySelector('.modal.show, .modal[style*="display: flex"], .modal[style*="display:block"]');
-            
-            var hasDiffVisible = document.querySelector('.diff-inline[style*="table-row"]');
-            var hasToast = document.querySelector('#error-toast, #fix-notification');
-            if (!hasLoading && !hasModal && !hasDiffVisible && !hasToast) {
-                // 没有loading状态也没有弹窗，但点击后3秒什么都没发生
-                // 不自动弹窗打扰用户，只静默上报
-                reportError(
-                    'click_no_response',
-                    '点击元素无响应: ' + interactive.tagName + (interactive.id ? '#' + interactive.id : '') + ' "' + (interactive.textContent || '').trim().substring(0, 30) + '"',
-                    ''
-                );
-            }
+            if (document.hidden) return;  // 用户切走了标签页，不算点击无响应
+            var responded =
+                window.location.href !== before.url ||
+                visibleTextHash() !== before.text ||
+                document.getElementsByTagName('*').length !== before.nodes ||
+                elementState(before.el) !== before.state ||
+                !before.el.isConnected ||
+                activitySeq > before.seq;
+            if (responded) return;
+            // 3 秒里页面真的一点动静都没有，才静默上报，不打扰用户。
+            reportError(
+                'click_no_response',
+                '点击元素无响应: ' + before.el.tagName + (before.el.id ? '#' + before.el.id : '') + ' "' + (before.el.textContent || '').trim().substring(0, 30) + '"',
+                ''
+            );
         }, 3000);
-    });
-    
+    }, true);
+
     // 4. 捕获 fetch 请求失败（增强现有的 fetch wrapper）
     var _origFetchForError = window._origFetch || window.fetch;
     window._errorMonitoringFetch = true;
@@ -977,6 +1012,7 @@ window.fetch = function(url, options = {}) {
     // 监听所有 fetch 的 4xx/5xx 响应
     var origFetch = window.fetch;
     window.fetch = function(url, options) {
+        noteActivity();
         return origFetch.apply(this, arguments).then(function(response) {
             if (response.status >= 500) {
                 reportError(

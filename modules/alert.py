@@ -199,10 +199,10 @@ def check_alerts_async(user_id, scan_context, scan_id):
             try:
                 deliver_alert(dict(rule), scan_context, scan_id, db_conn)
             except Exception as e:
-                logger.error('P5: Alert delivery failed for rule %s: %s', rule.get('id'), e)
+                logger.exception('P5: Alert delivery failed for rule %s: %s', rule.get('id'), e)
         db_conn.close()
     except Exception as e:
-        logger.error('P5: Alert evaluation failed: %s', e)
+        logger.exception('P5: Alert evaluation failed: %s', e)
 
 
 # ==================== API 路由（拆分为独立函数） ====================

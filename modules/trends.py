@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 from flask import session, request, jsonify
 from .db import get_db
-from .constants import app, logger, BRAINS_MAP, HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED
+from .constants import app, logger, BRAINS_MAP, brain_label, HTTP_OK, HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED
 from .helpers import login_required
 
 
@@ -141,7 +141,7 @@ def _compute_summary(data_points):
         'avg_score': avg_score,
         'weakest_brain': weakest_brain,
         'weakest_brain_score': weakest_score if weakest_brain else None,
-        'weakest_brain_name': BRAINS_MAP.get(int(weakest_brain), {}).get('name', '') if weakest_brain else '',
+        'weakest_brain_name': brain_label(weakest_brain) if weakest_brain else '',
         'most_common_severity': most_common,
         'severity_totals': sev_map,
     }
@@ -186,7 +186,7 @@ def register_trends_routes(bp):
         if not user_id:
             return jsonify({'error': '未登录'}), HTTP_UNAUTHORIZED
 
-        brain_id = request.args.get('brain_id', type=int)
+        brain_id = (request.args.get('brain_id') or '').strip()
         if not brain_id:
             return jsonify({'error': '请指定 brain_id'}), HTTP_BAD_REQUEST
 
@@ -205,7 +205,7 @@ def register_trends_routes(bp):
                 'score': score_val,
             })
 
-        brain_name = BRAINS_MAP.get(brain_id, {}).get('name', f'Brain {brain_id}')
+        brain_name = brain_label(brain_id)
 
         return jsonify({
             'success': True,

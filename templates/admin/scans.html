@@ -1,0 +1,115 @@
+{% extends "admin/base.html" %}
+{% block title %}扫描记录 - 煋鉴管理后台{% endblock %}
+{% block content %}
+<div class="header">
+    <h1>扫描记录</h1>
+</div>
+
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>用户：</label>
+        <input type="text" id="user-search" class="search-box" style="width:160px" placeholder="用户ID或邮箱" onchange="loadScans()">
+    </div>
+    <div class="filter-group">
+        <label>语言：</label>
+        <select class="filter-select" id="lang-filter" onchange="loadScans()">
+            <option value="">全部</option>
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="java">Java</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+            <option value="csharp">C#</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>状态：</label>
+        <select class="filter-select" id="status-filter" onchange="loadScans()">
+            <option value="">全部</option>
+            <option value="success">成功</option>
+            <option value="failed">失败</option>
+            <option value="running">进行中</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>起始日期：</label>
+        <input type="date" class="filter-date" id="start-date" onchange="loadScans()">
+    </div>
+    <div class="filter-group">
+        <label>截止日期：</label>
+        <input type="date" class="filter-date" id="end-date" onchange="loadScans()">
+    </div>
+    <button class="btn btn-primary" onclick="loadScans()">筛选</button>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户</th>
+                <th>文件名</th>
+                <th>语言</th>
+                <th>问题数</th>
+                <th>扫描时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="scans-table"></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+
+async function loadScans(page = 1) {
+    currentPage = page;
+    const params = new URLSearchParams({page});
+    const userSearch = document.getElementById("user-search").value;
+    const lang = document.getElementById("lang-filter").value;
+    const status = document.getElementById("status-filter").value;
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    if (userSearch) params.set("user_search", userSearch);
+    if (lang) params.set("language", lang);
+    if (status) params.set("status", status);
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+
+    const res = await fetch(`/api/admin/scans?${params}`);
+    const data = await res.json();
+
+    const statusMap = {success: ['成功','badge-success'], failed: ['失败','badge-danger'], running: ['进行中','badge-warning']};
+    const tbody = document.getElementById("scans-table");
+    tbody.innerHTML = data.scans.map(s => {
+        const st = s.scan_status ? (statusMap[s.scan_status] || [s.scan_status, '']) : ['成功','badge-success'];
+        return `<tr>
+            <td>${s.id}</td>
+            <td>用户#${s.user_id}</td>
+            <td>${s.filename || s.title || "未命名"}</td>
+            <td>${s.language || "-"}</td>
+            <td>${s.issue_count || s.issues_count || 0}</td>
+            <td>${s.created_at || "-"}</td>
+            <td><span class="badge ${st[1]}">${st[0]}</span></td>
+            <td><a href="/report/${s.scan_id}" target="_blank" class="btn btn-secondary">查看报告</a></td>
+        </tr>`;
+    }).join("");
+
+    const totalPages = Math.ceil(data.total / data.per_page);
+    const pagination = document.getElementById("pagination");
+    pagination.innerHTML = "";
+    for (let i = 1; i <= totalPages; i++) {
+        pagination.innerHTML += `<button class="${i === page ? 'active' : ''}" onclick="loadScans(${i})">${i}</button>`;
+    }
+}
+
+loadScans();
+</script>
+{% endblock %}

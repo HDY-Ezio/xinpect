@@ -8,6 +8,44 @@
     <p>查看你的会员状态和检测统计</p>
 </div>
 
+{% if is_new_user %}
+<!-- 新用户引导态。
+     根因：此前这里直接摆 4 个「0」的统计卡片，用户注册完看到一片零，
+     不知道下一步该干什么。15 个注册用户里 11 个从没产生过一次扫描。
+     现在把「下一步」放在最显眼的位置，统计卡只在有数据时才出现。 -->
+<div style="background:linear-gradient(135deg,var(--color-v-1a3a5c) 0%,var(--color-v-2c5282) 100%);border-radius:16px;padding:32px 28px;margin-bottom:24px;color: var(--color-text-inverse);">
+    <div style="font-size:12px;letter-spacing:2px;opacity:.7;margin-bottom:10px;">第 1 步已完成 ✓</div>
+    <h2 style="margin:0 0 10px;font-size:23px;font-weight:700;line-height:1.35;">账号已就绪，扫一次代码就知道它好不好用</h2>
+    <p style="margin:0 0 22px;opacity:.85;font-size:15px;line-height:1.6;">
+        免费版每天 10 次检测。不用付费、不用配 CI、不用装命令行——传个文件就行。
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px;">
+        <div style="background:var(--color-v-f6e5bc0e0);border-radius:10px;padding:14px 16px;">
+            <div style="font-weight:600;margin-bottom:5px;font-size:14px;">① 上传代码</div>
+            <div style="font-size:13px;opacity:.78;line-height:1.55;">zip 压缩包或单个文件，支持 23 种语言</div>
+        </div>
+        <div style="background:var(--color-v-f6e5bc0e0);border-radius:10px;padding:14px 16px;">
+            <div style="font-weight:600;margin-bottom:5px;font-size:14px;">② 等 5 秒</div>
+            <div style="font-size:13px;opacity:.78;line-height:1.55;">7 大规则引擎并行扫描，边扫边出结果</div>
+        </div>
+        <div style="background:var(--color-v-f6e5bc0e0);border-radius:10px;padding:14px 16px;">
+            <div style="font-weight:600;margin-bottom:5px;font-size:14px;">③ 看报告</div>
+            <div style="font-size:13px;opacity:.78;line-height:1.55;">问题清单 + 文件行号 + 修复建议</div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+        <a href="{{ url_for('upload_page') }}"
+           style="display:inline-block;background:var(--color-bg-primary);color:var(--color-v-1a3a5c);padding:13px 28px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 2px 8px var(--color-v-fb41805d6);">
+            上传代码，开始第一次检测 →
+        </a>
+        <a href="{{ url_for('pricing_page') }}" style="color: var(--color-text-inverse);opacity:.8;font-size:14px;text-decoration:underline;">先看看能检什么</a>
+    </div>
+</div>
+{% endif %}
+
+{% if not is_new_user %}
 <!-- 会员状态卡片 -->
 <div class="vip-card">
     <div class="vip-info">
@@ -49,9 +87,10 @@
     {% endif %}
     <div class="stat-card">
         <div class="stat-label">累计发现问题</div>
-        <div class="stat-value" style="color:#1A3A5C;">{{ stats.total_issues or 0 }}</div>
+        <div class="stat-value" style="color:var(--color-v-1a3a5c);">{{ stats.total_issues or 0 }}</div>
     </div>
 </div>
+{% endif %}
 
 {% if is_vip and credit_info %}
 <!-- 积分池详情 -->
@@ -59,18 +98,18 @@
 <!-- P2-03: 趋势图 + 合规状态 -->
 {% include "dashboard/_quota_card.html" %}
 
-<div id="dashboard-enhance" style="margin:24px 0;display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+<div id="dashboard-enhance" class="grid-2-1" style="margin:24px 0;gap:20px;">
     <!-- 分数趋势图 -->
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;">
+    <div style="background:var(--color-bg-primary);border:1px solid var(--color-v-e5e7eb);border-radius:16px;padding:24px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h3 style="margin:0;font-size:16px;font-weight:600;color:#1f2937;">📈 质量趋势</h3>
+            <h3 style="margin:0;font-size:16px;font-weight:600;color:var(--color-v-1f2937);">📈 质量趋势</h3>
             <div style="display:flex;gap:8px;">
                 <button onclick="loadDashSummary(7)" class="dash-period-btn" id="btn-7d">7天</button>
                 <button onclick="loadDashSummary(30)" class="dash-period-btn active" id="btn-30d">30天</button>
             </div>
         </div>
         <canvas id="scoreTrendChart" height="180"></canvas>
-        <div id="trend-empty" style="display:none;text-align:center;padding:40px 0;color:#9ca3af;">
+        <div id="trend-empty" style="display:none;text-align:center;padding:40px 0;color:var(--color-v-9ca3af);">
             <div style="font-size:32px;margin-bottom:8px;">📊</div>
             <div>暂无趋势数据，多扫几次就有了</div>
         </div>
@@ -78,79 +117,81 @@
     <!-- 合规状态 + 来源分布 -->
     <div style="display:flex;flex-direction:column;gap:16px;">
         <!-- 合规状态 -->
-        <div id="compliance-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;">
-            <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#1f2937;">🛡️ 合规状态</h3>
+        <div id="compliance-card" style="background:var(--color-bg-primary);border:1px solid var(--color-v-e5e7eb);border-radius:16px;padding:24px;">
+            <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:var(--color-v-1f2937);">🛡️ 合规状态</h3>
             <div id="compliance-content" style="text-align:center;padding:12px 0;">
-                <div style="font-size:14px;color:#9ca3af;">加载中...</div>
+                <div style="font-size:14px;color:var(--color-v-9ca3af);">加载中...</div>
             </div>
         </div>
         <!-- 来源分布 -->
-        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;flex:1;">
-            <h3 style="margin:0 0 12px;font-size:16px;font-weight:600;color:#1f2937;">📡 扫描来源</h3>
+        <div style="background:var(--color-bg-primary);border:1px solid var(--color-v-e5e7eb);border-radius:16px;padding:24px;flex:1;">
+            <h3 style="margin:0 0 12px;font-size:16px;font-weight:600;color:var(--color-v-1f2937);">📡 扫描来源</h3>
             <div id="source-content">
-                <div style="font-size:14px;color:#9ca3af;text-align:center;padding:12px 0;">加载中...</div>
+                <div style="font-size:14px;color:var(--color-v-9ca3af);text-align:center;padding:12px 0;">加载中...</div>
             </div>
         </div>
     </div>
 </div>
 <style>
 .dash-period-btn {
-    padding: 4px 12px; border-radius: 6px; border: 1px solid #d1d5db;
-    background: #fff; color: #6b7280; font-size: 13px; cursor: pointer;
+    padding: 4px 12px; border-radius: 6px; border: 1px solid var(--color-v-d1d5db);
+    background: var(--color-bg-primary); color: var(--color-v-6b7280); font-size: 13px; cursor: pointer;
 }
-.dash-period-btn.active { background: #1A3A5C; color: #fff; border-color: #1A3A5C; }
+.dash-period-btn.active { background: var(--color-v-1a3a5c); color: var(--color-text-inverse); border-color: var(--color-v-1a3a5c); }
 @media (max-width: 768px) {
-    #dashboard-enhance { grid-template-columns: 1fr !important; }
+    /* 必须 minmax(0,1fr)：写 1fr 时轨迹的最小尺寸是内容宽度，
+     * 里面 300px 宽的图表把整列撑到 350，窄屏就被裁掉右边。 */
+    #dashboard-enhance { grid-template-columns: minmax(0, 1fr) !important; }
 }
 </style>
 
-<div class="credit-pools-section" style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px 28px;margin:20px 0;">
-    <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#1f2937;">
+<div class="credit-pools-section" style="background:var(--color-bg-primary);border:1px solid var(--color-v-e5e7eb);border-radius:16px;padding:24px 28px;margin:20px 0;">
+    <h3 style="margin:0 0 16px;font-size:16px;font-weight:600;color:var(--color-v-1f2937);">
         💰 积分池详情
-        <span style="font-size:13px;font-weight:400;color:#6b7280;margin-left:8px;">总余额 {{ credit_info.total_balance }}</span>
+        <span style="font-size:13px;font-weight:400;color:var(--color-v-6b7280);margin-left:8px;">总余额 {{ credit_info.total_balance }}</span>
     </h3>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
         <!-- 会员积分池 -->
-        <div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:1px solid #93C5FD;border-radius:12px;padding:18px 20px;">
+        <div style="background:linear-gradient(135deg,var(--color-v-eff6ff),var(--color-v-dbeafe));border:1px solid var(--color-v-93c5fd);border-radius:12px;padding:18px 20px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-size:13px;color:#c2410c;font-weight:500;">🎫 会员积分（当月）</span>
-                <span style="font-size:20px;font-weight:700;color:#1A3A5C;">{{ credit_info.subscription_balance }}</span>
+                <span style="font-size:13px;color: var(--color-danger);font-weight:500;">🎫 会员积分（当月）</span>
+                <span style="font-size:20px;font-weight:700;color:var(--color-v-1a3a5c);">{{ credit_info.subscription_balance }}</span>
             </div>
             {% if credit_info.subscription %}
-            <div style="font-size:12px;color:#c2410c;">
+            <div style="font-size:12px;color: var(--color-danger);">
                 <div>📅 下次刷新：{{ credit_info.subscription_refresh_at or '—' }}</div>
                 {% if credit_info.subscription.subscription_plan %}
                 <div>🏷 套餐：{{ {'monthly':'月卡(300积分/月)','quarterly':'季卡(300积分/月)','half_year':'半年卡(300积分/月)','yearly':'年卡(300积分/月)'}.get(credit_info.subscription.subscription_plan, '') }}</div>
                 {% endif %}
             </div>
             {% else %}
-            <div style="font-size:12px;color:#fdba74;">暂无会员积分池</div>
+            <div style="font-size:12px;color:var(--color-metal-gold-bright);">暂无会员积分池</div>
             {% endif %}
         </div>
 
         <!-- 积分包池 -->
-        <div style="background:linear-gradient(135deg,#fefce8,#DBEAFE);border:1px solid #fde68a;border-radius:12px;padding:18px 20px;">
+        <div style="background:linear-gradient(135deg,var(--color-v-fefce8),var(--color-v-dbeafe));border:1px solid var(--color-metal-gold-tint-2);border-radius:12px;padding:18px 20px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-size:13px;color:#92400e;font-weight:500;">📦 积分包</span>
-                <span style="font-size:20px;font-weight:700;color:#d97706;">{{ credit_info.pack_balance }}</span>
+                <span style="font-size:13px;color: var(--color-warning);font-weight:500;">📦 积分包</span>
+                <span style="font-size:20px;font-weight:700;color: var(--color-warning);">{{ credit_info.pack_balance }}</span>
             </div>
             {% if credit_info.packs %}
-            <div style="font-size:12px;color:#b45309;">
+            <div style="font-size:12px;color: var(--color-warning);">
                 {% if credit_info.pack_nearest_expire_at %}
                 <div>⏰ 最近到期：{{ credit_info.pack_nearest_expire_at }}</div>
                 {% endif %}
                 <div>📊 共 {{ credit_info.packs|length }} 个积分包</div>
             </div>
             {% else %}
-            <div style="font-size:12px;color:#d97706;">暂无积分包 · <a href="{{ url_for('dashboard_page', page='recharge') }}" style="color:#d97706;text-decoration:underline;">购买积分包</a></div>
+            <div style="font-size:12px;color: var(--color-warning);">暂无积分包 · <a href="{{ url_for('dashboard_page', page='recharge') }}" style="color: var(--color-warning);text-decoration:underline;">购买积分包</a></div>
             {% endif %}
         </div>
     </div>
 
     {% if credit_info.total_balance < 50 %}
-    <div style="margin-top:14px;padding:10px 16px;background:#DBEAFE;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#92400e;">
-        ⚠️ 积分余额不足50，建议<a href="{{ url_for('dashboard_page', page='recharge') }}" style="color:#b45309;font-weight:600;text-decoration:underline;">充值积分包</a>以确保服务不中断
+    <div style="margin-top:14px;padding:10px 16px;background:var(--color-v-dbeafe);border:1px solid var(--color-sev-high-tint-2);border-radius:8px;font-size:13px;color: var(--color-warning);">
+        ⚠️ 积分余额不足50，建议<a href="{{ url_for('dashboard_page', page='recharge') }}" style="color: var(--color-warning);font-weight:600;text-decoration:underline;">充值积分包</a>以确保服务不中断
     </div>
     {% endif %}
 </div>
@@ -192,9 +233,9 @@
             <div class="ai-scan-promo-steps">
                 <span class="step-label">只需3步：</span>
                 <span class="step-item">① 复制指令</span>
-                <span class="step-arrow">→</span>
+                <span class="step-arrow" aria-hidden="true">→</span>
                 <span class="step-item">② 发给AI助手</span>
-                <span class="step-arrow">→</span>
+                <span class="step-arrow" aria-hidden="true">→</span>
                 <span class="step-item">③ 自动扫描</span>
             </div>
         </div>
@@ -212,8 +253,8 @@
 
 <style>
 .ai-scan-promo {
-    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-    border: 1px solid #ffe0cc;
+    background: linear-gradient(135deg, var(--color-v-eff6ff) 0%, var(--color-v-dbeafe) 100%);
+    border: 1px solid var(--color-metal-gold);
     border-radius: 16px;
     padding: 28px 32px;
     margin: 24px 0;
@@ -228,14 +269,14 @@
     right: -10%;
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(26,58,92,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-metal-gold-tint) 0%, transparent 70%);
     pointer-events: none;
 }
 
 .ai-scan-promo-badge {
     display: inline-block;
-    background: #1A3A5C;
-    color: white;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-inverse);
     font-size: 11px;
     font-weight: 700;
     padding: 3px 10px;
@@ -256,13 +297,13 @@
 .ai-scan-promo-left h2 {
     font-size: 20px;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--color-text-primary);
     margin: 0 0 8px 0;
 }
 
 .ai-scan-promo-desc {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-secondary);
     margin: 0 0 20px 0;
     line-height: 1.5;
 }
@@ -278,7 +319,7 @@
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    background: rgba(255,255,255,0.7);
+    background: var(--color-bg-card);
     border-radius: 10px;
     padding: 12px 16px;
 }
@@ -290,14 +331,14 @@
 
 .ai-scan-scenario strong {
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-primary);
     display: block;
     margin-bottom: 4px;
 }
 
 .ai-scan-scenario p {
     font-size: 13px;
-    color: #666;
+    color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.4;
 }
@@ -311,22 +352,22 @@
 
 .step-label {
     font-size: 13px;
-    color: #999;
+    color: var(--color-text-secondary);
     margin-right: 4px;
 }
 
 .step-item {
-    background: white;
-    border: 1px solid #ffe0cc;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-metal-gold);
     border-radius: 20px;
     padding: 4px 12px;
     font-size: 13px;
-    color: #1A3A5C;
+    color: var(--color-text-primary);
     font-weight: 500;
 }
 
 .step-arrow {
-    color: #ccc;
+    color: var(--color-text-secondary);
     font-size: 12px;
 }
 
@@ -352,7 +393,7 @@
 .cta-hint {
     display: block;
     font-size: 11px;
-    color: #999;
+    color: var(--color-text-secondary);
     margin-top: 8px;
     white-space: nowrap;
 }
@@ -374,6 +415,7 @@
     </div>
 
     {% if recent_scans %}
+    <div class="table-scroll">
     <table class="data-table">
         <thead>
             <tr>
@@ -391,10 +433,10 @@
             <tr>
                 <td>{{ scan.title }}</td>
                 <td>{{ scan.file_count }}</td>
-                {% if is_vip %}<td style="text-align:center;color:var(--accent-orange);font-weight:600;">−{{ scan.credits_spent or 0 }}</td>{% endif %}
+                {% if is_vip %}<td style="text-align:center;color:var(--accent-steel);font-weight:600;">−{{ scan.credits_spent or 0 }}</td>{% endif %}
                 <td><span style="color:{% if scan.issue_count > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ scan.issue_count }}</span></td>
                 <td>
-                    <span style="color:{% if scan.score >= 85 %}#10b981{% elif scan.score >= 65 %}#0ea5e9{% elif scan.score >= 50 %}#6366f1{% elif scan.score >= 30 %}#f59e0b{% else %}#ef4444{% endif %};font-weight:600;">
+                    <span style="color:{% if scan.score >= 85 %}var(--color-success){% elif scan.score >= 65 %}var(--color-info){% elif scan.score >= 50 %}var(--color-accent-steel){% elif scan.score >= 30 %}var(--color-sev-medium){% else %}var(--color-danger){% endif %};font-weight:600;">
                         {{ scan.score }}
                     </span>
                 </td>
@@ -404,6 +446,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
         <div class="empty-state-icon">📭</div>
@@ -478,12 +521,12 @@ function renderTrend(trend) {
             datasets: [{
                 label: '平均评分',
                 data: scores,
-                borderColor: '#f97316',
-                backgroundColor: 'rgba(249,115,22,0.1)',
+                borderColor: xpColor('--color-sev-high'),
+                backgroundColor: xpColor('--color-metal-gold-alpha-08', 'transparent'),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 3,
-                pointBackgroundColor: '#f97316',
+                pointBackgroundColor: xpColor('--color-sev-high'),
             }]
         },
         options: {
@@ -500,10 +543,10 @@ function renderTrend(trend) {
 function renderCompliance(c) {
     var el = document.getElementById('compliance-content');
     if (!c || c.latest_score === null) {
-        el.innerHTML = '<div style="color:#9ca3af;">暂无数据</div>';
+        el.innerHTML = '<div style="color:var(--color-v-9ca3af);">暂无数据</div>';
         return;
     }
-    var statusColors = { pass: '#10b981', warn: '#f59e0b', fail: '#ef4444' };
+    var statusColors = { pass: xpColor('--color-success'), warn: xpColor('--color-warning'), fail: '#ef4444' };
     var statusLabels = { pass: '合规', warn: '注意', fail: '不合规' };
     var statusBg = { pass: '#ecfdf5', warn: '#fffbeb', fail: '#fef2f2' };
     var color = statusColors[c.status] || '#6b7280';
@@ -515,7 +558,7 @@ function renderCompliance(c) {
         '  <div style="font-size:28px;font-weight:700;color:' + color + ';">' + c.latest_score + ' <span style="font-size:16px;">(' + (c.latest_grade || '') + ')</span></div>' +
         '  <div style="font-size:13px;color:' + color + ';font-weight:500;margin-top:4px;">● ' + label + '</div>' +
         '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:13px;color:#6b7280;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--color-v-6b7280);">' +
         '  <span>7日均分: <b>' + (c.week_avg || '-') + '</b></span>' +
         '  <span>问题数: <b>' + (c.latest_issues || 0) + '</b></span>' +
         '</div>';
@@ -524,21 +567,21 @@ function renderCompliance(c) {
 function renderSources(sources) {
     var el = document.getElementById('source-content');
     if (!sources || sources.length === 0) {
-        el.innerHTML = '<div style="color:#9ca3af;text-align:center;font-size:13px;">暂无数据</div>';
+        el.innerHTML = '<div style="color:var(--color-v-9ca3af);text-align:center;font-size:13px;">暂无数据</div>';
         return;
     }
     var total = sources.reduce(function(s, x) { return s + x.count; }, 0);
     var html = '';
-    var colors = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
+    var colors = [xpColor('--color-sev-high'), '#3b82f6', xpColor('--color-success'), '#8b5cf6', '#ec4899'];
     sources.forEach(function(s, i) {
         var pct = total > 0 ? Math.round(s.count / total * 100) : 0;
         var color = colors[i % colors.length];
         html += '<div style="margin-bottom:10px;">' +
             '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">' +
-            '  <span style="color:#374151;">' + s.label + '</span>' +
-            '  <span style="color:#6b7280;">' + s.count + '次 (' + pct + '%)</span>' +
+            '  <span style="color:var(--color-v-374151);">' + s.label + '</span>' +
+            '  <span style="color:var(--color-v-6b7280);">' + s.count + '次 (' + pct + '%)</span>' +
             '</div>' +
-            '<div style="height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden;">' +
+            '<div style="height:6px;background:var(--color-v-f3f4f6);border-radius:3px;overflow:hidden;">' +
             '  <div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;"></div>' +
             '</div></div>';
     });

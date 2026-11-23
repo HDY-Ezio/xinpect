@@ -1,0 +1,473 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ team.name }} - 团队治理 - 煋鉴 Xinpect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/team.css') }}?v=20261109.1">
+<style>
+    /* Tab 导航 */
+    .team-page .tabs {
+        display: flex;
+        gap: 4px;
+        background: var(--color-surface-card);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 6px;
+        margin-bottom: var(--space-5);
+        box-shadow: var(--shadow-card);
+        overflow-x: auto;
+    }
+    .team-page .tab {
+        padding: 9px 18px;
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+        color: var(--color-text-secondary);
+        border: none;
+        background: transparent;
+        font-family: inherit;
+        transition: background-color .2s, color .2s;
+    }
+    .team-page .tab:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+    .team-page .tab.active { background: var(--color-accent-blue); color: var(--color-text-inverse); font-weight: 500; }
+
+    .team-page .panel { display: none; }
+    .team-page .panel.active { display: block; }
+
+    /* 严重度分布条：红 / 橙 / 深橙 / 蓝，四档必须彼此分得开 */
+    .team-page .sev-bar {
+        display: flex;
+        height: 20px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        margin: 12px 0;
+        background: var(--color-surface-inset);
+    }
+    .team-page .sev-bar .seg { height: 100%; }
+    .team-page .sev-legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--color-text-secondary);
+    }
+    .team-page .sev-legend span { display: flex; align-items: center; gap: 5px; }
+    .team-page .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .team-page .sev-critical { background: var(--color-sev-critical); }
+    .team-page .sev-high { background: var(--color-sev-high); }
+    .team-page .sev-medium { background: var(--color-sev-medium); }
+    .team-page .sev-low { background: var(--color-sev-low); }
+
+    /* 门禁表单 */
+    .team-page .form-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: var(--space-4); }
+    .team-page .form-row .field { flex: 1; min-width: 150px; margin-bottom: 0; }
+    .team-page .check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-secondary); }
+    .team-page .check input { width: auto; }
+
+    /* 标准对照报告 */
+    .team-page .cwe-list { display: flex; flex-direction: column; gap: 10px; }
+    .team-page .cwe-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        flex-wrap: wrap;
+    }
+    .team-page .cwe-id { font-family: monospace; font-weight: 600; color: var(--color-accent-blue); min-width: 70px; }
+    .team-page .cwe-name { flex: 1; font-size: 13px; color: var(--color-text-secondary); }
+    .team-page .cwe-count { font-weight: 700; color: var(--color-danger); }
+
+    /* 套餐卡 */
+    .team-page .plans { display: flex; gap: 16px; flex-wrap: wrap; }
+    .team-page .plan-card {
+        flex: 1;
+        min-width: 200px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 20px;
+    }
+    .team-page .plan-card h3 { margin: 0 0 6px; font-size: var(--text-sm); }
+    .team-page .plan-price { font-size: 24px; font-weight: 700; color: var(--color-accent-blue); }
+    .team-page .plan-price small { font-size: 13px; font-weight: 400; color: var(--color-text-muted); }
+    .team-page .plan-desc { font-size: 13px; color: var(--color-text-secondary); margin: 12px 0; }
+    .team-page .qr-box { text-align: center; }
+    .team-page .qr-box img { width: 220px; height: 220px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="team-page">
+    <div class="crumb">
+        <a href="/dashboard/team">我的团队</a> /
+        <a href="/dashboard/team/{{ team.id }}">{{ team.name }}</a> / 团队治理
+    </div>
+
+    <div class="hd">
+        <div>
+            <h1>{{ team.name }} · 团队治理</h1>
+            <p>统一看板 · 质量门禁 · 标准对照报告 · 审计留痕 · 共享积分池</p>
+        </div>
+        <div class="hd-actions">
+            <a class="btn btn-secondary" href="/dashboard/team/{{ team.id }}">返回团队</a>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button type="button" class="tab active" onclick="switchTab('dashboard', this)">治理看板</button>
+        <button type="button" class="tab" onclick="switchTab('gate', this)">质量门禁</button>
+        <button type="button" class="tab" onclick="switchTab('compliance', this)">标准对照报告</button>
+        <button type="button" class="tab" onclick="switchTab('audit', this)">审计日志</button>
+        <button type="button" class="tab" onclick="switchTab('credits', this)">共享积分池</button>
+    </div>
+
+    <!-- P1 治理看板 -->
+    <div class="panel active" id="panel-dashboard">
+        <div class="tiles">
+            <div class="tile"><div class="num">{{ dashboard.total_scans }}</div><div class="lbl">累计扫描</div></div>
+            <div class="tile"><div class="num">{{ dashboard.scans_30d }}</div><div class="lbl">近 30 天扫描</div></div>
+            <div class="tile"><div class="num">{{ dashboard.total_issues }}</div><div class="lbl">累计漏洞</div></div>
+            <div class="tile"><div class="num">{{ dashboard.avg_score if dashboard.avg_score is not none else '—' }}</div><div class="lbl">平均评分</div></div>
+            <div class="tile"><div class="num">{{ dashboard.member_count }}</div><div class="lbl">子账号数</div></div>
+        </div>
+
+        <div class="panel-card">
+            <h2>漏洞严重度分布</h2>
+            {% set total_sev = dashboard.severity_dist.critical + dashboard.severity_dist.high + dashboard.severity_dist.medium + dashboard.severity_dist.low %}
+            <div class="sev-bar">
+                {% if total_sev > 0 %}
+                <div class="seg sev-critical" style="width:{{ (dashboard.severity_dist.critical / total_sev * 100)|round(1) }}%"></div>
+                <div class="seg sev-high" style="width:{{ (dashboard.severity_dist.high / total_sev * 100)|round(1) }}%"></div>
+                <div class="seg sev-medium" style="width:{{ (dashboard.severity_dist.medium / total_sev * 100)|round(1) }}%"></div>
+                <div class="seg sev-low" style="width:{{ (dashboard.severity_dist.low / total_sev * 100)|round(1) }}%"></div>
+                {% endif %}
+            </div>
+            <div class="sev-legend">
+                <span><i class="dot sev-critical"></i>严重 {{ dashboard.severity_dist.critical }}</span>
+                <span><i class="dot sev-high"></i>高危 {{ dashboard.severity_dist.high }}</span>
+                <span><i class="dot sev-medium"></i>中等 {{ dashboard.severity_dist.medium }}</span>
+                <span><i class="dot sev-low"></i>轻微 {{ dashboard.severity_dist.low }}</span>
+            </div>
+            {% if total_sev == 0 %}<div class="empty-mini">暂无漏洞数据</div>{% endif %}
+        </div>
+
+        <div class="panel-card">
+            <h2>子账号扫描活跃度</h2>
+            {% if dashboard.member_activity %}
+            <div class="tbl-wrap">
+                <table class="tbl">
+                    <thead><tr><th>子账号</th><th>扫描次数</th><th>最近扫描</th></tr></thead>
+                    <tbody>
+                    {% for m in dashboard.member_activity %}
+                    <tr>
+                        <td>{{ m.email }}</td>
+                        <td>{{ m.scan_count }}</td>
+                        <td>{{ m.last_scan_at[:10] if m.last_scan_at else '从未扫描' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}<div class="empty-mini">暂无子账号</div>{% endif %}
+        </div>
+    </div>
+
+    <!-- P4 质量门禁 -->
+    <div class="panel" id="panel-gate">
+        <div class="panel-card">
+            <h2>统一质量门禁</h2>
+            <p class="note">团队定规则，全员强制。扫描结果不达标的代码，会被标注「门禁未通过」。</p>
+            {% if is_admin %}
+            <div class="form-row">
+                <div class="field">
+                    <label for="scanMode">子账号可用扫描档位</label>
+                    <select id="scanMode">
+                        <option value="quick" {% if gate.scan_mode == 'quick' %}selected{% endif %}>快速（全量规则，无 AI）</option>
+                        <option value="smart" {% if gate.scan_mode == 'smart' %}selected{% endif %}>智能（规则 + AI 语义）</option>
+                        <option value="deep" {% if gate.scan_mode == 'deep' %}selected{% endif %}>深度（规则 + AI + PoC 验证）</option>
+                    </select>
+                    <p class="hint">档位由管理员定，团队无免费档，扫描必扣团队共享积分。</p>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label for="minScore">最低综合分（0-100）</label>
+                    <input type="number" id="minScore" value="{{ gate.min_score }}" min="0" max="100">
+                </div>
+                <div class="field">
+                    <label for="maxCritical">严重漏洞上限</label>
+                    <input type="number" id="maxCritical" value="{{ gate.max_critical }}" min="0">
+                </div>
+                <div class="field">
+                    <label for="maxHigh">高危漏洞上限</label>
+                    <input type="number" id="maxHigh" value="{{ gate.max_high }}" min="0">
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="saveGate()">保存门禁</button>
+                <label class="check"><input type="checkbox" id="gateEnabled" {% if gate.enabled %}checked{% endif %}> 启用门禁</label>
+            </div>
+            {% else %}
+            <div class="empty-mini">仅管理员可配置门禁，当前门禁配置如下：</div>
+            <div style="padding:12px;background:var(--color-surface-inset);border-radius:var(--radius-sm);font-size:13px;color:var(--color-text-secondary);">
+                子账号档位 {{ gate.scan_mode }} · 最低分 {{ gate.min_score }} · 严重上限 {{ gate.max_critical }} · 高危上限 {{ gate.max_high }} ·
+                {% if gate.enabled %}<span class="tag tag-success">已启用</span>{% else %}<span class="tag tag-neutral">已停用</span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- P5 标准对照报告 -->
+    <div class="panel" id="panel-compliance">
+        <div class="panel-card">
+            <h2>
+                标准对照报告（OWASP Top10 / CWE 对照）
+                <button class="btn btn-primary btn-sm" onclick="loadCompliance()">生成 / 刷新报告</button>
+            </h2>
+            <p class="note">把团队扫描结果按公开标准（OWASP Top10、CWE）归类整理，供审计与合规检查使用。本报告为「对照整理」，不构成认证证书。</p>
+            <div id="complianceContent"><div class="empty-mini">点击「生成 / 刷新报告」查看</div></div>
+        </div>
+    </div>
+
+    <!-- P2 审计日志 -->
+    <div class="panel" id="panel-audit">
+        <div class="panel-card">
+            <h2>审计日志</h2>
+            <p class="note">谁在什么时候做了什么，可追溯、不可抵赖。记录扫描、邀请、改角色、移除子账号等全部团队操作。</p>
+            {% if audit_logs %}
+            <div class="tbl-wrap">
+                <table class="tbl">
+                    <thead><tr><th>时间</th><th>操作人</th><th>操作</th><th>详情</th></tr></thead>
+                    <tbody>
+                    {% for a in audit_logs %}
+                    <tr>
+                        <td>{{ a.created_at[:16] if a.created_at else '' }}</td>
+                        <td>{{ a.actor_email or ('用户#' ~ a.actor_id) }}</td>
+                        <td><span class="tag tag-info">{{ audit_actions.get(a.action, a.action) }}</span></td>
+                        <td>{{ a.detail or '' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}<div class="empty-mini">暂无审计记录</div>{% endif %}
+        </div>
+    </div>
+
+    <!-- P6 共享积分池 -->
+    <div class="panel" id="panel-credits">
+        <div class="tiles">
+            <div class="tile"><div class="num" id="teamBalance">—</div><div class="lbl">共享积分余额</div></div>
+            <div class="tile"><div class="num" id="subStatus" style="font-size:var(--text-lg);">—</div><div class="lbl">团队版状态</div></div>
+        </div>
+        <div class="panel-card">
+            <h2>团队版套餐</h2>
+            <p class="note">团队版 = 共享积分池 + 治理能力（门禁 / 审计 / 标准对照报告）。团队扫描从共享池扣费，不占个人积分。</p>
+            {% if is_admin %}
+            <div class="plans">
+                {% for pid, plan in team_plans.items() %}
+                <div class="plan-card">
+                    <h3>{{ plan.name }}</h3>
+                    <div class="plan-price">¥{{ plan.amount }}<small>/月</small></div>
+                    <div class="plan-desc">含 {{ plan.credits }} 共享积分 · {{ plan.member_limit }} 席位</div>
+                    <button class="btn btn-primary btn-block" onclick="buyPlan('{{ pid }}')">购买</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-mini">仅管理员可购买团队版</div>
+            {% endif %}
+        </div>
+        <div class="panel-card">
+            <h2>积分流水</h2>
+            <div id="creditTxns"><div class="empty-mini">加载中…</div></div>
+        </div>
+    </div>
+
+    <!-- 支付二维码弹窗：不跳转、不开新窗，就在当前页扫 -->
+    <div class="modal-overlay" id="payModal">
+        <div class="modal">
+            <h2>微信扫码支付</h2>
+            <div class="qr-box">
+                <p id="payPlan" style="font-size:14px;font-weight:600;color:var(--color-accent-blue);margin:0 0 10px;"></p>
+                <p id="payTip" style="font-size:13px;color:var(--color-text-secondary);margin:0 0 8px;">请用微信扫一扫完成支付</p>
+                <img id="payQrImg" src="" alt="支付二维码">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closePayModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var teamId = {{ team.id }};
+    var complianceData = null;
+
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('panel-' + name).classList.add('active');
+        if (name === 'credits') loadCredits();
+    }
+
+    // P4 保存门禁
+    async function saveGate() {
+        var body = {
+            min_score: parseInt(document.getElementById('minScore').value),
+            max_critical: parseInt(document.getElementById('maxCritical').value),
+            max_high: parseInt(document.getElementById('maxHigh').value),
+            scan_mode: document.getElementById('scanMode').value,
+            enabled: document.getElementById('gateEnabled').checked
+        };
+        try {
+            var resp = await fetch('/api/teams/' + teamId + '/gate', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            var data = await resp.json();
+            alert(data.msg || (data.code === 0 ? '已保存' : '保存失败'));
+            if (data.code === 0) location.reload();
+        } catch (e) { alert('保存失败'); }
+    }
+
+    // P5 标准对照报告
+    async function loadCompliance() {
+        var box = document.getElementById('complianceContent');
+        box.innerHTML = '<div class="empty-mini">生成中…</div>';
+        try {
+            var resp = await fetch('/api/teams/' + teamId + '/compliance');
+            var data = await resp.json();
+            if (data.code !== 0) { box.innerHTML = '<div class="empty-mini">生成失败</div>'; return; }
+            complianceData = data.data;
+            renderCompliance(box, complianceData);
+        } catch (e) { box.innerHTML = '<div class="empty-mini">生成失败</div>'; }
+    }
+
+    function renderCompliance(box, r) {
+        var html = '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px;">'
+            + '生成于 ' + r.generated_at + ' · 覆盖 ' + r.total_scans + ' 次扫描 · 共 ' + r.total_issues + ' 个问题'
+            + (r.unmapped > 0 ? '· ' + r.unmapped + ' 个未映射到 CWE' : '')
+            + '</div>';
+
+        if (r.owasp_list.length > 0) {
+            html += '<h3>OWASP Top10 分布</h3><div class="cwe-list">';
+            r.owasp_list.forEach(function (o) {
+                html += '<div class="cwe-item"><span class="cwe-id">' + o.owasp_id + '</span>'
+                    + '<span class="cwe-name">' + o.name + '</span>'
+                    + '<span class="cwe-count">' + o.count + '</span></div>';
+            });
+            html += '</div>';
+        }
+
+        if (r.cwe_buckets.length > 0) {
+            html += '<h3 style="margin-top:20px;">CWE 明细</h3><div class="cwe-list">';
+            r.cwe_buckets.forEach(function (c) {
+                var sev = c.severity;
+                html += '<div class="cwe-item">'
+                    + '<span class="cwe-id">' + c.cwe_id + '</span>'
+                    + '<span class="cwe-name">' + c.cwe_name + '</span>'
+                    + '<span style="font-size:12px;color:var(--color-text-muted);">严重' + sev.critical
+                    + ' 高危' + sev.high + ' 中等' + sev.medium + ' 轻微' + sev.low + '</span>'
+                    + '<span class="cwe-count">' + c.count + '</span>'
+                    + '</div>';
+            });
+            html += '</div>';
+        }
+
+        if (r.total_issues === 0) html += '<div class="empty-mini">暂无问题，代码健康</div>';
+        box.innerHTML = html;
+    }
+
+    // P6 共享积分池
+    async function loadCredits() {
+        try {
+            var resp = await fetch('/api/teams/' + teamId + '/credits');
+            var data = await resp.json();
+            if (data.code !== 0) return;
+            document.getElementById('teamBalance').textContent = data.data.balance;
+            var sub = data.data.subscription;
+            document.getElementById('subStatus').textContent =
+                sub && sub.status === 'active' ? '已开通' : '未开通';
+            renderTxns(data.data.transactions);
+        } catch (e) {}
+    }
+
+    function renderTxns(txns) {
+        var box = document.getElementById('creditTxns');
+        if (!txns || txns.length === 0) { box.innerHTML = '<div class="empty-mini">暂无流水</div>'; return; }
+        var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>时间</th><th>类型</th><th>积分</th><th>操作人</th><th>备注</th></tr></thead><tbody>';
+        txns.forEach(function (t) {
+            var isGrant = t.type === 'grant';
+            html += '<tr>'
+                + '<td>' + (t.created_at ? t.created_at.slice(0, 16) : '') + '</td>'
+                + '<td>' + (isGrant ? '<span class="tag tag-success">发放</span>' : '<span class="tag tag-danger">消费</span>') + '</td>'
+                + '<td>' + (isGrant ? '+' : '-') + t.amount + '</td>'
+                + '<td>' + (t.actor_email || '') + '</td>'
+                + '<td>' + (t.remark || '') + '</td>'
+                + '</tr>';
+        });
+        html += '</tbody></table></div>';
+        box.innerHTML = html;
+    }
+
+    async function buyPlan(planId) {
+        if (!confirm('确认购买该团队版套餐？将发起微信支付。')) return;
+        try {
+            var resp = await fetch('/api/teams/' + teamId + '/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan_id: planId })
+            });
+            var data = await resp.json();
+            if (data.code !== 0) { alert(data.msg || '下单失败'); return; }
+            showPayQr(data.qr_url);
+            pollPayStatus(data.order_id);
+        } catch (e) { alert('下单失败'); }
+    }
+
+    // 二维码就地显示：微信链接走服务端转图，不跳转、不开新窗
+    function showPayQr(qrUrl) {
+        var img = document.getElementById('payQrImg');
+        if (!qrUrl) { alert('二维码生成失败，请重试'); return; }
+        if (qrUrl.indexOf('data:image') === 0) {
+            img.src = qrUrl;
+        } else if (qrUrl.indexOf('weixin://') === 0 || qrUrl.indexOf('http') === 0) {
+            img.src = '/api/team/purchase/qrcode?url=' + encodeURIComponent(qrUrl);
+        } else {
+            alert('二维码生成失败，请重试');
+            return;
+        }
+        document.getElementById('payPlan').textContent = '支付完成后团队版自动开通';
+        document.getElementById('payTip').textContent = '请用微信扫一扫完成支付';
+        document.getElementById('payModal').classList.add('active');
+    }
+
+    function closePayModal() { document.getElementById('payModal').classList.remove('active'); }
+
+    async function pollPayStatus(orderId) {
+        for (var i = 0; i < 30; i++) {
+            await new Promise(function (r) { setTimeout(r, 3000); });
+            try {
+                var resp = await fetch('/api/teams/' + teamId + '/subscribe/status/' + orderId);
+                var data = await resp.json();
+                if (data.status === 'paid') {
+                    document.getElementById('payTip').textContent = '支付成功！团队版已开通，正在刷新…';
+                    setTimeout(function () { location.reload(); }, 900);
+                    return;
+                }
+            } catch (e) { return; }
+        }
+    }
+
+    document.getElementById('payModal').addEventListener('click', function (e) {
+        if (e.target === this) closePayModal();
+    });
+</script>
+{% endblock %}

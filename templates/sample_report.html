@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}一份真实的扫描报告样例 - 煋鉴{% endblock %}
+{% block meta_description %}不注册先看一份真实扫描报告：每一条问题都给出代码位置、判定依据和修复写法。这是生产扫描器对演示代码真跑出来的结果，不是示意图，也不是客户代码。{% endblock %}
+{% block og_title %}扫完能拿到什么：一份真实报告样例 | 煋鉴{% endblock %}
+
+{% block content %}
+<section class="section" style="padding-top:56px;padding-bottom:64px;">
+  <div class="container" style="max-width:980px;">
+
+    <div class="section-header" style="text-align:left;margin-bottom:24px;">
+      <span class="section-tag">报告样例</span>
+      <h1 class="section-title" style="font-size:36px;">扫完一次，你拿到的就是这样一份东西</h1>
+      <p class="pricing-subtitle" style="line-height:1.8;">
+        下面每一条问题的位置、代码片段和修复写法，都来自生产扫描器对一段演示代码的真实输出，
+        未经人工改写。演示代码由我们编写，<strong>不是任何客户的代码</strong>。
+        引擎版本 {{ report['scanner_version'] }}，本次耗时 {{ report['scan_time_seconds'] | round(1) }} 秒。
+      </p>
+    </div>
+
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:20px 24px;background:var(--bg-card);margin-bottom:20px;">
+      <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:center;">
+        <div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">扫描文件</div>
+             <div style="font-size:22px;font-weight:700;color:var(--text-primary);">{{ report['sample_file'] }}</div></div>
+        <div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">发现问题</div>
+             <div style="font-size:22px;font-weight:700;color:var(--text-primary);">{{ report['total_issues'] }} 条</div></div>
+        <div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">其中高危 / 中等</div>
+             <div style="font-size:22px;font-weight:700;color:var(--text-primary);">{{ report['severity_breakdown'].get('high', 0) }} / {{ report['severity_breakdown'].get('medium', 0) }}</div></div>
+        <div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">检测语言</div>
+             <div style="font-size:22px;font-weight:700;color:var(--text-primary);">{{ report['sample_language'] }}</div></div>
+      </div>
+    </div>
+
+    {% for issue in report['issues'] %}
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:22px 24px;background:var(--bg-card);margin-bottom:16px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;">
+        {% if issue['severity'] in ('critical', 'high') %}
+        <span style="padding:3px 12px;border-radius:100px;font-size:12px;font-weight:600;background:var(--color-cool-surface);color:var(--color-danger);border:1px solid var(--color-danger);">{{ issue['severity_label'] }}</span>
+        {% else %}
+        <span style="padding:3px 12px;border-radius:100px;font-size:12px;font-weight:600;background:var(--color-cool-surface);color:var(--color-warning);border:1px solid var(--color-warning);">{{ issue['severity_label'] }}</span>
+        {% endif %}
+        <code style="font-size:12px;color:var(--text-muted);font-family:var(--font-v-jetbrains-mono-64a8d5);">{{ issue['rule_id'] }}</code>
+        <span style="font-size:12px;color:var(--text-muted);">{{ issue['brain_name'] }}</span>
+      </div>
+      <h2 style="font-size:19px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">{{ issue['title'] }}</h2>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+        {{ issue['file'] }} · 第 {{ issue['line'] }} 行
+      </div>
+      <pre style="overflow-x:auto;background:var(--color-cool-screen);border:1px solid var(--color-cool-line);border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7;color:var(--color-dark-text);font-family:var(--font-v-jetbrains-mono-64a8d5);margin-bottom:14px;">{{ issue['code_snippet'] }}</pre>
+      <div class="grid-2" style="gap:16px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">为什么算问题</div>
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;">{{ issue['description'] }}</p>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">怎么改</div>
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;">{{ issue['suggestion'] }}</p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="info-card" style="border:1px solid var(--color-cool-edge);border-radius:16px;padding:24px;background:var(--bg-card);margin-top:26px;">
+      <h2 style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">免费试扫和这份报告不是一回事</h2>
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.85;margin-bottom:18px;">
+        <strong>免费试扫是初筛</strong>：只跑规范层和安全引擎，只给你结论摘要，不含性能、架构深度分析和依赖漏洞扫描，
+        <strong>不等于完整报告</strong>。上面这种「每一条的代码位置、判定依据、可以直接套用的修复写法」，
+        以及整个项目连历史一起扫，是注册后的完整报告才有的。
+        初筛没报问题，也不代表代码很干净，只是本次初筛没发现。
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;">
+        <a href="/try" class="btn btn-primary btn-lg">免注册 · 先试扫一次</a>
+        <a href="/pricing" class="btn btn-secondary btn-lg">看看要花多少钱</a>
+        <a href="/register" class="btn btn-secondary btn-lg">直接注册看完整报告</a>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--text-muted);margin-top:22px;line-height:1.7;">
+      这份样例由生产扫描器真跑生成，事实源在 scripts/sample_report.json，可用
+      scripts/build_sample_report.py 重跑核对。演示代码只为说明报告长什么样，不代表任何真实项目。
+    </p>
+  </div>
+</section>
+{% endblock %}

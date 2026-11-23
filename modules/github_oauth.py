@@ -13,12 +13,39 @@ from functools import wraps
 
 github_bp = Blueprint("github_oauth", __name__)
 
+# ---------------------------------------------------------------------------
+# GitHub 访问走 SOCKS5 代理（国内服务器直连 github.com 超时，经硅谷跳板转发）
+# 通过环境变量 GITHUB_PROXY 控制，默认 http://127.0.0.1:18118
+# ---------------------------------------------------------------------------
+_GITHUB_PROXY = os.environ.get("GITHUB_PROXY", "http://127.0.0.1:18118")
+_github_opener = None
+
+
+def _get_github_opener():
+    """返回带 SOCKS5 代理的 opener（惰性构建，进程内复用）。"""
+    global _github_opener
+    if _github_opener is None:
+        if _GITHUB_PROXY:
+            import socks  # PySocks
+            from urllib.request import ProxyHandler, build_opener
+            proxy_handler = ProxyHandler({
+                "http": _GITHUB_PROXY,
+                "https": _GITHUB_PROXY,
+            })
+            _github_opener = build_opener(proxy_handler)
+        else:
+            _github_opener = urllib.request.build_opener()
+    return _github_opener
+
+
+
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
 GITHUB_REDIRECT_URI = os.environ.get("GITHUB_REDIRECT_URI", "https://xinpect.xingwangzhineng.com/api/github/callback")
 GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_API_BASE = "https://api.github.com"
+GITHUB_TIMEOUT_SECONDS = 15  # GitHub API 调用超时
 
 def _github_api(url, token=None, method="GET", data=None):
     """调用 GitHub API"""
@@ -32,7 +59,7 @@ def _github_api(url, token=None, method="GET", data=None):
     req_data = json.dumps(data).encode() if data else None
     req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
     
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with _get_github_opener().open(req, timeout=GITHUB_TIMEOUT_SECONDS) as resp:
         return json.loads(resp.read())
 
 def login_required_api(f):
@@ -128,7 +155,7 @@ def _exchange_code_for_token(code):
             "User-Agent": "Xinpect/2.0",
         }
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with _get_github_opener().open(req, timeout=GITHUB_TIMEOUT_SECONDS) as resp:
         return json.loads(resp.read())
 
 # ── 列出用户仓库 ──

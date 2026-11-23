@@ -134,10 +134,10 @@ def _github_api_urllib(url, token, method="GET", data=None):
             return {"status": resp.status}
     except urllib.error.HTTPError as e:
         resp_body = e.read().decode("utf-8", errors="replace")
-        logger.error("[webhook] GitHub API 错误 %s: %s %s", e.code, url, resp_body[:300])
+        logger.exception("[webhook] GitHub API 错误 %s: %s %s", e.code, url, resp_body[:300])
         return {"_error": True, "status": e.code, "message": resp_body[:300]}
     except Exception as e:
-        logger.error("[webhook] GitHub API 异常: %s %s", url, e)
+        logger.exception("[webhook] GitHub API 异常: %s %s", url, e)
         return {"_error": True, "message": str(e)}
 
 
@@ -601,12 +601,12 @@ def _do_scan(user_id, webhook_id, repo_full_name, branch, commit_sha,
                     _post_github_pr_comment(github_token, owner, repo, pr_number, comment_body)
                     logger.info("[webhook] PR #%s 评论已发送: %s", pr_number, repo_full_name)
                 except Exception as e:
-                    logger.error("[webhook] PR 评论发送失败: %s", e)
+                    logger.exception("[webhook] PR 评论发送失败: %s", e)
         else:
             logger.warning("[webhook] 扫描返回空结果: %s", repo_full_name)
 
     except ImportError:
-        logger.error("[webhook] ci.py 模块不可用")
+        logger.exception("[webhook] ci.py 模块不可用")
     except Exception as e:
         logger.error("[webhook] 调用扫描失败: %s", e, exc_info=True)
 
@@ -621,4 +621,4 @@ def _do_scan(user_id, webhook_id, repo_full_name, branch, commit_sha,
         db.commit()
         db.close()
     except Exception as e:
-        logger.error("[webhook] 更新统计失败: %s", e)
+        logger.exception("[webhook] 更新统计失败: %s", e)

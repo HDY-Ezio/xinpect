@@ -1,0 +1,138 @@
+{% extends "admin/base.html" %}
+{% block title %}用户管理 - 煋鉴管理后台{% endblock %}
+{% block content %}
+<div class="header">
+    <h1>用户管理</h1>
+</div>
+
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>搜索：</label>
+        <input type="text" id="search" class="search-box" placeholder="邮箱或用户ID" style="width:200px" onkeyup="if(event.key==='Enter')loadUsers()">
+    </div>
+    <div class="filter-group">
+        <label>状态：</label>
+        <select class="filter-select" id="status-filter" onchange="loadUsers()">
+            <option value="">全部</option>
+            <option value="normal">正常</option>
+            <option value="banned">已封禁</option>
+            <option value="vip">VIP</option>
+            <option value="normal_user">普通用户</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>起始日期：</label>
+        <input type="date" class="filter-date" id="start-date" onchange="loadUsers()">
+    </div>
+    <div class="filter-group">
+        <label>截止日期：</label>
+        <input type="date" class="filter-date" id="end-date" onchange="loadUsers()">
+    </div>
+    <button class="btn btn-primary" onclick="loadUsers()">筛选</button>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>邮箱</th>
+                <th>注册时间</th>
+                <th>VIP到期</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="users-table"></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+
+async function loadUsers(page = 1) {
+    currentPage = page;
+    const search = document.getElementById("search").value;
+    const status = document.getElementById("status-filter").value;
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    const params = new URLSearchParams({page});
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+
+    const res = await fetch(`/api/admin/users?${params}`);
+    const data = await res.json();
+
+    const tbody = document.getElementById("users-table");
+    tbody.innerHTML = data.users.map(u => `
+        <tr>
+            <td>${u.id}</td>
+            <td>${u.email}</td>
+            <td>${u.created_at || "-"}</td>
+            <td>${u.vip_expire_at || "无"}</td>
+            <td>
+                ${u.is_banned ? '<span class="badge badge-danger">已封禁</span>' : '<span class="badge badge-success">正常</span>'}
+                ${u.is_vip ? '<span class="badge badge-info">VIP</span>' : ''}
+                ${u.is_admin ? '<span class="badge badge-info">管理员</span>' : ''}
+            </td>
+            <td>
+                <button class="btn btn-secondary" onclick="viewUser(${u.id})">详情</button>
+                ${u.is_banned ?
+                    '<button class="btn btn-success" onclick="toggleBan('+u.id+', false)">解封</button>' :
+                    '<button class="btn btn-primary" onclick="toggleBan('+u.id+', true)">封禁</button>'}
+            </td>
+        </tr>
+    `).join("");
+
+    const totalPages = Math.ceil(data.total / data.per_page);
+    const pagination = document.getElementById("pagination");
+    pagination.innerHTML = "";
+    for (let i = 1; i <= totalPages; i++) {
+        pagination.innerHTML += `<button class="${i === page ? 'active' : ''}" onclick="loadUsers(${i})">${i}</button>`;
+    }
+}
+
+async function viewUser(id) {
+    const res = await fetch(`/api/admin/users/${id}`);
+    const data = await res.json();
+    const u = data.user;
+    const s = data.stats;
+    document.getElementById("user-modal-body").innerHTML = `
+        <h3>用户详情</h3>
+        <div class="info-row"><span class="label">用户ID</span><span class="val">${u.id}</span></div>
+        <div class="info-row"><span class="label">邮箱</span><span class="val">${u.email}</span></div>
+        <div class="info-row"><span class="label">注册时间</span><span class="val">${u.created_at || '-'}</span></div>
+        <div class="info-row"><span class="label">VIP到期</span><span class="val">${u.vip_expire_at || '无'}</span></div>
+        <div class="info-row"><span class="label">状态</span><span class="val">${u.is_banned ? '已封禁' : '正常'}</span></div>
+        <div class="info-row"><span class="label">订单数</span><span class="val">${s.orders}</span></div>
+        <div class="info-row"><span class="label">累计消费</span><span class="val">¥${s.total_spent}</span></div>
+        <div class="info-row"><span class="label">扫描次数</span><span class="val">${s.scans}</span></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeUserModal()">关闭</button>
+        </div>
+    `;
+    document.getElementById("user-modal").classList.add("show");
+}
+
+function closeUserModal() {
+    document.getElementById("user-modal").classList.remove("show");
+}
+
+async function toggleBan(id, ban) {
+    if (!confirm(ban ? "确定封禁该用户？" : "确定解封该用户？")) return;
+    await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({is_banned: ban ? 1 : 0})
+    });
+    loadUsers(currentPage);
+}
+
+loadUsers();
+</script>
+{% endblock %}

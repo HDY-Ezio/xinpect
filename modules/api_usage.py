@@ -83,7 +83,7 @@ def record_rate_limit(db, user_id, endpoint, reason):
         )
         db.commit()
     except Exception as e:
-        logger.error(f"记录限流事件失败: {e}")
+        logger.exception(f"记录限流事件失败: {e}")
 
 
 def get_today_usage(db, user_id):

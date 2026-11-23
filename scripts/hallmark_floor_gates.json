@@ -1,0 +1,88 @@
+{
+  "version": "2026-11-06-batch-b",
+  "checker_rel": "scripts/vendor/sloplint.mjs",
+  "principle": "只看本清单列出的命中数是否为 0，不看 sloplint 总 FAIL 数。存量风格项（7a 纯白 / 中文误判 / 24b 间距 / F6 图标误判）永远红，拿总数当 KPI 会逼人乱改品牌。第二批把 48 从豁免升级为门禁；F6 明确写进豁免。",
+  "pages": {
+    "index": {
+      "path": "/",
+      "label": "首页"
+    },
+    "try": {
+      "path": "/try",
+      "label": "免费试扫"
+    },
+    "pricing": {
+      "path": "/pricing",
+      "label": "定价"
+    }
+  },
+  "zero_hit_gates": [
+    {
+      "gate": "10a",
+      "tier": "Floor",
+      "meaning": "动画与过渡只动 transform / opacity，不动 top / width 等布局属性；transition 必须列明具体属性，不许 all",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "34",
+      "tier": "Floor",
+      "meaning": "html 与 body 都要 overflow-x: clip，防止手机横向溢出；用 clip 不用 hidden，避免破坏 sticky 导航",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "40",
+      "tier": "Floor",
+      "meaning": "正文与可点文字对比度 ≥ 4.5:1；报告页工具按钮、二维码、disabled 态一并覆盖",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "48",
+      "tier": "Floor",
+      "meaning": "颜色与字体字面量必须收进 static/css/tokens.css 变量；非 :root 的 CSS 规则与 HTML 内联样式不许出现裸 hex / rgba / oklch / font-family",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "30a",
+      "tier": "Floor",
+      "meaning": "对外页不用 emoji 当装饰图标；后台内页的 ✓ ✕ ▸ ① 状态色点是功能符号，不在本门禁范围",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "63",
+      "tier": "Floor",
+      "meaning": "不用中点串当副标题、不在按钮标签后挂箭头",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "F3",
+      "tier": "Finish",
+      "meaning": "大标题要 text-wrap: balance",
+      "pages": ["index", "try", "pricing"]
+    },
+    {
+      "gate": "F21",
+      "tier": "Finish",
+      "meaning": "标题层级一步一步走，不许 h2 后直接 h4/h5",
+      "pages": ["index", "try", "pricing"]
+    }
+  ],
+  "contrast_must_be_zero": [
+    {
+      "page": "index",
+      "selectors": [".nav .btn-solid", ".hero .btn-solid"],
+      "meaning": "首页主按钮白字 ≥ 4.5:1"
+    },
+    {
+      "page": "try",
+      "selectors": [".xp-sfx-btn", ".xp-sfx-file"],
+      "meaning": "免费试扫等待组件的次要文字 ≥ 4.5:1"
+    },
+    {
+      "page": "pricing",
+      "selectors": [".xp-sfx-btn", ".xp-sfx-file"],
+      "meaning": "定价页等待组件的次要文字 ≥ 4.5:1"
+    }
+  ],
+  "legacy_numbers_banned": ["91.3", "检出率 91.3"],
+  "waived_gates_note": "7a / 20 / 54 / 67 / 19 / 47b / 38iii / 26b / 24b / F6 见 design.md 第五节，为中文站误判或自家风格，不纳入验收"
+}

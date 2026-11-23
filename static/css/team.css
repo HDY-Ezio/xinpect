@@ -1,0 +1,273 @@
+/* 团队 5 页（我的团队 / 团队详情 / 团队设置 / 邀请接受 / 团队治理）共用的样式。
+ *
+ * 为什么单独一份：这 5 个页面原来是 5 份独立 HTML，各自写死 body、* 重置、.container
+ * 和一套 .btn，进站像出了站。现在统一走后台母版，样式也必须只有一份。
+ *
+ * 两条硬规矩：
+ * 1. 所有选择器都挂在 .team-page 下——只影响自己，不碰母版、不碰全局 .btn/.card；
+ * 2. 只用 tokens.css 里的令牌，不写裸色值（severity 仍走红/橙/深橙/蓝四档）。
+ */
+
+.team-page {
+    color: var(--color-text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+.team-page a { color: var(--color-accent-steel); }
+.team-page h1, .team-page h2, .team-page h3 { color: var(--color-text-primary); }
+
+/* ---------- 面包屑 ---------- */
+.team-page .crumb {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin-bottom: 10px;
+}
+.team-page .crumb a { color: var(--color-accent-steel); text-decoration: none; }
+.team-page .crumb a:hover { text-decoration: underline; }
+
+/* ---------- 页头：标题 + 右侧动作 ---------- */
+.team-page .hd {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-6);
+}
+.team-page .hd h1 {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    margin: 0 0 6px;
+    line-height: 1.3;
+}
+.team-page .hd p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    max-width: 62ch;
+}
+.team-page .hd-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.team-page .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ---------- 卡片 ---------- */
+.team-page .panel-card {
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-card);
+    margin-bottom: var(--space-5);
+}
+.team-page .panel-card > h2 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    margin: 0 0 var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.team-page .panel-card > h3 {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin: var(--space-5) 0 var(--space-3);
+}
+.team-page .note {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin: -8px 0 var(--space-4);
+    line-height: 1.7;
+}
+
+/* ---------- 统计小块 ---------- */
+.team-page .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+.team-page .tile {
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-card);
+}
+.team-page .tile .num {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--color-accent-blue);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+.team-page .tile .lbl {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+/* ---------- 表格 ---------- */
+.team-page .tbl-wrap { overflow-x: auto; }
+.team-page .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.team-page .tbl th {
+    text-align: left;
+    padding: 9px 10px;
+    background: var(--color-surface-inset);
+    color: var(--color-text-on-subtle);
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+.team-page .tbl td {
+    padding: 10px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary);
+}
+.team-page .tbl tbody tr:last-child td { border-bottom: none; }
+.team-page .tbl tbody tr:hover td { background: var(--color-surface-hover); }
+
+/* ---------- 标签：角色 / 状态 / 分数 ---------- */
+.team-page .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.team-page .tag-owner { background: var(--color-metal-gold-tint); color: var(--color-accent-blue); }
+.team-page .tag-admin { background: var(--color-surface-inset); color: var(--color-accent-steel); }
+.team-page .tag-member { background: var(--color-surface-inset); color: var(--color-text-on-subtle); }
+.team-page .tag-neutral { background: var(--color-surface-inset); color: var(--color-text-on-subtle); }
+.team-page .tag-info { background: var(--color-surface-inset); color: var(--color-accent-steel); }
+.team-page .tag-success { background: var(--color-surface-inset); color: var(--color-success); }
+.team-page .tag-warning { background: var(--color-sev-medium-tint); color: var(--color-sev-medium); }
+.team-page .tag-danger { background: var(--color-danger-tint); color: var(--color-danger); }
+
+/* ---------- 头像 / 列表行 ---------- */
+.team-page .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--color-surface-inset);
+    color: var(--color-accent-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.team-page .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+.team-page .row:last-child { border-bottom: none; }
+.team-page .row-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.team-page .row-title { font-size: 14px; color: var(--color-text-primary); }
+.team-page .row-sub { font-size: 12px; color: var(--color-text-muted); }
+
+/* ---------- 表单 ---------- */
+.team-page .field { margin-bottom: var(--space-4); }
+.team-page .field > label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+}
+.team-page input[type="text"],
+.team-page input[type="email"],
+.team-page input[type="number"],
+.team-page textarea,
+.team-page select {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-family: inherit;
+}
+.team-page textarea { resize: vertical; min-height: 84px; }
+.team-page input:focus,
+.team-page textarea:focus,
+.team-page select:focus {
+    outline: none;
+    border-color: var(--color-accent-steel);
+    box-shadow: 0 0 0 3px var(--color-steel-alpha-10);
+}
+.team-page .hint { font-size: 12px; color: var(--color-text-muted); margin-top: 6px; }
+
+/* ---------- 弹窗 ---------- */
+.team-page .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--color-overlay);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.team-page .modal-overlay.active { display: flex; }
+.team-page .modal {
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: var(--shadow-card-hover);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.team-page .modal h2 { font-size: var(--text-lg); margin: 0 0 var(--space-4); }
+.team-page .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: var(--space-5);
+}
+
+/* ---------- 空状态 ---------- */
+.team-page .empty {
+    text-align: center;
+    padding: var(--space-12) var(--space-4);
+    color: var(--color-text-muted);
+}
+.team-page .empty .ico { font-size: 34px; margin-bottom: 10px; opacity: .7; }
+.team-page .empty h3 { font-size: var(--text-base); margin: 0 0 6px; }
+.team-page .empty p { font-size: 13px; margin: 0 auto 18px; max-width: 46ch; }
+.team-page .empty-mini {
+    text-align: center;
+    padding: 20px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 860px) {
+    .team-page .hd { flex-direction: column; }
+    .team-page .hd-actions { width: 100%; }
+    .team-page .two-col { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 640px) {
+    .team-page .tiles { grid-template-columns: repeat(2, 1fr); }
+    .team-page .panel-card { padding: var(--space-5); }
+}

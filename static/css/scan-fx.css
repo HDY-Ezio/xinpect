@@ -1,0 +1,173 @@
+/* 煋鉴扫描等待界面 · 全站唯一一份（2026-11-05）
+   只在 .xp-scanfx 容器内生效，首页原有特效不受影响。
+   进度数字只由 JS 按后端真实事件写入；这里的动画全是装饰，不表达进度。 */
+.xp-scanfx {
+  --xp-ink: var(--color-v-e8f0fb);
+  --xp-dim: var(--color-v-9fb2cc);
+  --xp-accent: var(--color-v-63d2c3);
+  --xp-blue: var(--color-v-4f8fe0);
+  --xp-screen: var(--color-v-0d1729);
+  --xp-line: var(--color-v-f661e9ea7);
+  /* 等待界面自带配色：次要文字按 WCAG AA 4.5:1 定标，var(--color-text-on-subtle) 在浅底上 5.6:1 */
+  --xp-text: var(--color-text-on-subtle);
+  position: relative;
+  border: 1px solid var(--border-color, var(--color-v-dce3ed));
+  border-radius: 16px;
+  background: var(--bg-card, var(--color-bg-primary));
+  padding: 20px;
+  box-sizing: border-box;
+  max-width: 640px;
+  margin: 0 auto;
+  overflow: hidden;
+  font-family: var(--font-v-segoe-ui-f87a9e);
+}
+.xp-sfx-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.xp-sfx-title { font-size: 15px; font-weight: 700; color: var(--text-primary, var(--color-v-1a2436)); }
+.xp-sfx-toggles { display: flex; gap: 8px; }
+.xp-sfx-btn {
+  border: 1px solid var(--border-color, var(--color-v-dce3ed));
+  background: var(--bg-page, var(--color-v-f6f8fc));
+  color: var(--xp-text);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.xp-sfx-btn[aria-pressed="true"] { border-color: var(--xp-blue); color: var(--xp-blue); }
+
+/* 自带配色的「扫描屏」——不依赖页面主题 */
+.xp-sfx-screen {
+  position: relative;
+  height: 118px;
+  /* 扫描线行程基准，与 height 同一事实来源；移动端在下方媒体查询同步 */
+  --xp-travel: 118px;
+  border-radius: 10px;
+  background: var(--xp-screen);
+  overflow: hidden;
+  border: 1px solid var(--color-metal-gold-bright);
+}
+.xp-sfx-codeflow { position: absolute; inset: 0; opacity: .55; }
+.xp-sfx-codeflow i {
+  position: absolute; left: 0; display: block; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-v-f74f10740), transparent);
+  animation: xp-sfx-flow 3.2s linear infinite;
+}
+.xp-sfx-codeflow i:nth-child(1) { top: 14%; width: 46%; animation-delay: 0s; }
+.xp-sfx-codeflow i:nth-child(2) { top: 30%; width: 68%; animation-delay: .5s; }
+.xp-sfx-codeflow i:nth-child(3) { top: 46%; width: 32%; animation-delay: 1.1s; }
+.xp-sfx-codeflow i:nth-child(4) { top: 62%; width: 78%; animation-delay: 1.6s; }
+.xp-sfx-codeflow i:nth-child(5) { top: 78%; width: 52%; animation-delay: 2.2s; }
+@keyframes xp-sfx-flow { 0% { transform: translateX(-110%); } 100% { transform: translateX(240%); } }
+
+.xp-sfx-beam {
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--xp-accent), transparent);
+  box-shadow: 0 0 18px 3px var(--color-metal-gold-alpha-08);
+  transform: translateY(calc(var(--xp-travel, 118px) * .08));
+  animation: xp-sfx-beam 2.6s ease-in-out infinite alternate;
+}
+/* 只动合成层 transform，不动 top；行程取容器高度变量 */
+@keyframes xp-sfx-beam {
+  from { transform: translateY(calc(var(--xp-travel, 118px) * .08)); }
+  to   { transform: translateY(calc(var(--xp-travel, 118px) * .90)); }
+}
+
+.xp-sfx-particles span {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: var(--xp-accent); opacity: .7;
+  animation: xp-sfx-float 4s ease-in-out infinite alternate;
+}
+.xp-sfx-particles span:nth-child(1) { left: 12%; top: 22%; animation-delay: .1s; }
+.xp-sfx-particles span:nth-child(2) { left: 27%; top: 68%; animation-delay: .8s; }
+.xp-sfx-particles span:nth-child(3) { left: 44%; top: 35%; animation-delay: 1.4s; }
+.xp-sfx-particles span:nth-child(4) { left: 61%; top: 76%; animation-delay: .4s; }
+.xp-sfx-particles span:nth-child(5) { left: 78%; top: 28%; animation-delay: 1.9s; }
+.xp-sfx-particles span:nth-child(6) { left: 90%; top: 60%; animation-delay: 2.5s; }
+@keyframes xp-sfx-float { from { transform: translateY(0); opacity: .25; } to { transform: translateY(-14px); opacity: .9; } }
+
+.xp-sfx-screen-label {
+  position: absolute; left: 12px; bottom: 9px;
+  font: 11px/1.4 "JetBrains Mono", Consolas, monospace;
+  color: var(--xp-dim); letter-spacing: .14em;
+}
+.xp-sfx-caret {
+  position: absolute; right: 14px; bottom: 9px; width: 7px; height: 13px;
+  background: var(--xp-accent); animation: xp-sfx-blink 1s steps(1) infinite;
+}
+@keyframes xp-sfx-blink { 50% { opacity: 0; } }
+
+.xp-sfx-current {
+  margin-top: 16px; min-height: 22px;
+  font-size: 15px; font-weight: 600; color: var(--text-primary, var(--color-v-1a2436));
+  word-break: break-all;
+}
+.xp-sfx-meta { font-size: 12px; color: var(--xp-text); margin-top: 4px; }
+.xp-sfx-bar {
+  margin-top: 12px; height: 8px; border-radius: 99px;
+  background: var(--bg-page, var(--color-v-edf1f7)); overflow: hidden;
+}
+.xp-sfx-fill {
+  height: 100%; width: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--color-v-4f8fe0), var(--color-v-63d2c3));
+  transform: scaleX(0); transform-origin: left center;
+  /* 进度值仍只来自后端真实事件，JS 写 scaleX；不动画 width，避免重排 */
+  transition: transform .35s ease;
+}
+.xp-sfx-pct { text-align: right; font: 12px/1.8 "JetBrains Mono", Consolas, monospace; color: var(--xp-text); }
+
+.xp-sfx-log { margin-top: 14px; border-top: 1px solid var(--border-color, var(--color-v-e6ebf2)); padding-top: 12px; }
+.xp-sfx-log-title { font-size: 11px; letter-spacing: .1em; color: var(--xp-text); margin-bottom: 8px; }
+.xp-sfx-line {
+  display: flex; gap: 9px; align-items: baseline;
+  font: 12px/1.9 "JetBrains Mono", Consolas, monospace;
+  color: var(--xp-text);
+  animation: xp-sfx-in .28s ease both;
+  word-break: break-all;
+}
+.xp-sfx-line:first-child { color: var(--text-primary, var(--color-v-1a2436)); font-weight: 600; }
+.xp-sfx-line[data-kind="engine"] .xp-sfx-kind { color: var(--color-v-2a9d8f); }
+.xp-sfx-line[data-kind="file"] .xp-sfx-kind { color: var(--xp-blue); }
+.xp-sfx-line[data-kind="stage"] .xp-sfx-kind { color: var(--color-metal-gold-bright); }
+.xp-sfx-line[data-kind="done"] .xp-sfx-kind { color: var(--color-v-2a9d8f); }
+.xp-sfx-kind { flex: 0 0 46px; font-size: 10px; opacity: .85; }
+.xp-sfx-time { flex: 0 0 58px; text-align: right; opacity: .6; }
+@keyframes xp-sfx-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.xp-sfx-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.xp-sfx-file {
+  font: 11px/1.6 "JetBrains Mono", Consolas, monospace;
+  color: var(--xp-text);
+  background: var(--bg-page, var(--color-v-f2f5fa));
+  border: 1px solid var(--border-color, var(--color-v-e2e8f1));
+  border-radius: 6px; padding: 2px 8px; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  transition: border-color .3s ease, color .3s ease;
+}
+.xp-sfx-file.is-active { border-color: var(--color-v-4f8fe0); color: var(--color-v-2f6ec4); }
+.xp-sfx-note { margin-top: 12px; font-size: 11px; color: var(--xp-text); opacity: .8; }
+
+.xp-scanfx.is-finished .xp-sfx-beam,
+.xp-scanfx.is-finished .xp-sfx-codeflow,
+.xp-scanfx.is-finished .xp-sfx-particles { opacity: 0; transition: opacity .6s ease; }
+.xp-scanfx.is-finished .xp-sfx-screen { border-color: var(--color-v-f42e96660); }
+
+/* 系统要求减弱动效：全部装饰停掉，进度文字照常更新 */
+.xp-scanfx.is-reduced .xp-sfx-codeflow i,
+.xp-scanfx.is-reduced .xp-sfx-beam,
+.xp-scanfx.is-reduced .xp-sfx-particles span,
+.xp-scanfx.is-reduced .xp-sfx-caret,
+.xp-scanfx.is-reduced .xp-sfx-line { animation: none; }
+.xp-scanfx.is-reduced .xp-sfx-fill { transition: none; }
+
+@media (max-width: 640px) {
+  .xp-scanfx { padding: 14px; }
+  .xp-sfx-screen { height: 88px; --xp-travel: 88px; }
+  .xp-sfx-time { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xp-scanfx .xp-sfx-codeflow i,
+  .xp-scanfx .xp-sfx-beam,
+  .xp-scanfx .xp-sfx-particles span,
+  .xp-scanfx .xp-sfx-caret { animation: none; }
+}

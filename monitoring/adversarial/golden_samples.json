@@ -1,0 +1,17 @@
+{
+  "_comment": "煋鉴生产对抗性自检黄金样本。malicious=必须命中(漏报危险); clean=安全引擎不应报(误报)。expect_match 用消息子串(小写匹配)。只统计安全引擎 brain 2/8/9/10，避免性能噪音干扰。",
+  "malicious": [
+    {"id":"py_sqli_concat", "lang":"py", "expect":["sql","注入"], "code":"import sqlite3\ndef get_user(uid):\n    conn = sqlite3.connect('users.db')\n    cur = conn.cursor()\n    cur.execute(\"SELECT * FROM users WHERE id = '\" + uid + \"'\")\n    return cur.fetchone()\n"},
+    {"id":"py_eval", "lang":"py", "expect":["eval"], "code":"def run_expr(expr):\n    return eval(expr)\n"},
+    {"id":"py_os_system", "lang":"py", "expect":["os.system","系统命令","system"], "code":"import os\ndef restart(name):\n    os.system('systemctl restart ' + name)\n"},
+    {"id":"py_pickle_loads", "lang":"py", "expect":["pickle","反序列化"], "code":"import pickle\ndef load_blob(blob):\n    return pickle.loads(blob)\n"},
+    {"id":"py_subprocess_shell", "lang":"py", "expect":["shell=true","命令注入","shell"], "code":"import subprocess\ndef run(cmd):\n    return subprocess.call(cmd, shell=True)\n"},
+    {"id":"js_innerhtml_xss", "lang":"js", "expect":["innerhtml","xss"], "code":"function renderName(name) {\n  document.getElementById('user').innerHTML = name;\n}\n"},
+    {"id":"py_hardcoded_secret", "lang":"py", "expect":["硬编码","密码","password"], "code":"password = \"admin123456\"\n"}
+  ],
+  "clean": [
+    {"id":"py_parameterized_query", "lang":"py", "code":"import sqlite3\ndef get_user(uid):\n    conn = sqlite3.connect('users.db')\n    cur = conn.cursor()\n    cur.execute('SELECT * FROM users WHERE id = ?', (uid,))\n    return cur.fetchone()\n"},
+    {"id":"py_plain_math", "lang":"py", "code":"def add(a, b):\n    return a + b\n\ndef average(xs):\n    return sum(xs) / len(xs) if xs else 0\n"},
+    {"id":"js_safe_loop", "lang":"js", "code":"function sum(values) {\n  let total = 0;\n  for (const v of values) { total += v; }\n  return total;\n}\n"}
+  ]
+}

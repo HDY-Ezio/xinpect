@@ -48,20 +48,37 @@ class TestCreditsSystem:
         conn.close()
         assert neg["cnt"] == 0, f"有{neg['cnt']}个用户积分余额为负"
 
-    def test_credit_transactions_balance_match(self):
-        """积分交易记录汇总与余额一致"""
+    def test_credit_balance_matches_pools(self):
+        """余额必须等于「活跃积分池之和」——这是现在的真实不变量。
+
+        口径说明（2026-11-03 修正）：
+          旧断言是 balance == SUM(所有流水)，那是单余额模型的假设。现在系统是
+          分池记账（subscription / pack / team 池，各有有效期和优先级），
+          过期池会被置 is_active=0 但流水永久保留，所以「历史流水总和」
+          天然对不上「当前可用余额」——旧断言必然误报。
+          池模型下 balance 由 credit_pools 聚合，这里逐用户核对；
+          建池前的老账号（一个池都没有）走 scoring.py 的 legacy 回退，
+          余额以 user_credits 为准，单列计数、不计入失败。
+        """
         conn = get_db()
         users = conn.execute("SELECT user_id, balance FROM user_credits WHERE balance > 0").fetchall()
-        mismatches = []
+        mismatches, legacy = [], []
         for u in users:
-            tx_sum = conn.execute(
-                "SELECT COALESCE(SUM(amount), 0) as total FROM credit_transactions WHERE user_id = ?",
+            agg = conn.execute(
+                """SELECT COALESCE(SUM(balance), 0) AS pool_sum, COUNT(*) AS pool_cnt
+                   FROM credit_pools WHERE user_id = ? AND is_active = 1""",
                 (u["user_id"],)
-            ).fetchone()["total"]
-            if abs(tx_sum - u["balance"]) > 1:
-                mismatches.append(f"user_id={u['user_id']}: balance={u['balance']} vs tx_sum={tx_sum}")
+            ).fetchone()
+            if agg["pool_cnt"] == 0:
+                legacy.append(u["user_id"])
+                continue
+            if agg["pool_sum"] != u["balance"]:
+                mismatches.append(
+                    "user_id=%s: balance=%s vs 活跃池合计=%s"
+                    % (u["user_id"], u["balance"], agg["pool_sum"])
+                )
         conn.close()
-        assert not mismatches, f"积分余额与交易记录不一致: {mismatches[:3]}"
+        assert not mismatches, "余额与活跃池合计不一致: %s" % mismatches[:3]
 
     def test_credit_pools_active_valid(self):
         """活跃积分池有有效期限"""

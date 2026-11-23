@@ -1,0 +1,112 @@
+/* 煋鉴官网冷光质感层 · 全站唯一一份（2026-11-08）
+   颜色一律取 tokens.css，装饰只用藏青 / 白银蓝 / 冰蓝，不碰红橙土黄。
+   动画只动 transform / opacity；持续动效只出现在门面氛围层，后台保持安静。
+   进度数字仍只来自扫描器真实事件，本文件所有动画纯装饰，不表达进度。 */
+
+/* 1. 页面底：一层极淡冷光，不覆盖原有背景色 */
+body {
+  background-image: linear-gradient(180deg, var(--color-cool-page) 0%,
+                                            var(--color-bg-primary) 340px);
+}
+
+/* 2. 导航下缘一道银蓝细光（inset 阴影不动布局、不破坏 sticky） */
+.navbar { box-shadow: inset 0 -1px 0 var(--color-cool-edge); }
+
+/* 3. 卡片：银蓝细边 + 淡冷光阴影；鼠标划过轻轻抬起 */
+.info-card, .card, .feature-card, .stat-card, .plan-card, .report-header {
+  box-shadow: var(--shadow-cool-soft);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.info-card:hover, .card:hover, .feature-card:hover,
+.stat-card:hover, .plan-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-cool-raised);
+}
+.info-card, .card, .feature-card, .stat-card, .plan-card {
+  border-color: var(--color-cool-edge-soft);
+}
+
+/* 4. 主按钮：悬停时一道冷白光掠过，只动 transform / opacity */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+  background: var(--color-cool-sheen);
+  transform: skewX(-20deg) translateX(0);
+  opacity: 0; pointer-events: none;
+  transition: transform 520ms ease, opacity 520ms ease;
+}
+.btn-primary:hover::after {
+  opacity: 1;
+  transform: skewX(-20deg) translateX(420%);
+}
+
+/* 5. 门面氛围层：绝对定位不占高度，纯装饰，不挡内容也不挡点击 */
+.xp-has-ambient { position: relative; }
+.xp-has-ambient > *:not(.xp-ambient) { position: relative; z-index: 1; }
+.xp-ambient {
+  position: absolute; left: 0; right: 0; top: 0; height: 340px;
+  overflow: hidden; pointer-events: none; z-index: 0; border-radius: 16px;
+  background: linear-gradient(180deg, var(--color-cool-surface) 0%,
+                                      var(--color-cool-surface) 38%,
+                                      var(--color-bg-primary) 100%);
+}
+.xp-ambient-grid {
+  position: absolute; inset: 0 0 88px 0;
+  background-image: linear-gradient(var(--color-cool-grid) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--color-cool-grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.xp-ambient-code i {
+  position: absolute; left: 0; display: block; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-cool-beam), transparent);
+  opacity: .5;
+  animation: xp-sfx-flow 3.2s linear infinite;
+}
+.xp-ambient-code i:nth-child(1) { top: 14%; width: 46%; animation-delay: 0s; }
+.xp-ambient-code i:nth-child(2) { top: 30%; width: 68%; animation-delay: .5s; }
+.xp-ambient-code i:nth-child(3) { top: 46%; width: 32%; animation-delay: 1.1s; }
+.xp-ambient-code i:nth-child(4) { top: 62%; width: 78%; animation-delay: 1.6s; }
+.xp-ambient-code i:nth-child(5) { top: 78%; width: 52%; animation-delay: 2.2s; }
+.xp-ambient-beam {
+  --xp-travel: 340px;
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-cool-beam), transparent);
+  animation: xp-sfx-beam 2.6s ease-in-out infinite alternate;
+}
+.xp-ambient-particles span {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: var(--color-cool-beam); opacity: .7;
+  animation: xp-sfx-float 4s ease-in-out infinite alternate;
+}
+.xp-ambient-particles span:nth-child(1) { left: 12%; top: 22%; animation-delay: .1s; }
+.xp-ambient-particles span:nth-child(2) { left: 27%; top: 68%; animation-delay: .8s; }
+.xp-ambient-particles span:nth-child(3) { left: 44%; top: 35%; animation-delay: 1.4s; }
+.xp-ambient-particles span:nth-child(4) { left: 61%; top: 76%; animation-delay: .4s; }
+.xp-ambient-particles span:nth-child(5) { left: 78%; top: 28%; animation-delay: 1.9s; }
+.xp-ambient-particles span:nth-child(6) { left: 90%; top: 60%; animation-delay: 2.5s; }
+
+/* 6. 报告门面：深色横幅版的同一套光效（报告页不怕占高度） */
+.xp-ambient-banner {
+  position: relative; height: 72px; margin-bottom: 20px;
+  overflow: hidden; pointer-events: none; border-radius: 12px;
+  background: var(--color-cool-screen);
+  border: 1px solid var(--color-cool-edge-soft);
+}
+.xp-ambient-banner .xp-ambient-grid { opacity: .8; }
+.xp-ambient-banner .xp-ambient-beam { --xp-travel: 72px; }
+.xp-ambient-banner .xp-ambient-code i { opacity: .75; }
+.xp-ambient-banner .xp-ambient-note {
+  position: absolute; left: 16px; bottom: 10px;
+  font: 11px/1.4 var(--font-v-jetbrains-mono-64a8d5);
+  letter-spacing: .14em; color: var(--color-cool-beam); opacity: .85;
+}
+
+/* 7. 系统要求减弱动效：装饰全停，进度文字照常更新 */
+@media (prefers-reduced-motion: reduce) {
+  body { background-image: none; }
+  .info-card, .card, .feature-card, .stat-card, .plan-card { transition: none; }
+  .info-card:hover, .card:hover, .feature-card:hover,
+  .stat-card:hover, .plan-card:hover { transform: none; }
+  .btn-primary::after { display: none; }
+  .xp-ambient-code i, .xp-ambient-beam, .xp-ambient-particles span { animation: none; }
+}

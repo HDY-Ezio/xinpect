@@ -12,44 +12,44 @@
     .compare-selectors { grid-template-columns: 1fr; }
 }
 .selector-group label {
-    display: block; font-size: 12px; color: var(--text-muted, #64748B);
+    display: block; font-size: 12px; color: var(--text-muted, var(--color-v-64748b));
     margin-bottom: 6px; font-weight: 500;
 }
 .selector-group select {
     width: 100%; padding: 10px 14px; border-radius: 10px;
-    border: 1px solid var(--border-color, #E2E8F0);
-    background: var(--bg-card, #FFFFFF); color: var(--text-primary, #0F172A);
+    border: 1px solid var(--border-color, var(--color-v-e2e8f0));
+    background: var(--bg-card, var(--color-bg-primary)); color: var(--text-primary, var(--color-v-0f172a));
     font-size: 13px; cursor: pointer;
 }
-.selector-group select:focus { outline: none; border-color: #1A3A5C; }
+.selector-group select:focus { outline: none; border-color: var(--color-v-1a3a5c); }
 .compare-arrow {
     display: flex; align-items: center; justify-content: center;
-    font-size: 24px; color: var(--text-muted, #64748B); padding-bottom: 8px;
+    font-size: 24px; color: var(--text-muted, var(--color-v-64748b)); padding-bottom: 8px;
 }
 .compare-btn {
     grid-column: 1 / -1; justify-self: center;
     padding: 10px 32px; border-radius: 10px; border: none;
-    background: #1A3A5C; color: #fff; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: all .2s;
+    background: var(--color-v-1a3a5c); color: var(--color-text-inverse); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s;
 }
-.compare-btn:hover { background: #e55a2b; }
+.compare-btn:hover { background: var(--color-v-e55a2b); }
 .compare-btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 摘要条 */
 .diff-summary {
     display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;
     padding: 16px 20px; border-radius: 12px;
-    background: var(--bg-card, #FFFFFF); border: 1px solid var(--border-color, #E2E8F0);
+    background: var(--bg-card, var(--color-bg-primary)); border: 1px solid var(--border-color, var(--color-v-e2e8f0));
 }
 .diff-stat {
     display: flex; flex-direction: column; align-items: center; min-width: 80px;
 }
 .diff-stat .num { font-size: 28px; font-weight: 700; }
-.diff-stat .label { font-size: 11px; color: var(--text-muted, #64748B); margin-top: 2px; }
-.diff-stat.new .num { color: #ef4444; }
-.diff-stat.fixed .num { color: #22c55e; }
-.diff-stat.remaining .num { color: var(--text-secondary, #475569); }
-.diff-stat.score .num { color: #1A3A5C; }
+.diff-stat .label { font-size: 11px; color: var(--text-muted, var(--color-v-64748b)); margin-top: 2px; }
+.diff-stat.new .num { color: var(--color-danger); }
+.diff-stat.fixed .num { color: var(--color-success); }
+.diff-stat.remaining .num { color: var(--text-secondary, var(--color-v-475569)); }
+.diff-stat.score .num { color: var(--color-v-1a3a5c); }
 
 /* 问题列表 */
 .diff-sections { display: flex; flex-direction: column; gap: 20px; }
@@ -62,9 +62,9 @@
     min-width: 20px; height: 20px; border-radius: 10px;
     font-size: 11px; font-weight: 700; padding: 0 6px;
 }
-.section-new h3 .badge { background: rgba(239,68,68,.15); color: #ef4444; }
-.section-fixed h3 .badge { background: rgba(34,197,94,.15); color: #22c55e; }
-.section-remaining h3 .badge { background: rgba(148,163,184,.15); color: #94a3b8; }
+.section-new h3 .badge { background: var(--color-danger-tint); color: var(--color-danger); }
+.section-fixed h3 .badge { background: var(--color-v-f7f8c5eb3); color: var(--color-success); }
+.section-remaining h3 .badge { background: var(--color-v-f03678454); color: var(--color-text-muted); }
 
 .issue-item {
     padding: 10px 14px; border-radius: 8px; margin-bottom: 6px;
@@ -72,28 +72,28 @@
     border-left: 3px solid transparent;
 }
 .section-new .issue-item {
-    background: rgba(239,68,68,.06); border-left-color: #ef4444;
+    background: var(--color-v-f818ea61f); border-left-color: var(--color-v-ef4444);
 }
 .section-fixed .issue-item {
-    background: rgba(34,197,94,.06); border-left-color: #22c55e;
+    background: var(--color-v-f5855aecd); border-left-color: var(--color-v-22c55e);
 }
 .section-remaining .issue-item {
-    background: rgba(148,163,184,.04); border-left-color: #4a5568;
+    background: var(--color-v-f42afad87); border-left-color: var(--color-v-4a5568);
 }
-.issue-item .issue-title { font-weight: 600; color: var(--text-primary, #0F172A); }
-.issue-item .issue-meta { font-size: 11px; color: var(--text-muted, #64748B); margin-top: 2px; }
+.issue-item .issue-title { font-weight: 600; color: var(--text-primary, var(--color-v-0f172a)); }
+.issue-item .issue-meta { font-size: 11px; color: var(--text-muted, var(--color-v-64748b)); margin-top: 2px; }
 .issue-item .sev-tag {
     display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px;
     font-weight: 600; margin-right: 6px;
 }
-.sev-critical { background: rgba(239,68,68,.2); color: #ef4444; }
-.sev-high { background: rgba(249,115,22,.2); color: #f97316; }
-.sev-medium { background: rgba(234,179,8,.2); color: #eab308; }
-.sev-low { background: rgba(34,197,94,.2); color: #22c55e; }
+.sev-critical { background: var(--color-v-fdc5f701a); color: var(--color-danger); }
+.sev-high { background: var(--color-sev-high-tint); color: var(--color-warning); }
+.sev-medium { background: var(--color-v-ff396b008); color: var(--color-warning); }
+.sev-low { background: var(--color-v-fa3081af6); color: var(--color-success); }
 
 /* 空态 */
 .compare-empty {
-    text-align: center; padding: 60px 20px; color: var(--text-muted, #64748B);
+    text-align: center; padding: 60px 20px; color: var(--text-muted, var(--color-v-64748b));
 }
 .compare-empty .icon { font-size: 48px; margin-bottom: 12px; opacity: .5; }
 </style>
@@ -101,7 +101,7 @@
 
 {% block dashboard_content %}
 <div class="compare-container">
-    <h2 style="font-size:18px; font-weight:700; color:var(--text-primary, #0F172A); margin-bottom:6px;">🔀 扫描对比</h2>
+    <h2 style="font-size:18px; font-weight:700; color:var(--text-primary, var(--color-v-0f172a)); margin-bottom:6px;">🔀 扫描对比</h2>
     <p class="page-desc">选择两次扫描结果对比，查看新增问题、已修复问题和持续存在的问题。行号变化不算新增。</p>
 
     <!-- 选择器 -->

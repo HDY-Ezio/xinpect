@@ -21,19 +21,19 @@
             {% if available_orders %}
             <div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;">
                 <!-- 全选 -->
-                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,0,0,.02);border-bottom:1px solid var(--border-color);">
-                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-orange);">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--color-v-fbb2c70ba);border-bottom:1px solid var(--border-color);">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-steel);">
                     <label for="selectAll" style="font-size:13px;color:var(--text-muted);cursor:pointer;margin:0;">全选</label>
                     <span style="margin-left:auto;font-size:13px;color:var(--text-muted);">
-                        已选 <strong id="selectedCount" style="color:var(--accent-orange);">0</strong> 笔，
-                        合计 <strong id="selectedTotal" style="color:var(--accent-orange);">¥0</strong>
+                        已选 <strong id="selectedCount" style="color:var(--accent-steel);">0</strong> 笔，
+                        合计 <strong id="selectedTotal" style="color:var(--accent-steel);">¥0</strong>
                     </span>
                 </div>
                 <!-- 订单列表 -->
                 <div style="max-height:280px;overflow-y:auto;">
                     {% for order in available_orders %}
                     <label class="order-row" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-color);cursor:pointer;transition:background .15s;">
-                        <input type="checkbox" name="order_ids" value="{{ order.order_id }}" data-amount="{{ order.amount }}" class="order-checkbox" onchange="updateSummary()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-orange);flex-shrink:0;">
+                        <input type="checkbox" name="order_ids" value="{{ order.order_id }}" data-amount="{{ order.amount }}" class="order-checkbox" onchange="updateSummary()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-steel);flex-shrink:0;">
                         <div style="flex:1;min-width:0;">
                             <div style="font-family:monospace;font-size:13px;color:var(--text-primary);word-break:break-all;">{{ order.order_id }}</div>
                             <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ order.plan_name }}</div>
@@ -54,7 +54,7 @@
         </div>
 
         <!-- 开票信息 -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+        <div class="grid-2" style="gap:16px;margin-bottom:18px;">
             <div>
                 <label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">公司抬头 <span style="color:var(--danger);">*</span></label>
                 <input type="text" name="company_name" required placeholder="请输入公司全称" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px;box-sizing:border-box;">
@@ -70,14 +70,14 @@
             <input type="email" name="email" required value="{{ user_email }}" placeholder="用于接收电子发票" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px;box-sizing:border-box;">
         </div>
 
-        <button type="submit" id="submitBtn" {% if not available_orders %}disabled style="opacity:.5;"{% endif %} style="background:var(--accent-orange);color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
+        <button type="submit" id="submitBtn" {% if not available_orders %}disabled style="opacity:.5;"{% endif %} style="background:var(--accent-steel);color: var(--color-text-inverse);border:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
             提交开票申请
         </button>
         <span id="submitMsg" style="margin-left:12px;font-size:13px;"></span>
     </form>
-n<div style="margin-top:16px;padding:12px 16px;background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.15);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.8;">
+n<div style="margin-top:16px;padding:12px 16px;background:var(--color-v-f3775015e);border:1px solid var(--color-v-f359526f7);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.8;">
     <strong style="color:var(--text-primary);">📋 开票说明</strong><br>
-    · 提交申请后 <strong style="color:var(--accent-orange);">3个工作日</strong> 内为您开具电子发票<br>
+    · 提交申请后 <strong style="color:var(--accent-steel);">3个工作日</strong> 内为您开具电子发票<br>
     · 发票将发送至您填写的邮箱，请注意查收<br>
     · 如需增值税专用发票，请联系客服单独处理
 </div>
@@ -87,6 +87,7 @@ n<div style="margin-top:16px;padding:12px 16px;background:rgba(14,165,233,.05);b
 <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:24px;">
     <h3 style="margin:0 0 16px;font-size:16px;color:var(--text-primary);">我的开票记录</h3>
     {% if invoices %}
+    <div class="table-scroll">
     <table class="data-table">
         <thead>
             <tr>
@@ -110,7 +111,7 @@ n<div style="margin-top:16px;padding:12px 16px;background:rgba(14,165,233,.05);b
                 <td>{{ inv.company_name }}</td>
                 <td>
                     {% if inv.status == 'pending' %}
-                    <span style="color:var(--accent-orange);font-weight:500;">⏳ 待处理</span>
+                    <span style="color:var(--accent-steel);font-weight:500;">⏳ 待处理</span>
                     {% elif inv.status == 'completed' %}
                     <span style="color:var(--success);font-weight:500;">✅ 已开票</span>
                     {% elif inv.status == 'rejected' %}
@@ -123,6 +124,7 @@ n<div style="margin-top:16px;padding:12px 16px;background:rgba(14,165,233,.05);b
             </tr>
             {% endfor %}
         </tbody>
+    </div>
     </table>
     {% else %}
     <div style="text-align:center;padding:32px 0;color:var(--text-muted);font-size:14px;">
@@ -132,7 +134,7 @@ n<div style="margin-top:16px;padding:12px 16px;background:rgba(14,165,233,.05);b
 </div>
 
 <style>
-    .order-row:hover { background: rgba(37,99,235,.04); }
+    .order-row:hover { background: var(--color-v-fa1b6c5d9); }
 </style>
 
 <script>

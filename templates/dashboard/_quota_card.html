@@ -50,8 +50,8 @@
 
 <style>
 .quota-card {
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--card-bg, var(--color-bg-primary));
+    border: 1px solid var(--border-color, var(--color-v-e5e7eb));
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 16px;
@@ -66,14 +66,14 @@
     font-size: 15px;
     font-weight: 600;
     margin: 0;
-    color: var(--text-primary, #1f2937);
+    color: var(--text-primary, var(--color-v-1f2937));
 }
 .quota-tier {
     font-size: 12px;
     padding: 2px 10px;
     border-radius: 12px;
-    background: rgba(26,58,92, 0.1);
-    color: var(--accent-orange, #1A3A5C);
+    background: var(--color-metal-gold-tint-2);
+    color: var(--accent-steel, var(--color-v-1a3a5c));
     font-weight: 500;
 }
 .quota-stats {
@@ -88,14 +88,14 @@
 .quota-stat-label {
     display: block;
     font-size: 12px;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
     margin-bottom: 4px;
 }
 .quota-stat-value {
     display: block;
     font-size: 22px;
     font-weight: 700;
-    color: var(--text-primary, #1f2937);
+    color: var(--text-primary, var(--color-v-1f2937));
 }
 .quota-progress-wrapper {
     display: flex;
@@ -106,21 +106,21 @@
 .quota-progress-bar {
     flex: 1;
     height: 8px;
-    background: var(--border-color, #e5e7eb);
+    background: var(--border-color, var(--color-v-e5e7eb));
     border-radius: 4px;
     overflow: hidden;
 }
 .quota-progress-fill {
     height: 100%;
     border-radius: 4px;
-    transition: width 0.6s ease, background 0.3s ease;
+    transition: background 0.3s ease;
 }
 .quota-progress-text {
     font-size: 13px;
     font-weight: 600;
     min-width: 40px;
     text-align: right;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
 }
 .quota-warning {
     display: flex;
@@ -128,35 +128,35 @@
     gap: 8px;
     padding: 10px 12px;
     border-radius: 8px;
-    background: rgba(37,99,235, 0.08);
-    color: #d97706;
+    background: var(--color-metal-gold-tint-2);
+    color: var(--color-warning);
     font-size: 13px;
     margin-bottom: 12px;
 }
 .quota-warning.danger {
-    background: rgba(220, 38, 38, 0.08);
-    color: #dc2626;
+    background: var(--color-v-f04d2b2ea);
+    color: var(--color-danger);
 }
 .quota-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding-top: 12px;
-    border-top: 1px solid var(--border-color, #e5e7eb);
+    border-top: 1px solid var(--border-color, var(--color-v-e5e7eb));
 }
 .quota-reset {
     display: flex;
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--color-v-6b7280));
 }
 .quota-reset strong {
-    color: var(--text-primary, #1f2937);
+    color: var(--text-primary, var(--color-v-1f2937));
 }
 .quota-detail-link {
     font-size: 13px;
-    color: var(--accent-orange, #1A3A5C);
+    color: var(--accent-steel, var(--color-v-1a3a5c));
     text-decoration: none;
     font-weight: 500;
 }
@@ -166,13 +166,13 @@
 
 /* 进度条颜色状态 */
 .quota-progress-fill.status-safe {
-    background: linear-gradient(90deg, #10b981, #34d399);
+    background: linear-gradient(90deg, var(--color-success), var(--color-success-on-dark));
 }
 .quota-progress-fill.status-warning {
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    background: linear-gradient(90deg, var(--color-metal-gold-solid), var(--color-metal-gold-bright));
 }
 .quota-progress-fill.fill-danger {
-    background: linear-gradient(90deg, #ef4444, #f87171);
+    background: linear-gradient(90deg, var(--color-v-ef4444), var(--color-v-f87171));
 }
 </style>
 

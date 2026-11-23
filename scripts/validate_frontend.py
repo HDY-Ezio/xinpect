@@ -40,9 +40,26 @@ def replace_jinja2(js):
     js = re.sub(r"{{\s*'true'\s+if\s+\w+\s+else\s+'false'\s*}}", 'true', js)
     js = re.sub(r'{{\s*(\w+)\s+if\s+\w+\s+else\s+(\w+)\s*}}', r'\1', js)
     js = re.sub(r'{{\s*url_for\([^)]*\)\s*}}', "'/url'", js)
-    js = re.sub(r'{{[^}]*}}', '0', js)
+    js = re.sub(r'{{(?:[^{}]|\{[^{}]*\})*}}', '0', js)  # 2026-10-23 修复：容忍 .get('x', {}) 的花括号嵌套
     js = re.sub(r'\{%[^%]*%\}', '', js)
+    # 2026-10-23 修复：Jinja2 条件分支可能跨 script 开闭标签，替换后块内残留 HTML 行；
+    # 滤掉模板字符串（反引号）之外的裸 HTML 行（裸 HTML 行不是合法 JS）
+    js = _strip_html_lines(js)
     return js
+
+
+def _strip_html_lines(js):
+    """滤掉模板字符串之外、以 < 开头的裸 HTML 行（带反引号状态跟踪）"""
+    out = []
+    in_tpl = False
+    for line in js.split("\n"):
+        if not in_tpl and line.strip().startswith("<"):
+            continue
+        out.append(line)
+        ticks = line.replace("\\`", "").count("`")
+        if ticks % 2 == 1:
+            in_tpl = not in_tpl
+    return "\n".join(out)
 
 
 def check_js_syntax(fpath):

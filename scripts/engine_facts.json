@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "updated_at": "2026-11-08",
+  "purpose": "引擎数量对外口径的唯一事实来源。数字不是手填的，由守卫从运行时代码推导并逐条对账；改这里不改代码会判红。",
+  "source_of_truth": {
+    "runtime": "/opt/xinpect-scanner-green/engine/parallel_runner.py::BRAIN_MODULES",
+    "website_capabilities": "/opt/xinpect-website/modules/constants.py::BRAINS"
+  },
+  "derivation": "引擎数 = BRAIN_MODULES 里模块路径 e<数字>_ 前缀的去重个数。e7_ai_health 与 e7_deployment_readiness 同属 E7，8 号模块不是第 8 个引擎。",
+  "rule_engine_count": 7,
+  "rule_engine_codes": ["E1", "E2", "E3", "E4", "E5", "E6", "E7"],
+  "auxiliary_modules": {
+    "8": "engine.e7_deployment_readiness（归属 E7，不单列为引擎）"
+  },
+  "extra_capabilities": ["AI 语义分析", "PoC 自动验证"],
+  "claim_wording": "7 大规则引擎 + AI 语义 + PoC 验证",
+  "note": "历史版本页描述 v6.0 上线当时的架构时，若明确写了版本号，属于历史叙述，不算当前能力声明；当前能力声明一律以本文件为准。"
+}

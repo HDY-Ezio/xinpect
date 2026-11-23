@@ -159,6 +159,7 @@ def _create_credit_tables(conn):
             priority INTEGER NOT NULL DEFAULT 100,
             subscription_plan TEXT DEFAULT NULL,
             is_active INTEGER NOT NULL DEFAULT 1,
+            is_legacy INTEGER NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         );
@@ -317,6 +318,18 @@ def _run_versioned_migrations(conn):
         ("024_add_is_admin",
          "users 增加 is_admin 字段（管理员身份的单一事实来源）",
          "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"),
+        ("026_add_scan_total_bytes",
+         "scans 增加 total_bytes 字段（代码字节量：ETA 估算的行数之外的第二维度）",
+         "ALTER TABLE scans ADD COLUMN total_bytes INTEGER DEFAULT 0"),
+        ("025_add_scan_is_replay",
+         "scans 增加 is_replay 字段（复用结果落账标记：区分真实扫描与复用表演耗时）",
+         "ALTER TABLE scans ADD COLUMN is_replay INTEGER DEFAULT 0"),
+        ("027_add_scan_last_heartbeat",
+         "scans 增加 last_heartbeat_at 字段（在途任务存活心跳：大文件分片扫描合法可达数十分钟，按心跳判活而非按提交时间）",
+         "ALTER TABLE scans ADD COLUMN last_heartbeat_at TEXT DEFAULT NULL"),
+        ("028_add_scan_progress_events",
+         "scans 增加 scan_progress_events 字段（扫描器真实事件流水，供进度条显示实际在查什么）",
+         "ALTER TABLE scans ADD COLUMN scan_progress_events TEXT DEFAULT NULL"),
     ]
 
     for mid, desc, sql in migrations:
@@ -401,6 +414,7 @@ def _create_all_indexes(conn):
         'CREATE INDEX IF NOT EXISTS idx_user_credits_user ON user_credits(user_id)',
         'CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions(user_id)',
         'CREATE INDEX IF NOT EXISTS idx_credit_tx_created ON credit_transactions(created_at)',
+        'CREATE INDEX IF NOT EXISTS idx_credit_tx_type_ref ON credit_transactions(type, ref_type, ref_id)',
         'CREATE INDEX IF NOT EXISTS idx_error_timestamp ON error_logs(timestamp)',
         'CREATE INDEX IF NOT EXISTS idx_error_type ON error_logs(error_type)',
         'CREATE INDEX IF NOT EXISTS idx_error_resolved ON error_logs(resolved)',

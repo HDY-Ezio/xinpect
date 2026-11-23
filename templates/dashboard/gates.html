@@ -5,30 +5,30 @@
 <style>
     .g-page { /* max-width inherited from dashboard-content */ }
     .g-hero { margin-bottom: 20px; }
-    .g-hero h1 { font-size: 20px; font-weight: 700; color: #0F172A; margin: 0 0 4px; }
-    .g-hero p { font-size: 13px; color: #64748B; margin: 0; }
+    .g-hero h1 { font-size: 20px; font-weight: 700; color: var(--color-v-0f172a); margin: 0 0 4px; }
+    .g-hero p { font-size: 13px; color: var(--color-v-64748b); margin: 0; }
 
     .g-templates {
         display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
     }
     .g-tpl {
         padding: 10px 16px;
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 8px;
         cursor: pointer;
         font-size: 13px;
-        color: #475569;
-        transition: all 0.2s;
+        color: var(--color-v-475569);
+        transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.2s;
     }
-    .g-tpl:hover { border-color: #1A3A5C; color: #1A3A5C; }
-    .g-tpl.active { border-color: #1A3A5C; background: #EFF6FF; color: #1A3A5C; }
+    .g-tpl:hover { border-color: var(--color-v-1a3a5c); color: var(--color-v-1a3a5c); }
+    .g-tpl.active { border-color: var(--color-v-1a3a5c); background: var(--color-v-eff6ff); color: var(--color-v-1a3a5c); }
     .g-tpl .tpl-name { font-weight: 600; }
-    .g-tpl .tpl-desc { font-size: 11px; color: #64748B; margin-top: 2px; }
+    .g-tpl .tpl-desc { font-size: 11px; color: var(--color-v-64748b); margin-top: 2px; }
 
     .g-rules {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 12px;
         overflow: hidden;
     }
@@ -37,23 +37,23 @@
         align-items: center;
         gap: 12px;
         padding: 14px 18px;
-        border-bottom: 1px solid #E2E8F0;
+        border-bottom: 1px solid var(--color-v-e2e8f0);
     }
     .g-rule:last-child { border-bottom: none; }
     .g-rule .toggle {
         width: 36px; height: 20px;
-        background: #E2E8F0;
+        background: var(--color-v-e2e8f0);
         border-radius: 10px;
         cursor: pointer;
         position: relative;
         flex-shrink: 0;
         transition: background 0.2s;
     }
-    .g-rule .toggle.on { background: #1A3A5C; }
+    .g-rule .toggle.on { background: var(--color-v-1a3a5c); }
     .g-rule .toggle::after {
         content: '';
         width: 16px; height: 16px;
-        background: #fff;
+        background: var(--color-bg-primary);
         border-radius: 50%;
         position: absolute;
         top: 2px; left: 2px;
@@ -63,7 +63,7 @@
     .g-rule .r-name {
         flex: 1;
         font-size: 13px;
-        color: #0F172A;
+        color: var(--color-v-0f172a);
         min-width: 0;
     }
     .g-rule .r-config {
@@ -73,27 +73,27 @@
         flex-shrink: 0;
     }
     .g-rule select {
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 4px;
-        color: #475569;
+        color: var(--color-v-475569);
         padding: 4px 8px;
         font-size: 12px;
     }
     .g-rule input {
         width: 60px;
         padding: 4px 8px;
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 4px;
-        color: #0F172A;
+        color: var(--color-v-0f172a);
         font-size: 13px;
         text-align: center;
         font-family: monospace;
     }
     .g-rule input:focus, .g-rule select:focus {
         outline: none;
-        border-color: #1A3A5C;
+        border-color: var(--color-v-1a3a5c);
     }
 
     .g-actions {
@@ -107,18 +107,18 @@
         cursor: pointer;
         border: none;
     }
-    .g-btn.primary { background: #1A3A5C; color: #fff; }
-    .g-btn.primary:hover { background: #e85d2c; }
-    .g-btn.secondary { background: #E2E8F0; color: #475569; border: 1px solid #CBD5E1; }
-    .g-btn.secondary:hover { border-color: #1A3A5C; color: #1A3A5C; }
+    .g-btn.primary { background: var(--color-v-1a3a5c); color: var(--color-text-inverse); }
+    .g-btn.primary:hover { background: var(--color-v-e85d2c); }
+    .g-btn.secondary { background: var(--color-v-e2e8f0); color: var(--color-v-475569); border: 1px solid var(--color-v-cbd5e1); }
+    .g-btn.secondary:hover { border-color: var(--color-v-1a3a5c); color: var(--color-v-1a3a5c); }
 
     .g-toast {
         position: fixed; top: 20px; right: 20px;
         padding: 12px 20px; border-radius: 8px;
         font-size: 13px; z-index: 9999; display: none;
     }
-    .g-toast.ok { background: #00b578; color: #fff; display: block; }
-    .g-toast.err { background: #e53e3e; color: #fff; display: block; }
+    .g-toast.ok { background: var(--color-v-00b578); color: var(--color-text-inverse); display: block; }
+    .g-toast.err { background: var(--color-v-e53e3e); color: var(--color-text-inverse); display: block; }
 </style>
 {% endblock %}
 
@@ -127,7 +127,7 @@
     <div class="g-hero">
         <h1>质量门禁</h1>
         <p class="page-desc">设定代码质量标准线。扫描完成后自动对比这些规则，任何一条不达标就标记「未通过门禁」。可快速选模板，也可逐条自定义。</p>
-        <p style="font-size:12px;color:#4a5568;margin-bottom:16px;">💡 生产代码用严格模式，日常开发用标准模式，原型验证用宽松模式</p>
+        <p style="font-size:12px;color:var(--color-v-4a5568);margin-bottom:16px;">💡 生产代码用严格模式，日常开发用标准模式，原型验证用宽松模式</p>
     </div>
 
     <!-- 模板选择 -->

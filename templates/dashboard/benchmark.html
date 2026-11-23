@@ -6,22 +6,22 @@
 {% block content %}
 <style>
 .bench-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-.bench-card { background: #fff; border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.bench-card .value { font-size: 2.2rem; font-weight: 700; color: #1A3A5C; }
-.bench-card .label { font-size: 0.85rem; color: #666; margin-top: 4px; }
-.bench-section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.bench-section h3 { font-size: 1.1rem; margin-bottom: 16px; color: #333; }
+.bench-card { background: var(--color-bg-primary); border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 1px 3px var(--color-v-fc5102c91); }
+.bench-card .value { font-size: 2.2rem; font-weight: 700; color: var(--color-v-1a3a5c); }
+.bench-card .label { font-size: 0.85rem; color: var(--color-v-666666); margin-top: 4px; }
+.bench-section { background: var(--color-bg-primary); border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px var(--color-v-fc5102c91); }
+.bench-section h3 { font-size: 1.1rem; margin-bottom: 16px; color: var(--color-v-333333); }
 .bench-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.bench-table th, .bench-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
-.bench-table th { background: #fafafa; font-weight: 600; color: #555; }
-.bench-table tr:hover { background: #fff8f5; }
+.bench-table th, .bench-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-v-f0f0f0); }
+.bench-table th { background: var(--color-v-fafafa); font-weight: 600; color: var(--color-v-555555); }
+.bench-table tr:hover { background: var(--color-v-fff8f5); }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
-.badge-tp { background: #e6f7ee; color: #1a9a54; }
-.badge-fp { background: #fff3e0; color: #e67700; }
-.btn-run { background: #1A3A5C; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
-.btn-run:hover { background: #e55a2b; }
-.btn-run:disabled { background: #ccc; cursor: not-allowed; }
-#run-status { margin-left: 12px; color: #666; font-size: 0.85rem; }
+.badge-tp { background: var(--color-v-e6f7ee); color: var(--color-success); }
+.badge-fp { background: var(--color-v-fff3e0); color: var(--color-warning); }
+.btn-run { background: var(--color-v-1a3a5c); color: var(--color-text-inverse); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+.btn-run:hover { background: var(--color-v-e55a2b); }
+.btn-run:disabled { background: var(--color-v-cccccc); cursor: not-allowed; }
+#run-status { margin-left: 12px; color: var(--color-v-666666); font-size: 0.85rem; }
 </style>
 
 <div class="bench-grid">
@@ -120,10 +120,10 @@ function loadDatasetStats() {
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d.total === 0) { document.getElementById('dataset-stats').textContent = '标注集为空'; return; }
-        var html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">';
-        html += '<div><strong style="font-size:1.5rem;color:#333">' + d.total + '</strong><br><small style="color:#666">总样本</small></div>';
-        html += '<div><strong style="font-size:1.5rem;color:#1a9a54">' + d.true_positive + '</strong><br><small style="color:#666">True Positive</small></div>';
-        html += '<div><strong style="font-size:1.5rem;color:#e67700">' + d.false_positive + '</strong><br><small style="color:#666">False Positive</small></div>';
+        var html = '<div class="grid-3" style="gap:12px;text-align:center">';
+        html += '<div><strong style="font-size:1.5rem;color:var(--color-v-333333)">' + d.total + '</strong><br><small style="color:var(--color-v-666666)">总样本</small></div>';
+        html += '<div><strong style="font-size:1.5rem;color: var(--color-success)">' + d.true_positive + '</strong><br><small style="color:var(--color-v-666666)">True Positive</small></div>';
+        html += '<div><strong style="font-size:1.5rem;color: var(--color-warning)">' + d.false_positive + '</strong><br><small style="color:var(--color-v-666666)">False Positive</small></div>';
         html += '</div>';
         html += '<div style="margin-top:16px"><strong>语言分布: </strong>';
         var langs = d.by_language || {};

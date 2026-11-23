@@ -6,6 +6,8 @@
   xinpect init              交互式初始化，生成 .xinpect.yml
   xinpect scan .            扫描当前目录
   xinpect scan --diff       增量扫描（只扫 git diff）
+  xinpect watch .           边写边扫（保存即自动增量重扫）
+  xinpect fix .             自动修复确定性安全问题（可选开 PR）
   xinpect status            查看账户状态
   xinpect rules update      更新本地规则缓存
   xinpect rules list        列出已缓存规则
@@ -415,6 +417,138 @@ def _detect_language(files):
     if ext_counts:
         return max(ext_counts, key=ext_counts.get)
     return "auto"
+
+
+def _snapshot_files(scan_dir, ignore_patterns):
+    """对扫描目录做内容快照：{相对路径: 内容sha1}，用于 watch 检测变更。
+
+    与 git diff 无关——直接按文件内容哈希追踪，任何「保存」动作（含未 git add 的
+    未暂存改动）都能被捕获，这才符合「边写边扫」的真实场景（开发者打字保存，
+    不会每敲一下就 git add）。
+    """
+    snap = {}
+    for rel_path, filepath in _collect_files(scan_dir, ignore_patterns):
+        content = _read_file_safe(filepath)
+        if content is not None:
+            snap[rel_path] = hashlib.sha1(content.encode("utf-8")).hexdigest()
+    return snap
+
+
+def _diff_snapshots(old_snap, new_snap):
+    """对比两次快照，返回新增/修改/删除的文件相对路径列表"""
+    changed = []
+    for path in set(old_snap) | set(new_snap):
+        if old_snap.get(path) != new_snap.get(path):
+            changed.append(path)
+    return changed
+
+
+def _scan_subset(scan_dir, changed_rel_paths, ignore_patterns, config, args):
+    """只扫描发生变化的文件子集（watch 增量扫描核心）。
+
+    复用 cmd_scan 的在线/离线扫描链路，但只把「变化文件」放进 code_files，
+    避免 watch 场景下每次保存都全量扫描消耗积分。
+    """
+    all_files = _collect_files(scan_dir, ignore_patterns)
+    files = [(rel, full) for rel, full in all_files if rel in set(changed_rel_paths)]
+    if not files:
+        return None
+
+    code_files = {}
+    for rel_path, filepath in files:
+        content = _read_file_safe(filepath)
+        if content is not None:
+            code_files[rel_path] = content
+    if not code_files:
+        return None
+
+    language = _detect_language(files)
+    api_key = config.get("api_key", "")
+    server = config.get("server", DEFAULT_SERVER)
+    scan_mode = config.get("scan_mode", "quick")
+
+    use_online = bool(api_key and not args.offline)
+    result = None
+    if use_online:
+        result = _online_scan(code_files, api_key, server, language, scan_mode)
+    if result is None:
+        result = _offline_scan(code_files)
+    return result
+
+
+def cmd_watch(args):
+    """watch 命令：监听目录文件变化，防抖后增量重扫（边写边扫）。
+
+    首次全量扫一遍，之后轮询文件内容哈希，发现变化→防抖 1.5s→只扫变更文件。
+    Ctrl+C 退出。默认走在线 API（增量只扫变化文件，积分消耗可控）；
+    可用 --offline 走本地规则。
+    """
+    config, config_dir = _load_config()
+    if config is None:
+        print(f"{C.RED}❌ 未找到 {CONFIG_FILENAME} 配置文件{C.RESET}")
+        print(f"   运行 {C.BOLD}xinpect init{C.RESET} 进行初始化")
+        return 1
+
+    ignore_patterns = config.get("ignore", DEFAULT_IGNORE)
+    if isinstance(ignore_patterns, str):
+        ignore_patterns = [ignore_patterns]
+
+    scan_dir = os.path.abspath(args.path or ".")
+    if not os.path.exists(scan_dir):
+        print(f"{C.RED}❌ 目录不存在: {scan_dir}{C.RESET}")
+        return 1
+
+    debounce = args.debounce
+    print(f"{C.CYAN}👁 煋鉴 watch 模式 - 监听 {scan_dir}{C.RESET}")
+    print(f"{C.GRAY}   保存文件后 {debounce}s 自动增量重扫，Ctrl+C 退出{C.RESET}")
+    print(f"{'━' * 40}")
+
+    # 首次全量扫描
+    print(f"{C.BOLD}🔍 首次全量扫描...{C.RESET}")
+    first_args = argparse.Namespace(
+        path=scan_dir, diff=False, format=args.format, output=None, offline=args.offline
+    )
+    cmd_scan(first_args)
+
+    # 建立基准快照
+    last_snap = _snapshot_files(scan_dir, ignore_patterns)
+    last_scan_time = 0.0
+
+    try:
+        while True:
+            time.sleep(1.0)  # 1s 轮询间隔
+            new_snap = _snapshot_files(scan_dir, ignore_patterns)
+            changed = _diff_snapshots(last_snap, new_snap)
+            if not changed:
+                continue
+
+            # 防抖：距上次扫描不足 debounce 秒则继续等待（合并连续保存）
+            now = time.time()
+            if now - last_scan_time < debounce:
+                continue
+            # 变更后额外稳定 debounce 秒，避免「打字打到一半」就扫
+            time.sleep(debounce)
+            new_snap = _snapshot_files(scan_dir, ignore_patterns)
+            changed = _diff_snapshots(last_snap, new_snap)
+            if not changed:
+                continue
+
+            last_scan_time = time.time()
+            print(f"\n{C.CYAN}⚡ 检测到 {len(changed)} 个文件变化，增量重扫...{C.RESET}")
+            for p in sorted(changed):
+                print(f"   {C.GRAY}{p}{C.RESET}")
+
+            result = _scan_subset(scan_dir, changed, ignore_patterns, config, args)
+            if result is None:
+                print(f"{C.YELLOW}⚠ 变更文件无可扫内容（可能被 ignore 或过小）{C.RESET}")
+            else:
+                _print_text_report(result, 0.0)
+
+            # 更新基准快照为「最新」而非「上次扫描时」，避免漏掉等待期间的新变化
+            last_snap = _snapshot_files(scan_dir, ignore_patterns)
+    except KeyboardInterrupt:
+        print(f"\n{C.GRAY}👁 watch 已退出{C.RESET}")
+        return 0
 
 
 # ============================================================
@@ -986,6 +1120,212 @@ def _check_quality_gate(result, gate_config):
 
 
 # ============================================================
+# 命令：fix（自动修复 + 可选 PR）
+# ============================================================
+
+def _apply_unified_diff(file_path, patch_text):
+    """把 unified diff 应用到本地文件（用系统 patch 命令，最稳）。
+
+    返回 (ok, error_msg)。
+    用 -d 指定文件所在目录 + -p1 剥掉 a/ b/ 前缀，确保 patch 在正确目录找文件。
+    """
+    if not patch_text:
+        return False, "空补丁"
+    import subprocess as _sp
+    file_dir = os.path.dirname(os.path.abspath(file_path))
+    try:
+        r = _sp.run(
+            ["patch", "-p1", "--forward", "--batch", "-d", file_dir],
+            input=patch_text, text=True, capture_output=True, timeout=30,
+        )
+        if r.returncode == 0:
+            return True, ""
+        # --forward 若已应用会返回非0，此时视为「已应用」也算成功
+        if "previously applied" in (r.stderr or "") or "Reversed (or previously applied)" in (r.stderr or ""):
+            return True, "已应用过，跳过"
+        return False, (r.stderr or r.stdout or "patch 失败")[:200]
+    except FileNotFoundError:
+        return False, "系统缺少 patch 命令"
+    except Exception as e:
+        return False, str(e)
+
+
+def _collect_fix_patches(result):
+    """从扫描结果里提取「确定性可应用」的补丁，按文件归组。
+
+    返回 {file_path: [(line, patch_text, before, after, explanation), ...]}
+    """
+    by_file = {}
+    for issue in result.get("issues", []):
+        fp = issue.get("fix_patch") or {}
+        if not fp.get("applicable"):
+            continue
+        fpath = issue.get("file", "")
+        if not fpath:
+            continue
+        by_file.setdefault(fpath, []).append(
+            (fp.get("line", issue.get("line", 0)), fp.get("patch", ""),
+             fp.get("before", ""), fp.get("after", ""), fp.get("explanation", ""))
+        )
+    # 每文件按行号排序，去重（同行同补丁只留一条）
+    for fpath in by_file:
+        seen = set()
+        deduped = []
+        for item in sorted(by_file[fpath], key=lambda x: x[0]):
+            key = (item[0], item[1])
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(item)
+        by_file[fpath] = deduped
+    return by_file
+
+
+def _git_is_repo(root_dir):
+    import subprocess as _sp
+    r = _sp.run(["git", "rev-parse", "--is-inside-work-tree"],
+                cwd=root_dir, capture_output=True, text=True, timeout=10)
+    return r.returncode == 0
+
+
+def cmd_fix(args):
+    """fix 命令：扫描 → 应用确定性补丁 → 提交 → 可选开 PR。
+
+    只修「替换结果唯一确定」的规则（yaml.load→safe_load、pickle→json、
+    MD5→SHA256、裸 except 等），不确定的一律跳过（诚实不硬造补丁）。
+    默认只做本地 commit；加 --pr 尝试用 gh 建分支并开 PR（需已 gh auth login）。
+    """
+    config, config_dir = _load_config()
+    if config is None:
+        print(f"{C.RED}❌ 未找到 {CONFIG_FILENAME} 配置文件{C.RESET}")
+        print(f"   运行 {C.BOLD}xinpect init{C.RESET} 进行初始化")
+        return 1
+
+    scan_dir = os.path.abspath(args.path or ".")
+    if not os.path.exists(scan_dir):
+        print(f"{C.RED}❌ 目录不存在: {scan_dir}{C.RESET}")
+        return 1
+
+    # 1) 扫描（复用 cmd_scan，拿到带 fix_patch 的 issue）
+    print(f"{C.BOLD}🔍 扫描并生成可应用补丁...{C.RESET}")
+    scan_args = argparse.Namespace(
+        path=scan_dir, diff=False, format=args.format or "json",
+        output=None, offline=args.offline,
+    )
+    # 直接跑 cmd_scan 会打印报告，这里改为静默拿结果：复制 cmd_scan 核心
+    ignore_patterns = config.get("ignore", DEFAULT_IGNORE)
+    if isinstance(ignore_patterns, str):
+        ignore_patterns = [ignore_patterns]
+
+    all_files = _collect_files(scan_dir, ignore_patterns)
+    code_files = {}
+    for rel_path, filepath in all_files:
+        content = _read_file_safe(filepath)
+        if content is not None:
+            code_files[rel_path] = content
+    if not code_files:
+        print(f"{C.YELLOW}⚠ 没有可扫描的代码文件{C.RESET}")
+        return 0
+
+    language = _detect_language(all_files)
+    api_key = config.get("api_key", "")
+    server = config.get("server", DEFAULT_SERVER)
+    scan_mode = config.get("scan_mode", "quick")
+
+    result = None
+    use_online = bool(api_key and not args.offline)
+    if use_online:
+        result = _online_scan(code_files, api_key, server, language, scan_mode)
+    if result is None:
+        print(f"{C.YELLOW}⚠ 在线扫描不可用，离线规则不含 fix_patch，无法自动修复{C.RESET}")
+        return 1
+
+    # 2) 提取可应用补丁
+    patches_by_file = _collect_fix_patches(result)
+    total = sum(len(v) for v in patches_by_file.values())
+    if not total:
+        print(f"{C.GREEN}✅ 没有可确定性自动修复的问题（其余需人工判断）{C.RESET}")
+        return 0
+
+    print(f"{C.CYAN}🎯 发现 {total} 处可自动修复（涉及 {len(patches_by_file)} 个文件）{C.RESET}")
+    for fpath, items in patches_by_file.items():
+        for line, patch, before, after, expl in items:
+            print(f"   {fpath}:{line}  {before.strip()}  →  {after.strip()}")
+            if expl:
+                print(f"      {C.GRAY}{expl}{C.RESET}")
+
+    if args.dry_run:
+        print(f"\n{C.GRAY}--dry-run：仅预览，不应用{C.RESET}")
+        return 0
+
+    # 3) 应用补丁
+    applied = 0
+    for fpath, items in patches_by_file.items():
+        full = os.path.join(scan_dir, fpath)
+        for line, patch, before, after, expl in items:
+            ok, msg = _apply_unified_diff(full, patch)
+            if ok:
+                applied += 1
+                print(f"{C.GREEN}✅ 已修复 {fpath}:{line}{C.RESET}")
+            else:
+                print(f"{C.YELLOW}⚠ {fpath}:{line} 应用失败: {msg}{C.RESET}")
+
+    if applied == 0:
+        print(f"{C.YELLOW}⚠ 没有补丁被成功应用{C.RESET}")
+        return 0
+
+    print(f"\n{C.GREEN}✅ 共修复 {applied} 处{C.RESET}")
+
+    # 4) 提交（若在 git 仓库内）
+    if not _git_is_repo(scan_dir):
+        print(f"{C.YELLOW}⚠ 当前目录不是 git 仓库，跳过提交（补丁已直接应用到文件）{C.RESET}")
+        return 0
+
+    if args.no_commit:
+        print(f"{C.GRAY}--no-commit：补丁已应用，未提交{C.RESET}")
+        return 0
+
+    import subprocess as _sp
+    branch = args.branch or f"xinpect-fix-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    try:
+        # 建分支并提交
+        _sp.run(["git", "checkout", "-b", branch], cwd=scan_dir, capture_output=True, text=True, timeout=30)
+        changed_files = list(patches_by_file.keys())
+        _sp.run(["git", "add"] + changed_files, cwd=scan_dir, capture_output=True, text=True, timeout=30)
+        commit_msg = args.message or "fix: 煋鉴自动修复确定性安全问题"
+        r = _sp.run(["git", "commit", "-m", commit_msg], cwd=scan_dir, capture_output=True, text=True, timeout=60)
+        if r.returncode == 0:
+            print(f"{C.GREEN}✅ 已提交到分支 {branch}{C.RESET}")
+        else:
+            print(f"{C.YELLOW}⚠ 提交失败（可能无变更或需配置 git 身份）: {r.stderr.strip()[:200]}{C.RESET}")
+            return 0
+    except Exception as e:
+        print(f"{C.YELLOW}⚠ git 操作异常: {e}{C.RESET}")
+        return 0
+
+    # 5) 开 PR（可选）
+    if args.pr:
+        if _sp.run(["git", "push", "-u", "origin", branch], cwd=scan_dir,
+                   capture_output=True, text=True, timeout=120).returncode != 0:
+            print(f"{C.YELLOW}⚠ push 失败，请手动 push 后用 gh pr create{C.RESET}")
+            return 0
+        pr_r = _sp.run(
+            ["gh", "pr", "create", "--title", args.pr_title or "煋鉴自动安全修复",
+             "--body", args.pr_body or "由煋鉴 CLI 自动生成的安全修复补丁（确定性规则）"],
+            cwd=scan_dir, capture_output=True, text=True, timeout=60,
+        )
+        if pr_r.returncode == 0:
+            print(f"{C.GREEN}✅ PR 已创建：{pr_r.stdout.strip()}{C.RESET}")
+        elif "gh: command not found" in (pr_r.stderr or ""):
+            print(f"{C.YELLOW}⚠ 未安装 GitHub CLI（gh），请安装后运行：gh pr create{C.RESET}")
+        else:
+            print(f"{C.YELLOW}⚠ PR 创建失败: {pr_r.stderr.strip()[:200]}{C.RESET}")
+            print(f"{C.GRAY}   分支已 push，可手动：gh pr create --title \"煋鉴自动安全修复\"{C.RESET}")
+
+    return 0
+
+
+# ============================================================
 # 命令：status
 # ============================================================
 
@@ -1206,6 +1546,11 @@ def main():
   xinpect scan --format sarif       SARIF 格式输出
   xinpect scan --output report.json 保存结果
   xinpect scan --offline            离线扫描（本地规则）
+  xinpect watch .                   边写边扫（保存即自动增量重扫）
+  xinpect watch --offline           边写边扫（本地规则，不消耗积分）
+  xinpect fix .                     自动修复确定性安全问题（本地 commit）
+  xinpect fix . --dry-run           预览补丁不应用
+  xinpect fix . --pr                自动修复并 push + 开 PR
   xinpect status                    查看账户状态
   xinpect rules update              更新规则缓存
   xinpect rules list                查看已缓存规则
@@ -1235,22 +1580,46 @@ def main():
     
     # status 命令
     subparsers.add_parser("status", help="查看账户状态")
-    
+
+    # watch 命令（边写边扫）
+    watch_parser = subparsers.add_parser("watch", help="边写边扫（保存即自动增量重扫）")
+    watch_parser.add_argument("path", nargs="?", default=".", help="监听目录 (默认: 当前目录)")
+    watch_parser.add_argument("--debounce", type=float, default=1.5, help="防抖秒数 (默认: 1.5)")
+    watch_parser.add_argument("--format", choices=["text", "json", "sarif"], help="输出格式")
+    watch_parser.add_argument("--offline", action="store_true", help="强制离线扫描")
+
+    # fix 命令（自动修复 + 可选 PR）
+    fix_parser = subparsers.add_parser("fix", help="自动修复确定性安全问题（可选开 PR）")
+    fix_parser.add_argument("path", nargs="?", default=".", help="扫描目录 (默认: 当前目录)")
+    fix_parser.add_argument("--dry-run", action="store_true", help="只预览补丁，不应用")
+    fix_parser.add_argument("--no-commit", action="store_true", help="只应用补丁，不提交")
+    fix_parser.add_argument("--pr", action="store_true", help="push 并用 gh 开 PR")
+    fix_parser.add_argument("--branch", help="分支名 (默认自动生成 xinpect-fix-时间戳)")
+    fix_parser.add_argument("--message", "-m", help="提交信息")
+    fix_parser.add_argument("--pr-title", help="PR 标题")
+    fix_parser.add_argument("--pr-body", help="PR 正文")
+    fix_parser.add_argument("--format", choices=["text", "json", "sarif"], help="输出格式")
+    fix_parser.add_argument("--offline", action="store_true", help="强制离线扫描")
+
     # rules 命令
     rules_parser = subparsers.add_parser("rules", help="规则管理")
     rules_parser.add_argument("rules_action", choices=["update", "list"], help="规则操作")
-    
+
     args = parser.parse_args()
-    
+
     if args.command is None:
         parser.print_help()
         return 0
-    
+
     # 路由命令
     if args.command == "init":
         return cmd_init(args)
     elif args.command == "scan":
         return cmd_scan(args)
+    elif args.command == "watch":
+        return cmd_watch(args)
+    elif args.command == "fix":
+        return cmd_fix(args)
     elif args.command == "status":
         return cmd_status(args)
     elif args.command == "rules":

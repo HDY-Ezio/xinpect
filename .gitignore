@@ -40,3 +40,5 @@ monitor.key
 _archive/
 _backup_*/
 _seo_backup_*/
+data/disk_trend.json
+data/engine_trend.json

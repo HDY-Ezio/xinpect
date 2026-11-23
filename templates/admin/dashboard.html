@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+{% block title %}数据看板 - 煋鉴管理后台{% endblock %}
+{% block content %}
+<div class="header">
+    <h1>数据看板</h1>
+</div>
+
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>时间范围：</label>
+        <select class="filter-select" id="time-filter" onchange="loadStats()">
+            <option value="today">今天</option>
+            <option value="7d" selected>近7天</option>
+            <option value="30d">近30天</option>
+            <option value="all">全部</option>
+        </select>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="label">收入</div>
+        <div class="value" id="period-revenue">¥0</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">新增用户</div>
+        <div class="value" id="period-users">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">扫描次数</div>
+        <div class="value" id="period-scans">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">待处理发票</div>
+        <div class="value" id="pending-invoices">0</div>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="label">累计用户</div>
+        <div class="value" id="total-users">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">累计订单</div>
+        <div class="value" id="total-orders">0</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">累计收入</div>
+        <div class="value" id="total-revenue">¥0</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">累计扫描</div>
+        <div class="value" id="total-scans">0</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadStats() {
+    const period = document.getElementById("time-filter").value;
+    const res = await fetch(`/api/admin/dashboard/stats?period=${period}`);
+    const data = await res.json();
+
+    document.getElementById("period-revenue").textContent = "¥" + (data.period.revenue || 0);
+    document.getElementById("period-users").textContent = data.period.users || 0;
+    document.getElementById("period-scans").textContent = data.period.scans || 0;
+    document.getElementById("pending-invoices").textContent = data.pending.invoices || 0;
+    document.getElementById("total-users").textContent = data.total.users || 0;
+    document.getElementById("total-orders").textContent = data.total.orders || 0;
+    document.getElementById("total-revenue").textContent = "¥" + (data.total.revenue || 0);
+    document.getElementById("total-scans").textContent = data.total.scans || 0;
+}
+loadStats();
+setInterval(loadStats, 60000);
+</script>
+{% endblock %}

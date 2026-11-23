@@ -9,15 +9,15 @@
         <div class="auth-card">
             <div class="auth-header">
                 <div class="logo" style="justify-content:center;margin-bottom:16px;">
-                    <div class="logo-icon">X</div>
-                    <span class="logo-text">煋鉴 Xinpect</span>
+                    <img src="{{ url_for('static', filename='xinpect-mark-wide-256.png') }}" alt="煋鉴" style="height:48px;width:auto;vertical-align:middle;">
+                    <span class="logo-text">煋鉴</span>
                 </div>
                 <h2>创建账号</h2>
                 <p>注册即享每日 10 次免费检测</p>
             </div>
 
-            <div id="invite-banner" style="display:none;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:1px solid #93C5FD;border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">
-                <span style="font-size:13px;color:#92400e;">&#127873; 你正在通过好友邀请注册，充值即享推荐奖励！</span>
+            <div id="invite-banner" style="display:none;background:linear-gradient(135deg,var(--color-v-eff6ff),var(--color-v-dbeafe));border:1px solid var(--color-v-93c5fd);border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;">
+                <span style="font-size:13px;color: var(--color-warning);">&#127873; 你正在通过好友邀请注册，充值即享推荐奖励！</span>
             </div>
 
             <form method="POST" action="{{ url_for('register') }}">
@@ -58,6 +58,9 @@
 
             <div class="auth-footer">
                 已有账号？<a href="{{ url_for('login') }}">立即登录</a>
+            </div>
+            <div class="auth-footer" style="margin-top:10px;">
+                不想留邮箱？<a href="/try">先免注册试扫，30 秒看结果 →</a>
             </div>
         </div>
     </div>

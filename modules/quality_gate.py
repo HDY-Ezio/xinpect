@@ -153,12 +153,16 @@ def get_user_active_gate(db, user_id):
     if not user_id:
         return None
     row = db.execute(
-        'SELECT rules_json FROM quality_gates WHERE user_id=? AND is_active=1',
+        'SELECT id, rules_json FROM quality_gates WHERE user_id=? AND is_active=1',
         (user_id,)
     ).fetchone()
-    if row and row[0]:
+    if row and row[1]:
         try:
-            return json.loads(row[0])
+            _gate = json.loads(row[1])
+            # 2026-10-22: 返回 gate 真实 id（gate_results.gate_id 有外键约束，不能填 0）
+            if isinstance(_gate, dict):
+                _gate['id'] = row[0]
+            return _gate
         except Exception:
             return None
     return None

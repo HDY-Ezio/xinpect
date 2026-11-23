@@ -218,3 +218,72 @@ class TestBlueGreenConsistency:
         h_g = hashlib.md5(open(green, "rb").read()).hexdigest()
         h_b = hashlib.md5(open(blue, "rb").read()).hexdigest()
         assert h_g == h_b, "绿版与蓝版scanner_service.py MD5不一致"
+
+
+
+# ============================================================
+# 孤儿数据（用户删了、子表还留着）
+# ============================================================
+class TestDataOrphanIntegrity:
+    """删号必须无残留。
+
+    2026-11-03 整改：这里的检查不手写表清单，复用 scripts/user_lifecycle.py
+    的 schema 自动发现——全库凡列名像用户引用的列（user_id / *_user_id /
+    uid / owner_id）都会被扫。老实现只查 scans 和 orders 两张表，
+    另外 5 张表的 57 行孤儿一直没人管。
+    """
+
+    def test_no_orphan_user_rows(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "user_lifecycle", os.path.join(BASE_DIR, "scripts", "user_lifecycle.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        conn = get_db()
+        try:
+            orphans = mod.find_orphans(conn)
+            dead = mod.find_dead_uids(conn)
+        finally:
+            conn.close()
+
+        detail = ", ".join("%s.%s=%d" % (t, c, n)
+                           for (t, c), n in sorted(orphans.items()))
+        assert not orphans, ("存在孤儿行（用户已删、子表未清理）: %s；"
+                             "已删账号 uid %s。用 "
+                             "python3 scripts/user_lifecycle.py --purge-orphans --apply 清理"
+                             % (detail, dead))
+
+
+# ============================================================
+# 说明书页入口（/api-docs）
+# ============================================================
+class TestApiDocsEntry:
+    """/api-docs 必须直接出说明书页，而且只注册一次。
+
+    2026-11-10 踩过：app.py 里 /api-docs 被注册了两条——一条渲染说明书，
+    一条 302 跳 /help，全靠注册顺序才没出丑。顺序一变，说明书就变成跳转页，
+    而且页面本身没坏、日志也正常，肉眼查不出来。
+    """
+
+    def test_route_registered_exactly_once(self):
+        src = open(os.path.join(BASE_DIR, "app.py"), encoding="utf-8").read()
+        n = len(re.findall(r"@app\.route\(\s*[\"']/api-docs[\"']", src))
+        assert n == 1, ("/api-docs 注册了 %d 次，只允许 1 次；"
+                        "同路径重复注册时后加的那条会盖掉前面的" % n)
+
+    def test_page_serves_manual_not_redirect(self):
+        import requests
+        r = requests.get(WEBSITE_URL + "/api-docs", allow_redirects=False, timeout=10)
+        assert r.status_code == 200, (
+            "/api-docs 没直接出页面：HTTP %d -> %s"
+            % (r.status_code, r.headers.get("Location")))
+        assert "X-API-Key" in r.text, "/api-docs 返回的内容不像接口说明书"
+
+    def test_docs_alias_points_to_manual(self):
+        import requests
+        r = requests.get(WEBSITE_URL + "/docs", allow_redirects=False, timeout=10)
+        assert r.status_code in (301, 302, 303, 307, 308), (
+            "/docs 应重定向，实际 HTTP %d" % r.status_code)
+        loc = r.headers.get("Location", "")
+        assert loc.endswith("/api-docs"), "/docs 应指到 /api-docs，实际 -> %s" % loc

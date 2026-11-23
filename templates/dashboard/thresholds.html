@@ -5,12 +5,12 @@
 <style>
     .th-page { /* max-width inherited from dashboard-content */ }
     .th-hero { margin-bottom: 20px; }
-    .th-hero h1 { font-size: 20px; font-weight: 700; color: #0F172A; margin: 0 0 4px; }
-    .th-hero p { font-size: 13px; color: #64748B; margin: 0; }
+    .th-hero h1 { font-size: 20px; font-weight: 700; color: var(--color-v-0f172a); margin: 0 0 4px; }
+    .th-hero p { font-size: 13px; color: var(--color-v-64748b); margin: 0; }
 
     .th-group {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 12px;
         margin-bottom: 16px;
         overflow: hidden;
@@ -23,13 +23,13 @@
     }
     .th-group-head .icon {
         width: 28px; height: 28px;
-        background: #1A3A5C;
+        background: var(--color-v-1a3a5c);
         border-radius: 8px;
         display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 13px; flex-shrink: 0;
+        color: var(--color-text-inverse); font-size: 13px; flex-shrink: 0;
     }
     .th-group-head h3 {
-        font-size: 14px; font-weight: 600; color: #0F172A; margin: 0;
+        font-size: 14px; font-weight: 600; color: var(--color-v-0f172a); margin: 0;
     }
     .th-group-body { padding: 14px 18px 18px; }
 
@@ -38,34 +38,34 @@
         align-items: center;
         justify-content: space-between;
         padding: 10px 0;
-        border-bottom: 1px solid #E2E8F0;
+        border-bottom: 1px solid var(--color-v-e2e8f0);
     }
     .th-row:last-child { border-bottom: none; }
     .th-row .label {
         font-size: 13px;
-        color: #475569;
+        color: var(--color-v-475569);
     }
     .th-row .label .hint {
-        font-size: 11px; color: #4a5568; display: block; margin-top: 2px;
+        font-size: 11px; color: var(--color-v-4a5568); display: block; margin-top: 2px;
     }
     .th-row input {
         width: 80px;
         padding: 6px 10px;
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 6px;
-        color: #0F172A;
+        color: var(--color-v-0f172a);
         font-size: 13px;
         text-align: center;
         font-family: monospace;
     }
     .th-row input:focus {
         outline: none;
-        border-color: #1A3A5C;
+        border-color: var(--color-v-1a3a5c);
     }
     .th-row .default-val {
         font-size: 11px;
-        color: #4a5568;
+        color: var(--color-v-4a5568);
         margin-left: 6px;
     }
 
@@ -83,16 +83,16 @@
         border: none;
     }
     .th-btn.primary {
-        background: #1A3A5C;
-        color: #fff;
+        background: var(--color-v-1a3a5c);
+        color: var(--color-text-inverse);
     }
-    .th-btn.primary:hover { background: #e85d2c; }
+    .th-btn.primary:hover { background: var(--color-v-e85d2c); }
     .th-btn.secondary {
-        background: #E2E8F0;
-        color: #475569;
-        border: 1px solid #CBD5E1;
+        background: var(--color-v-e2e8f0);
+        color: var(--color-v-475569);
+        border: 1px solid var(--color-v-cbd5e1);
     }
-    .th-btn.secondary:hover { border-color: #1A3A5C; color: #1A3A5C; }
+    .th-btn.secondary:hover { border-color: var(--color-v-1a3a5c); color: var(--color-v-1a3a5c); }
 
     .th-toast {
         position: fixed;
@@ -105,13 +105,13 @@
         display: none;
     }
     .th-toast.ok {
-        background: #00b578;
-        color: #fff;
+        background: var(--color-v-00b578);
+        color: var(--color-text-inverse);
         display: block;
     }
     .th-toast.err {
-        background: #e53e3e;
-        color: #fff;
+        background: var(--color-v-e53e3e);
+        color: var(--color-text-inverse);
         display: block;
     }
 </style>

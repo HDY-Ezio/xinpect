@@ -4,10 +4,10 @@
 <div style="max-width:1200px;margin:0 auto;padding:24px 16px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
     <div>
-      <h1 style="font-size:24px;font-weight:700;color:#1a1a1a;">煋鉴平台看板</h1>
-      <p style="font-size:13px;color:#888;margin-top:4px;">实时扫描数据与质量概览</p>
+      <h1 style="font-size:24px;font-weight:700;color:var(--color-v-1a1a1a);">煋鉴平台看板</h1>
+      <p style="font-size:13px;color:var(--color-v-888888);margin-top:4px;">实时扫描数据与质量概览</p>
     </div>
-    <select id="daysRange" onchange="loadStats()" style="padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    <select id="daysRange" onchange="loadStats()" style="padding:6px 12px;border:1px solid var(--color-v-dddddd);border-radius:6px;font-size:13px;">
       <option value="7">最近7天</option>
       <option value="30" selected>最近30天</option>
       <option value="90">最近90天</option>
@@ -15,58 +15,58 @@
   </div>
 
   <!-- KPI Cards -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:13px;color:#888;">总扫描次数</div>
-      <div id="kpi-total" style="font-size:28px;font-weight:700;color:#1A3A5C;margin-top:4px;">-</div>
+  <div class="grid-4" style="gap:16px;margin-bottom:24px;">
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:13px;color:var(--color-v-888888);">总扫描次数</div>
+      <div id="kpi-total" style="font-size:28px;font-weight:700;color:var(--color-v-1a3a5c);margin-top:4px;">-</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:13px;color:#888;">今日扫描</div>
-      <div id="kpi-today" style="font-size:28px;font-weight:700;color:#4CAF50;margin-top:4px;">-</div>
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:13px;color:var(--color-v-888888);">今日扫描</div>
+      <div id="kpi-today" style="font-size:28px;font-weight:700;color: var(--color-success);margin-top:4px;">-</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:13px;color:#888;">活跃用户数</div>
-      <div id="kpi-users" style="font-size:28px;font-weight:700;color:#2196F3;margin-top:4px;">-</div>
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:13px;color:var(--color-v-888888);">活跃用户数</div>
+      <div id="kpi-users" style="font-size:28px;font-weight:700;color: var(--color-info);margin-top:4px;">-</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:13px;color:#888;">平均得分</div>
-      <div id="kpi-avg" style="font-size:28px;font-weight:700;color:#9C27B0;margin-top:4px;">-</div>
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:13px;color:var(--color-v-888888);">平均得分</div>
+      <div id="kpi-avg" style="font-size:28px;font-weight:700;color:var(--color-v-9c27b0);margin-top:4px;">-</div>
     </div>
   </div>
 
   <!-- Charts Row 1 -->
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">质量趋势</div>
+  <div class="grid-2-1" style="gap:16px;margin-bottom:16px;">
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:14px;font-weight:600;color:var(--color-v-333333);margin-bottom:12px;">质量趋势</div>
       <canvas id="trendChart" height="220"></canvas>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">等级分布</div>
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:14px;font-weight:600;color:var(--color-v-333333);margin-bottom:12px;">等级分布</div>
       <canvas id="gradeChart" height="220"></canvas>
     </div>
   </div>
 
   <!-- Charts Row 2 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">扫描来源</div>
+  <div class="grid-2" style="gap:16px;margin-bottom:16px;">
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:14px;font-weight:600;color:var(--color-v-333333);margin-bottom:12px;">扫描来源</div>
       <canvas id="sourceChart" height="220"></canvas>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">编程语言 TOP 10</div>
+    <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+      <div style="font-size:14px;font-weight:600;color:var(--color-v-333333);margin-bottom:12px;">编程语言 TOP 10</div>
       <canvas id="langChart" height="220"></canvas>
     </div>
   </div>
 
   <!-- Top Users -->
-  <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-    <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:12px;">活跃用户 TOP 5</div>
+  <div style="background:var(--color-bg-primary);border-radius:12px;padding:20px;box-shadow:0 1px 3px var(--color-v-f348c9372);">
+    <div style="font-size:14px;font-weight:600;color:var(--color-v-333333);margin-bottom:12px;">活跃用户 TOP 5</div>
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr style="border-bottom:1px solid #eee;text-align:left;">
-        <th style="padding:8px 0;color:#888;">排名</th>
-        <th style="padding:8px 0;color:#888;">用户</th>
-        <th style="padding:8px 0;color:#888;">扫描次数</th>
-        <th style="padding:8px 0;color:#888;">平均得分</th>
+      <thead><tr style="border-bottom:1px solid var(--color-v-eeeeee);text-align:left;">
+        <th style="padding:8px 0;color:var(--color-v-888888);">排名</th>
+        <th style="padding:8px 0;color:var(--color-v-888888);">用户</th>
+        <th style="padding:8px 0;color:var(--color-v-888888);">扫描次数</th>
+        <th style="padding:8px 0;color:var(--color-v-888888);">平均得分</th>
       </tr></thead>
       <tbody id="userTable"></tbody>
     </table>
@@ -104,7 +104,7 @@ function loadStats() {
 
             // Grade pie
             if (gradeChart) gradeChart.destroy();
-            var gradeColors = { A: '#4CAF50', B: '#8BC34A', C: '#FF9800', D: '#f44336' };
+            var gradeColors = { S: '#1b8a4c', A: '#4CAF50', B: '#8BC34A', C: xpColor('--color-sev-medium'), D: '#f44336', '文件级': '#9E9E9E' };
             gradeChart = new Chart(document.getElementById('gradeChart'), {
                 type: 'doughnut',
                 data: {
@@ -143,7 +143,7 @@ function loadStats() {
             data.top_users.forEach(function(u, i) {
                 var tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #f5f5f5';
-                tr.innerHTML = '<td style="padding:10px 0;font-weight:600;color:#1A3A5C;">#' + (i+1) + '</td><td style="padding:10px 0;">' + u.email + '</td><td style="padding:10px 0;">' + u.scans + '</td><td style="padding:10px 0;">' + u.avg_score + '</td>';
+                tr.innerHTML = '<td style="padding:10px 0;font-weight:600;color:var(--color-v-1a3a5c);">#' + (i+1) + '</td><td style="padding:10px 0;">' + u.email + '</td><td style="padding:10px 0;">' + u.scans + '</td><td style="padding:10px 0;">' + u.avg_score + '</td>';
                 tbody.appendChild(tr);
             });
         });

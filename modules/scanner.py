@@ -7,13 +7,15 @@
 from .constants import (
     app, logger,
     BRAINS_MAP, TIERS, TIERS_MAP,
-    FREE_BRAIN_IDS,
-    SCANNER_URL, SCAN_TIMEOUT_SECONDS,
+    FREE_BRAIN_IDS, ALL_BRAIN_IDS, brain_label,
+    SCANNER_URL, SCANNER_API_KEY, SCAN_TIMEOUT_SECONDS,
 )
+import re as _re
 import time as _time
 
 from .helpers import _safe_http_post
 from .scoring import severity_label
+from .dimensions import engine_status as _engine_status
 
 # 重试配置
 SCANNER_MAX_RETRIES = 3
@@ -57,12 +59,14 @@ def verify_scanner_engine():
     import requests as _requests
     health_url = SCANNER_URL.replace('/scan', '/health')
     try:
-        resp = _requests.get(health_url, timeout=5)
+        resp = _requests.get(health_url, timeout=5, headers={"X-API-Key": SCANNER_API_KEY} if SCANNER_API_KEY else {})
         if resp.status_code != 200:
             logger.error("扫描引擎不可达 (HTTP %s)，服务启动失败", resp.status_code)
             raise SystemExit(1)
         data = resp.json()
         version = data.get('version', 'unknown')
+        # 注意：此处是读取扫描器 /health 的【出参】字段 brain_ids；
+        # 调用 /scan 时的【入参】字段是 brains（见 _build_scanner_payload），两者不可混改。
         brains = data.get('brain_ids', [])
         logger.info("扫描引擎连接正常 [version=%s, brains=%d]", version, len(brains))
         return True
@@ -77,7 +81,7 @@ def _build_scanner_payload(files_dict, brain_ids, scan_mode, is_vip, thresholds=
     """构建扫描引擎请求参数"""
     payload = {
         'code_files': files_dict,
-        'brain_ids': brain_ids,
+        'brains': brain_ids,
         'scan_mode': scan_mode,
         'is_vip': is_vip,
         'ai_enhance': is_vip,
@@ -88,11 +92,57 @@ def _build_scanner_payload(files_dict, brain_ids, scan_mode, is_vip, thresholds=
     return payload
 
 
+_ENGINE_PREFIX = _re.compile(r'^E(\d{1,2})-')
+_BRAIN_ID_SET = {str(b) for b in ALL_BRAIN_IDS}
+
+
+def _dimension_brain(bid, rule_id, category=None):
+    """这条问题该显示在哪个引擎维度下 —— 先看查的是什么，再看得懂编号。
+
+    为什么需要这一步（2026-11-04 实测）：
+
+    引擎的 `engine/e1_syntax/checks/security/` 下有 176 个安全规则文件，
+    它们由 E1 引擎执行，产出时 brain_id 被写成 1。但规则编号是 E2-*
+    （E2 = 安全引擎，见 docs/rule_id_ledger.md 的编号铁律）。
+
+    后果很具体：一份含硬编码密钥 + IDOR + SQL 注入的代码，三条全是
+    high，全部挂在「E1 语法与AST分析」卡下，而「E2 安全检测」卡 0 条问题
+    → 显示 100 分。这就是「安全 100 分，却有 1 条越权高危」的完整形态，
+    比归错 category 更直接：报告页的维度卡就是按 brain_id 分的。
+
+    ── 第二层（2026-11-05）：编号本身也会错 ──
+    只认编号还不够。实测 828 条已注册规则里，有 **53 条 category=security
+    的规则被编成了非 E2 的号**（48 条 E3-*，比如 E3-TAINT-PY-001 是 SQL 注入、
+    E3-PERF-RUBY-XSS-001 是 XSS，另有 1 条 E1-*、4 条无引擎前缀）。
+    按编号走，它们会落进「性能与可靠性」卡，安全卡一栏照样 100 分——
+    用户看到的就是同一个病：**有注入高危，安全维度满分**。
+
+    所以归属判据按可靠性排序：
+      ① `category == 'security'` → 安全卡。安全是「风险维度」，不是「哪个引擎
+         干的活」。一条 SQL 注入不管由谁执行、编号写成什么，它就是安全问题。
+      ② 编号首段 `E<n>` 指向真实引擎 → 该引擎。
+      ③ 都没有 → 引擎实际归属。
+    ②③ 保持不变，是为了不推翻已对账过的 300 条真实 check_id 的归属。
+    """
+    if str(category or '').strip().lower() == 'security':
+        return '2'
+    m = _ENGINE_PREFIX.match(str(rule_id or '').strip().upper())
+    if not m:
+        return str(bid)
+    num = m.group(1).lstrip('0') or '0'
+    return num if num in _BRAIN_ID_SET else str(bid)
+
+
 def _flatten_brain_results(raw_results, brain_ids, files_dict):
     """将按 brain 分组的扫描结果拍平为统一 issues 列表
-    返回 (all_issues, style_issues) 元组"""
+    返回 (all_issues, style_issues, profile_items) 三元组
+
+    profile_items = 技术栈/依赖画像（扫描器的 profile_items 通道）。
+    它们是「这个项目用了哪些库 / API」，不是缺陷：不进 issues、不计分。
+    """
     all_issues = []
     style_issues = []
+    profile_items = []
     results_by_brain = raw_results.get('results', {})
 
     # 当 brain_ids 为 None 时（免费用户），从返回结果的 keys 推断
@@ -104,7 +154,9 @@ def _flatten_brain_results(raw_results, brain_ids, files_dict):
         brain_issues = brain_result.get('issues', [])
         # P0: 提取 style 问题
         brain_style = brain_result.get('style_issues', [])
-        brain_name = BRAINS_MAP.get(str(bid), {}).get('name', f'B{bid}')
+        # 2026-11-03: 提取依赖画像（「用了哪些库/API」，不是缺陷）
+        brain_profile = brain_result.get('profile_items', [])
+        brain_name = brain_label(bid)
 
         for issue in brain_issues:
             file_path = issue.get('file', '')
@@ -112,11 +164,15 @@ def _flatten_brain_results(raw_results, brain_ids, files_dict):
             file_content = files_dict.get(file_path, '')
             code_snippet = _extract_code_snippet(file_content, line_num)
 
+            # 归属以规则编号为准：E2-* 的问题是安全引擎的规则，即使由 E1 执行，
+            # 也要显示在安全卡下（详见 _dimension_brain 的说明）
+            _rule_id = issue.get('check_id', '')
+            _dim_bid = _dimension_brain(bid, _rule_id, issue.get('category'))
             all_issues.append({
-                'brain_id': str(bid),
-                'brain_name': brain_name,
-                'rule_id': issue.get('check_id', ''),
-                'title': issue.get('name', issue.get('check_id', '')),
+                'brain_id': _dim_bid,
+                'brain_name': brain_label(_dim_bid),
+                'rule_id': _rule_id,
+                'title': issue.get('name', _rule_id),
                 'severity': issue.get('severity', 'medium'),
                 'severity_label': severity_label(issue.get('severity', 'medium')),
                 'description': issue.get('message', ''),
@@ -140,11 +196,13 @@ def _flatten_brain_results(raw_results, brain_ids, files_dict):
             line_num = issue.get('line', 0)
             file_content = files_dict.get(file_path, '')
             code_snippet = _extract_code_snippet(file_content, line_num)
+            _rule_id = issue.get('check_id', '')
+            _dim_bid = _dimension_brain(bid, _rule_id, issue.get('category'))
             style_issues.append({
-                'brain_id': str(bid),
-                'brain_name': brain_name,
-                'rule_id': issue.get('check_id', ''),
-                'title': issue.get('name', issue.get('check_id', '')),
+                'brain_id': _dim_bid,
+                'brain_name': brain_label(_dim_bid),
+                'rule_id': _rule_id,
+                'title': issue.get('name', _rule_id),
                 'severity': issue.get('severity', 'info'),
                 'severity_label': '建议',
                 'description': issue.get('message', ''),
@@ -158,7 +216,19 @@ def _flatten_brain_results(raw_results, brain_ids, files_dict):
                 'ai_source': issue.get('ai_source', 'rule'),
             })
 
-    return all_issues, style_issues
+        # 2026-11-03: 处理依赖画像条目（技术栈清单，不参与评分）
+        for issue in brain_profile:
+            profile_items.append({
+                'brain_id': str(bid),
+                'brain_name': brain_name,
+                'rule_id': issue.get('check_id', ''),
+                'title': issue.get('name', issue.get('check_id', '')),
+                'description': issue.get('message', ''),
+                'file': issue.get('file', ''),
+                'line': issue.get('line', 0),
+            })
+
+    return all_issues, style_issues, profile_items
 
 
 def _sort_issues_by_severity(all_issues):
@@ -171,6 +241,94 @@ def _sort_issues_by_severity(all_issues):
         sev_order.get(x.get('severity', ''), 99),
         str(x.get('brain_id', '')),
     ))
+
+
+# ============================================================
+# 被抑制清单（suppressed_issues）
+# ============================================================
+# 扫描器的 AI 降噪（B13）会把判定为误报的问题从报告里删掉。删之前它留了
+# 「凭条」，写在 results.ai_denoise.suppressed_issues / suppressed_stats。
+# 这两个字段不进 issues、不计分，唯一用途是回答「这条明明有问题，为什么没报」。
+#
+# 落库体积约束：清单可能上千条，而 scans.results 是整包 JSON 存库。
+# 与 issues 一样需要封顶，超出部分只保留计数（stats.total 仍是真实总数）。
+SUPPRESSED_STORE_LIMIT = 500
+
+# 只搬运报告页要显示的字段，不整条透传（防止内部临时字段漏出去、也防体积膨胀）
+_SUPPRESSED_FIELDS = ('stage', 'stage_label', 'reason', 'engine',
+                      'file', 'line', 'check_id', 'title', 'confidence')
+
+
+def _slim_suppressed_record(rec):
+    """把扫描器的一条抑制记录压成白名单字段。非 dict 直接丢。"""
+    if not isinstance(rec, dict):
+        return None
+    out = {}
+    for key in _SUPPRESSED_FIELDS:
+        out[key] = rec.get(key)
+    # 归一化：字符串字段保证是字符串，行号保证是整数（前端直接拼"文件:行"）
+    for key in ('stage', 'stage_label', 'reason', 'engine', 'file', 'check_id', 'title'):
+        if out[key] is None:
+            out[key] = ''
+        elif not isinstance(out[key], str):
+            out[key] = str(out[key])
+    try:
+        out['line'] = int(out['line'] or 0)
+    except (TypeError, ValueError):
+        out['line'] = 0
+    # 置信度统一成 0~1 的浮点或 None：模板要按 %.2f 展示，字符串会让它炸
+    conf = out.get('confidence')
+    if conf is None:
+        out['confidence'] = None
+    else:
+        try:
+            out['confidence'] = round(float(conf), 4)
+        except (TypeError, ValueError):
+            out['confidence'] = None
+    return out
+
+
+def _collect_suppressed(raw_results):
+    """提取被抑制清单，返回 (records, stats)。
+
+    扫描器没跑降噪时（免费扫描 / quick 模式），results 里没有 ai_denoise，
+    此时返回空列表——这与「跑了降噪、但没抑制任何条目」是两件事：
+    报告页对前者的处理是整栏不显示，后者显示 0 条。
+    """
+    raw_results = raw_results if isinstance(raw_results, dict) else {}
+    denoise = raw_results.get('ai_denoise')
+    if not isinstance(denoise, dict):
+        return [], {}
+
+    raw_records = denoise.get('suppressed_issues')
+    if not isinstance(raw_records, list):
+        raw_records = []
+
+    stats = denoise.get('suppressed_stats')
+    if not isinstance(stats, dict):
+        stats = {}
+
+    records = [r for r in (_slim_suppressed_record(x) for x in raw_records) if r]
+    truncated = bool(stats.get('truncated'))
+    if len(records) > SUPPRESSED_STORE_LIMIT:
+        records = records[:SUPPRESSED_STORE_LIMIT]
+        truncated = True
+
+    by_stage = stats.get('by_stage')
+    if not isinstance(by_stage, dict):
+        by_stage = {}
+    try:
+        total = int(stats.get('total'))
+    except (TypeError, ValueError):
+        total = len(raw_records)
+
+    out_stats = {
+        'total': total,
+        'returned': len(records),
+        'truncated': truncated,
+        'by_stage': {str(k): v for k, v in by_stage.items() if isinstance(v, int)},
+    }
+    return records, out_stats
 
 
 def _handle_scanner_exception(exc, files_dict, file_count, total_code_size):
@@ -229,6 +387,43 @@ def _is_retryable_error(exc):
     return False
 
 
+# ============================================================
+# 报告落库字段清单（单一事实来源）
+# ============================================================
+# call_scanner 的返回值里有「报告要展示的东西」，也有「只用于日志的中间量」。
+# 落库的两条路径——网页扫描（modules/scan.py 整包存 results）与 CI
+# （modules/ci.py::_save_ci_scan 逐字段组装）——必须对「哪些字段算报告内容」
+# 有同一份认知。
+#
+# 2026-11-03 之前 CI 那边是手写字典白名单，于是每加一个报告栏目就静默丢一次字段：
+# 被抑制清单丢过一次、样式问题丢过一次、依赖画像丢过一次，页面表现为「栏目不存在」
+# 而不是报错，极难察觉。现在改成在这里声明一次，CI 侧按这张表派生落库内容，
+# 新增栏目只改这一处；tests 里另有守卫断言「页面读取的字段 ⊆ 本表」。
+#
+# 表的值是该字段的默认值（缺失时用），类型同时充当校验依据。
+REPORT_PAYLOAD_KEYS = {
+    'issues': [],
+    'style_issues': [],
+    # 2026-11-04: 引擎台账（哪个 brain 跑了/报错/被降级）。
+    # 不落库的话报告页拿不到，只能默认"都跑成了"，五维就会永远满分。
+    'engines': {},
+    # 与 engines 同一件事的另外两面：有文件没被解析 / 被截断，
+    # 任何维度的 100 分在这两种情况下都不成立。只落 engines 不落这两个，
+    # 报告页就只看得到"引擎跑了"，看不到"跑的是残文件"。
+    'unsupported_files': [],
+    'unsupported_count': 0,
+    'trimmed_files': [],
+    'trimmed_count': 0,
+    'degraded_brains': [],
+    'profile_items': [],
+    'suppressed_issues': [],
+    'suppressed_stats': {},
+    'total_issues': 0,
+    'version': '',
+    'scan_time': 0,
+}
+
+
 def call_scanner(files_dict, brain_ids, options=None):
     """
     调用 xinpect-scanner v5 检测服务（带重试机制）
@@ -256,9 +451,20 @@ def call_scanner(files_dict, brain_ids, options=None):
     payload = _build_scanner_payload(
         files_dict, brain_ids, scan_mode, is_vip, thresholds
     )
+    # X-02 fix: 传递user_id用于扫描结果归属
+    user_id = options.get('user_id', '')
+    if user_id:
+        payload['user_id'] = user_id
+
     # P2-6: 传递用户禁用的规则
     if disabled_rules:
         payload['disabled_rules'] = disabled_rules
+
+    # 2026-11-05：真实进度任务号。扫描器只在旁路登记「真的发生了什么」，
+    # 这个字段不参与任何检测判定，也不写进 config（config 参与缓存键）。
+    _progress_job_id = options.get('progress_job_id')
+    if _progress_job_id:
+        payload['progress_job_id'] = str(_progress_job_id)
 
     last_exc = None
     for attempt in range(SCANNER_MAX_RETRIES + 1):
@@ -270,12 +476,20 @@ def call_scanner(files_dict, brain_ids, options=None):
             dynamic_timeout = min(dynamic_timeout, 900)  # 上限15分钟，防止极端情况
             logger.info("扫描超时设置: %ds (files=%d, size=%.1fKB, code_size=%d bytes)", dynamic_timeout, file_count, size_kb, total_code_size)
             logger.info("扫描超时设置: %ds (files=%d, code_size=%d bytes)", dynamic_timeout, file_count, total_code_size)
-            resp = _safe_http_post(SCANNER_URL, json=payload, timeout=dynamic_timeout)
+            resp = _safe_http_post(SCANNER_URL, json=payload, timeout=dynamic_timeout, headers={"X-API-Key": SCANNER_API_KEY} if SCANNER_API_KEY else {})
             resp.raise_for_status()
             raw = resp.json()
 
-            all_issues, style_issues = _flatten_brain_results(raw, brain_ids, files_dict)
+            all_issues, style_issues, profile_items = _flatten_brain_results(raw, brain_ids, files_dict)
             _sort_issues_by_severity(all_issues)
+            # 2026-11-03: 被抑制清单（AI 判为误报而没进报告的条目），供报告页回答「为什么没报」
+            suppressed_issues, suppressed_stats = _collect_suppressed(raw.get('results'))
+            if suppressed_stats:
+                logger.info(
+                    "被抑制清单: %d 条（抑制总数 %s，截断=%s）",
+                    suppressed_stats['returned'], suppressed_stats['total'],
+                    suppressed_stats['truncated']
+                )
 
             if attempt > 0:
                 logger.info(
@@ -288,12 +502,31 @@ def call_scanner(files_dict, brain_ids, options=None):
                     len(all_issues), raw.get('total_elapsed', 0), raw.get('version', '?')
                 )
 
+            # 2026-11-04 引擎台账：把「哪些引擎真的跑了」带上去。
+            # 引擎其实一直在吐这些事实：results[brain]['error'] 记了执行失败，
+            # degraded_brains 记了高负载时被主动跳过的重引擎，unsupported/trimmed
+            # 记了没被解析的文件。但 call_scanner 是白名单组装——不在这里列出来，
+            # 下游一个字都看不到。结果就是「引擎崩了」和「干净代码」在页面上
+            # 都显示 100 分，用户以为查过了。
+            _eng_status = _engine_status(
+                raw.get('results'), brain_ids, raw.get('degraded_brains') or []
+            )
             return {
                 'brains': brain_ids,
+                'engines': _eng_status,
+                'degraded_brains': list(raw.get('degraded_brains') or []),
+                'unsupported_files': list(raw.get('unsupported_files') or []),
+                'unsupported_count': int(raw.get('unsupported_count') or 0),
+                'trimmed_files': list(raw.get('trimmed_files') or []),
+                'trimmed_count': int(raw.get('trimmed_count') or 0),
                 'language': language,
                 'issues': all_issues,
                 'style_issues': style_issues,
                 'style_count': len(style_issues),
+                'profile_items': profile_items,
+                'profile_count': len(profile_items),
+                'suppressed_issues': suppressed_issues,
+                'suppressed_stats': suppressed_stats,
                 'file_count': len(files_dict),
                 'total_issues': len(all_issues),
                 'scan_time': raw.get('total_elapsed', 0),

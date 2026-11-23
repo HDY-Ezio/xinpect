@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}开发者 API - 把你的 AI 接上煋鉴 | 煋鉴 Xinpect{% endblock %}
+{% block meta_description %}煋鉴开发者 API：会员在后台生成密钥，把 AI 助手或 Agent 接上来，直接用会员积分扫描代码，不用上传到网页。含接口地址、认证方式、参数、返回字段、计费与错误码。{% endblock %}
+{% block og_title %}开发者 API - 把你的 AI 接上煋鉴 | 煋鉴{% endblock %}
+
+{% block content %}
+<div class="container api-docs-page" style="padding:56px 20px;max-width:920px;">
+
+    <div style="margin-bottom:36px;">
+        <h1 style="font-size:32px;margin-bottom:12px;">开发者 API</h1>
+        <p style="color:var(--text-secondary);font-size:16px;line-height:1.8;margin-bottom:8px;">
+            把你的 AI 助手接上煋鉴：在后台生成一把密钥交给它，之后你让它检查代码，它直接调我们的接口，
+            <strong>扣的是你的会员积分</strong>，不用再打开网页、不用打包上传。
+        </p>
+        <p style="color:var(--text-secondary);font-size:14px;line-height:1.8;margin-bottom:18px;">
+            接口是给程序用的；人手动扫一次代码还是走网页上传，两条路扣的是同一份积分。
+        </p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <a href="/dashboard/api-keys" class="btn btn-primary" style="text-decoration:none;">去后台生成密钥</a>
+            <a href="/pricing" class="btn btn-ghost" style="text-decoration:none;">还不是会员？看定价</a>
+        </div>
+    </div>
+
+    <!-- 接口总览 -->
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);margin-bottom:32px;">
+        <h2 style="font-size:20px;margin-bottom:8px;">接口总览</h2>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;">
+            服务地址：<code class="api-base-url" style="background:var(--bg-page);padding:4px 8px;border-radius:6px;">https://xinpect.xingwangzhineng.com</code>
+        </p>
+        <div class="table-scroll">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <thead>
+                    <tr style="background:var(--bg-page);">
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">用途</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">方法与路径</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">提交代码</td>
+                        <td style="padding:12px 14px;"><code>POST /api/v1/scan</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">小任务直接返回报告；大任务返回任务号，交给下一步去取</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">查进度／取结果</td>
+                        <td style="padding:12px 14px;"><code>GET /api/v1/scan/status/{scan_id}</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">就是上一步返回的 <code>poll_url</code></td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">取消排队</td>
+                        <td style="padding:12px 14px;"><code>POST /api/v1/scan/{scan_id}/cancel</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">排队中取消不扣积分</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">验证地址通不通</td>
+                        <td style="padding:12px 14px;"><code>GET /api/v1/scan</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">不带参数，返回接口自述，不需要密钥</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="color:var(--text-secondary);font-size:13px;margin-top:14px;line-height:1.7;">
+            密钥的生成、停用都在后台页面点，不用手调接口。
+        </p>
+    </div>
+
+    <!-- 三步 -->
+    <h2 style="font-size:20px;margin-bottom:16px;">三步接上来</h2>
+    <div class="grid-3" style="gap:16px;margin-bottom:32px;">
+        <div class="info-card" style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);box-shadow:var(--shadow-card);">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-steel);margin-bottom:7px;">第一步</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px;">先有会员和积分</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:0;">接口只对会员开放。没有会员，调用会返回「请先开通会员」。</p>
+        </div>
+        <div class="info-card" style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);box-shadow:var(--shadow-card);">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-steel);margin-bottom:7px;">第二步</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px;">在后台生成一把密钥</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:0;">密钥以 <code>xk_</code> 开头，只显示一次，当场复制保存。丢了就停用旧的、再生成一把。</p>
+        </div>
+        <div class="info-card" style="border:1px solid var(--border-color);border-radius:12px;padding:20px;background:var(--bg-card);box-shadow:var(--shadow-card);">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-steel);margin-bottom:7px;">第三步</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px;">交给你的 AI</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:0;">后台「扫描密钥」页有一键复制的指令块，粘给扣子、ChatGPT、通义的助手就能用；也支持 MCP 配置。</p>
+        </div>
+    </div>
+
+    <!-- 请求参数 -->
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);margin-bottom:32px;">
+        <h2 style="font-size:20px;margin-bottom:8px;">提交代码要带什么</h2>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:18px;">
+            请求头带密钥，请求体是 JSON。
+        </p>
+        <div class="table-scroll">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <thead>
+                    <tr style="background:var(--bg-page);">
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">位置</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">字段</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">必填</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">请求头</td>
+                        <td style="padding:12px 14px;"><code>X-API-Key</code></td>
+                        <td style="padding:12px 14px;">是</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">后台生成的那把 <code>xk_</code> 密钥</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">请求体</td>
+                        <td style="padding:12px 14px;"><code>code_files</code></td>
+                        <td style="padding:12px 14px;">是</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">对象：键是文件名，值是文件内容</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;">请求体</td>
+                        <td style="padding:12px 14px;"><code>language</code></td>
+                        <td style="padding:12px 14px;">否</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">默认 <code>auto</code> 自动识别；也可写 <code>python</code>、<code>javascript</code> 等</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="color:var(--text-secondary);font-size:13px;margin-top:14px;line-height:1.7;">
+            整包提交就行，不用自己拆文件。单次上限 500 个文件 / 10MB / 20 万行，超了会返回 413 并提示联系管理员。
+        </p>
+    </div>
+
+    <!-- 示例 -->
+    <h2 style="font-size:20px;margin-bottom:8px;">调用示例（Python）</h2>
+    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">
+        把下面这段里的密钥换成你自己的，就能跑。
+    </p>
+    <pre style="overflow-x:auto;background:var(--bg-page);padding:18px;border-radius:10px;font-size:13px;line-height:1.75;margin-bottom:14px;"><code>import time
+import requests
+
+BASE = "https://xinpect.xingwangzhineng.com"
+KEY  = "xk_你的密钥"
+
+# 1) 提交：键是文件名，值是文件内容
+r = requests.post(
+    BASE + "/api/v1/scan",
+    headers={"X-API-Key": KEY, "Content-Type": "application/json"},
+    json={"code_files": {"app.py": open("app.py", encoding="utf-8").read()},
+          "language": "python"},
+    timeout=600,
+)
+data = r.json()
+
+# 2) 大项目会先受理，拿到任务号就轮询（poll_url 是相对路径，要自己拼域名）
+while data.get("status") in ("processing", "queued", "pending"):
+    time.sleep(8)
+    data = requests.get(BASE + data["poll_url"],
+                        headers={"X-API-Key": KEY}, timeout=60).json()
+
+# 3) completed 时这一份 JSON 里就是完整报告
+print(data["score"], data["grade"], len(data.get("issues", [])))</code></pre>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:32px;line-height:1.7;">
+        想用 curl 也行：<code style="background:var(--bg-page);padding:2px 6px;border-radius:5px;">curl -H "X-API-Key: xk_..." -H "Content-Type: application/json" -d '{"code_files":{"a.py":"print(1)"}}' https://xinpect.xingwangzhineng.com/api/v1/scan</code>
+    </p>
+
+    <!-- 返回字段 -->
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);margin-bottom:32px;">
+        <h2 style="font-size:20px;margin-bottom:8px;">返回里都有什么</h2>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:18px;">
+            小任务当场就是 <code>completed</code>；大任务先给任务号，靠 <code>status</code> 判断到哪一步了。
+        </p>
+        <div class="table-scroll">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <thead>
+                    <tr style="background:var(--bg-page);">
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">字段</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">含义</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>status</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">
+                            <code>queued</code> 排队中（不扣积分）／<code>pending</code> 正在检查／
+                            <code>completed</code> 已完成／<code>failed</code> 失败（积分自动退）／<code>cancelled</code> 已取消
+                        </td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>scan_id</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">这次任务的编号</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>poll_url</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">查进度用的路径（相对路径，前面拼上服务地址）</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>progress</code> / <code>progress_text</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">0~100 的百分比，以及「正在检查哪个文件」的说明</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>score</code> / <code>grade</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">质量分和等级。等级为 S / A / B / C / D；只提交单个文件或小片代码时返回 <code>文件级</code>，表示这是片段评估、不构成项目级评级（分数照给）</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>issues</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">问题清单：每条含位置、严重度、说明和改法</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>credits_used</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">这次实际扣了多少积分</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 计费 -->
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);margin-bottom:32px;">
+        <h2 style="font-size:20px;margin-bottom:16px;">积分怎么扣</h2>
+        <ul style="color:var(--text-secondary);font-size:14px;line-height:2;margin:0;padding-left:20px;">
+            <li>按实际代码行数扣，和网页上传同一个价、同一个池子。</li>
+            <li><strong>排队不扣钱</strong>：排到了、真正开始检查那一刻才扣；排队中可随时免费取消。</li>
+            <li><strong>失败自动退</strong>：检查失败这一次的积分会退回来。</li>
+            <li>同一份代码重复提交，会直接返回上次的报告（省时间），但仍按一次计。</li>
+            <li>调用频率上限 10 次 / 60 秒，超了返回 429。</li>
+        </ul>
+    </div>
+
+    <!-- 错误码 -->
+    <div class="info-card" style="border:1px solid var(--border-color);border-radius:16px;padding:28px;background:var(--bg-card);">
+        <h2 style="font-size:20px;margin-bottom:16px;">报错对照表</h2>
+        <div class="table-scroll">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <thead>
+                    <tr style="background:var(--bg-page);">
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">状态码</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">意思</th>
+                        <th style="text-align:left;padding:12px 14px;font-weight:600;">怎么办</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>400</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">请求体不对：不是 JSON、缺 <code>code_files</code>、内容为空</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">确认 <code>Content-Type: application/json</code>，<code>code_files</code> 里要有内容</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>401</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">没带密钥，或密钥无效、已停用</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">检查请求头 <code>X-API-Key</code>，必要时后台重新生成</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>402</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">不是会员，或积分不够</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">先开通会员／充值</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>403</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">密钥存在但已停用</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">后台重新生成一把</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>413</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">单次提交超出 500 文件 / 10MB / 20 万行</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">分批提交，或联系管理员定制</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>429</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">60 秒内调用超过 10 次</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">等一会儿再叫</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border-color);">
+                        <td style="padding:12px 14px;"><code>500</code></td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">我们这边出错了</td>
+                        <td style="padding:12px 14px;color:var(--text-secondary);">重试一次；还不行就从<a href="/help" style="color:var(--accent-steel);">帮助中心</a>找我们</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="color:var(--text-secondary);font-size:13px;margin-top:16px;line-height:1.7;">
+            还没在后台拿密钥？<a href="/dashboard/api-keys" style="color:var(--accent-steel);">去生成一把</a>，
+            完整指令块和 MCP 配置都在那一页。
+        </p>
+    </div>
+
+</div>
+{% endblock %}

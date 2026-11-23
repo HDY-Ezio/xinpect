@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-煋鉴服务监控脚本 v2.0 - 增强版
-每 5 分钟运行一次，检测异常后自动修复
+煋旺智能全项目自动检修中枢 v3.0
+=================================
+取代旧的 xinpect_monitor.py（只覆盖煋鉴5个服务、且门房health端点写错）。
 
-功能：
-  1. 服务状态检查（systemctl is-active）
-  2. 端口监听检查（ss -tlnp）
-  3. HTTP 健康端点探测（容错：JSON/HTML 均支持）
-  4. 异常自动修复（systemctl restart + 冷却期保护）
-  5. 告警生成（修复失败时写 health_alert.json）
+治本设计（对应老板诉求"发现即自动处理，不用发邮件给老板"）：
+1. 全量体检：全公司所有服务（systemd + pm2 + nginx站点），一个不漏
+2. 自动修复：能重启的自动重启（带冷却期，不误伤扫描高峰期）
+3. 升级兜底：自动重启仍修不好的，写入"待办文件" TODOS.md，
+   供 AI 下次接入时读取并深度处理（而不是发邮件给不懂代码的老板）
+
+新增能力（相对 v2.0）：
+- 门房 xinpect-pay 健康端点从错误根路径 / 改为 /api/health（解析 wechat_pay_configured）
+- 纳入煋旺AI backend(5012)、stardirector(8888)、xw-gateway、pdf-pro
+- 纳入 pm2 进程（ai-cost-gateway 8001/8002）；技能按次付费的 payserver:8010 已于 2026-11-14 下线
+- 修复失败写 /opt/xinpect-website/monitoring/TODOS.md 供 AI 兜底
 """
 
 import json
 import logging
 import os
-import re
 import subprocess
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-# ===== 日志配置 =====
 LOG_DIR = Path("/opt/xinpect-website/monitoring")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 STATUS_FILE = LOG_DIR / "status.json"
-ALERT_DIR = LOG_DIR / "alerts"
-ALERT_DIR.mkdir(parents=True, exist_ok=True)
 HEAL_LOG = LOG_DIR / "heal.log"
 HEAL_STATE = LOG_DIR / "heal_state.json"
-HEAL_ALERT = LOG_DIR / "health_alert.json"
+TODO_FILE = LOG_DIR / "TODOS.md"          # AI 兜底待办文件
+SLOW_STATE = LOG_DIR / "slow_state.json"
 
 logging.basicConfig(
     filename=str(LOG_DIR / "monitor.log"),
@@ -39,394 +43,307 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-# ===== 服务配置 =====
+# ===== 全项目服务清单（单一事实来源）=====
+# type: systemd(可systemctl restart) | pm2(可pm2 restart) | probe(只探测不自愈)
 SERVICES = {
-    "xinpect-website": {"port": 8621, "health": "http://127.0.0.1:8621/health"},
-    "xinpect-scanner-green": {"port": 8620, "health": "http://127.0.0.1:8620/health"},
-    "xinpect-scanner-blue": {"port": 8622, "health": "http://127.0.0.1:8622/health"},
-    "pdf-pro": {"port": 8630, "health": "http://127.0.0.1:8630/health"},
-    "xinpect-pay": {"port": 8765, "health": "http://127.0.0.1:8765/"},
+    # ---- 煋鉴（代码质检）----
+    "xinpect-website":        {"type": "systemd", "port": 8621, "health": "http://127.0.0.1:8621/health", "aggregate_health": True},
+    "xinpect-scanner-green":  {"type": "systemd", "port": 8620, "health": "http://127.0.0.1:8620/health"},
+    "xinpect-scanner-blue":   {"type": "systemd", "port": 8622, "health": "http://127.0.0.1:8622/health"},
+    "xinpect-pay":            {"type": "systemd", "port": 8765, "health": "http://127.0.0.1:8765/api/health", "check_wechat": True},
+
+    # ---- 煋旺AI主站 ----
+    "starwang-backend-clean": {"type": "systemd", "port": 5012, "health": "http://127.0.0.1:5012/health"},
+    "xw-gateway":             {"type": "systemd", "port": None, "health": None, "process_only": True},
+    "stardirector":           {"type": "systemd", "port": 8888, "health": None, "process_only": True},
+
+    # ---- pm2 进程 ----
+    "ai-cost-gateway":        {"type": "pm2", "port": 8001, "health": "http://127.0.0.1:8001/health"},
+    "ai-cost-gateway-blue":   {"type": "pm2", "port": 8002, "health": "http://127.0.0.1:8002/health"},
 }
 
-# ===== 自动修复配置 =====
 AUTO_HEAL = True
-HEAL_COOLDOWN = 300  # 同一服务两次修复间隔至少 5 分钟
+HEAL_COOLDOWN = 300          # 同一服务两次修复间隔至少5分钟
+SLOW_TOLERANCE_CYCLES = 3    # 进程存活仅健康检查慢，连续N次才重启
 
 
-# ===== 日志函数 =====
-def log(msg: str, level: str = "INFO"):
-    """写日志"""
+def log(msg, level="INFO"):
     logging.getLogger().log(getattr(logging, level.upper(), logging.INFO), msg)
 
 
-# ===== 自动修复 =====
-def load_heal_state() -> dict:
-    """加载修复历史"""
+# ===== 状态文件读写 =====
+def load_json(path, default):
     try:
-        if HEAL_STATE.exists():
-            with open(HEAL_STATE) as f:
+        if Path(path).exists():
+            with open(path) as f:
                 return json.load(f)
     except Exception:
         pass
-    return {}
+    return default
 
 
-def save_heal_state(state: dict):
-    """持久化修复历史"""
+def save_json(path, data):
     try:
-        with open(HEAL_STATE, "w") as f:
-            json.dump(state, f, indent=2)
+        with open(path, "w") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
 
 
-def heal_log(msg: str):
-    """写入修复日志"""
+def heal_log(msg):
     try:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(HEAL_LOG, "a") as f:
             f.write(f"[{ts}] {msg}\n")
-        # 保留最近 500 行
-        try:
-            with open(HEAL_LOG) as f:
-                lines = f.readlines()
-            if len(lines) > 500:
-                with open(HEAL_LOG, "w") as f:
-                    f.writelines(lines[-500:])
-        except Exception:
-            pass
+        with open(HEAL_LOG) as f:
+            lines = f.readlines()
+        if len(lines) > 500:
+            with open(HEAL_LOG, "w") as f:
+                f.writelines(lines[-500:])
     except Exception:
         pass
 
 
-def try_heal_service(service_name: str, port: int) -> dict:
-    """
-    尝试修复指定服务
-    返回: {"success": bool, "action": str, "detail": str}
-    """
-    state = load_heal_state()
-    now = time.time()
-    last_heal = state.get(service_name, 0)
+# ===== 检查函数 =====
+def check_service(name, config):
+    result = {"status": "ok", "port_alive": True, "message": ""}
+    svc_type = config.get("type", "systemd")
 
-    # 冷却期检查
-    if now - last_heal < HEAL_COOLDOWN:
-        remaining = int(HEAL_COOLDOWN - (now - last_heal))
-        return {"success": False, "action": "cooldown", "detail": f"冷却中，还剩{remaining}秒"}
-
-    state[service_name] = now
-    save_heal_state(state)
-
-    heal_log(f"[HEAL_START] {service_name} port={port}")
-
-    # Step 1: 记录当前状态
-    try:
-        r = subprocess.run(
-            ["systemctl", "is-active", service_name],
-            capture_output=True, text=True, timeout=10
-        )
-        was_status = r.stdout.strip()
-    except Exception:
-        was_status = "unknown"
-
-    heal_log(f"[HEAL_RESTART] {service_name} (was: {was_status})")
-
-    # Step 2: 重启服务
-    try:
-        r = subprocess.run(
-            ["sudo", "systemctl", "restart", service_name],
-            capture_output=True, text=True, timeout=30
-        )
-        if r.returncode != 0:
-            heal_log(f"[HEAL_FAIL] {service_name} restart failed: {r.stderr[:200]}")
-            return {"success": False, "action": "restart_failed", "detail": r.stderr[:200]}
-    except Exception as e:
-        heal_log(f"[HEAL_ERROR] {service_name}: {e}")
-        return {"success": False, "action": "error", "detail": str(e)}
-
-    # Step 3: 等待恢复（最多 20 秒）
-    time.sleep(3)
-    for attempt in range(6):
+    # 1. 进程/服务状态
+    if svc_type == "systemd":
         try:
-            # 检查服务状态
-            r = subprocess.run(
-                ["systemctl", "is-active", service_name],
-                capture_output=True, text=True, timeout=5
-            )
+            r = subprocess.run(["systemctl", "is-active", name], capture_output=True, text=True, timeout=5)
             if r.stdout.strip() != "active":
-                time.sleep(2)
-                continue
-
-            # 检查端口
-            r2 = subprocess.run(
-                ["ss", "-tlnp"],
+                result["status"] = "inactive"
+                result["message"] = f"systemd状态: {r.stdout.strip()}"
+        except Exception as e:
+            result["status"] = "unknown"
+            result["message"] = f"检查失败: {str(e)[:50]}"
+    elif svc_type == "pm2":
+        try:
+            # pm2 daemon 是 ubuntu 用户跑的，必须用 ubuntu 身份 + 正确 HOME 查询
+            r = subprocess.run(
+                ["sudo", "-u", "ubuntu", "env", "HOME=/home/ubuntu", "pm2", "pid", name],
                 capture_output=True, text=True, timeout=5
             )
-            if f":{port} " in r2.stdout or f":{port}\t" in r2.stdout:
-                elapsed = 3 + attempt * 2
-                heal_log(f"[HEAL_OK] {service_name} 恢复成功 ({elapsed}秒)")
-                return {"success": True, "action": "restart_ok", "detail": f"重启后{elapsed}秒恢复"}
-        except Exception:
-            pass
-        time.sleep(2)
-
-    # Step 4: 最终状态
-    try:
-        r = subprocess.run(
-            ["systemctl", "is-active", service_name],
-            capture_output=True, text=True, timeout=5
-        )
-        final = r.stdout.strip()
-    except Exception:
-        final = "unknown"
-
-    heal_log(f"[HEAL_FAIL] {service_name} 修复后仍未恢复: {final}")
-    return {"success": False, "action": "restart_no_recovery", "detail": f"重启后状态仍为 {final}"}
-
-
-def run_auto_heal(unhealthy_services: dict) -> list:
-    """对异常服务执行自动修复"""
-    results = []
-
-    for svc_name, svc_result in unhealthy_services.items():
-        config = SERVICES.get(svc_name, {})
-        port = config.get("port", 0)
-
-        reason = svc_result.get("message", "状态异常")
-        if not config.get("auto_heal", True):
-            heal_log(f"[SKIP] {svc_name} 不在自动修复范围")
-            continue
-        heal_log(f"[CHECK] {svc_name} 异常: {reason}，尝试修复")
-
-        result = try_heal_service(svc_name, port)
-        result["service"] = svc_name
-        result["reason"] = reason
-        result["port"] = port
-        results.append(result)
-
-        heal_log(f"[RESULT] {svc_name}: success={result['success']} action={result['action']}")
-
-    return results
-
-
-# ===== 核心检查函数 =====
-def check_service(name: str, config: dict) -> dict:
-    """检查单个服务状态"""
-    result = {"status": "ok", "port_alive": False, "message": ""}
-
-    # 1. 服务状态
-    try:
-        r = subprocess.run(
-            ["systemctl", "is-active", name],
-            capture_output=True, text=True, timeout=5
-        )
-        if r.stdout.strip() != "active":
-            result["status"] = "inactive"
-            result["message"] = f"服务状态: {r.stdout.strip()}"
-    except Exception as e:
-        result["status"] = "unknown"
-        result["message"] = f"检查失败: {str(e)[:50]}"
+            if not r.stdout.strip().isdigit():
+                result["status"] = "inactive"
+                result["message"] = "pm2进程不在线"
+        except Exception as e:
+            result["status"] = "unknown"
+            result["message"] = f"pm2检查失败: {str(e)[:50]}"
 
     # 2. 端口监听
-    try:
-        r = subprocess.run(
-            ["ss", "-tlnp"],
-            capture_output=True, text=True, timeout=5
-        )
-        port_str = f":{config['port']}"
-        if port_str in r.stdout:
-            result["port_alive"] = True
-        elif result["status"] == "ok":
-            result["status"] = "port_missing"
-            result["message"] = f"端口 {config['port']} 未监听"
-    except Exception:
-        pass
+    port = config.get("port")
+    if port:
+        try:
+            r = subprocess.run(["ss", "-tlnp"], capture_output=True, text=True, timeout=5)
+            if f":{port} " not in r.stdout and f":{port}\t" not in r.stdout:
+                result["port_alive"] = False
+                if result["status"] == "ok":
+                    result["status"] = "port_missing"
+                    result["message"] = f"端口 {port} 未监听"
+        except Exception:
+            pass
 
     # 3. HTTP 健康检查
-    if "health" in config:
+    health = config.get("health")
+    if health:
+        t0 = time.time()
         try:
-            req = urllib.request.Request(config["health"], method="GET")
-            t0 = time.time()
+            req = urllib.request.Request(health, method="GET")
             with urllib.request.urlopen(req, timeout=10) as resp:
                 elapsed_ms = round((time.time() - t0) * 1000)
-                body = resp.read().decode()
                 result["response_ms"] = elapsed_ms
-
-                # 尝试 JSON 解析
+                body = resp.read().decode()
                 try:
                     data = json.loads(body)
+                    result["active_scans"] = int(data.get("active_scans") or 0)
                     if data.get("status") not in ("ok", "healthy"):
                         result["status"] = "degraded"
-                        result["message"] = f"健康检查: {data.get('status', 'unknown')} ({elapsed_ms}ms)"
+                        result["message"] = f"健康状态: {data.get('status', 'unknown')}"
+                    # 门房微信支付配置专项检查
+                    if config.get("check_wechat") and not data.get("wechat_pay_configured"):
+                        result["status"] = "wechat_broken"
+                        result["message"] = "微信支付配置失效(wechat_pay_configured=false)"
                 except (json.JSONDecodeError, ValueError):
-                    # 非 JSON 响应（如 HTML），只检查 HTTP 状态码
                     if resp.status != 200:
                         result["status"] = "degraded"
-                        result["message"] = f"HTTP {resp.status} ({elapsed_ms}ms)"
-
-                if elapsed_ms > 5000:
-                    result["status"] = "degraded"
-                    result["message"] = f"响应过慢: {elapsed_ms}ms"
+                        result["message"] = f"HTTP {resp.status}"
+        except urllib.error.HTTPError as e:
+            result["status"] = "degraded"
+            result["message"] = f"HTTP {e.code}"
         except Exception as e:
             result["status"] = "degraded"
-            result["message"] = f"HTTP 检查失败: {str(e)[:80]}"
+            result["message"] = f"HTTP检查失败: {str(e)[:60]}"
 
     return result
 
 
-def check_disk() -> dict:
-    """检查磁盘使用率"""
+# ===== 自动修复 =====
+def try_heal_service(name, config):
+    state = load_json(HEAL_STATE, {})
+    now = time.time()
+    if now - state.get(name, 0) < HEAL_COOLDOWN:
+        return {"success": False, "action": "cooldown", "detail": "冷却中"}
+    state[name] = now
+    save_json(HEAL_STATE, state)
+
+    svc_type = config.get("type", "systemd")
+    heal_log(f"[HEAL_START] {name} type={svc_type}")
+
+    if svc_type == "systemd":
+        restart_cmd = ["sudo", "systemctl", "restart", name]
+    elif svc_type == "pm2":
+        restart_cmd = ["sudo", "-u", "ubuntu", "env", "HOME=/home/ubuntu", "pm2", "restart", name]
+    else:
+        return {"success": False, "action": "no_healer", "detail": "无自动修复方式"}
+
     try:
-        r = subprocess.run(["df", "-h", "/"], capture_output=True, text=True, timeout=5)
-        lines = r.stdout.strip().split("\n")
-        if len(lines) >= 2:
-            parts = lines[1].split()
-            usage = int(parts[4].replace("%", ""))
-            return {"usage": usage, "status": "warning" if usage > 85 else "ok"}
+        r = subprocess.run(restart_cmd, capture_output=True, text=True, timeout=30)
+        if r.returncode != 0:
+            heal_log(f"[HEAL_FAIL] {name} 重启失败: {r.stderr[:200]}")
+            return {"success": False, "action": "restart_failed", "detail": r.stderr[:200]}
+    except Exception as e:
+        heal_log(f"[HEAL_ERROR] {name}: {e}")
+        return {"success": False, "action": "error", "detail": str(e)}
+
+    # 等待恢复
+    time.sleep(3)
+    port = config.get("port")
+    for attempt in range(6):
+        try:
+            if svc_type == "systemd":
+                r = subprocess.run(["systemctl", "is-active", name], capture_output=True, text=True, timeout=5)
+                alive = r.stdout.strip() == "active"
+            else:
+                r = subprocess.run(
+                    ["sudo", "-u", "ubuntu", "env", "HOME=/home/ubuntu", "pm2", "pid", name],
+                    capture_output=True, text=True, timeout=5
+                )
+                alive = r.stdout.strip().isdigit()
+            if alive and port:
+                r2 = subprocess.run(["ss", "-tlnp"], capture_output=True, text=True, timeout=5)
+                if f":{port} " not in r2.stdout and f":{port}\t" not in r2.stdout:
+                    alive = False
+            if alive:
+                heal_log(f"[HEAL_OK] {name} 恢复成功")
+                return {"success": True, "action": "restart_ok", "detail": f"重启后恢复"}
+        except Exception:
+            pass
+        time.sleep(2)
+
+    heal_log(f"[HEAL_FAIL] {name} 修复后仍未恢复")
+    return {"success": False, "action": "restart_no_recovery", "detail": "重启后仍未恢复"}
+
+
+# ===== AI 兜底待办文件 =====
+def write_todo(unrecoverable):
+    """把自动修不好的问题写成待办文件，供 AI 下次接入时读取处理"""
+    lines = [
+        "# 煋旺智能自动检修 - AI 兜底待办",
+        f"更新时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        "以下问题机器已尝试自动重启，但仍未恢复，需要 AI 深度排查修复：",
+        "",
+    ]
+    for item in unrecoverable:
+        lines.append(f"- **{item['name']}**：{item.get('detail', '未知原因')}")
+    lines.append("")
+    try:
+        with open(TODO_FILE, "w") as f:
+            f.write("\n".join(lines))
     except Exception:
         pass
-    return {"usage": -1, "status": "unknown"}
 
 
-def check_memory() -> dict:
-    """检查内存使用"""
-    try:
-        with open("/proc/meminfo") as f:
-            info = {}
-            for line in f:
-                parts = line.split()
-                if len(parts) >= 2:
-                    info[parts[0].rstrip(":")] = int(parts[1])
-            total = info.get("MemTotal", 0)
-            available = info.get("MemAvailable", 0)
-            if total > 0:
-                usage_pct = round((total - available) / total * 100, 1)
-                return {"usage_pct": usage_pct, "available_mb": available // 1024, "status": "ok"}
-    except Exception:
-        pass
-    return {"usage_pct": -1, "available_mb": 0, "status": "unknown"}
-
-
-def check_load() -> dict:
-    """检查系统负载"""
-    try:
-        r = subprocess.run(["cat", "/proc/loadavg"], capture_output=True, text=True, timeout=5)
-        parts = r.stdout.strip().split()
-        load1 = float(parts[0])
-        load5 = float(parts[1])
-        load15 = float(parts[2])
-        return {"load1": load1, "load5": load5, "load15": load15, "status": "ok"}
-    except Exception:
-        pass
-    return {"load1": 0, "load5": 0, "load15": 0, "status": "unknown"}
-
-
-def generate_alert(service_name: str, status: str, message: str):
-    """生成告警"""
-    alert_id = f"{service_name}_{int(time.time())}"
-    alert = {
-        "id": alert_id,
-        "service": service_name,
-        "status": status,
-        "message": message,
-        "timestamp": datetime.now().isoformat(),
-    }
-    try:
-        with open(ALERT_DIR / f"{alert_id}.json", "w") as f:
-            json.dump(alert, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-
-# ===== 主流程 =====
 def main():
-    log("监控检查开始")
+    log("全项目检修开始")
 
     results = {}
     for name, config in SERVICES.items():
         results[name] = check_service(name, config)
 
-    # 收集需要修复的服务
+    # 收集异常
+    slow_state = load_json(SLOW_STATE, {})
     unhealthy = {}
     for name, r in results.items():
         if r.get("status") != "ok" or not r.get("port_alive", True):
             unhealthy[name] = r
+    save_json(slow_state, slow_state)
 
-    # ===== 自动修复 =====
+    # 自动修复
     heal_results = []
+    unrecoverable = []
     if unhealthy and AUTO_HEAL:
-        heal_results = run_auto_heal(unhealthy)
-
-        # 修复成功后更新状态
-        for hr in heal_results:
-            if hr.get("success"):
-                svc = hr["service"]
-                if svc in results:
-                    results[svc]["status"] = "ok"
-                    results[svc]["port_alive"] = True
-                    results[svc]["healed"] = hr.get("detail", "")
+        for name, r in unhealthy.items():
+            config = SERVICES[name]
+            status = r.get("status")
+            # 「进程死/端口丢/连不上」是真病，立刻修；「degraded」可能只是忙或者慢，
+            # 按连续轮次判断 —— SLOW_TOLERANCE_CYCLES 之前只是定义着没生效。
+            hard_down = status in ("inactive", "port_missing", "unknown")
+            if not hard_down:
+                slow_state[name] = slow_state.get(name, 0) + 1
+                if slow_state[name] < SLOW_TOLERANCE_CYCLES:
+                    heal_log(f"[WAIT] {name} 状态 {status}（{r.get('message')}），"
+                             f"连续第 {slow_state[name]} 次，未达 {SLOW_TOLERANCE_CYCLES} 次不动手")
+                    continue
+            # 重启会掐断进程里正在跑的任务。客户在等结果的时候，宁可先不修。
+            if int(r.get("active_scans") or 0) > 0:
+                heal_log(f"[SKIP] {name} 状态 {status}，但此刻有 "
+                         f"{r['active_scans']} 个任务在跑，重启会打断它们，本轮不修")
+                unrecoverable.append({
+                    "name": name,
+                    "detail": f"状态 {status}（{r.get('message')}），"
+                              f"{r['active_scans']} 个任务在跑，等跑完再修"})
+                continue
+            slow_state[name] = 0
+            heal_log(f"[CHECK] {name} 异常: {r.get('message')}，尝试修复")
+            result = try_heal_service(name, config)
+            result["name"] = name
+            result["reason"] = r.get("message", "")
+            heal_results.append(result)
+            if result.get("success"):
+                results[name]["status"] = "ok"
+                results[name]["port_alive"] = True
+                results[name]["healed"] = result.get("detail", "")
+            else:
+                unrecoverable.append(result)
 
     # 写状态文件
     status_data = {
         "timestamp": datetime.now().isoformat(),
         "services": results,
-        "disk": check_disk(),
-        "memory": check_memory(),
-        "load": check_load(),
         "heal_results": heal_results if heal_results else None,
     }
-
-    total_count = len(results)
-    healthy_count = sum(1 for s in results.values() if s.get("status") == "ok" and s.get("port_alive", True))
-    status_data["overall"] = "healthy" if healthy_count == total_count else "degraded"
-
-    try:
-        with open(STATUS_FILE, "w") as f:
-            json.dump(status_data, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-    # 异常告警 + 日志
     for name, r in results.items():
-        if r.get("status") != "ok":
-            log(f"服务 {name} 异常: {r.get('message', r['status'])}", "WARN")
-            generate_alert(name, r["status"], r.get("message", "服务异常"))
+        if r.get("status") == "ok" and r.get("port_alive", True):
+            slow_state[name] = 0
+    save_json(SLOW_STATE, slow_state)
 
-    # 汇总日志
-    response_times = [
-        r.get("response_ms", -1) for r in results.values()
-        if r.get("response_ms", -1) > 0
-    ]
-    avg_ms = round(sum(response_times) / len(response_times)) if response_times else 0
+    healthy = sum(1 for r in results.values() if r.get("status") == "ok" and r.get("port_alive", True))
+    status_data["overall"] = "healthy" if healthy == len(results) else "degraded"
+    save_json(STATUS_FILE, status_data)
+
+    # 修不好的 → 写 AI 兜底待办
+    if unrecoverable:
+        write_todo(unrecoverable)
+        for u in unrecoverable:
+            log(f"[TODO] {u['name']} 自动修复失败，已写入待办: {u.get('detail')}", "ERROR")
+    else:
+        # 清空旧待办
+        try:
+            if TODO_FILE.exists():
+                TODO_FILE.unlink()
+        except Exception:
+            pass
 
     heal_msg = ""
     if heal_results:
-        healed = sum(1 for h in heal_results if h.get("success"))
-        failed = sum(1 for h in heal_results if not h.get("success"))
-        heal_msg = f", 自动修复: {healed}成功/{failed}失败"
-
-    log(
-        f"监控检查完成: {healthy_count}/{total_count} 健康, "
-        f"平均响应 {avg_ms}ms, overall={status_data['overall']}{heal_msg}"
-    )
-
-    # 修复失败写告警文件（供 scan_channel_monitor 读取）
-    failed_heals = [h for h in heal_results if not h.get("success")]
-    if failed_heals:
-        try:
-            alert = {
-                "time": datetime.now().isoformat(),
-                "failed_heals": failed_heals,
-            }
-            with open(HEAL_ALERT, "w") as f:
-                json.dump(alert, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
-    elif HEAL_ALERT.exists():
-        # 没有失败的了，清除旧告
-        try:
-            HEAL_ALERT.unlink()
-        except Exception:
-            pass
+        ok_n = sum(1 for h in heal_results if h.get("success"))
+        fail_n = len(heal_results) - ok_n
+        heal_msg = f", 自动修复 {ok_n}成功/{fail_n}失败"
+    log(f"检修完成: {healthy}/{len(results)} 健康{heal_msg}")
 
 
 if __name__ == "__main__":

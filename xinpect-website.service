@@ -1,17 +1,21 @@
 [Unit]
-Description=煋鉴 Xinpect 官网 v1.0
-After=network.target
+Description=Xinpect Website - 煋鉴官网Flask服务
+After=network.target nginx.service
 
 [Service]
 Type=simple
-User=www-data
+User=xinpect-web
 WorkingDirectory=/opt/xinpect-website
-Environment=XINPECT_SECRET=change-this-in-production
-Environment=SCANNER_URL=http://localhost:8620/scan
-Environment=PAY_NOTIFY_URL=http://localhost:8612
+EnvironmentFile=/etc/xinpect/website.env
+ExecStartPre=/bin/bash -c 'if lsof -i :8621 > /dev/null; then kill -9 $(lsof -t -i :8621); fi'
 ExecStart=/usr/bin/python3 /opt/xinpect-website/app.py
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=xinpect-website
+LimitNOFILE=65536
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target

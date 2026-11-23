@@ -96,7 +96,7 @@ def submit_feedback():
         return jsonify({"status": "ok", "message": "感谢反馈！"})
 
     except Exception as e:
-        logger.error("[feedback] 提交反馈失败: %s", e)
+        logger.exception("[feedback] 提交反馈失败: %s", e)
         return jsonify({"status": "error", "error": "提交失败，请稍后重试"}), HTTP_BAD_REQUEST
 
 
@@ -178,7 +178,7 @@ def feedback_stats():
         })
 
     except Exception as e:
-        logger.error("[feedback] 获取统计失败: %s", e)
+        logger.exception("[feedback] 获取统计失败: %s", e)
         return jsonify({"status": "error", "error": "获取统计失败"}), HTTP_BAD_REQUEST
 
 
@@ -199,4 +199,4 @@ def _send_feishu_notify(user_id, scan_id, issue_types, feedback_text):
         payload = {"msg_type": "text", "content": {"text": content}}
         requests.post(FEISHU_WEBHOOK_URL, json=payload, timeout=5)
     except Exception as e:
-        logger.error("[feedback] 飞书通知发送失败: %s", e)
+        logger.exception("[feedback] 飞书通知发送失败: %s", e)

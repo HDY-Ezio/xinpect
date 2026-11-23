@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session as flask_session
 from .db import get_db
-from .constants import logger
+from .constants import logger, WEBHOOK_TIMEOUT_SECONDS
 
 feed_bp = Blueprint('feed', __name__)
 
@@ -494,7 +494,7 @@ def test_agent_webhook():
 
     try:
         if _requests:
-            resp = _requests.post(webhook_url, json=payload, headers=headers, timeout=10)
+            resp = _requests.post(webhook_url, json=payload, headers=headers, timeout=WEBHOOK_TIMEOUT_SECONDS)
             return jsonify({
                 'status': 'ok',
                 'http_status': resp.status_code,
@@ -509,7 +509,7 @@ def test_agent_webhook():
                 headers=headers,
                 method='POST'
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=WEBHOOK_TIMEOUT_SECONDS) as resp:
                 return jsonify({
                     'status': 'ok',
                     'http_status': resp.status,
@@ -591,7 +591,7 @@ def notify_agent_webhook(user_id, scan_id, findings, db):
         def _send(url, p, h, rid):
             try:
                 if _requests:
-                    resp = _requests.post(url, json=p, headers=h, timeout=10)
+                    resp = _requests.post(url, json=p, headers=h, timeout=WEBHOOK_TIMEOUT_SECONDS)
                     status = 'sent' if resp.status_code < 400 else 'failed'
                     resp_text = resp.text[:500]
                 else:
@@ -600,7 +600,7 @@ def notify_agent_webhook(user_id, scan_id, findings, db):
                         url, data=json.dumps(p).encode('utf-8'),
                         headers=h, method='POST'
                     )
-                    with urllib.request.urlopen(req, timeout=10) as resp:
+                    with urllib.request.urlopen(req, timeout=WEBHOOK_TIMEOUT_SECONDS) as resp:
                         status = 'sent'
                         resp_text = str(resp.status)
             except Exception as e:

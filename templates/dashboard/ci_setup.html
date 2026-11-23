@@ -6,8 +6,8 @@
 <style>
     /* 页面头部 */
     .ci-hero {
-        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
-        border: 1px solid var(--border-color, #E2E8F0);
+        background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-v-f8fafc) 100%);
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
         border-radius: 16px;
         padding: 32px;
         margin-bottom: 24px;
@@ -19,15 +19,15 @@
         position: absolute;
         top: -50%; right: -20%;
         width: 300px; height: 300px;
-        background: radial-gradient(circle, rgba(26,58,92,.12) 0%, transparent 70%);
+        background: radial-gradient(circle, var(--color-metal-gold-alpha-08) 0%, transparent 70%);
         border-radius: 50%;
     }
     .ci-hero h1 {
-        font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary, #1A2B4A);
+        font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary, var(--color-bg-secondary));
         position: relative;
     }
     .ci-hero p {
-        color: var(--text-secondary, #6B7B94); font-size: 14px;
+        color: var(--text-secondary, var(--color-text-secondary)); font-size: 14px;
         position: relative;
     }
     .ci-hero .badge-row {
@@ -37,24 +37,24 @@
     .ci-hero .platform-badge {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-        background: rgba(26,43,74,.04); border: 1px solid rgba(26,43,74,.1);
-        color: var(--text-secondary, #6B7B94);
+        background: var(--color-metal-gold-tint); border: 1px solid var(--color-metal-gold);
+        color: var(--text-secondary, var(--color-text-secondary));
     }
     .ci-hero .platform-badge.active {
-        background: rgba(26,58,92,.1); border-color: rgba(26,58,92,.3);
-        color: #1A3A5C;
+        background: var(--color-metal-gold-tint-2); border-color: var(--color-v-fb2af6f0a);
+        color: var(--color-v-1a3a5c);
     }
 
     /* 设置面板 */
     .settings-panel {
-        background: var(--bg-card, #FFFFFF);
-        border: 1px solid var(--border-color, #E2E8F0);
+        background: var(--bg-card, var(--color-bg-primary));
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
         border-radius: 12px;
         padding: 24px;
         margin-bottom: 20px;
     }
     .settings-panel h2 {
-        font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary, #1A2B4A);
+        font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary, var(--color-bg-secondary));
         display: flex; align-items: center; gap: 8px;
     }
 
@@ -62,20 +62,20 @@
     .form-group { margin-bottom: 20px; }
     .form-label {
         display: block; font-size: 13px; font-weight: 600;
-        color: var(--text-secondary, #6B7B94); margin-bottom: 8px;
+        color: var(--text-secondary, var(--color-text-secondary)); margin-bottom: 8px;
     }
     .form-hint {
-        font-size: 12px; color: var(--text-muted, #94A3B8); margin-top: 4px;
+        font-size: 12px; color: var(--text-muted, var(--color-text-muted)); margin-top: 4px;
     }
     .form-select, .form-input, .form-textarea {
         width: 100%; padding: 10px 14px;
-        background: var(--bg-primary, #FFFFFF);
-        border: 1px solid var(--border-color, #E2E8F0);
-        border-radius: 8px; color: var(--text-primary, #1A2B4A);
+        background: var(--bg-primary, var(--color-bg-primary));
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
+        border-radius: 8px; color: var(--text-primary, var(--color-bg-secondary));
         font-size: 14px; outline: none; transition: border-color .2s;
     }
     .form-select:focus, .form-input:focus, .form-textarea:focus {
-        border-color: var(--accent-orange, #1A3A5C);
+        border-color: var(--accent-steel, var(--color-v-1a3a5c));
     }
     .form-textarea { min-height: 80px; resize: vertical; font-family: monospace; font-size: 13px; }
 
@@ -83,35 +83,35 @@
     .mode-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
     @media (max-width: 768px) { .mode-cards { grid-template-columns: repeat(2, 1fr); } }
     .mode-card {
-        background: var(--bg-primary, #F8FAFC);
-        border: 2px solid var(--border-color, #E2E8F0);
+        background: var(--bg-primary, var(--color-v-f8fafc));
+        border: 2px solid var(--border-color, var(--color-v-e2e8f0));
         border-radius: 10px; padding: 16px; cursor: pointer;
-        transition: all .2s; text-align: center;
+        transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s; text-align: center;
     }
-    .mode-card:hover { border-color: rgba(26,58,92,.4); }
-    .mode-card.selected { border-color: var(--accent-orange, #1A3A5C); background: rgba(26,58,92,.05); }
+    .mode-card:hover { border-color: var(--color-v-f43dbcf94); }
+    .mode-card.selected { border-color: var(--accent-steel, var(--color-v-1a3a5c)); background: var(--color-v-fec9f9974); }
     .mode-card.disabled { opacity: .4; cursor: not-allowed; }
     .mode-card .mode-icon { font-size: 24px; margin-bottom: 6px; }
-    .mode-card .mode-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary, #1A2B4A); }
-    .mode-card .mode-desc { font-size: 11px; color: var(--text-muted, #94A3B8); }
-    .mode-card .mode-engine { font-size: 10px; color: var(--accent-orange, #1A3A5C); margin-top: 4px; }
-    .mode-card .mode-cost { font-size: 11px; color: var(--success, #22c55e); margin-top: 2px; }
+    .mode-card .mode-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary, var(--color-bg-secondary)); }
+    .mode-card .mode-desc { font-size: 11px; color: var(--text-muted, var(--color-text-muted)); }
+    .mode-card .mode-engine { font-size: 10px; color: var(--accent-steel, var(--color-v-1a3a5c)); margin-top: 4px; }
+    .mode-card .mode-cost { font-size: 11px; color: var(--success, var(--color-v-22c55e)); margin-top: 2px; }
 
     /* 阈值滑块 */
     .threshold-row { display: flex; align-items: center; gap: 16px; }
     .threshold-slider {
         flex: 1; -webkit-appearance: none; appearance: none;
         height: 6px; border-radius: 3px;
-        background: var(--border-color, #E2E8F0); outline: none;
+        background: var(--border-color, var(--color-v-e2e8f0)); outline: none;
     }
     .threshold-slider::-webkit-slider-thumb {
         -webkit-appearance: none; appearance: none;
         width: 20px; height: 20px; border-radius: 50%;
-        background: var(--accent-orange, #1A3A5C); cursor: pointer;
+        background: var(--accent-steel, var(--color-v-1a3a5c)); cursor: pointer;
     }
     .threshold-value {
         min-width: 48px; text-align: center; font-size: 20px; font-weight: 800;
-        color: var(--accent-orange, #1A3A5C);
+        color: var(--accent-steel, var(--color-v-1a3a5c));
     }
 
     /* Toggle */
@@ -122,64 +122,64 @@
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .toggle-slider {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: var(--border-color, #CBD5E1); border-radius: 24px;
+        background: var(--border-color, var(--color-v-cbd5e1)); border-radius: 24px;
         transition: .3s;
     }
     .toggle-slider::before {
         content: ''; position: absolute;
         width: 18px; height: 18px; left: 3px; bottom: 3px;
-        background: #fff; border-radius: 50%; transition: .3s;
+        background: var(--color-bg-primary); border-radius: 50%; transition: .3s;
     }
-    .toggle-switch input:checked + .toggle-slider { background: var(--accent-orange, #1A3A5C); }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent-steel, var(--color-v-1a3a5c)); }
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
 
     /* 保存按钮 */
     .save-btn {
         display: inline-flex; align-items: center; gap: 8px;
         padding: 12px 32px; border-radius: 10px; border: none;
-        background: var(--accent-orange, #1A3A5C); color: #fff;
+        background: var(--accent-steel, var(--color-v-1a3a5c)); color: var(--color-text-inverse);
         font-size: 14px; font-weight: 700; cursor: pointer;
-        transition: all .2s;
+        transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s;
     }
-    .save-btn:hover { background: #e55a2b; transform: translateY(-1px); }
+    .save-btn:hover { background: var(--color-v-e55a2b); transform: translateY(-1px); }
     .save-btn:active { transform: translateY(0); }
 
     /* API Key 列表 */
     .api-key-item {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 12px 16px; background: var(--bg-primary, #F8FAFC);
-        border: 1px solid var(--border-color, #E2E8F0);
+        padding: 12px 16px; background: var(--bg-primary, var(--color-v-f8fafc));
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
         border-radius: 8px; margin-bottom: 8px;
     }
     .api-key-name { font-weight: 600; font-size: 14px; }
     .api-key-value {
-        font-family: monospace; font-size: 12px; color: var(--text-muted, #94A3B8);
+        font-family: monospace; font-size: 12px; color: var(--text-muted, var(--color-text-muted));
         margin-top: 2px;
     }
     .api-key-status {
         font-size: 11px; padding: 2px 8px; border-radius: 4px;
     }
-    .api-key-status.active { background: rgba(34,197,94,.1); color: var(--success, #22c55e); }
-    .api-key-status.inactive { background: rgba(100,116,139,.1); color: var(--text-muted, #94A3B8); }
+    .api-key-status.active { background: var(--color-v-fc38e33da); color: var(--success, var(--color-v-22c55e)); }
+    .api-key-status.inactive { background: var(--color-surface-inset); color: var(--text-muted, var(--color-text-muted)); }
 
     /* 代码块 */
     .code-block {
-        background: var(--bg-primary, #F1F5F9);
-        border: 1px solid var(--border-color, #E2E8F0);
+        background: var(--bg-primary, var(--color-v-f1f5f9));
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
         border-radius: 10px; padding: 16px; margin: 12px 0;
-        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-family: var(--font-v-jetbrains-mono-0fd54f);
         font-size: 12px; line-height: 1.6;
         overflow-x: auto; white-space: pre;
-        color: var(--text-secondary, #475569);
+        color: var(--text-secondary, var(--color-v-475569));
         position: relative;
     }
     .code-block .copy-btn {
         position: absolute; top: 8px; right: 8px;
-        padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color, #E2E8F0);
-        background: transparent; color: var(--text-muted, #94A3B8);
-        font-size: 11px; cursor: pointer; transition: all .2s;
+        padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color, var(--color-v-e2e8f0));
+        background: transparent; color: var(--text-muted, var(--color-text-muted));
+        font-size: 11px; cursor: pointer; transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s;
     }
-    .code-block .copy-btn:hover { border-color: var(--accent-orange, #1A3A5C); color: var(--accent-orange, #1A3A5C); }
+    .code-block .copy-btn:hover { border-color: var(--accent-steel, var(--color-v-1a3a5c)); color: var(--accent-steel, var(--color-v-1a3a5c)); }
 
     /* Toast */
     .toast {
@@ -187,36 +187,36 @@
         padding: 12px 24px; border-radius: 10px;
         font-size: 14px; font-weight: 600;
         transform: translateY(100px); opacity: 0;
-        transition: all .3s; z-index: 9999;
+        transition: background-color .3s, color .3s, border-color .3s, box-shadow .3s, opacity .3s, transform .3s; z-index: 9999;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
-    .toast.success { background: var(--success, #22c55e); color: #fff; }
-    .toast.error { background: var(--danger, #ef4444); color: #fff; }
+    .toast.success { background: var(--success, var(--color-v-22c55e)); color: var(--color-text-inverse); }
+    .toast.error { background: var(--danger, var(--color-v-ef4444)); color: var(--color-text-inverse); }
 
     /* 积分显示 */
     .balance-display {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 6px 14px; border-radius: 20px;
-        background: rgba(26,58,92,.1); border: 1px solid rgba(26,58,92,.2);
-        font-size: 13px; font-weight: 600; color: var(--accent-orange, #1A3A5C);
+        background: var(--color-metal-gold-tint-2); border: 1px solid var(--color-v-fd06ee2de);
+        font-size: 13px; font-weight: 600; color: var(--accent-steel, var(--color-v-1a3a5c));
     }
 
     /* 接入指南标签页 */
     .guide-tabs {
         display: flex; gap: 4px; margin-bottom: 20px;
-        background: var(--bg-primary, #F1F5F9);
+        background: var(--bg-primary, var(--color-v-f1f5f9));
         border-radius: 10px; padding: 4px;
-        border: 1px solid var(--border-color, #E2E8F0);
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
     }
     .guide-tab {
         flex: 1; padding: 10px 16px; border-radius: 8px; border: none;
-        background: transparent; color: var(--text-muted, #94A3B8);
+        background: transparent; color: var(--text-muted, var(--color-text-muted));
         font-size: 13px; font-weight: 600; cursor: pointer;
-        transition: all .2s; text-align: center;
+        transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s; text-align: center;
     }
-    .guide-tab:hover { color: var(--text-primary, #1A2B4A); }
+    .guide-tab:hover { color: var(--text-primary, var(--color-bg-secondary)); }
     .guide-tab.active {
-        background: var(--accent-orange, #1A3A5C); color: #fff;
+        background: var(--accent-steel, var(--color-v-1a3a5c)); color: var(--color-text-inverse);
     }
     .guide-content { display: none; }
     .guide-content.active { display: block; }
@@ -226,35 +226,35 @@
     .step-list li {
         counter-increment: step;
         position: relative; padding: 12px 0 12px 48px;
-        border-bottom: 1px solid var(--border-color, #E2E8F0);
-        font-size: 13px; color: var(--text-secondary, #6B7B94);
+        border-bottom: 1px solid var(--border-color, var(--color-v-e2e8f0));
+        font-size: 13px; color: var(--text-secondary, var(--color-text-secondary));
     }
     .step-list li:last-child { border-bottom: none; }
     .step-list li::before {
         content: counter(step);
         position: absolute; left: 0; top: 12px;
         width: 32px; height: 32px; border-radius: 50%;
-        background: rgba(26,58,92,.1); border: 1px solid rgba(26,58,92,.3);
-        color: var(--accent-orange, #1A3A5C);
+        background: var(--color-metal-gold-tint-2); border: 1px solid var(--color-v-fb2af6f0a);
+        color: var(--accent-steel, var(--color-v-1a3a5c));
         display: flex; align-items: center; justify-content: center;
         font-size: 14px; font-weight: 700;
     }
-    .step-list li strong { color: var(--text-primary, #1A2B4A); }
+    .step-list li strong { color: var(--text-primary, var(--color-bg-secondary)); }
 
     /* 下载卡片 */
     .download-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
     .download-card {
-        background: var(--bg-primary, #F8FAFC);
-        border: 1px solid var(--border-color, #E2E8F0);
+        background: var(--bg-primary, var(--color-v-f8fafc));
+        border: 1px solid var(--border-color, var(--color-v-e2e8f0));
         border-radius: 10px; padding: 16px;
         display: flex; flex-direction: column; align-items: center; gap: 8px;
-        text-decoration: none; color: var(--text-primary, #1A2B4A);
-        transition: all .2s; cursor: pointer;
+        text-decoration: none; color: var(--text-primary, var(--color-bg-secondary));
+        transition: background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s, transform .2s; cursor: pointer;
     }
-    .download-card:hover { border-color: var(--accent-orange, #1A3A5C); transform: translateY(-2px); }
+    .download-card:hover { border-color: var(--accent-steel, var(--color-v-1a3a5c)); transform: translateY(-2px); }
     .download-card .icon { font-size: 28px; }
     .download-card .name { font-size: 14px; font-weight: 600; }
-    .download-card .desc { font-size: 11px; color: var(--text-muted, #94A3B8); text-align: center; }
+    .download-card .desc { font-size: 11px; color: var(--text-muted, var(--color-text-muted)); text-align: center; }
 </style>
 {% endblock %}
 
@@ -381,9 +381,9 @@
                         <span class="toggle-slider"></span>
                     </label>
                     <input type="number" id="failMaxWarnings" min="0" max="100" value="{{ config.get('fail_max_warnings', 0) }}"
-                           style="width:60px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;text-align:center;"
+                           style="width:60px;padding:4px 8px;border:1px solid var(--color-v-dddddd);border-radius:6px;font-size:13px;text-align:center;"
                            placeholder="0">
-                    <span style="font-size:12px;color:#57606a;">个</span>
+                    <span style="font-size:12px;color:var(--color-v-57606a);">个</span>
                 </div>
             </div>
         </div>
@@ -409,7 +409,7 @@
         </div>
         {% endfor %}
     {% else %}
-        <p style="color:var(--text-muted);font-size:14px;">暂无 API Key，请前往 <a href="{{ url_for('dashboard_page', page='api-keys') }}" style="color:var(--accent-orange);">Agent 接入</a> 页面创建</p>
+        <p style="color:var(--text-muted);font-size:14px;">暂无 API Key，请前往 <a href="{{ url_for('dashboard_page', page='api-keys') }}" style="color:var(--accent-steel);">Agent 接入</a> 页面创建</p>
     {% endif %}
 </div>
 
@@ -430,17 +430,17 @@
         <ol class="step-list">
             <li>
                 <strong>获取 API Key</strong><br>
-                在上方「API Keys」区域复制你的 API Key，或前往 <a href="{{ url_for('dashboard_page', page='api-keys') }}" style="color:var(--accent-orange);">Agent 接入</a> 页面创建新的 Key
+                在上方「API Keys」区域复制你的 API Key，或前往 <a href="{{ url_for('dashboard_page', page='api-keys') }}" style="color:var(--accent-steel);">Agent 接入</a> 页面创建新的 Key
             </li>
             <li>
                 <strong>添加 Secrets</strong><br>
-                在 GitHub 仓库中进入 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">Settings → Secrets and variables → Actions</code>，点击 <strong>New repository secret</strong>，添加：
+                在 GitHub 仓库中进入 <code style="background:var(--bg-primary, var(--color-v-f1f5f9));padding:2px 6px;border-radius:4px;color:var(--text-primary, var(--color-bg-secondary));">Settings → Secrets and variables → Actions</code>，点击 <strong>New repository secret</strong>，添加：
                 <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>Name: XINPECT_API_KEY
 Value: 你的煋鉴 API Key</div>
             </li>
             <li>
                 <strong>创建 Workflow 文件</strong><br>
-                在仓库中创建 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">.github/workflows/xinpect.yml</code>，复制以下内容：
+                在仓库中创建 <code style="background:var(--bg-primary, var(--color-v-f1f5f9));padding:2px 6px;border-radius:4px;color:var(--text-primary, var(--color-bg-secondary));">.github/workflows/xinpect.yml</code>，复制以下内容：
                 <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>name: 煋鉴代码扫描
 
 on:
@@ -577,14 +577,14 @@ jobs:
             </li>
             <li>
                 <strong>添加 CI 变量</strong><br>
-                在 GitLab 项目中进入 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">Settings → CI/CD → Variables</code>，添加：
+                在 GitLab 项目中进入 <code style="background:var(--bg-primary, var(--color-v-f1f5f9));padding:2px 6px;border-radius:4px;color:var(--text-primary, var(--color-bg-secondary));">Settings → CI/CD → Variables</code>，添加：
                 <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>XINPECT_API_KEY    = 你的煋鉴 API Key    (Masked: ✅, Protected: ❌)
 XINPECT_SCAN_MODE   = {{ config.get('default_scan_mode', 'quick') }}
 XINPECT_THRESHOLD   = {{ config.get('default_threshold', 60) }}</div>
             </li>
             <li>
                 <strong>配置 .gitlab-ci.yml</strong><br>
-                在项目根目录创建或编辑 <code style="background:var(--bg-primary, #F1F5F9);padding:2px 6px;border-radius:4px;color:var(--text-primary, #1A2B4A);">.gitlab-ci.yml</code>，添加：
+                在项目根目录创建或编辑 <code style="background:var(--bg-primary, var(--color-v-f1f5f9));padding:2px 6px;border-radius:4px;color:var(--text-primary, var(--color-bg-secondary));">.gitlab-ci.yml</code>，添加：
                 <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>xinpect-scan:
   stage: test
   image: python:3.11-slim
@@ -735,27 +735,27 @@ stage('Code Quality') {
                 煋鉴提供 RESTful API，可以集成到任何自定义工作流：
                 <div style="margin-top:12px;">
                     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
-                            <th style="text-align:left;padding:8px;color:var(--accent-orange);">接口</th>
-                            <th style="text-align:left;padding:8px;color:var(--accent-orange);">方法</th>
-                            <th style="text-align:left;padding:8px;color:var(--accent-orange);">说明</th>
+                        <tr style="border-bottom:1px solid var(--border-color,var(--color-v-e2e8f0));">
+                            <th style="text-align:left;padding:8px;color:var(--accent-steel);">接口</th>
+                            <th style="text-align:left;padding:8px;color:var(--accent-steel);">方法</th>
+                            <th style="text-align:left;padding:8px;color:var(--accent-steel);">说明</th>
                         </tr>
-                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                        <tr style="border-bottom:1px solid var(--border-color,var(--color-v-e2e8f0));">
                             <td style="padding:8px;font-family:monospace;font-size:12px;">/api/ci/scan</td>
                             <td style="padding:8px;">POST</td>
                             <td style="padding:8px;">提交代码文件进行扫描</td>
                         </tr>
-                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                        <tr style="border-bottom:1px solid var(--border-color,var(--color-v-e2e8f0));">
                             <td style="padding:8px;font-family:monospace;font-size:12px;">/api/scan/github</td>
                             <td style="padding:8px;">POST</td>
                             <td style="padding:8px;">通过 GitHub 仓库 URL 扫描</td>
                         </tr>
-                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                        <tr style="border-bottom:1px solid var(--border-color,var(--color-v-e2e8f0));">
                             <td style="padding:8px;font-family:monospace;font-size:12px;">/api/ci/config</td>
                             <td style="padding:8px;">GET/POST</td>
                             <td style="padding:8px;">获取/更新 CI 配置</td>
                         </tr>
-                        <tr style="border-bottom:1px solid var(--border-color,#E2E8F0);">
+                        <tr style="border-bottom:1px solid var(--border-color,var(--color-v-e2e8f0));">
                             <td style="padding:8px;font-family:monospace;font-size:12px;">/api/scan/{id}/share</td>
                             <td style="padding:8px;">POST</td>
                             <td style="padding:8px;">生成分享链接</td>

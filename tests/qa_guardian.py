@@ -27,14 +27,58 @@ from urllib import request as urllib_request
 from urllib.error import URLError, HTTPError
 from http.client import HTTPException
 
+def _detect_listen_port(service, fallback):
+    """探测某个 systemd 服务真实监听的端口。
+
+    治本点：端口写死在测试里必然漂移（支付服务已从 8612 改到 8765，测试还在探 8612，
+    报出来的 P0 是假的）。这里直接问运行中的进程在听哪个口，常量只作兜底。
+    """
+    try:
+        pid = subprocess.run(["systemctl", "show", "-p", "MainPID", "--value", service],
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+        if pid and pid != "0":
+            out = subprocess.run(["ss", "-lntpH"], capture_output=True, text=True, timeout=5).stdout
+            for line in out.splitlines():
+                if ("pid=" + pid + ",") in line or line.rstrip().endswith("pid=" + pid):
+                    return int(line.split()[3].rsplit(":", 1)[1])
+    except Exception:
+        pass
+    return fallback
+
+
 # ============ 配置 ============
 SCANNER_GREEN_PORT = 8620
+CORE_BRAINS = {"1", "2", "3", "4", "5", "6", "7", "8"}  # 核心 8 引擎（扩展引擎如 ai/poc 不计入达标判定）
 SCANNER_BLUE_PORT = 8622
 WEBSITE_PORT = 8621
-PAY_PORT = 8612
+PAY_PORT = _detect_listen_port("xinpect-pay", 8765)  # 运行时探测，防常量漂移
 SCANNER_BASE = f"http://localhost:{SCANNER_GREEN_PORT}"
 WEBSITE_BASE = f"http://localhost:{WEBSITE_PORT}"
-API_KEY = os.environ.get("XINPECT_SCANNER_API_KEY", "")
+def _resolve_scanner_api_key():
+    """取扫描器 API key：环境变量优先，否则读扫描器服务自己的 EnvironmentFile。
+
+    治本点：key 的唯一事实来源是扫描器服务的环境文件（systemd EnvironmentFile = 
+    /etc/xinpect/scanner-green.env，变量名 XINPECT_API_KEY）。QA 作为调用方去读它，
+    而不是自己再配一个名字 —— 名字对不上就是本轮 9 个假 P0 的根因。
+    """
+    for name in ("XINPECT_SCANNER_API_KEY", "XINPECT_API_KEY"):
+        v = os.environ.get(name)
+        if v:
+            return v
+    for env_file in ("/etc/xinpect/scanner-green.env",
+                     "/opt/xinpect-scanner-green/.env"):
+        try:
+            with open(env_file, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("XINPECT_API_KEY="):
+                        return line.split("=", 1)[1].strip().strip("'\"")
+        except OSError:
+            continue
+    return ""
+
+
+API_KEY = _resolve_scanner_api_key()
 DB_PATH = "/opt/xinpect-website/xinpect.db"
 REPORT_DIR = "/opt/xinpect-website/tests/reports"
 TIMEOUT = 60
@@ -190,7 +234,7 @@ def http_post_json(url, data, headers=None, timeout=TIMEOUT):
 def scanner_api_get(path):
     """扫描器 API GET"""
     return http_get(f"{SCANNER_BASE}{path}",
-                    headers={"Authorization": f"Bearer {API_KEY}"})
+                    headers={"X-API-Key": API_KEY})
 
 
 def scanner_scan(code_files, language="python", scan_mode="basic"):
@@ -198,9 +242,23 @@ def scanner_scan(code_files, language="python", scan_mode="basic"):
     return http_post_json(
         f"{SCANNER_BASE}/scan",
         {"code_files": code_files, "language": language, "scan_mode": scan_mode},
-        headers={"Authorization": f"Bearer {API_KEY}"},
+        headers={"X-API-Key": API_KEY},
         timeout=120
     )
+
+
+def gateway_ready():
+    """L3 前置探测：AI 网关不可用时快速返回 False（不做 5 次重试）。"""
+    try:
+        req = urllib_request.Request("http://127.0.0.1:8001/v1/models", method="GET")
+        if AI_GATEWAY_KEY:
+            req.add_header("Authorization", "Bearer " + AI_GATEWAY_KEY)
+        with urllib_request.urlopen(req, timeout=5) as r:
+            return r.status == 200
+    except HTTPError as e:
+        return 200 <= e.code < 300
+    except Exception:
+        return False
 
 
 def ai_judge(prompt, system_prompt=None, max_tokens=2048):
@@ -225,6 +283,15 @@ def ai_judge(prompt, system_prompt=None, max_tokens=2048):
                 timeout=60
             )
             return resp["choices"][0]["message"]["content"]
+        except HTTPError as e:
+            # 4xx 是鉴权/请求错误，重试不会变好，只会把巡检拖成十几分钟
+            if 400 <= e.code < 500:
+                return f"[AI调用失败: HTTP {e.code}，鉴权/请求错误不重试]"
+            wait = min(15 * (attempt + 1), 60)
+            if attempt < max_retries - 1:
+                time.sleep(wait)
+                continue
+            return f"[AI调用失败: HTTP {e.code}]"
         except Exception as e:
             wait = min(15 * (attempt + 1), 60)
             if attempt < max_retries - 1:
@@ -277,11 +344,15 @@ class L1HealthCheck:
         for name, port in [("green", SCANNER_GREEN_PORT), ("blue", SCANNER_BLUE_PORT)]:
             try:
                 status, data = http_get(f"http://localhost:{port}/health",
-                                        headers={"Authorization": f"Bearer {API_KEY}"},
+                                        headers={"X-API-Key": API_KEY},
                                         timeout=10)
                 brains = data.get("brains_loaded", 0)
                 brain_ids = data.get("brain_ids", [])
-                passed = data.get("status") == "ok" and brains == 9
+                # 核心 8 引擎必须在；ai/poc 等扩展引擎增减不影响判定（不再写死总数）
+                _ids = {str(x) for x in brain_ids}
+                passed = (data.get("status") == "ok"
+                          and CORE_BRAINS <= _ids
+                          and brains == len(_ids))
                 results.append({
                     "test": f"扫描器健康-{name}",
                     "passed": passed,
@@ -670,6 +741,16 @@ class L3AIValidation:
     def run():
         results = []
 
+        # 前置探测：网关不可用就整层跳过。每个用例 sleep 15s + 5 次重试，
+        # 硬跑会把巡检从 2 分钟拖到 15 分钟，且结论全是"AI 调用失败"，没有信息量。
+        if not gateway_ready():
+            return [{
+                "test": "L3-AI质检评估",
+                "passed": False,
+                "detail": "AI 网关不可用（未配置 AI_GATEWAY_KEY 或返回 401），L3 整层跳过；不影响 L1/L2 系统健康结论",
+                "severity": "P2",
+            }]
+
         import time as _time
         for test_key, test_info in TEST_CASES.items():
             _time.sleep(15)  # 避免 AI gateway 429 限流
@@ -872,7 +953,11 @@ def main():
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
 
-    sys.exit(0 if all_passed else 1)
+    # 退出码只反映"是否需要人管"：P0/P1 才算失败；P2（如 L3 因网关不可用整层跳过）
+    # 是提示项，不该让 cron 每次都报非零退出码，否则真正的告警会被噪音淹没。
+    blocking = any((not r.get("passed")) and r.get("severity") in ("P0", "P1")
+                   for r in all_results)
+    sys.exit(1 if blocking else 0)
 
 
 if __name__ == "__main__":

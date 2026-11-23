@@ -855,6 +855,11 @@ def main():
                     print(f"  ❌ 报告页异常: {e}")
                     R.add("报告页", "异常", False, str(e)[:200], page.url)
                 try:
+                    test_interaction_acceptance(page)
+                except Exception as e:
+                    print(f"  ❌ 边角交互验收异常: {e}")
+                    R.add("边角交互", "异常", False, str(e)[:200], page.url)
+                try:
                     test_form_validation(page)
                 except Exception as e:
                     print(f"  ❌ 表单校验异常: {e}")
@@ -887,6 +892,114 @@ def main():
     output_report()
     s = R.summary()
     sys.exit(0 if s["failed"] == 0 else 1)
+
+
+
+# ============================================================
+# 边角交互验收（P0-2，2026-10-27）
+# 覆盖三个前端断链病根：①切换模式预估不刷新 ②报告筛选按钮未定义 ③详情/复制未定义
+# ============================================================
+def test_interaction_acceptance(page):
+    """边角交互验收：切换检测方式刷新预估、报告页交互函数已定义（P0-2，2026-10-27）"""
+    print("\n🔍 模块：边角交互验收...")
+
+    # ---- 1. 上传页：切换检测方式 → 预估积分刷新 ----
+    go(page, "/upload", "检测页-交互验收")
+    page.wait_for_timeout(WM)
+
+    # 切到代码粘贴模式（tab 按钮是 #tab-code，内容区是 #tab-content-code）
+    try:
+        code_tab = q(page, ["#tab-code"])
+        if code_tab:
+            code_tab.click()
+            page.wait_for_timeout(W)
+        textarea = q(page, ["#code-textarea"])
+        if textarea:
+            textarea.fill("def foo():\n    x = 1\n    return x\n")
+            page.wait_for_timeout(800)  # 等 debounce(300ms) + fetch 返回
+        R.add("边角交互", "输入代码", textarea is not None, "", page.url)
+    except Exception as e:
+        R.add("边角交互", "输入代码", False, str(e)[:150], page.url)
+
+    # 记录当前预估文本
+    def _read_estimate():
+        try:
+            ev = q(page, ["#estimate-value"])
+            return ev.inner_text().strip() if ev else ""
+        except Exception:
+            return ""
+
+    est_before = _read_estimate()
+
+    # 切换到「智能检查」（若当前非 VIP 则是免费，切到 smart 需解锁；尝试 quick/deep）
+    switched = False
+    for card_id in ["tier-smart", "tier-deep", "tier-quick"]:
+        card = q(page, ["#" + card_id])
+        if card is None:
+            continue
+        cls = card.get_attribute("class") or ""
+        if "tier-locked" in cls:
+            continue
+        try:
+            card.click()
+            switched = True
+            break
+        except Exception:
+            continue
+
+    # 等预估条从「计算中」稳定下来（最多等 5s，轮询检测非"计算中"）
+    est_after = ""
+    if switched:
+        import time as _time
+        _deadline = _time.time() + 5.0
+        while _time.time() < _deadline:
+            page.wait_for_timeout(300)
+            est_after = _read_estimate()
+            if est_after and "计算中" not in est_after:
+                break
+        # 断言：切换模式后，预估条不再停留在"计算中"，且内容有实际含义（数字/免费/积分）
+        ok = est_after and "计算中" not in est_after
+        R.add("边角交互", "切换检测方式刷新预估", ok,
+              f"切换后预估={est_after[:40]}" if est_after else "预估为空", page.url)
+    else:
+        R.add("边角交互", "切换检测方式刷新预估", False, "未找到可切换的模式卡片", page.url)
+
+    # ---- 2. 报告页：验证交互函数已定义（断链已修复的核心证明）----
+    # 不依赖测试数据里恰好有 AI 建议的 issue，直接验证 window 上函数存在
+    global _scan_id_from_module1
+    scan_id = _scan_id_from_module1
+    if not scan_id:
+        R.add("边角交互", "报告页交互函数定义", False, "跳过-无scan_id", page.url)
+        return
+
+    go(page, f"/report/{scan_id}", "报告页-交互验收")
+    page.wait_for_timeout(WM)
+
+    # 用 JS 检查 4 个此前未定义的函数是否已定义（2026-10-27 修复）
+    fn_checks = [
+        ("toggleTierFilter", "分级筛选"),
+        ("resetAllFilters", "重置筛选"),
+        ("showFixDetail", "查看详情"),
+        ("copyFixCode", "复制修复代码"),
+    ]
+    for fn_name, fn_desc in fn_checks:
+        try:
+            defined = page.evaluate(f"typeof window.{fn_name} === 'function'")
+            R.add("边角交互", f"报告{fn_desc}已定义", defined,
+                  f"window.{fn_name}" + ("存在" if defined else "未定义"), page.url)
+        except Exception as e:
+            R.add("边角交互", f"报告{fn_desc}已定义", False, str(e)[:120], page.url)
+
+    # 额外：若页面有分级筛选卡片，验证可点击
+    tier_card = q(page, [".tier-mini-card[data-tier]"])
+    if tier_card:
+        try:
+            tier_card.click()
+            page.wait_for_timeout(W)
+            R.add("边角交互", "报告分级筛选可点击", True, "", page.url)
+        except Exception as e:
+            R.add("边角交互", "报告分级筛选可点击", False, str(e)[:120], page.url)
+
 
 if __name__ == "__main__":
     main()

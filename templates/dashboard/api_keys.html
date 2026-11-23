@@ -7,8 +7,8 @@
 
     /* ===== 通用卡片 - 深色主题 ===== */
     .card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: var(--color-bg-primary);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 12px;
         margin-bottom: 16px;
         overflow: hidden;
@@ -21,8 +21,8 @@
     }
     .card-top .num {
         width: 24px; height: 24px;
-        background: #1A3A5C;
-        color: #fff;
+        background: var(--color-v-1a3a5c);
+        color: var(--color-text-inverse);
         border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
         font-size: 12px; font-weight: 700;
@@ -30,10 +30,10 @@
     }
     .card-top h3 {
         font-size: 14px; font-weight: 600; margin: 0;
-        color: #0F172A;
+        color: var(--color-v-0f172a);
     }
     .card-top .sub {
-        font-size: 12px; color: #64748B; margin-left: auto;
+        font-size: 12px; color: var(--color-v-64748b); margin-left: auto;
     }
     .card-body {
         padding: 14px 18px 18px;
@@ -44,8 +44,8 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 8px;
         padding: 12px 14px;
     }
@@ -54,30 +54,30 @@
         min-width: 0;
         font-family: monospace;
         font-size: 13px;
-        color: #1A3A5C;
+        color: var(--color-v-1a3a5c);
         font-weight: 600;
         word-break: break-all;
     }
     .key-row .k-btn {
-        background: #E2E8F0;
-        border: 1px solid #CBD5E1;
+        background: var(--color-v-e2e8f0);
+        border: 1px solid var(--color-v-cbd5e1);
         border-radius: 6px;
         padding: 6px 14px;
         font-size: 12px;
-        color: #c0c8d4;
+        color: var(--color-v-c0c8d4);
         cursor: pointer;
         white-space: nowrap;
         flex-shrink: 0;
     }
     .key-row .k-btn:hover {
-        border-color: #1A3A5C; color: #1A3A5C;
+        border-color: var(--color-v-1a3a5c); color: var(--color-v-1a3a5c);
     }
 
     /* ===== Tab ===== */
     .tab-bar {
         display: flex;
         gap: 0;
-        background: #F1F5F9;
+        background: var(--color-v-f1f5f9);
         border-radius: 8px;
         padding: 3px;
         margin-bottom: 14px;
@@ -89,21 +89,21 @@
         border-radius: 6px;
         font-size: 13px;
         font-weight: 500;
-        color: #64748B;
+        color: var(--color-v-64748b);
         cursor: pointer;
         border: none;
         background: transparent;
     }
     .tab-btn.on {
-        background: #FFFFFF;
-        color: #1A3A5C;
+        background: var(--color-bg-primary);
+        color: var(--color-v-1a3a5c);
         font-weight: 600;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        box-shadow: 0 1px 3px var(--color-v-f391df974);
     }
     .tab-btn .badge {
         font-size: 9px;
-        background: #1A3A5C;
-        color: #fff;
+        background: var(--color-v-1a3a5c);
+        color: var(--color-text-inverse);
         padding: 1px 5px;
         border-radius: 6px;
         margin-left: 4px;
@@ -113,15 +113,15 @@
 
     /* ===== 指令复制区 ===== */
     .copy-area {
-        background: #F1F5F9;
-        border: 1px dashed #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px dashed var(--color-v-e2e8f0);
         border-radius: 8px;
         padding: 14px;
     }
     .copy-area .ca-text {
         font-size: 12px;
         line-height: 1.7;
-        color: #475569;
+        color: var(--color-v-475569);
         white-space: pre-wrap;
         word-break: break-word;
         max-height: 160px;
@@ -131,8 +131,8 @@
     .copy-btn-big {
         width: 100%;
         padding: 11px;
-        background: #1A3A5C;
-        color: #fff;
+        background: var(--color-v-1a3a5c);
+        color: var(--color-text-inverse);
         border: none;
         border-radius: 8px;
         font-size: 14px;
@@ -143,13 +143,13 @@
         justify-content: center;
         gap: 6px;
     }
-    .copy-btn-big:hover { background: #e85d2c; }
-    .copy-btn-big.done { background: #00b578; }
+    .copy-btn-big:hover { background: var(--color-v-e85d2c); }
+    .copy-btn-big.done { background: var(--color-v-00b578); }
 
     /* ===== MCP ===== */
     .mcp-block {
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 8px;
         overflow: hidden;
     }
@@ -158,46 +158,46 @@
         align-items: center;
         justify-content: space-between;
         padding: 8px 14px;
-        background: #162035;
+        background: var(--color-v-162035);
     }
     .mcp-top .fn {
-        font-family: monospace; font-size: 11px; color: #64748B;
+        font-family: monospace; font-size: 11px; color: var(--color-v-64748b);
     }
     .mcp-top .mc {
-        background: none; border: 1px solid #E2E8F0;
+        background: none; border: 1px solid var(--color-v-e2e8f0);
         border-radius: 4px; padding: 3px 10px;
-        font-size: 11px; color: #64748B; cursor: pointer;
+        font-size: 11px; color: var(--color-v-64748b); cursor: pointer;
     }
-    .mcp-top .mc:hover { border-color: #1A3A5C; color: #1A3A5C; }
-    .mcp-top .mc.done { border-color: #00b578; color: #00b578; }
+    .mcp-top .mc:hover { border-color: var(--color-v-1a3a5c); color: var(--color-v-1a3a5c); }
+    .mcp-top .mc.done { border-color: var(--color-v-00b578); color: var(--color-success); }
     .mcp-body {
         padding: 12px 14px;
         font-family: monospace;
         font-size: 12px;
         line-height: 1.6;
-        color: #475569;
+        color: var(--color-v-475569);
         overflow-x: auto;
         white-space: pre;
         margin: 0;
     }
-    .mcp-body .k { color: #7c3aed; }
-    .mcp-body .v { color: #00b578; }
+    .mcp-body .k { color: var(--color-v-7c3aed); }
+    .mcp-body .v { color: var(--color-success); }
     .mcp-foot {
         padding: 8px 14px;
-        background: #162035;
-        border-top: 1px solid #E2E8F0;
+        background: var(--color-v-162035);
+        border-top: 1px solid var(--color-v-e2e8f0);
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 11px;
-        color: #64748B;
+        color: var(--color-v-64748b);
         flex-wrap: wrap;
     }
     .mcp-foot code {
-        background: #F1F5F9;
+        background: var(--color-v-f1f5f9);
         padding: 3px 8px;
         border-radius: 4px;
-        color: #475569;
+        color: var(--color-v-475569);
         font-size: 11px;
         flex: 1;
         min-width: 0;
@@ -205,11 +205,11 @@
         overflow-x: auto;
     }
     .mcp-foot button {
-        background: #E2E8F0; border: none;
+        background: var(--color-v-e2e8f0); border: none;
         border-radius: 4px; padding: 3px 8px;
-        font-size: 10px; color: #475569; cursor: pointer;
+        font-size: 10px; color: var(--color-v-475569); cursor: pointer;
     }
-    .mcp-foot button:hover { background: #1A3A5C; color: #fff; }
+    .mcp-foot button:hover { background: var(--color-v-1a3a5c); color: var(--color-text-inverse); }
 
     /* ===== 提示 ===== */
     .tip {
@@ -217,20 +217,20 @@
         align-items: flex-start;
         gap: 10px;
         padding: 14px 16px;
-        background: #0f1f18;
-        border: 1px solid #1a3a2e;
+        background: var(--color-v-0f1f18);
+        border: 1px solid var(--color-v-1a3a2e);
         border-radius: 8px;
     }
     .tip .ti {
         width: 20px; height: 20px;
-        background: #00b578;
+        background: var(--color-v-00b578);
         border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 10px;
+        color: var(--color-text-inverse); font-size: 10px;
         flex-shrink: 0; margin-top: 1px;
     }
     .tip .tt {
-        font-size: 13px; color: #a0c4b4; line-height: 1.5;
+        font-size: 13px; color: var(--color-v-a0c4b4); line-height: 1.5;
     }
 
     /* ===== 底部平台 ===== */
@@ -240,22 +240,22 @@
     }
     .plats span {
         padding: 4px 10px;
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
+        background: var(--color-v-f1f5f9);
+        border: 1px solid var(--color-v-e2e8f0);
         border-radius: 12px;
-        font-size: 11px; color: #64748B;
+        font-size: 11px; color: var(--color-v-64748b);
     }
 
     /* ===== 无密钥 ===== */
     .nokey {
         text-align: center; padding: 30px 20px;
-        background: #FFFFFF; border: 2px dashed #E2E8F0;
+        background: var(--color-bg-primary); border: 2px dashed var(--color-v-e2e8f0);
         border-radius: 12px;
     }
-    .nokey i { font-size: 28px; color: #E2E8F0; display: block; margin-bottom: 8px; }
-    .nokey p { font-size: 13px; color: #64748B; margin: 0 0 12px; }
+    .nokey i { font-size: 28px; color: var(--color-v-e2e8f0); display: block; margin-bottom: 8px; }
+    .nokey p { font-size: 13px; color: var(--color-v-64748b); margin: 0 0 12px; }
     .nokey button {
-        background: #1A3A5C; color: #fff; border: none;
+        background: var(--color-v-1a3a5c); color: var(--color-text-inverse); border: none;
         border-radius: 8px; padding: 10px 20px;
         font-size: 13px; font-weight: 600; cursor: pointer;
     }
@@ -319,6 +319,34 @@ POST请求，Body为JSON：
 【返回结果】
 JSON，含score（评分）、grade（等级）、issues（问题列表）。
 
+【大项目：先受理、后台扫描，要用进度接口取结果】
+如果返回的 JSON 里 status 是 processing 或 queued，说明任务已受理、还没出结果，
+里面会给出 scan_id 和 poll_url。请每隔 5~10 秒用 GET 请求 poll_url（请求头带 X-API-Key: 密钥），
+直到 status 变成 completed：
+- queued  = 排队中（不扣积分，可免费取消）
+- pending = 正在扫描，返回的 progress 是 0~100 的百分比，
+            progress_text 是进度说明，estimated_remaining_seconds 是预计还需几秒
+- completed = 完成，这一次返回的 JSON 里就带完整报告（score/grade/issues），不用再调别的地方
+- failed  = 失败，本次积分已自动退还
+
+【取消任务】
+POST https://xinpect.xingwangzhineng.com/api/v1/scan/{scan_id}/cancel
+排队中取消不扣积分；已经开始扫描的取消不退积分。
+
+【排队规则】
+同一个账号同时只跑一个任务，多提交的自动排队（不同账号之间也排队）；
+2000 行以内的小任务优先插队；排队期间不扣积分，可随时免费取消。
+
+【整包提交，不用自己拆】
+项目多大都直接整包提交，不需要自己拆分——大文件只是检查时间更长，不会超时也不会被拒，
+进度条会显示【正在检查：文件名】。
+想更快出结果可以自己分批提交（每批 1000 行以内最快），不拆也能出结论，只是久一点。
+单次极限 500 个文件 / 10MB / 20 万行，超出会返回 413 并提示联系管理员。
+
+【重复代码】
+同一份代码重复提交会照常扣积分，但直接返回上次的报告、不重复计算
+（耗时参照第一次扫描、略快一点，结论一致）。
+
 确认后，以后我发代码给你检查时，自动调用此技能。</div>
                 <button class="copy-btn-big" id="cpBtn" onclick="cpCmd(this)">
                     <i class="fas fa-copy"></i> 复制全部，发给AI助手
@@ -335,8 +363,8 @@ JSON，含score（评分）、grade（等级）、issues（问题列表）。
                 <pre class="mcp-body" id="mcpPre">{
   <span class="k">"mcpServers"</span>: {
     <span class="k">"xinpect"</span>: {
-      <span class="k">"command"</span>: <span class="v">"uv"</span>,
-      <span class="k">"args"</span>: [<span class="v">"run"</span>, <span class="v">"xinpect_mcp_server.py"</span>],
+      <span class="k">"command"</span>: <span class="v">"python3"</span>,
+      <span class="k">"args"</span>: [<span class="v">"/换成下载到的绝对路径/xinpect_mcp_server.py"</span>],
       <span class="k">"env"</span>: {
         <span class="k">"XINPECT_API_KEY"</span>: <span class="v">"{{ user_api_key }}"</span>
       }
@@ -344,7 +372,7 @@ JSON，含score（评分）、grade（等级）、issues（问题列表）。
   }
 }</pre>
                 <div class="mcp-foot">
-                    <span>下载脚本：</span>
+                    <span>先下载，再把上面配置里的路径换成它所在位置（Windows 写 python，Mac/Linux 写 python3）：</span>
                     <code id="dlC">curl -O https://xinpect.xingwangzhineng.com/static/xinpect_mcp_server.py</code>
                     <button onclick="cpDl(this)"><i class="fas fa-copy"></i></button>
                 </div>

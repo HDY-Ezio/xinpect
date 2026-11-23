@@ -9,7 +9,7 @@
 </div>
 
 <!-- 积分余额卡片 -->
-<div style="background:linear-gradient(135deg,#1A3A5C 0%,#2563EB 100%);color:white;border-radius:var(--radius-lg);padding:32px;margin-bottom:24px;box-shadow:0 4px 20px rgba(26,58,92,0.3);">
+<div style="background:linear-gradient(135deg,var(--color-v-1a3a5c) 0%,var(--color-v-2563eb) 100%);color:white;border-radius:var(--radius-lg);padding:32px;margin-bottom:24px;box-shadow:0 4px 20px var(--color-metal-gold-alpha-08);">
     <div style="font-size:14px;opacity:0.9;margin-bottom:8px;">当前积分余额</div>
     <div id="credit-balance" style="font-size:48px;font-weight:700;margin-bottom:16px;">加载中...</div>
     <div style="display:flex;gap:24px;font-size:14px;opacity:0.9;">
@@ -62,8 +62,8 @@ async function loadCreditBalance() {
         const data = await response.json();
         if (data.status === 'ok') {
             document.getElementById('credit-balance').textContent = data.balance.toLocaleString();
-            // TODO: 计算本月消耗（需要从API获取交易记录）
-            document.getElementById('monthly-used').textContent = 0;
+            // 修复 2026-10-27：本月消耗改为读取后端真实数据（原写死 0）
+            document.getElementById('monthly-used').textContent = (data.monthly_used || 0).toLocaleString();
         } else {
             document.getElementById('credit-balance').textContent = '加载失败';
         }
@@ -74,6 +74,6 @@ async function loadCreditBalance() {
 }
 
 // 页面加载时获取数据
-document.addEventListener(DOMContentLoaded, loadCreditBalance);
+document.addEventListener('DOMContentLoaded', loadCreditBalance);
 </script>
 {% endblock %}
