@@ -320,15 +320,24 @@ TIERS_MAP = {t['key']: t for t in TIERS}
 
 BRAINS_MAP = {b['id']: b for b in BRAINS}
 
+# 扫描器槽位 -> 对外引擎身份。
+# 槽位 "8" 跑的是 engine.e7_deployment_readiness，而它报出的规则 ID 是
+# E5-ARCH-DEPLOY-*，本来就属于 E5「架构与部署」。对外不存在「第 8 个引擎」，
+# 所以它的标签一律归并到 E5 —— 否则报告「检测维度」会显示成一个裸数字 8。
+# 这里只影响显示，不动 _BRAIN_CATEGORY 的问题分类与评分口径。
+_BRAIN_ID_ALIAS = {"8": "5"}
+
 
 def brain_label(brain_id):
     """引擎对外显示名（铁律：统一 E1-E7 编号，禁用 B 编号表述）
 
     '3'  -> 'E3 性能与可靠性'
     'ai' -> 'AI语义分析'（名称已含代号则不重复）
+    '8'  -> 'E5 架构与部署'（扫描器槽位，实属 E5，见 _BRAIN_ID_ALIAS）
     未知 id 原样返回，绝不编造名称。
     """
-    _b = BRAINS_MAP.get(str(brain_id))
+    _key = str(brain_id)
+    _b = BRAINS_MAP.get(_BRAIN_ID_ALIAS.get(_key, _key))
     if not _b:
         return str(brain_id)
     _code = _b.get('code', '') or ''

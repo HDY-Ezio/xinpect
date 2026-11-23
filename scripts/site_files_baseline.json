@@ -1,5 +1,5 @@
 {
-  "count": 525,
+  "count": 526,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -35,7 +35,7 @@
     "modules/blog.py": "4a999a31fa9c5f4d11693f16903a1505",
     "modules/ci.py": "e2519e5f620cd85c01cc3a41d4b5b892",
     "modules/compensation.py": "b644c7aa85d145be9e9e8339feab121c",
-    "modules/constants.py": "58d7e2eebd5dd730adfbb1ec7432feb6",
+    "modules/constants.py": "dd9b3d4db957e46bd840b30b34400a80",
     "modules/csrf_protection.py": "91d3b9b8081cc48e226ee578a538149d",
     "modules/dashboard_context.py": "e37be5c3464f6075e31d55f10e1f9323",
     "modules/dashboard_enhance.py": "aac8f36d1b83224543a96fa7775cc782",
@@ -470,6 +470,7 @@
     "tests/test_api_integration.py": "3dfef2c51a9ab1eea4fa53d534d802f7",
     "tests/test_bb_dimension.py": "a151a0ee222962077b543b4216d092da",
     "tests/test_beian.py": "80f7b56fc2a03b0789a692cf47df34ec",
+    "tests/test_brain_label_alias.py": "c1b587d40e004573ce4a4cb4bddc6bac",
     "tests/test_business_logic.py": "4d592f32de323fad323f9f55bbdd103f",
     "tests/test_category_dimension.py": "9e3716ed9d4d5ce6c0e55cde8e3a1d0e",
     "tests/test_consistency.py": "aac3b99fbd4accddda84f4e52cef67c8",
@@ -527,7 +528,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T14:15:15+08:00",
+  "generated_at": "2026-11-23T14:45:08+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -544,9 +545,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "97017f461b5437538e3059c5228eb2f3b8f48221860a3f0fb2df24473219a4f4",
+  "integrity": "3d397858efa51c3a54ead112e6a9379bb66d40c5a415fadec20376c41a883b83",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "首页能力网格：E1-E8+AI/PoC 改为 E1-E7+AI+PoC，对齐 BRAINS 与全站 7 引擎口径"
+  "task": "brain_label 把扫描器槽位 8 归并到 E5，消除报告里的裸数字 8；新增回归测试"
 }
