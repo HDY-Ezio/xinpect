@@ -447,7 +447,7 @@
     "templates/dashboard/versions.html": "93e25aea961df7cd66c3aa96553b1513",
     "templates/forgot_password.html": "a92bf2b6f376da8feeb6399cde4eb4e1",
     "templates/help.html": "e31b167b274c0bef8c1d904f53c2ded9",
-    "templates/index.html": "2ad2a77c4a34ca224003920fcd25b551",
+    "templates/index.html": "fb3f4681d272aae69c82d4643877063f",
     "templates/license.html": "a20e1eb8ff36ce59f8045fe4daf79493",
     "templates/login.html": "6f4d237bab3767330f7ef44f3f304cbc",
     "templates/monitor.html": "e92d12a91d15f9589e570ab1a8bd776f",
@@ -527,7 +527,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T13:43:37+08:00",
+  "generated_at": "2026-11-23T14:15:15+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -544,9 +544,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "e3c77d0736b0536911c5c4c588017291bc34960318dc5094ce568adc2d089601",
+  "integrity": "97017f461b5437538e3059c5228eb2f3b8f48221860a3f0fb2df24473219a4f4",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "首页 hero 补最小高度：大屏上避免代码墙铺不开"
+  "task": "首页能力网格：E1-E8+AI/PoC 改为 E1-E7+AI+PoC，对齐 BRAINS 与全站 7 引擎口径"
 }

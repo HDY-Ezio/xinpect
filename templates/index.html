@@ -417,11 +417,11 @@
       <div class="cap"><div class="cap-idx">E2</div><h3>安全检测</h3><p>注入、越权、密钥硬编码、反序列化等跨语言安全规则，配合跨文件污点追踪。</p></div>
       <div class="cap"><div class="cap-idx">E3</div><h3>性能与可靠性</h3><p>性能瓶颈、资源泄漏、并发与超时风险，定位到具体调用位置。</p></div>
       <div class="cap"><div class="cap-idx">E4</div><h3>代码质量与可观测性</h3><p>规范、可维护性、日志与埋点缺失，确保代码整洁且线上可查。</p></div>
-      <div class="cap"><div class="cap-idx">E5</div><h3>架构与部署</h3><p>分层越界、循环依赖、配置与部署就绪检查，保障工程结构合理。</p></div>
+      <div class="cap"><div class="cap-idx">E5</div><h3>架构与部署</h3><p>分层越界、循环依赖、流水线配置与容器发布策略检查，上线前把门守住。</p></div>
       <div class="cap"><div class="cap-idx">E6</div><h3>组件合规</h3><p>依赖漏洞、许可证风险、小程序完整性检测，确保组件合规可靠。</p></div>
       <div class="cap"><div class="cap-idx">E7</div><h3>AI 应用健康检测</h3><p>LLM 调用、提示词注入、密钥与越权风险，专治 AI 应用这一层的新问题。</p></div>
-      <div class="cap"><div class="cap-idx">E8</div><h3>部署就绪与 CI/CD 安全</h3><p>流水线配置、密钥泄露、容器与发布策略检查，上线前把门守住。</p></div>
-      <div class="cap"><div class="cap-idx">AI + PoC</div><h3>语义复核与可复现验证</h3><p>语义理解过滤误报；能复现的才升级为高危，判不准的折叠到报告末尾，不混进主清单。</p></div>
+      <div class="cap"><div class="cap-idx">AI</div><h3>语义复核</h3><p>逐条判断规则告警在真实上下文里是否成立，过滤误报；判不准的单独列出，不混进主清单。</p></div>
+      <div class="cap"><div class="cap-idx">PoC</div><h3>实弹验证</h3><p>对安全漏洞自动生成载荷，在隔离沙箱里实打一遍，能复现的才升级为高危。</p></div>
     </div>
   </div>
 </section>
