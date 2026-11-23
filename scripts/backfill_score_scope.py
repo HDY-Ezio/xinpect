@@ -59,7 +59,7 @@ with app.app_context():
         sys.exit(0)
 
     rows = db.execute(
-        "SELECT scan_id, score, grade, results, scan_mode, credits_spent, file_count FROM scans "
+        "SELECT scan_id, score, grade, results, scan_mode, credits_spent, file_count, total_lines FROM scans "
         # 2026-11-23：原来只捞 scan_status='completed'，把 1044 份早期扫描
         # （这个字段还没有时就落库的，状态是 NULL）整批漏掉——库里 793 份
         # SS/SSS 一个都没被重算过。有 results 且有分数就说明那一轮跑完了，
@@ -103,7 +103,8 @@ with app.app_context():
             engines=ledger, unsupported=uns, trimmed=trim,
             file_count=r['file_count'],
         )
-        new_grade = grade_of(new_score, tiers, is_vip=vip)
+        new_grade = grade_of(new_score, tiers, is_vip=vip,
+                            file_count=r['file_count'], total_lines=r['total_lines'])
 
         old_score, old_grade = r['score'], (r['grade'] or '')
         if old_score == new_score and old_grade == new_grade:

@@ -26,7 +26,7 @@ from .db import get_db, init_db, is_admin_user
 from .scanner import call_scanner, ScanEngineError
 from .scoring import (
     calculate_score, calculate_building_block_scores, calculate_tier_scores,
-    score_to_grade, severity_label,
+    score_to_grade, grade_of, severity_label,
     get_user_credits, consume_credits, calculate_scan_cost, grant_credits,
     get_credit_pools,
 )
@@ -1011,11 +1011,13 @@ def _start_queued_scan(db, row):
             scan_id, payload['code_files'],
             payload.get('language') or language or 'auto',
             thresholds, user_id, total_lines or 0)
-        score = max(0, 100 - sum(
-            {'critical': 10, 'blocker': 15, 'high': 5, 'medium': 3, 'low': 0.5}.get(
-                i.get('severity', ''), 0) for i in issues))
-        grade = ('S' if score >= 90 else 'A' if score >= 75 else 'B' if score >= 60
-                 else 'C' if score >= 40 else 'D')
+        # 扣分与等级走主站同一出口（2026-11-23）。
+        # 这里原来是第四套算法：自建扣分表（critical 10 / blocker 15 / high 5）
+        # 加自建等级表（S 线 90，网页端是 95）。同一份代码走 API 和走网页
+        # 拿到两个分数、两个等级，评级就不再是「等级」而是「看你从哪个门进来」。
+        score = calculate_score(issues, available_brain_ids=None)
+        grade = grade_of(score, None, is_vip=True,
+                         file_count=len(payload['code_files']), total_lines=total_lines)
         # 守卫：运行中被用户取消的，结果丢弃、状态不翻转、积分不退（用户拍板）
         db.execute(
             "UPDATE scans SET results=?, score=?, grade=?, issue_count=?, "
@@ -1467,11 +1469,10 @@ def _start_async_scan(user_id, key_id, code_files, language, user_thresholds,
             issues, r = _execute_scan_in_chunks(
                 scan_id, code_files, language, user_thresholds,
                 user_id, total_lines)
-            score = max(0, 100 - sum(
-                {'critical': 10, 'blocker': 15, 'high': 5, 'medium': 3, 'low': 0.5}.get(i.get('severity',''), 0)
-                for i in issues
-            ))
-            grade = 'S' if score >= 90 else 'A' if score >= 75 else 'B' if score >= 60 else 'C' if score >= 40 else 'D'
+            # 同上一处：扣分与等级都走主站出口，不再自算一套。
+            score = calculate_score(issues, available_brain_ids=None)
+            grade = grade_of(score, None, is_vip=True,
+                             file_count=len(code_files), total_lines=total_lines)
             _db = get_db()
             _db.execute("UPDATE scans SET results=?, score=?, grade=?, issue_count=?, scan_status='completed', scan_progress=100, scan_progress_text='扫描完成', duration_seconds=? WHERE scan_id=? AND scan_status='pending'",
                 (json.dumps({'issues': issues, 'result': r}, ensure_ascii=False, default=str), score, grade, len(issues), round(time.time() - _t_bg, 2), scan_id))
@@ -1835,7 +1836,7 @@ def api_delete_key(key_id):
 # ============================================================
 # P2-02: 本地扫描结果上传 API
 # ============================================================
-def _derive_score_grade(results, issues):
+def _derive_score_grade(results, issues, file_count=None, total_lines=None):
     """从结果中推导评分与等级（缺失时用简单算法兜底）。返回 (score, grade)。"""
     score = results.get('score')
     grade = results.get('grade')
@@ -1849,7 +1850,8 @@ def _derive_score_grade(results, issues):
         # 这里原来是第二套等级表（95→SSS、90→SS、80→S、70→A…），
         # 网页上传走 grade_of（95→S、80→A），同一份代码走 API 和走网页
         # 会拿到两个不同的等级。等级只有一个出口，档位只能有一个来源。
-        grade = score_to_grade(int(round(float(score))))
+        grade = grade_of(score, None, is_vip=True,
+                         file_count=file_count, total_lines=total_lines)
     return score, grade
 
 
@@ -1923,12 +1925,15 @@ def api_upload_results():
     # 3. 从结果中提取关键信息
     issues = results.get('issues', [])
     issue_count = len(issues) if isinstance(issues, list) else 0
-    score, grade = _derive_score_grade(results, issues)
+    # 规模要先取出来：等级要按它封顶，原来先算等级后取文件数，
+    # 等于把「片段快检」和「完整项目」当成同一件事。
     file_count, file_names = _extract_file_info(results)
+    total_lines = results.get('total_lines', 0)
+    score, grade = _derive_score_grade(results, issues,
+                                       file_count=file_count, total_lines=total_lines)
 
     language = data.get('language', results.get('language', ''))
     project_tag = data.get('project_tag', '')
-    total_lines = results.get('total_lines', 0)
     title = _make_upload_title(file_names)
 
     # 4. 存入 scans 表

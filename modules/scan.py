@@ -949,6 +949,21 @@ def _async_scan_fail(scan_id, user_id, credits_cost, err):
     _db.close()
 
 
+def _row_scale(scan):
+    """从扫描记录里取审查规模；字段缺失返回 (None, None)。
+
+    规模只用来给等级设上限，取不到就不设限——不该为了一个说明性字段
+    让整页 500。（2026-11-23：测试桩没有 total_lines，直接下标取值
+    把导出接口打成 500。）
+    """
+    def _get(key):
+        try:
+            return scan[key]
+        except (KeyError, IndexError, TypeError):
+            return None
+    return _get('file_count'), _get('total_lines')
+
+
 def _async_scan_success(scan_id, user_id, files_dict, total_lines, results, vip):
     """扫描成功：计算评分/等级、落 completed 状态、回填积分流水。"""
     import sqlite3 as _sqlite3
@@ -962,7 +977,8 @@ def _async_scan_success(scan_id, user_id, files_dict, total_lines, results, vip)
     )
     # 分数与等级同源：calculate_score 已经默认剔除复核未采纳的条目，
     # grade_of 只把这个分数读成档位（三层全 S 才在 S 之上加 SS/SSS）。
-    grade = grade_of(score, tier_scores, is_vip=vip)
+    grade = grade_of(score, tier_scores, is_vip=vip,
+                     file_count=len(files_dict), total_lines=total_lines)
 
     _db = _sqlite3.connect(DB_PATH)
     _db.execute("UPDATE scans SET results=?, score=?, grade=?, issue_count=?, scan_status=?, scan_progress=?, scan_progress_text=? WHERE scan_id=?",
@@ -1371,7 +1387,9 @@ def report_page(scan_id):
     # 有 76 份两个数互相打架。报告是给客户看的那份东西，必须自洽：
     # 同一份报告在任何时候打开、在哪个页面打开，都是同一个分、同一个档。
     score = calculate_score(all_issues, available_brain_ids=avail_brains)
-    grade = grade_of(score, tier_scores, is_vip=vip)
+    _scale_files, _scale_lines = _row_scale(scan)
+    grade = grade_of(score, tier_scores, is_vip=vip,
+                     file_count=_scale_files, total_lines=_scale_lines)
 
     created_at = scan['created_at']
     try:
@@ -1598,7 +1616,9 @@ def _build_md_header(scan, all_issues, vip):
     # 导出的 MD 与页面同一口径。原来这里写 scan["score"]（旧口径存值），
     # 同一份报告「看页面 82 分、下载 MD 50 分」。
     md_score = calculate_score(all_issues, available_brain_ids=avail_brains_md)
-    md_grade = grade_of(md_score, tier_scores_md, is_vip=vip)
+    _md_scale_files, _md_scale_lines = _row_scale(scan)
+    md_grade = grade_of(md_score, tier_scores_md, is_vip=vip,
+                       file_count=_md_scale_files, total_lines=_md_scale_lines)
 
     # 查不全时不能写「S 级」——那是把没查的地方当成干净
     _md_grade_text = '未完整检测（评级不可用）' if md_grade == '—' else f'{md_grade} 级'

@@ -219,6 +219,7 @@ else
         tests/test_repo_secrets_guard.py \
         tests/test_brain_label_alias.py \
         tests/test_grade_risk_cap.py \
+        tests/test_grade_sample_cap.py \
         tests/test_style_not_scored.py \
         tests/test_outbound_numbers.py \
         tests/test_nav_single_source.py \

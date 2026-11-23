@@ -34,7 +34,7 @@ from .scanner import call_scanner, ScanEngineError, REPORT_PAYLOAD_KEYS
 from .scoring import (
     get_user_credits, consume_credits, grant_credits,
     calculate_scan_cost, count_total_lines,
-    calculate_score,
+    calculate_score, grade_of,
 )
 from .helpers import login_required, get_current_user
 from .csrf_protection import csrf_required
@@ -300,10 +300,15 @@ def _save_ci_scan(user_id, scan_id, scanner_result, scan_mode, ci_repo, ci_branc
     """, (user_id, scan_id,
           'CI Scan' + (' - ' + ci_repo if ci_repo else ''),
           score,
-          'A' if score >= 90 else 'B' if score >= 80 else 'C' if score >= 60 else 'D',
+          # 等级并回主站单一出口（2026-11-23）。这里原来是第五套表：
+          # S 线 90 分、而且根本没有 S 档——CI 跑同一份代码，页面给 S，
+          # 流水线里记的是 A。
+          grade_of(score, None, is_vip=True,
+                   file_count=scanner_result.get('file_count', 0),
+                   total_lines=total_lines),
           scanner_result.get('total_issues', 0),
           scanner_result.get('file_count', 0),
-          total_lines if 'total_lines' in dir() else 0,
+          total_lines,
           0,  # credits_spent (后续扣费后更新)
           'auto',
           issues_summary,
