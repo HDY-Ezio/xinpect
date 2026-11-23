@@ -657,21 +657,42 @@ else
     PAY_RC=1
 fi
 
+# ---- 6n. 仓库漂移守卫（2026-11-23）----
+# 盘点时仓库落后线上整一个月：16 个模块、39 份检查、19 个脚本从未提交。
+# app.py 一 import visitor_scope 就失败——这台机器出事，站点从仓库恢复不出来。
+# 而这么严重的事，一年里没有任何东西会因为它是红的而报警。守卫查两件事：
+# 未跟踪也没被忽略的代码文件必须为 0；已跟踪的未提交改动不超过 30 条。
+REPO_RC=0
+REPO_GUARD=/opt/xinpect-website/tests/verify_repo_drift.py
+if [ -f "$REPO_GUARD" ]; then
+    echo "[$(date '+%F %T')] 仓库漂移守卫开始"
+    env PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 "$REPO_GUARD" 2>&1 | tee -a "$REPORTS/extended_tests.log"
+    _repolerc=${PIPESTATUS[0]}
+    [ "$_repolerc" -ne 0 ] && REPO_RC=1
+    env PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 "$REPO_GUARD" --self-test 2>&1 | tee -a "$REPORTS/extended_tests.log"
+    _reposrc=${PIPESTATUS[0]}
+    [ "$_reposrc" -ne 0 ] && REPO_RC=1
+    echo "[$(date '+%F %T')] 仓库漂移守卫结束 rc=$_repolerc 自检 rc=$_reposrc"
+else
+    echo "[$(date '+%F %T')] ❌ 仓库漂移守卫缺失，套件不能绿: $REPO_GUARD" | tee -a "$REPORTS/extended_tests.log"
+    REPO_RC=1
+fi
+
 echo "=========================================================="
 
 # 六段各自的退出码都要算进来：之前只算 QA_RC/PY_RC，分类守卫和引擎守卫
 # 失败了套件照样 exit 0 —— 绿着红掉，比没有守卫更危险。
-if [ "$QA_RC" -ne 0 ] || [ "$PY_RC" -ne 0 ] || [ "$CAT_RC" -ne 0 ] || [ "$ENG_RC" -ne 0 ] || [ "$BEN_RC" -ne 0 ] || [ "$COST_RC" -ne 0 ] || [ "${PAY_RC:-0}" -ne 0 ]; then
-    echo "❌ 套件失败: qa=$QA_RC pytest=$PY_RC category=$CAT_RC engine=$ENG_RC bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0}"
+if [ "$QA_RC" -ne 0 ] || [ "$PY_RC" -ne 0 ] || [ "$CAT_RC" -ne 0 ] || [ "$ENG_RC" -ne 0 ] || [ "$BEN_RC" -ne 0 ] || [ "$COST_RC" -ne 0 ] || [ "${PAY_RC:-0}" -ne 0 ] || [ "${REPO_RC:-0}" -ne 0 ]; then
+    echo "❌ 套件失败: qa=$QA_RC pytest=$PY_RC category=$CAT_RC engine=$ENG_RC bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} repo=${REPO_RC:-0}"
     # 结论必须落成文件：只写 cron.log，等于没人知道（监控每 15 分钟读这个文件）
     /usr/bin/python3 /opt/xinpect-website/scripts/record_qa_result.py fail \
         qa=$QA_RC pytest=$PY_RC category=$CAT_RC engine=$ENG_RC \
-        bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} || true
+        bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} repo=${REPO_RC:-0} || true
     exit 1
 fi
 # 成功也要留一行。此前成功时一行都不打，crontab 日志里和「脚本崩在半路」
 # 长得一模一样 —— 排查的人只能靠猜。
-echo "✅ 套件通过: qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0"
+echo "✅ 套件通过: qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 repo=0"
 /usr/bin/python3 /opt/xinpect-website/scripts/record_qa_result.py ok \
-    qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 || true
+    qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 repo=0 || true
 exit 0
