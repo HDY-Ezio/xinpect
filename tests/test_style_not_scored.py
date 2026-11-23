@@ -21,7 +21,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from modules.rule_kind import is_style_rule          # noqa: E402
-from modules.scoring import calculate_score         # noqa: E402
+from modules.scoring import calculate_score, grade_of  # noqa: E402
+from modules.constants import RISK_SCORE_CAP        # noqa: E402
 
 
 def issue(rule_id, severity="suspicious", brain_id="1"):
@@ -51,8 +52,11 @@ def test_real_issues_still_deduct():
     ]
     score = calculate_score(issues)
     assert score < 100, "真问题必须扣分，实际 %s" % score
-    # high 扣 5 + 两条 low/style 各 0.5 → 94
-    assert score == 94
+    # 扣分算出来是 94（high 扣 5 + 两条各 0.5），但含一条 high，
+    # 命中高危封顶（2026-11-23：一档问题封一档上限），落在高危上限。
+    assert score == RISK_SCORE_CAP['high'], (
+        "含 high 的扫描应封在 %s，实际 %s" % (RISK_SCORE_CAP['high'], score))
+    assert grade_of(score) == 'C'
 
 
 def test_safety_token_wins():
@@ -84,9 +88,13 @@ def test_severity_no_longer_decides_alone():
 
 
 def test_empty_and_unknown_ids_are_safe():
-    """空 ID、未知 ID 不许被当成风格放过。"""
-    assert calculate_score([issue("", "high")]) == 95
-    assert calculate_score([issue("TOTALLY-UNKNOWN-RULE", "high")]) == 95
+    """空 ID、未知 ID 不许被当成风格放过。
+
+    判据是「有没有扣分」而不是「扣了几分」：被当成风格放过才会是满分。
+    """
+    for rid in ("", "TOTALLY-UNKNOWN-RULE"):
+        got = calculate_score([issue(rid, "high")])
+        assert got < 100, "规则 ID %r 被当成风格放过（分数 %s）" % (rid, got)
 
 
 def test_style_tokens_do_not_swallow_perf_or_arch():

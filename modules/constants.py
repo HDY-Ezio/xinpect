@@ -181,6 +181,19 @@ MAX_DEDUCTION_MEDIUM = 30
 MAX_DEDUCTION_LOW = 20
 MAX_SCORE = 100
 
+# 风险封顶（2026-11-23）：最严重的一档问题决定分数上限。
+# 扣分制对「少而重」不敏感——一处阻断级漏洞只扣 10 分，全库实测有 1 份带
+# blocker 的扫描拿到 SSS、57 份带 high 的拿到 SSS，评级和风险完全脱钩。
+# 封顶做进分数，不给等级另写一套算法：等级必须继续是分数的读法。
+# 档位与 SCORE_*_THRESHOLD 对齐：29→D、59→C、79→B、94→A。
+RISK_SCORE_CAP = {
+    'blocker': 29,     # 阻断级：不及格
+    'critical': 29,    # 严重：不及格
+    'high': 59,        # 高危：最高 C
+    'medium': 79,      # 中等：最高 B
+    'low': 94,         # 低危：最高 A（有低危就不算满分）
+}
+
 # 验证码常量
 RESET_CODE_LENGTH = 6
 RESET_CODE_CHECK_LENGTH = 6

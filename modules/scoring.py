@@ -15,7 +15,7 @@ from .constants import (
     SCORE_S_THRESHOLD, SCORE_A_THRESHOLD, SCORE_B_THRESHOLD, SCORE_C_THRESHOLD,
     SCORE_COLOR_AMBER, MAX_SCORE,
     DEDUCTION_PER_CRITICAL, DEDUCTION_PER_HIGH, DEDUCTION_PER_MEDIUM, DEDUCTION_PER_LOW,
-    MAX_DEDUCTION_MEDIUM, MAX_DEDUCTION_LOW,
+    MAX_DEDUCTION_MEDIUM, MAX_DEDUCTION_LOW, RISK_SCORE_CAP,
     DEFAULT_CREDIT_TX_LIMIT,
     DAILY_LIMIT_FREE, DAILY_LIMIT_REGISTERED,
     SUBSCRIPTION_CREDITS, CREDIT_PACKS,
@@ -992,8 +992,7 @@ def count_total_lines(files_dict):
 
 
 def score_to_grade(score):
-    """分数转等级 - 单层最高只有S
-    综合SSS由"三层全S"叠加得出，单层不设SS/SSS
+    """分数转等级。S 就是最高档——2026-11-23 起不再有 SS/SSS。
     """
     if score >= SCORE_S_THRESHOLD:
         return 'S'
@@ -1056,19 +1055,12 @@ def grade_of(score, tier_scores=None, is_vip=True):
     except (TypeError, ValueError):
         return '—'
 
-    if grade == 'S' and tier_scores:
-        # 只数「有成绩且查全」的层：查不全的层不参与 SSS/SS 的叠加，
-        # 拿一个「已查部分」的分数去拼 SSS，等于把没查的地方当成干净。
-        layers = [
-            v for v in tier_scores.values()
-            if not v.get('locked') and v.get('score') is not None
-            and not v.get('incomplete')
-        ]
-        if layers and all(v.get('grade') == 'S' for v in layers):
-            if len(layers) >= len(TIERS):
-                grade = 'SSS'
-            elif len(layers) == 2:
-                grade = 'SS'
+    # 2026-11-23 起不再在 S 之上叠加 SS / SSS。
+    # 原来的判据是「三层都拿到 S」，可规范类问题退出扣分之后，规范层
+    # （E1/E4/E5/E6 的纯风格部分）几乎恒为 100 分——那一层必然 S，
+    # 等于三层全 S 白送一层。实测全库 57 份带高危问题的扫描照样拿到 SSS，
+    # 这个徽章证明的不是「优秀」，是「没被扣穿」。
+    # 现在 S 只有一个含义：没有需要修的问题（有低危即降到 A）。
 
     if not is_vip and grade in ('S', 'SS', 'SSS'):
         grade = 'A'
@@ -1231,6 +1223,31 @@ def brain_label_filter(brain_id):
     return brain_label(brain_id)
 
 
+_SEVERITY_BUCKET = {
+    'blocker': 'blocker', 'critical': 'critical',
+    'high': 'high', 'suspicious': 'high',
+    'medium': 'medium', 'correctness': 'medium', 'restriction': 'medium',
+    'warning': 'medium',
+    'low': 'low', 'info': 'low', 'minor': 'low',
+}
+
+_BUCKET_ORDER = {'blocker': 5, 'critical': 4, 'high': 3, 'medium': 2, 'low': 1}
+
+
+def worst_severity_bucket(issues):
+    """这批问题里最重的一档；一条都没有返回 None。
+
+    与 calculate_score 的扣分分档共用一张表：同一档问题既按同一权重扣分，
+    也按同一档位封顶。风格类问题由调用方先剔除，这里不重复判。
+    """
+    best = None
+    for issue in issues or ():
+        bucket = _SEVERITY_BUCKET.get(str(issue.get('severity') or '').lower())
+        if bucket and (best is None or _BUCKET_ORDER[bucket] > _BUCKET_ORDER[best]):
+            best = bucket
+    return best
+
+
 def calculate_score(issues, available_brain_ids=None, include_excluded=False):
     """加权扣分制计算综合得分 —— 代码健康分的唯一算法。
 
@@ -1269,6 +1286,14 @@ def calculate_score(issues, available_brain_ids=None, include_excluded=False):
 
     total_deduction = deduction_critical + deduction_high + deduction_medium + deduction_low
     score = max(0, int(round(MAX_SCORE - total_deduction)))
+
+    # 风险封顶（2026-11-23）：扣分只说「扣了多少」，不说「最重的是什么」。
+    # 一处阻断级漏洞扣 10 分，修完 30 条风格建议的项目也能扣到 60 分以下——
+    # 于是「有阻断漏洞」反而比「命名不规范」分数高。封顶把最重的一档
+    # 拉回台面上：有阻断/严重问题就是不及格，有高危最高 C。
+    cap = RISK_SCORE_CAP.get(worst_severity_bucket(issues))
+    if cap is not None:
+        score = min(score, cap)
     return score
 
 

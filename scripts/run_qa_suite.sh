@@ -162,7 +162,19 @@ if ! /usr/bin/python3 -c "import pytest" 2>/dev/null; then
         test_template_attr_blocks.py \
         test_narrow_toolbar_wrap.py \
         test_no_db_dumps_tracked.py \
-        test_repo_secrets_guard.py
+        test_repo_secrets_guard.py \
+        test_brain_label_alias.py \
+        test_grade_risk_cap.py \
+        test_style_not_scored.py \
+        test_outbound_numbers.py \
+        test_nav_single_source.py \
+        test_safe_write_contract.py \
+        test_scenario_checklist.py \
+        test_report_export.py \
+        test_upgrade_url_is_reachable.py \
+        test_dashboard_mobile.py \
+        test_mobile_responsive.py \
+        test_qa_mount_completeness.py
     do
         /usr/bin/python3 "tests/$_t" 2>&1 | tee -a "$REPORTS/extended_tests.log"
         [ "${PIPESTATUS[0]}" -ne 0 ] && PY_RC=1
@@ -205,6 +217,16 @@ else
         tests/test_narrow_toolbar_wrap.py \
         tests/test_no_db_dumps_tracked.py \
         tests/test_repo_secrets_guard.py \
+        tests/test_brain_label_alias.py \
+        tests/test_grade_risk_cap.py \
+        tests/test_style_not_scored.py \
+        tests/test_outbound_numbers.py \
+        tests/test_nav_single_source.py \
+        tests/test_safe_write_contract.py \
+        tests/test_scenario_checklist.py \
+        tests/test_report_export.py \
+        tests/test_upgrade_url_is_reachable.py \
+        tests/test_qa_mount_completeness.py \
         -q --tb=line 2>&1 | tee -a "$REPORTS/extended_tests.log"
     PY_RC=${PIPESTATUS[0]}
 fi

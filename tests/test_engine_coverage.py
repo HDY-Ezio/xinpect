@@ -127,8 +127,11 @@ def test_deduction_still_works_when_engine_ran():
     # 2026-11-22 起权重只有 scoring 一份（危重 10 / 高 5 / 中 3 / 低 0.5）。
     # 这里原来写 70/92，是试扫页私有的 45/30/8/2 那套算出来的；
     # 同一条问题在试扫页和报告页扣的分不一样，正是这轮要消灭的东西。
-    assert h['dims']['security'] == 95, h['dims']
-    assert h['dims']['quality'] == 97, h['dims']
+    # 2026-11-23 起封顶也作用于维度分：一条 high 把该维度压到高危上限，
+    # 一条 medium 压到中等上限。否则报告会出现「总分 C、某维度 95 分」。
+    from modules.constants import RISK_SCORE_CAP
+    assert h['dims']['security'] == RISK_SCORE_CAP['high'], h['dims']
+    assert h['dims']['quality'] == RISK_SCORE_CAP['medium'], h['dims']
     assert h['coverage']['complete'] is True, h['coverage']
 
 

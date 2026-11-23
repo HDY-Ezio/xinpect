@@ -173,15 +173,15 @@ def test_tier_wholly_not_run_has_no_score():
 
 
 def test_tier_clean_all_run_is_s():
-    """三层全跑全干净 → SSS，不误伤。"""
+    """三层全跑全干净 → S（最高档），不误伤。"""
     from modules.scoring import calculate_tier_scores, grade_of
     ts = calculate_tier_scores([], is_vip=True, engines=ENGINES_OK)
     for key, t in ts.items():
         assert t['score'] == 100, f'{key} 层干净代码没拿满分'
         assert t['grade'] == 'S', f'{key} 层干净代码不是 S'
         assert t['incomplete'] is False
-    # 干净代码 = 100 分，三层都 S，才配 SSS
-    assert grade_of(100, ts, is_vip=True) == 'SSS'
+    # 干净代码 = 100 分，等级就是 S；2026-11-23 起 S 之上不再有 SS/SSS
+    assert grade_of(100, ts, is_vip=True) == 'S'
 
 
 def test_grade_of_excludes_incomplete_tiers():
@@ -189,8 +189,8 @@ def test_grade_of_excludes_incomplete_tiers():
 
     旧代码「没有可评分层 → 返回 S」正是满分假象的源头之一。
 
-    2026-11-22 起综合等级由 grade_of(分数, 三层) 给出：档位看分数，
-    三层全 S 只是 S 之上的附加值。所以分数是必填参数——没有分数就没有等级。
+    2026-11-22 起综合等级由 grade_of(分数, 三层) 给出：档位只看分数。
+    2026-11-23 起不再在 S 之上叠加 SS/SSS。分数是必填参数——没有分数就没有等级。
     """
     from modules.scoring import grade_of
     all_incomplete = {
@@ -206,8 +206,9 @@ def test_grade_of_excludes_incomplete_tiers():
         'quality': {'score': 100, 'grade': 'S', 'locked': False, 'incomplete': False},
         'security': {'score': 70, 'grade': '—', 'locked': False, 'incomplete': True},
     }
-    # security 不参与 → 只有两层 S → 'SS'，不能因为缺一层就升成 'SSS'
-    assert grade_of(100, mixed, is_vip=True) == 'SS'
+    # security 查不全 → 只有两层 S；等级仍由分数读出来，给 'S'
+    # （不再叠加成 SS/SSS：这个叠加以「三层全 S」为判据，已证明判不住风险）
+    assert grade_of(100, mixed, is_vip=True) == 'S'
     # 分数没到 S 线时，三层再漂亮也不许给 S —— 等级是分数的读法，不是第二套算法
     assert grade_of(70, mixed, is_vip=True) == 'B'
 

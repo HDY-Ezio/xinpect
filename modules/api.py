@@ -1846,20 +1846,10 @@ def _derive_score_grade(results, issues):
         low = sum(1 for i in issues if isinstance(i, dict) and i.get('severity') in ('low', 'P3'))
         score = max(0, 100 - critical * 15 - high * 10 - medium * 5 - low * 2)
     if grade is None:
-        if score >= 95:
-            grade = 'SSS'
-        elif score >= 90:
-            grade = 'SS'
-        elif score >= 80:
-            grade = 'S'
-        elif score >= 70:
-            grade = 'A'
-        elif score >= 60:
-            grade = 'B'
-        elif score >= 40:
-            grade = 'C'
-        else:
-            grade = 'D'
+        # 这里原来是第二套等级表（95→SSS、90→SS、80→S、70→A…），
+        # 网页上传走 grade_of（95→S、80→A），同一份代码走 API 和走网页
+        # 会拿到两个不同的等级。等级只有一个出口，档位只能有一个来源。
+        grade = score_to_grade(int(round(float(score))))
     return score, grade
 
 
