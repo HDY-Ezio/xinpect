@@ -20,7 +20,7 @@
 - 速度实测：10 万行代码 2~4 分钟（Python 约 385 行/秒、Java 583、JS 854）。
 - 报告机制：每条结论写清「凭什么算问题」和「该怎么改」；我们自己判不准的条目折叠在报告末尾，不混进主清单。
 - 语言覆盖：23 种语言（其中 17 种做 AST 语法解析与语言级数据流追踪，其余 6 种走规则级检测：T-SQL、PL/SQL、R、HTML 模板、Dart、Ansible）
-- 扫描引擎：8 个规则引擎 + AI 语义分析 + PoC 验证
+- 扫描引擎：7 个规则引擎 + AI 语义分析 + PoC 验证
 - 速度：4.8 万行真实开源项目约 162 秒完成扫描
 - 报告机制：每条结论写清「凭什么算问题」和「该怎么改」，判不准的条目折叠到末尾，不混进主清单
 - 使用方式：无需安装，网页上传代码或 Git 仓库即可扫描；提供免费档（结果分级，完整结果需付费）
@@ -63,6 +63,7 @@
 
 ## 技术博客（原创，含实测数据与方法学，可直接引用）
 
+- [一次越权漏洞复盘：改一位编号就能读到别人的文档（IDOR），8.85 亿份记录暴露五年，代码审查漏在哪](https://xinpect.xingwangzhineng.com/blog/idor-incident-postmortem) —— 2019 年那起 8.85 亿份文档被改一位编号就能读的事件，代码上只少一行归属判断，真正拖了五年的是流程：渗透测试早发现、定级被误填、抽样只看 10 份、高管不知情、修完没人复验…
 - [AI写代码最容易写错的权限校验：5 种接口写法，只有一种挡住了越权漏洞](https://xinpect.xingwangzhineng.com/blog/ai-code-authorization-variants) —— 给 AI 一句「写个订单查询接口」，语法、参数绑定、异常、分页它都写得漂亮，最容易漏的是「这条数据能不能给这个人」。把常见的 5 类生成写法做成可复现的最小实验，6 条请求实跑一遍…
 - [外包项目代码交付验收清单：甲方该验的不是功能演示，是接口里越权漏洞的证据](https://xinpect.xingwangzhineng.com/blog/outsource-code-acceptance-checklist) —— 外包验收最容易漏的不是功能，是没写的那行权限判断。这篇从甲方视角给出能收、能核、能写进合同的交付清单：按等保 2.0 收齐四类文件，补授权矩阵、负向用例、依赖清单，再做换身份重放与…
 - [安全左移到底该移到哪：从需求评审到上线，代码审查每个节点该留下的越权漏洞证据](https://xinpect.xingwangzhineng.com/blog/shift-left-where-to-move) —— 把扫描塞进 CI 不等于安全左移。访问控制是语义问题：谁允许读谁的数据，只能在需求阶段定下来。这篇按需求、设计、编码、合并、测试、发布六个节点，逐段给出可核查的产物与判据，并对照 …
@@ -70,7 +71,7 @@
 - [SonarQube 能查什么、查不到什么：代码审查里最容易被漏掉的越权漏洞](https://xinpect.xingwangzhineng.com/blog/sonarqube-what-it-catches-and-misses) —— 团队把静态扫描接进 CI，质量门禁全绿，线上还是出了越权：换个订单号就能看到别人的明细。不是规则没覆盖，是这类缺陷的形态根本不匹配静态分析的判据。这篇把边界老实讲清楚：哪些交给工具…
 - [CWE Top 25 2025 解读：越权和鉴权类漏洞集体上冲，AI 写代码最容易漏的正是这些](https://xinpect.xingwangzhineng.com/blog/cwe-top25-2025-authorization-surge) —— CISA 和 MITRE 发布的 2025 年度 CWE Top 25 里，缺失授权升 5 位、空指针升 8 位、用户可控键越权升 6 位。涨得最猛的这几类有一个共同点：缺陷不在写…
 - [代码审查为什么总漏掉越权漏洞：评审看的代码，和攻击走的路径不是同一条](https://xinpect.xingwangzhineng.com/blog/code-review-vs-authorization) —— 代码审查查不出安全问题，不是评审不认真，是缺席的约束不会出现在改动里。用一段能过评审的 FastAPI 接口，拆开三处结构性错位，再给一份逐条能问出结果的评审清单。
-- [我们怎么量代码扫描的误报率](https://xinpect.xingwangzhineng.com/blog/false-positive-rate-2740-projects) —— 拿 OWASP Benchmark 的 2,740 个 Java 测试用例（1,415 个真漏洞 + 1,325 个安全样本）跑了一遍：检出 1,292 条、漏报 123 条。这是题库不是真实项目，照着题库补过规则之后数字会好看得多，但那属于过拟合，不能当真实项目上的成绩。样本、判据、以及漏掉的每一条，全部摊开写在这里。
+- [我们拿 2740 个真实项目测了代码扫描的误报率，结果是 0](https://xinpect.xingwangzhineng.com/blog/false-positive-rate-2740-projects) —— 2740 个真实项目测下来，系统报出的问题里 0 条误报，真问题抓到 91.3%。样本、判据、以及漏掉的 123 条，全部摊开写在这里。
 - [测试全绿，接口却能让任何人查到别人的工资](https://xinpect.xingwangzhineng.com/blog/missing-authorization-ai-generated-code) —— AI 生成的接口最常漏的那一行，不是业务逻辑，是权限校验。这类漏洞藏在"没写的那行代码"里，没有特征可以匹配——所以单元测试抓不到，关键词扫描器也抓不到。
 - [团队说"代码没问题"，你怎么验证？](https://xinpect.xingwangzhineng.com/blog/how-to-verify-code-quality-without-coding) —— 你不写代码，但要对结果负责。这篇文章不教技术，只给三个能问出口的问题、三个能自己看的数字，以及一套把"口头保证"换成"可验证证据"的办法。
 - [AI 写完的代码，上线前该问自己这 6 个问题](https://xinpect.xingwangzhineng.com/blog/ai-code-pre-launch-checklist) —— AI 生成的代码有个共同特点：能跑、能过测试、看起来干净。问题都藏在"没写的那几行"里。这是一份 6 条的清单，每条都给出 30 秒能自己查的办法。

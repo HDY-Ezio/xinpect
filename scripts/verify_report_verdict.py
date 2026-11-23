@@ -155,7 +155,7 @@ def _t_excluded_has_reason():
 def _t_gaps_change_headline():
     """有地方没查全时，第一句不许说「没有问题」。
 
-    实证：一份 8 个文件没解析、10 个引擎全部只查了一部分的报告，
+    实证：一份 8 个文件没解析、10 个大脑模块全部只查了一部分的报告，
     第一屏写着「太棒了！未检测到任何问题」，三层卡却标着「部分未检测」。
     """
     from modules.report_verdict import build

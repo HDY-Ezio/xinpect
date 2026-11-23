@@ -28,17 +28,9 @@ def load_items():
     with io.open(path, encoding="utf-8") as f:
         return [(it["href"], it["label"]) for it in json.load(f)["core"]]
 
-NUMBER_FIX = [
-    ("7 大规则引擎", "8 个规则引擎"),
-    ("7大规则引擎", "8 个规则引擎"),
-    ("七大规则引擎", "八个规则引擎"),
-    ("9,500+", "9,400+"),
-    ("支持23种", "支持17种"),
-    ("23 种主流", "17 种主流"),
-    ("23种主流", "17种主流"),
-    ("23 种语言", "17 种语言"),
-    ("23种语言", "17 种语言"),
-]
+# 数字口径不归这个脚本管（2026-11-23）：
+# 它这里原来既把 7 改成 8、又把 23 种改成 17 种，两个都是错的；
+# 谁重跑一次就把全站数字再写错一遍。数字只认 scripts/fix_outbound_numbers.py。
 
 
 def render_nav(items, active):
@@ -85,16 +77,6 @@ def patch(rel, active):
         print("  %s: 导航已按 site_nav.json 重建" % rel)
     else:
         print("  %s: 没找到导航块，跳过" % rel)
-
-    # 3) 数字口径
-    n = 0
-    for a, b in NUMBER_FIX:
-        c = s.count(a)
-        if c:
-            s = s.replace(a, b)
-            n += c
-    if n:
-        print("  %s: 数字修正 %d 处" % (rel, n))
 
     if s != orig:
         io.open(path, "w", encoding="utf-8").write(s)

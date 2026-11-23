@@ -48,7 +48,7 @@
           "name": {{ ("煋鉴能检测「" ~ vuln_name ~ "」吗？") | tojson }},
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": {{ ("能。煋鉴内置" ~ vuln_name ~ "（" ~ cwe ~ "）检测规则，8 个规则引擎 + AI 语义 + PoC 验证并行扫描，每条结论都写清凭什么算问题，支持 23 种编程语言，网页上传代码或 Git 仓库即可扫描，提供可直接试用的免费档。") | tojson }}
+            "text": {{ ("能。煋鉴内置" ~ vuln_name ~ "（" ~ cwe ~ "）检测规则，7 个规则引擎 + AI 语义 + PoC 验证并行扫描，每条结论都写清凭什么算问题，支持 23 种编程语言，网页上传代码或 Git 仓库即可扫描，提供可直接试用的免费档。") | tojson }}
           }
         },
         {
@@ -161,7 +161,7 @@
 
   <div class="seo-cta">
     <h2>让煋鉴帮你守住代码安全</h2>
-    <p>8 个规则引擎 + AI 语义 + PoC 验证，10 万行代码 <strong>2~4 分钟</strong>扫完，一次扫描覆盖 {{ vuln_name }} 等 20+ 类漏洞。</p>
+    <p>7 个规则引擎 + AI 语义 + PoC 验证，10 万行代码 <strong>2~4 分钟</strong>扫完，一次扫描覆盖 {{ vuln_name }} 等 20+ 类漏洞。</p>
     <div class="seo-cta-actions">
       <a href="/upload" class="seo-btn seo-btn-primary">免费扫描一次</a>
       <a href="/pricing" class="seo-btn seo-btn-ghost">查看定价</a>

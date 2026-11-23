@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""对外数字口径守卫（2026-11-22，客户评审录屏后补；同日二次修订）
+"""对外数字口径守卫（2026-11-22 建；2026-11-23 纠正引擎口径后重写）
 
-治的是什么：官网三个数字互相打架，且都比事实大：
-  · 引擎：engine/parallel_runner.BRAIN_MODULES = 1..8 + ai + poc → 8 个规则引擎 + 两道验证
-  · 规则：rules/*.json 去重后 9,481 条 → 对外写 9,400+
-  · 语言：对外 23 种 = 数据流/AST 级 17 种 + 规则级 6 种（T-SQL、PL/SQL、R、
-    HTML 模板、Dart、Ansible），跟 templates/help.html 里那份枚举一一对得上。
+治的是什么：官网三个数字互相打架，且都比事实大。
 
-⚠ 语言数这一条当天被改错过一次：有人拿 e1_syntax.registry.list_supported_langs
-的读数（17，而且还漏了 Dart）当成「全站语言数」，把 23 全改成了 17。
-**17 是 AST 那一层的窄口径，不是平台覆盖总数。** 判据放在这里就是防第二次：
-对外只认 23，出现「17 种语言」这种把窄口径当总数的说法必须判红。
+引擎数 = **7**，不是 8：
+  engine/parallel_runner.BRAIN_MODULES 有 8 个槽位，但槽 8 的模块路径是
+  `engine.e7_deployment_readiness`——它归属 E7。「ai」「poc」是两道智能验证，不是规则引擎。
+  design.md 里原本就写着：「运行时还有 8 号模块，它归属 E7，不是第 8 个引擎」。
+  ⚠ 2026-11-22 有人（我）数了 BRAIN_MODULES 的键，把全站 7 改成 8，还写了这一版守卫
+  去禁止 7——**守卫变成了错误的帮凶**。第二天被 verify_engine_claims.py 的运行时推导挡回来。
+  现在这条只禁 8，7 必须能过。
 
-判据只写「禁止什么」，不写「必须包含什么」——文案换说法不该判红，
-但把窄口径 / 旧的大数字写回去必须判红。
+规则数 9,481 条去重 → 对外 9,400+；语言 23 = AST/数据流级 17 + 规则级 6。
 
-为什么不写死新句子：写死「必须出现 8 个规则引擎」会把某一版文案固化成规矩，
-下次正常改文案就假红（历史上真发生过）。
-
+判据只写「禁止什么」，不写「必须包含什么」——文案换说法不该判红。
 运行：python3 -m pytest tests/test_outbound_numbers.py -q
 """
 import os
@@ -29,13 +25,12 @@ import pytest
 
 ROOT = os.environ.get("XINPECT_WEB_ROOT", "/opt/xinpect-website")
 
-# 禁止出现的旧/窄口径。每条都必须是「数字 + 名词」的完整说法，
-# 不能只写数字——不然日期、行号、别的统计都会误伤。
 FORBIDDEN = [
     (r"17\s*种\s*(?:主流)?(?:编程)?语言",
      "语言数写成 17 种（那是 AST 解析层的窄口径，对外总数是 23 = 17 AST + 6 规则级）"),
-    (r"七大规则引擎|7\s*大规则引擎|7\s*个规则引擎",
-     "引擎数写成 7 个（实测 8 个规则引擎 + AI + PoC）"),
+    (r"(?:八|8)\s*(?:大|个)\s*(?:规则)?引擎",
+     "引擎数写成 8（BRAIN_MODULES 有 8 个槽位，但 8 号模块路径是 e7_deployment_readiness，"
+     "归属 E7；规则引擎族只有 7 个）"),
     (r"9,?\s*500\s*\+", "规则数写成 9,500+（实测 9,481 条，对外口径 9,400+）"),
 ]
 
@@ -59,10 +54,17 @@ def _iter_files(root):
 
 
 def scan_text(text):
-    """返回命中的 [(说明, 命中原样)]。单一判据入口，测试与造坏自检共用。"""
+    """返回命中的 [(说明, 命中原样)]。单一判据入口，测试与造坏自检共用。
+
+    「不是第 8 个引擎」这种是在解释「8 号槽位不等于第 8 个引擎」，属于正确说法，
+    必须放过——否则守卫会逼着人把事实说明也删掉。
+    """
     hits = []
     for pat, why in FORBIDDEN:
         for m in re.finditer(pat, text):
+            head = text[max(0, m.start() - 4):m.start()].rstrip()
+            if why.startswith("引擎数") and head.endswith("第"):
+                continue
             hits.append((why, m.group(0)))
     return hits
 
@@ -80,7 +82,7 @@ def scan_root(root):
 
 
 def test_no_stale_outbound_numbers():
-    """全站模板与 llms.txt 不得再出现窄口径 / 旧的大数字。"""
+    """全站模板与 llms.txt 不得再出现错误口径（8 个引擎 / 17 种语言 / 9,500+）。"""
     root = ROOT
     if not os.path.isdir(os.path.join(root, "templates")):
         pytest.skip("找不到官网模板目录：%s" % root)
@@ -110,23 +112,25 @@ def test_help_enumeration_matches_declared_count():
         % (LANG_TOTAL, declared))
 
 
-def test_detector_can_fail(tmp_path):
-    """造坏自检：故意写回窄口径/旧口径，判据必须报出来。
+def test_detector_can_fail():
+    """造坏自检：故意写回错误口径，判据必须报出来。
 
     只让「没命中」等于绿是不够的——判据本身写错（比如正则拼错）也会一直绿。
     这里先证明它会红，再谈上面的绿有意义。
     """
-    bad_text = "支持 17 种语言，七大规则引擎，9,500+ 条规则"
+    bad_text = "支持 17 种语言，8 个规则引擎，9,500+ 条规则"
     hits = scan_text(bad_text)
     assert len(hits) == 3, "造坏样本应命中 3 类，实际 %d 类：%s" % (len(hits), hits)
 
 
 def test_clean_text_passes():
     """阴性对照：现在的正确说法不能被误判。"""
-    good = "8 个规则引擎 + AI 语义 + PoC 验证，9,400+ 条检测规则，23 种语言"
+    good = "7 个规则引擎 + AI 语义 + PoC 验证，9,400+ 条检测规则，23 种语言"
     assert scan_text(good) == []
     # 「上面列的 17 种有 AST 级解析」这种限定说法是对的，不许误伤
     assert scan_text("上面列的 17 种有 AST 级语法解析；另外 6 种走规则级检测") == []
+    # 「八号模块归属 E7」这类解释不是数量声明，不许误伤
+    assert scan_text("8 号模块 engine.e7_deployment_readiness 归属 E7，不是第 8 个引擎") == []
 
 
 if __name__ == "__main__":
