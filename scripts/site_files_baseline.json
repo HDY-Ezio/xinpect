@@ -1,5 +1,5 @@
 {
-  "count": 533,
+  "count": 534,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -139,6 +139,7 @@
     "scripts/scan_channel_notify.py": "e7ad814db5e04e18756aa60316f505d3",
     "scripts/scan_cost_report.py": "ee09d1837cb38df883699f39620d130c",
     "scripts/service_watchdog.sh": "aed0ae4894a3b1bfb3dd054618dce193",
+    "scripts/set_monitor_secret.py": "cf54a557680cbac7dc52e086b0288c26",
     "scripts/setup_backup.sh": "32e7e5b0f8cfb3907a19daa7cbc98f60",
     "scripts/site_nav.json": "e8ba512258a0e6ccb367242794f41d78",
     "scripts/style_baseline.json": "db40b48d98db311ec5d3659c5c6c005f",
@@ -535,7 +536,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T22:39:06+08:00",
+  "generated_at": "2026-11-23T23:08:29+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -552,9 +553,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "4d00ded75a1c4841b3dcf771fc0d3397c7bcf6f21f541a350b1f7cad1c832412",
+  "integrity": "91be010363b331fc1f567f8abf6abd41f6a6aa6aca567de9be2f75eb326a2947",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "私钥判据收紧：头部须跟 base64 正文，规则文件里的样本常量不再误判"
+  "task": "新增换授权码的命令行工具，新值不落 shell 历史"
 }
