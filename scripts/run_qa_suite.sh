@@ -131,34 +131,42 @@ echo "[$(date '+%F %T')] QA 巡检结束 rc=$QA_RC"
 if ! /usr/bin/python3 -c "import pytest" 2>/dev/null; then
     echo "[$(date '+%F %T')] ❌ pytest 不可用，扩展测试跳过（先装 python3-pytest）" | tee -a "$REPORTS/extended_tests.log"
     # 留存守卫自带 __main__，不依赖 pytest，单独跑一遍
-    /usr/bin/python3 tests/test_retention.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_beian.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_free_try_funnel.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_lang_detect.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_funnel_analytics.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_try_quota.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_engine_coverage.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_bb_dimension.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_scoring_single_source.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_retired_rules_gate.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_rule_semantic_gate.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_membership_reminder.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_membership_renewal.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_paid_fulfillment.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_scan_cache_retention.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_cron_jobs_liveness.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_selfcheck_alerts.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_offsite_backup.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_uptime_watchdog.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_payment_reconcile.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_scan_cost_report.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_health_check_budget.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_scan_chunk_yield.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_dispatcher_import_safety.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_template_attr_blocks.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_narrow_toolbar_wrap.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    /usr/bin/python3 tests/test_no_db_dumps_tracked.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
-    PY_RC=${PIPESTATUS[0]}
+    PY_RC=0
+    # 逐条累积退出码：以前这里串跑 28 条只取最后一条的 PIPESTATUS，
+    # 前面坏了也照样绿（2026-11-23 修）。
+    for _t in \
+        test_retention.py \
+        test_beian.py \
+        test_free_try_funnel.py \
+        test_lang_detect.py \
+        test_funnel_analytics.py \
+        test_try_quota.py \
+        test_engine_coverage.py \
+        test_bb_dimension.py \
+        test_scoring_single_source.py \
+        test_retired_rules_gate.py \
+        test_rule_semantic_gate.py \
+        test_membership_reminder.py \
+        test_membership_renewal.py \
+        test_paid_fulfillment.py \
+        test_scan_cache_retention.py \
+        test_cron_jobs_liveness.py \
+        test_selfcheck_alerts.py \
+        test_offsite_backup.py \
+        test_uptime_watchdog.py \
+        test_payment_reconcile.py \
+        test_scan_cost_report.py \
+        test_health_check_budget.py \
+        test_scan_chunk_yield.py \
+        test_dispatcher_import_safety.py \
+        test_template_attr_blocks.py \
+        test_narrow_toolbar_wrap.py \
+        test_no_db_dumps_tracked.py \
+        test_repo_secrets_guard.py
+    do
+        /usr/bin/python3 "tests/$_t" 2>&1 | tee -a "$REPORTS/extended_tests.log"
+        [ "${PIPESTATUS[0]}" -ne 0 ] && PY_RC=1
+    done
 
 else
     /usr/bin/python3 -m pytest \
@@ -196,6 +204,7 @@ else
         tests/test_template_attr_blocks.py \
         tests/test_narrow_toolbar_wrap.py \
         tests/test_no_db_dumps_tracked.py \
+        tests/test_repo_secrets_guard.py \
         -q --tb=line 2>&1 | tee -a "$REPORTS/extended_tests.log"
     PY_RC=${PIPESTATUS[0]}
 fi

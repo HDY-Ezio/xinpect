@@ -25,31 +25,10 @@ import pytest
 
 ROOT = os.environ.get("XINPECT_WEB_ROOT", "/opt/xinpect-website")
 
-# 数据库转储 / 备份校验文件：全路径匹配
-FORBIDDEN = [
-    (re.compile(r"(^|/)backups/"), "备份目录整个不许进仓库"),
-    (re.compile(r"\.db$", re.I), "SQLite 库文件"),
-    (re.compile(r"\.db\.gz$", re.I), "gzip 过的 SQLite 库文件"),
-    (re.compile(r"\.sqlite3?$", re.I), "SQLite 库文件"),
-    (re.compile(r"\.dump$", re.I), "数据库转储"),
-    (re.compile(r"\.md5$", re.I), "备份校验文件"),
-]
-
-# 这些路径带 .sql 之类但是源码/文档，不许误伤
-ALLOW = re.compile(r"(schema|migration|\.sql$)", re.I)
-
-
-def scan(paths):
-    """返回 [(路径, 原因)]。纯函数，测试和造坏自检共用同一个判据。"""
-    hits = []
-    for p in paths:
-        if ALLOW.search(p) and not re.search(r"(^|/)backups/", p):
-            continue
-        for rx, why in FORBIDDEN:
-            if rx.search(p):
-                hits.append((p, why))
-                break
-    return hits
+# 判据的单一事实来源：文件名规则住在 scripts/verify_repo_secrets.py。
+# 这里只做 pytest 包装，不再另存一份——两份规则必然分叉，分叉后总有一边是假的。
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+from verify_repo_secrets import scan_paths as scan  # noqa: E402
 
 
 def tracked_files(root):
