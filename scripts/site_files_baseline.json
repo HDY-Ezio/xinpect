@@ -1,5 +1,5 @@
 {
-  "count": 526,
+  "count": 527,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -64,13 +64,13 @@
     "modules/referral.py": "6b171d9e0e19b7232a26d764915cafac",
     "modules/report_verdict.py": "bcd178f740d55f8b075efee0f05292c8",
     "modules/result_retention.py": "dc9cb231d806c27d0d5d19b136c8a08b",
-    "modules/rule_kind.py": "8342181a41d1efc1246027352e3613d8",
-    "modules/scan.py": "58d5b1f3111c25fe4c9398436f2efd49",
+    "modules/rule_kind.py": "6860c023ab9a53767aabbabe9de0f727",
+    "modules/scan.py": "d0cf84a3b25307637604990d6d144779",
     "modules/scan_diff.py": "258714c0ff8328a67d04fe9e79735af4",
     "modules/scan_progress_bridge.py": "03905801770c1a6301c8d64d1485e1ac",
     "modules/scan_worker.py": "d218e5ffcb7122a6e80d7e972661619e",
     "modules/scanner.py": "cc44d541ad6a2133c44ed4bb430b7b70",
-    "modules/scoring.py": "01480cbc6eb885fbf5f8d6f63cb0edd9",
+    "modules/scoring.py": "5ef2bfc26148dae520bd2b7f550deef6",
     "modules/seo.py": "939d07be9fc95d4592a1bfc9c6170931",
     "modules/team.py": "680f51a5fafbdc2bcaddaacfcb01810c",
     "modules/team_governance.py": "1d50a0ae3c7404d43b9a18fe9aab4bed",
@@ -150,7 +150,7 @@
     "scripts/verify_repo_secrets.py": "68caab86cf3847311887dbb63029e50c",
     "scripts/verify_report_dims_e2e.py": "d8d767fdd1c4a00c0909cc8fbf87e56e",
     "scripts/verify_report_verdict.py": "96fef88bf9e40f577098850fc14c8a9c",
-    "scripts/verify_rule_kind_sync.py": "e232e3c0e2ce6023a763343fcf965292",
+    "scripts/verify_rule_kind_sync.py": "e4edb42a0fa19d8f23c8067e749cf7b7",
     "scripts/visitor_report.py": "d351cbbca149705ed18125b738bcf1bc",
     "scripts/watchdog_ping.py": "3dd0570b4f4b376aa49425ab848c8c8d",
     "scripts/xinpect-cli.py": "a85b2d088cd4ad2512676355146d3a39",
@@ -454,8 +454,8 @@
     "templates/onboarding.html": "166be6808d9e9775aad1ca0159d79233",
     "templates/pricing.html": "c0cd428172015eb4b0a362a9c146cbff",
     "templates/register.html": "0c556d78d36b66370efb1536566dda83",
-    "templates/report.html": "074384424c79e160d6e2006447660772",
-    "templates/report_shared.html": "efc63f36983b06af5c204f831c0ce595",
+    "templates/report.html": "bf6131cd6d4c5a74ee52bc780e337d09",
+    "templates/report_shared.html": "2ef65ac517382c7459d28e0780c700c3",
     "templates/sample_report.html": "6b5dfe0980ecd67728d4b2fae6b5efb6",
     "templates/seo_detect.html": "3f600d89b09c8d82b1edfe3ab0da3c38",
     "templates/seo_index.html": "1807559f13714cae022092e1d5ab1215",
@@ -506,6 +506,7 @@
     "tests/test_scoring_single_source.py": "9ef258bc823f771677db688ad8051054",
     "tests/test_security_extended.py": "a1abdb9420bfaa762032c9e38b6a24b6",
     "tests/test_selfcheck_alerts.py": "15190a3fedfc2e40b2317799c810e4b4",
+    "tests/test_style_not_scored.py": "c9891c9f2f4244bab4fc35eca9f728b0",
     "tests/test_template_attr_blocks.py": "fc227ce080af1f5bcf5e9d4ad7698a99",
     "tests/test_try_quota.py": "9467f4f694864804ae837d5e7e7d5335",
     "tests/test_upgrade_url_is_reachable.py": "823edd656d6c09446ae7281393b33907",
@@ -528,7 +529,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-23T14:45:08+08:00",
+  "generated_at": "2026-11-23T15:31:40+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -545,9 +546,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "3d397858efa51c3a54ead112e6a9379bb66d40c5a415fadec20376c41a883b83",
+  "integrity": "9ff669aafd1e1765c34ef44f4f430de2244bcbae1d786e1e8d1722ebc82c0b39",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "brain_label 把扫描器槽位 8 归并到 E5，消除报告里的裸数字 8；新增回归测试"
+  "task": "规范/风格类不参与扣分：分类器加 is_style_rule，scoring 剔除，报告页区分待修与改善建议"
 }

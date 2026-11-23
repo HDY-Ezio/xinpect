@@ -19,6 +19,9 @@
     不是降噪没做好，是报告只有「多严重」，没有「什么性质」。
 """
 
+import re
+
+
 VULNERABILITY = "vulnerability"
 BUG = "bug"
 CODE_SMELL = "code_smell"
@@ -31,12 +34,39 @@ CATEGORY_LABELS = {
 
 # 规则族里明确属于安全攻防的记号（安全类别名，不是误报豁免名单）
 _SECURITY_FAMILY_MARKERS = (
-    "CWE-", "TAINT", "SSRF", "CSRF", "XSS", "INJECT",
+    "SEC", "CWE-", "TAINT", "SSRF", "CSRF", "XSS", "INJECT",
     "TRAVERSAL", "DESERIALIZE", "XXE", "PATH-TRAVERSAL",
 )
 
 # 优化与维护性规则族：出现在任何引擎里都算优化建议
 _SMELL_PREFIXES = ("PERF-", "QUAL-", "CQ-", "ARCH-")
+
+# 规范与风格族：命名、代码组织、复杂度、行宽这类「不修也能跑」的问题。
+# 它们照常检测、照常列出、照常给改善建议，但**不参与扣分与评级**。
+#（2026-11-23 定：这类问题占全部命中的 83%，却只占扣分贡献的中位数 20%，
+#  让它们参与打分只会把写得干净的代码压成不及格。）
+# 与 _SMELL_PREFIXES 的区别：那组是「优化建议」——含 PERF / ARCH，都是真问题，
+# 该扣分；这一组只收纯风格。安全族记号优先，真漏洞不许被当成风格放过。
+_STYLE_FAMILY_MARKERS = ("QLT", "NAM", "SYN", "SIMP", "QUAL", "CQ")
+
+
+def is_style_rule(check_id):
+    """这条规则是否属于纯规范/风格类（不参与扣分）。
+
+    按规则 ID 里的族记号判定，不能用 startswith —— 规则 ID 形如
+    `B3-JAVA-QLT-003` / `E3-PERF-JAVA-QLT-003`，族记号在中间。
+
+    安全记号优先：ID 里同时出现安全族与风格族时，一律按安全算。
+    `B3-SEC-JVDC-001`（Java 不安全反序列化链）当初被引擎标成了 style，
+    若只按 severity 切，这条真漏洞会跟着一起被放过。
+    """
+    cid = str(check_id or "").upper()
+    if not cid:
+        return False
+    for marker in _SECURITY_FAMILY_MARKERS:
+        if marker in cid:
+            return False
+    return any(p in _STYLE_FAMILY_MARKERS for p in re.split(r"[-_]", cid) if p)
 
 # 引擎身份 → 类型（键与扫描器 BRAIN_NAMES 一一对应）
 _BRAIN_CATEGORY = {
@@ -92,3 +122,4 @@ def kind_of_issue(issue):
         return cat
     rid = issue.get("rule_id") or issue.get("check_id") or ""
     return category_of(rid, issue.get("brain_id"))
+

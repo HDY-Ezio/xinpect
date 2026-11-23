@@ -29,7 +29,8 @@ SCANNER = os.environ.get("XINPECT_SCANNER_ROOT", "/opt/xinpect-scanner-blue")
 COPY = os.path.join(WEBSITE, "modules", "rule_kind.py")
 SOURCE = os.path.join(SCANNER, "engine", "rule_taxonomy.py")
 
-WATCHED = ("_SECURITY_FAMILY_MARKERS", "_SMELL_PREFIXES", "_BRAIN_CATEGORY")
+WATCHED = ("_SECURITY_FAMILY_MARKERS", "_SMELL_PREFIXES", "_BRAIN_CATEGORY",
+           "_STYLE_FAMILY_MARKERS")
 
 
 class Unevaluable(Exception):
@@ -125,7 +126,7 @@ def main():
         print("\n结果：%d 项漂移 —— 改一处必须同步另一处" % len(problems))
         return 1
 
-    print("\n结果：3 个常量与扫描器原件逐项一致")
+    print("\n结果：%d 个常量与扫描器原件逐项一致" % len(WATCHED))
     return 0
 
 

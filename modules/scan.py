@@ -18,6 +18,8 @@ from flask import (
 )
 
 from .scan_worker import job_manager, init_scan_tables
+# 规范/风格类不参与扣分（2026-11-23），卡片上要把两类问题分开显示
+from .rule_kind import is_style_rule
 from .constants import (
     app, logger, DB_PATH,
     BRAINS, BRAINS_MAP, TIERS, TIERS_MAP, brain_label,
@@ -296,6 +298,9 @@ def _build_dimensions(all_issues, vip, engines=None, unsupported=0, trimmed=0):
     dimensions = []
     for brain in BRAINS:
         brain_issues = [i for i in all_issues if str(i.get('brain_id')) == brain['id']]
+        # 参与打分的问题（真缺陷/漏洞），与只作改善建议的风格类分开
+        brain_scored = [i for i in brain_issues
+                        if not is_style_rule(i.get('rule_id') or i.get('check_id'))]
         is_locked = (not vip) and (brain['id'] not in FREE_BRAIN_ID_SET)
         state, status_text = _dim_card_state(
             engines, brain['id'], unsupported, trimmed
@@ -313,6 +318,8 @@ def _build_dimensions(all_issues, vip, engines=None, unsupported=0, trimmed=0):
                 'id': brain['id'], 'code': brain.get('code', brain['id']), 'name': brain['name'],
                 'score': '—', 'score_color': '#6b7280',
                 'issues_count': len(brain_issues), 'locked': False,
+                'scored_count': len(brain_scored),
+                'style_count': len(brain_issues) - len(brain_scored),
                 'status_text': status_text, 'not_run': True,
             })
         else:
@@ -321,6 +328,8 @@ def _build_dimensions(all_issues, vip, engines=None, unsupported=0, trimmed=0):
                 'id': brain['id'], 'code': brain.get('code', brain['id']), 'name': brain['name'],
                 'score': dim_score, 'score_color': score_color(dim_score),
                 'issues_count': len(brain_issues), 'locked': False,
+                'scored_count': len(brain_scored),
+                'style_count': len(brain_issues) - len(brain_scored),
                 'status_text': status_text, 'not_run': False,
             })
     return dimensions

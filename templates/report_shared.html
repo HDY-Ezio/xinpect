@@ -559,6 +559,9 @@
                 </div>
             </div>
         </div>
+        <div style="max-width:900px;margin:0 auto 14px;font-size:12px;line-height:1.7;opacity:.72;text-align:center;">
+            分数只统计<b>需要修复的缺陷</b>——安全漏洞、逻辑错误、性能问题；命名、嵌套深度、方法长度等风格建议照常列出，但不参与打分。
+        </div>
         <div class="stats-row">
             <div class="stat-card"><div class="stat-num total">{{ issues|length }}</div><div class="stat-label">问题总数</div></div>
             <div class="stat-card"><div class="stat-num critical">{{ critical|length }}</div><div class="stat-label">严重问题</div></div>

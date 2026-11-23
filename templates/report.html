@@ -408,6 +408,12 @@ function expandFix(btn) {
             上面的修复清单只列必须修和建议改。两个数字不一样是正常的，不是漏报。
         </div>
         {% endif %}
+        <div style="font-size:12px;color:var(--color-v-868e96);line-height:1.7;margin:0 0 10px;padding:8px 12px;background:var(--color-v-f8f9fb);border-radius:8px;">
+            <b>分数只统计需要修复的缺陷</b>——安全漏洞、逻辑错误、性能问题。
+            代码风格与规范建议（命名、嵌套深度、方法长度、行宽等）照常列在下面、附改善方向，
+            但<b>不参与打分</b>：这类建议值得慢慢改，不该把一个项目压成不及格。
+            卡片上的「待修」是参与评分的那部分，「改善建议」是只作提示的那部分。
+        </div>
         <div class="dimensions-grid">
             {% for dim in dimensions %}
             <div class="dimension-card {% if dim.locked %}locked{% endif %} {% if loop.first %}active{% endif %}" data-brain="{{ dim.id }}">
@@ -435,7 +441,7 @@ function expandFix(btn) {
                 {% if dim.not_run %}
                 <div class="dimension-issues-count" style="color: var(--color-warning);">{{ dim.status_text }}（无结果）</div>
                 {% else %}
-                <div class="dimension-issues-count">{{ dim.issues_count }} 个问题{% if dim.status_text %} · <span style="color: var(--color-warning);">{{ dim.status_text }}</span>{% endif %}</div>
+                <div class="dimension-issues-count">{{ dim.scored_count }} 个待修问题{% if dim.style_count %} · {{ dim.style_count }} 条改善建议{% endif %}{% if dim.status_text %} · <span style="color: var(--color-warning);">{{ dim.status_text }}</span>{% endif %}</div>
                 {% endif %}
                 {% endif %}
             </div>

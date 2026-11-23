@@ -21,6 +21,9 @@ from .constants import (
     SUBSCRIPTION_CREDITS, CREDIT_PACKS,
 )
 from .db import get_db
+# 规范/风格类不参与扣分（2026-11-23）：判据只认 rule_kind 一份，
+# 和扫描器 engine/rule_taxonomy.py 由 verify_rule_kind_sync.py 对齐。
+from .rule_kind import is_style_rule
 from .helpers import is_vip_user
 # 2026-11-04: 维度「查没查」的判据只有 modules/dimensions.py 一份。
 # 试扫页和正式报告页都从这里读，避免同一份台账两套口径。
@@ -1246,6 +1249,13 @@ def calculate_score(issues, available_brain_ids=None, include_excluded=False):
         issues = [i for i in issues if not _is_review_excluded(i)]
     if available_brain_ids:
         issues = [i for i in issues if str(i.get('brain_id', '')) in available_brain_ids]
+
+    # 规范与风格类不参与扣分（2026-11-23 定）。
+    # 它们照常检测、照常列在报告里、照常给改善建议，但不许把分数拉下来：
+    # 这类问题占全部命中的 83%，却只贡献了扣分的中位数 20%，让它们参与打分
+    # 只会把写得干净的代码压成不及格。判据只认 rule_kind.is_style_rule 一份。
+    issues = [i for i in issues
+              if not is_style_rule(i.get('rule_id') or i.get('check_id'))]
 
     critical_count = sum(1 for i in issues if i.get('severity') == 'critical' or i.get('severity') == 'blocker')
     high_count = sum(1 for i in issues if i.get('severity') in ('high', 'suspicious'))
