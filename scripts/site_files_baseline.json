@@ -47,7 +47,7 @@
     "modules/feedback.py": "e7ddce46c286e21648a22aed97023ca1",
     "modules/fix.py": "11a6c3509ebac11635bdcbe6b587b7f4",
     "modules/fix_roadmap.py": "c0a3676350753f08db95b3e81d6f9f06",
-    "modules/free_try.py": "7ed89e36210c89f76cb56a13d381128e",
+    "modules/free_try.py": "73cc0927867e1382a446e0d05f7f564c",
     "modules/git_integration.py": "f2b820bc1569ed488770bd8b27024c79",
     "modules/github_oauth.py": "c4093480f08ca0f7c55df951b2168887",
     "modules/helpers.py": "fd96fe4f6e296b310cb499005e7e83f2",
@@ -74,7 +74,7 @@
     "modules/team.py": "680f51a5fafbdc2bcaddaacfcb01810c",
     "modules/team_governance.py": "1d50a0ae3c7404d43b9a18fe9aab4bed",
     "modules/trends.py": "48f8fd4125aa7ac1f5ff66bc29fd5f57",
-    "modules/visitor_analytics.py": "a7ee5cab490d09a31ee8d06c07d67539",
+    "modules/visitor_analytics.py": "34841847db2781e7649b6ab9f06bc1cf",
     "modules/visitor_scope.py": "260b0a39cc1eae05fc8b37ca1124ae06",
     "modules/webhook_manager.py": "4f9f6b29675abcf599acd2c667b62780",
     "monitoring/full_scan.py": "61171b065cfde9a4129d2c056e0f6da8",
@@ -537,7 +537,7 @@
     "tests/verify_visitor_scope.py": "9f506e71d10864012eb50e46cd594fbe",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-24T03:31:16+08:00",
+  "generated_at": "2026-11-24T03:45:49+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -554,9 +554,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "e0cc54777a3d5cd79ec9ae890b76c79accbec845d0192612bcae628eca50826e",
+  "integrity": "aef0a9846c72ff29af3fa0cdb36e2b9084bad75ab87cad684271be4359197575",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "访客口径：剔除一次一换 cookie 的机器，报表显式报出剔除量"
+  "task": "更正两处关于真实 IP 的过时断言（sslh 已不生效，443 由 nginx 直接监听）"
 }
