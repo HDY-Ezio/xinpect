@@ -6,3 +6,8 @@ __pycache__/
 *.log
 .DS_Store
 status/
+backups/
+*.db.gz
+*.sqlite3
+*.dump
+*.md5

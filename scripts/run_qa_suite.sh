@@ -157,6 +157,7 @@ if ! /usr/bin/python3 -c "import pytest" 2>/dev/null; then
     /usr/bin/python3 tests/test_dispatcher_import_safety.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_template_attr_blocks.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     /usr/bin/python3 tests/test_narrow_toolbar_wrap.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
+    /usr/bin/python3 tests/test_no_db_dumps_tracked.py 2>&1 | tee -a "$REPORTS/extended_tests.log"
     PY_RC=${PIPESTATUS[0]}
 
 else
@@ -194,6 +195,7 @@ else
         tests/test_scan_cost_report.py \
         tests/test_template_attr_blocks.py \
         tests/test_narrow_toolbar_wrap.py \
+        tests/test_no_db_dumps_tracked.py \
         -q --tb=line 2>&1 | tee -a "$REPORTS/extended_tests.log"
     PY_RC=${PIPESTATUS[0]}
 fi
