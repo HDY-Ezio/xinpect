@@ -37,8 +37,16 @@ SECURITY_BRAINS = ("2", "8", "9", "10")
 
 # 告警邮件（与 critical_path_monitor 同一通道）
 ADMIN_EMAIL = "hdyabcd@163.com"
-SMTP_SERVER, SMTP_PORT, SMTP_USER = "smtp.163.com", 465, "hdyabcd@163.com"
-SMTP_PASS = os.environ.get("SMTP_PASSWORD", "")
+
+# 凭据只从仓库外读（2026-11-23）：授权码原先写死在这里，随代码进了公开仓库。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from secrets_env import load as _load_secrets  # noqa: E402
+
+_SECRETS = _load_secrets()
+SMTP_SERVER = _SECRETS.get('SMTP_HOST') or 'smtp.163.com'
+SMTP_PORT = int(_SECRETS.get('SMTP_PORT') or 465)
+SMTP_USER = _SECRETS.get('SMTP_USER', '')
+SMTP_PASS = _SECRETS.get('SMTP_PASSWORD', '')
 
 EXT = {"py": ".py", "js": ".js", "java": ".java", "rs": ".rs", "go": ".go"}
 
@@ -106,6 +114,9 @@ def send_alert(subject, body):
         msg["Subject"] = "[煋鉴P1告警] " + subject
         msg["From"] = SMTP_USER
         msg["To"] = ADMIN_EMAIL
+        if not SMTP_USER or not SMTP_PASS:
+            print("[ALERT-SKIP] 凭据未配置，告警邮件未发送:", subject)
+            return
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as s:  # 2026-10-23 修复：加超时防挂死
             s.login(SMTP_USER, SMTP_PASS)
             s.send_message(msg)

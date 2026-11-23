@@ -53,9 +53,19 @@ FILE_ALLOW = re.compile(r"(schema|migration|\.sql$)", re.I)
 # 试验抓到：装好钩子后连「添加守卫」这个提交都推不上去）。
 _BEGIN = "-" * 5 + "BEGIN "
 _END = "PRIVATE KEY" + "-" * 5
+# 邮箱授权码：判「变量名 = 字符串字面量」这个形态，不判字段名。
+# 2026-11-23：三个监控脚本把 163 授权码写死在源码里并进了公开仓库，此前无人守。
+# 变量名与引号都拆开拼，否则这行本身就成了被禁的东西。
+_MAIL_VARS = "|".join(["smtp_" + "pass", "smtp_" + "password", "mail_" + "pass",
+                       "email_" + "password", "mail_" + "auth_code"])
+_Q = chr(34) + chr(39)
+_MAIL_LITERAL = r"\b(?:%s)\b\s*[=:]\s*[%s][^%s\s]{8,}[%s]" % (_MAIL_VARS, _Q, _Q, _Q)
+
 CONTENT_RULES = [
     (re.compile(r"\bxk_[0-9a-f]{32}\b"), "明文 API Key"),
     (re.compile(re.escape(_BEGIN) + r"(?:RSA |OPENSSH |EC |DSA )?" + re.escape(_END)), "私钥"),
+    # 第三位 True = 落在字符串字面量里时不算，见 _in_string_literal
+    (re.compile(_MAIL_LITERAL, re.I), "写死的邮箱授权码", True),
 ]
 
 # 二进制判定：前 8000 字节里有 NUL 就跳过内容扫描（内容规则对压缩字节无意义）
@@ -76,11 +86,30 @@ def scan_paths(paths):
     return hits
 
 
+def _in_string_literal(text, pos):
+    """pos 是否落在同一行的字符串字面量内部：数该行 pos 之前的未转义引号。
+
+    用途：基准题库里 'code_snippet':'SMTP_PASSWORD = "MyEmailP@ss2024!"' 这类
+    合成样本，整段本身是一个字符串值。它不是赋值语句，不该判成泄露。
+    多行三引号有盲区（按行计数），那种写法里几乎不会出现完整的
+    「变量名 = 带引号的值」形态，宁可漏报，不误伤题库。
+    """
+    line_start = text.rfind("\n", 0, pos) + 1
+    prefix = text[line_start:pos]
+    for esc in ('\\"', "\\'"):
+        prefix = prefix.replace(esc, "")
+    return (prefix.count(chr(39)) % 2 == 1) or (prefix.count(chr(34)) % 2 == 1)
+
+
 def scan_text(text):
     """按内容规则扫文本，返回 [(原因, 脱敏片段)]。"""
     hits = []
-    for rx, why in CONTENT_RULES:
+    for rule in CONTENT_RULES:
+        rx, why = rule[0], rule[1]
+        strict = len(rule) > 2 and rule[2]
         for m in rx.finditer(text):
+            if strict and _in_string_literal(text, m.start()):
+                continue
             s = m.group(0)
             # 片段脱敏：只露前 8 个字符，日志里不留可直接使用的凭据
             hits.append((why, s[:8] + "…" if len(s) > 8 else s))
@@ -319,6 +348,32 @@ def self_test(verbose=True):
         r = _mk_repo([{"a.py": "x = 1\n"}])
         return bool(check_allowlist_alive(r, {"0" * 40: {}}))
 
+    def case_mail_literal():
+        """写死的邮箱授权码必须判红。变量名和引号都拆开拼，别把自测样本扫成命中。"""
+        src = "%s = %s%s%s\n" % ("SMTP_" + "PASS", chr(39), "a1b2c3d4e5f6g7h8", chr(39))
+        r = _mk_repo([{"monitor.py": src}])
+        f, _ = scan_index(r)
+        return any(x["reason"] == "写死的邮箱授权码" for x in f)
+
+    def case_mail_inside_string():
+        """题库形态：整段是一个字符串值，里面的假凭据不许判红。
+
+        样本拆开拼，别让守卫把自己的自测样本扫成命中。
+        """
+        v = "SMTP_" + "PASSWORD"
+        snippet = "'code_snippet':'%s = %sabc12345%s'" % (v, chr(39), chr(39))
+        r = _mk_repo([{"gen.py": "samples.append({%s})\n" % snippet}])
+        f, _ = scan_index(r)
+        return not f
+
+    def case_mail_from_env():
+        """从环境变量/配置读授权码的写法不许判红——只有字面量才算。"""
+        src = ("PASS = os.environ.get(\"SMTP_\" + \"PASSWORD\", \"\")\n"
+               "pwd = cfg[\"smtp_\" + \"pass\"]\n")
+        r = _mk_repo([{"monitor.py": src}])
+        f, _ = scan_index(r)
+        return not f
+
     def case_self_clean():
         """守卫自己的源码不许被判红：否则装上钩子后，连「添加守卫」这个提交都推不上去。"""
         with open(os.path.abspath(__file__), encoding="utf-8") as fh:
@@ -330,6 +385,9 @@ def self_test(verbose=True):
     check("阴性对照：拼 key 的代码与 schema.sql 不许判红", case_negative_control)
     check("历史里删掉的 Key 必须靠历史扫描抓到", case_history_only)
     check("白名单过期条目必须被识别", case_stale_allowlist)
+    check("写死的邮箱授权码必须判红", case_mail_literal)
+    check("题库形态：字符串里的假凭据不许判红", case_mail_inside_string)
+    check("阴性对照：从环境变量读授权码不许判红", case_mail_from_env)
     check("守卫自己的源码不许被判红", case_self_clean)
 
     if verbose:

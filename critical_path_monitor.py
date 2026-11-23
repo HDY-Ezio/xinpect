@@ -19,10 +19,16 @@ from email.mime.text import MIMEText
 DB_PATH = '/opt/xinpect-website/xinpect.db'
 STATE_FILE = '/opt/xinpect-website/critical_path_state.json'
 ADMIN_EMAIL = 'hdyabcd@163.com'
-SMTP_SERVER = 'smtp.163.com'
-SMTP_PORT = 465
-SMTP_USER = 'hdyabcd@163.com'
-SMTP_PASS = os.environ.get('SMTP_PASSWORD', '')
+
+# 凭据只从仓库外读（2026-11-23）：授权码原先写死在这里，随代码进了公开仓库。
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'monitoring'))
+from secrets_env import load as _load_secrets  # noqa: E402
+
+_SECRETS = _load_secrets()
+SMTP_SERVER = _SECRETS.get('SMTP_HOST') or 'smtp.163.com'
+SMTP_PORT = int(_SECRETS.get('SMTP_PORT') or 465)
+SMTP_USER = _SECRETS.get('SMTP_USER', '')
+SMTP_PASS = _SECRETS.get('SMTP_PASSWORD', '')
 
 def load_state():
     if os.path.exists(STATE_FILE):
@@ -53,7 +59,10 @@ def send_alert(subject, body):
         msg['Subject'] = f'[煋鉴告警] {subject}'
         msg['From'] = SMTP_USER
         msg['To'] = ADMIN_EMAIL
-        
+        if not SMTP_USER or not SMTP_PASS:
+            _log('[ALERT-SKIP] 凭据未配置，告警邮件未发送: ' + subject)
+            return
+
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as server:  # 2026-10-23 修复：加超时防SMTP挂死
             server.login(SMTP_USER, SMTP_PASS)
             server.send_message(msg)

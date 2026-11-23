@@ -26,8 +26,16 @@ SLO_AVAIL = 99.9
 SLO_TIMEOUT_MAX = 0.5      # 超时率上限 %
 TIMEOUT_MS = 300000
 BRAINS = ("1", "2", "3", "4", "5", "6", "7")
-SMTP_HOST = "smtp.163.com"; SMTP_PORT = 465
-SMTP_USER = "hdyabcd@163.com"; SMTP_PASS = os.environ.get("SMTP_PASSWORD", ""); ALERT_TO = "hdyabcd@163.com"
+# 凭据只从仓库外读（2026-11-23）：授权码原先写死在这里，随代码进了公开仓库。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from secrets_env import load as _load_secrets  # noqa: E402
+
+_SECRETS = _load_secrets()
+SMTP_HOST = _SECRETS.get('SMTP_HOST') or 'smtp.163.com'
+SMTP_PORT = int(_SECRETS.get('SMTP_PORT') or 465)
+SMTP_USER = _SECRETS.get('SMTP_USER', '')
+SMTP_PASS = _SECRETS.get('SMTP_PASSWORD', '')
+ALERT_TO = _SECRETS.get('ALERT_TO') or 'hdyabcd@163.com'
 
 def now_cn():
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
@@ -92,6 +100,9 @@ def save_state(st):
     return write_json(STATE, st, label="SLO 状态")
 
 def send_alert(subj, body):
+    if not SMTP_USER or not SMTP_PASS:
+        print("[ALERT-SKIP] 凭据未配置，告警邮件未发送:", subj)
+        return
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = Header(subj, "utf-8"); msg["From"] = SMTP_USER; msg["To"] = ALERT_TO
     with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30) as s:  # 2026-10-23 修复：加超时防SMTP挂死
