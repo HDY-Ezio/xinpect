@@ -8,6 +8,8 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from flask import session, request
 
+from .report_verdict import severity_rank
+
 from .constants import (
     app, logger,
     FREE_BRAIN_IDS, FREE_BRAIN_ID_SET, ALL_BRAIN_IDS, BRAINS, BRAINS_MAP, brain_label,
@@ -1223,13 +1225,33 @@ def brain_label_filter(brain_id):
     return brain_label(brain_id)
 
 
-_SEVERITY_BUCKET = {
-    'blocker': 'blocker', 'critical': 'critical',
-    'high': 'high', 'suspicious': 'high',
-    'medium': 'medium', 'correctness': 'medium', 'restriction': 'medium',
-    'warning': 'medium',
-    'low': 'low', 'info': 'low', 'minor': 'low',
-}
+# 落库的 severity 混着两套写法：四级档位（correctness / suspicious /
+# style / restriction）与五级严重度（critical / high / medium / low / info）。
+# 对应关系只认一个地方：`report_verdict.severity_rank`。
+#
+# 2026-11-23 之前这张表自己排了一遍，而且和 report_verdict 正好相反：
+#   这里  correctness → medium、suspicious → high
+#   那边  correctness → 3（与 high 同档）、suspicious → 2（与 medium 同档）
+# 同一份代码两张反向表：报告页写「必须修」的确定缺陷，扣得比「可能是错的」
+# 还少。现在改成从 rank 派生，这张表不再有自己的判据。
+_RANK_TO_BUCKET = {4: 'blocker', 3: 'high', 2: 'medium', 1: 'low', 0: 'low'}
+
+# 兼容按名字查表的旧调用点（报告与测试会按 severity 名字取档）
+_BUCKET_NAMES = ('blocker', 'critical', 'high', 'correctness', 'medium',
+                 'suspicious', 'warning', 'restriction', 'low', 'info',
+                 'style', 'minor')
+
+
+def severity_bucket(severity):
+    """把任意写法的 severity 压成扣分与封顶共用的五档名。
+
+    权威分档只有 `report_verdict._SEVERITY_RANK` 一张，这里只做名字平移。
+    认不出来按最轻档——不给未知写法发高危。
+    """
+    return _RANK_TO_BUCKET[severity_rank({'severity': severity})]
+
+
+_SEVERITY_BUCKET = {s: severity_bucket(s) for s in _BUCKET_NAMES}
 
 _BUCKET_ORDER = {'blocker': 5, 'critical': 4, 'high': 3, 'medium': 2, 'low': 1}
 
@@ -1242,8 +1264,8 @@ def worst_severity_bucket(issues):
     """
     best = None
     for issue in issues or ():
-        bucket = _SEVERITY_BUCKET.get(str(issue.get('severity') or '').lower())
-        if bucket and (best is None or _BUCKET_ORDER[bucket] > _BUCKET_ORDER[best]):
+        bucket = severity_bucket(issue.get('severity'))
+        if best is None or _BUCKET_ORDER[bucket] > _BUCKET_ORDER[best]:
             best = bucket
     return best
 
@@ -1274,10 +1296,12 @@ def calculate_score(issues, available_brain_ids=None, include_excluded=False):
     issues = [i for i in issues
               if not is_style_rule(i.get('rule_id') or i.get('check_id'))]
 
-    critical_count = sum(1 for i in issues if i.get('severity') == 'critical' or i.get('severity') == 'blocker')
-    high_count = sum(1 for i in issues if i.get('severity') in ('high', 'suspicious'))
-    medium_count = sum(1 for i in issues if i.get('severity') in ('medium', 'correctness', 'restriction', 'warning'))
-    low_count = sum(1 for i in issues if i.get('severity') in ('low', 'style', 'info', 'minor'))
+    # 扣分与封顶必须按同一档：分档只走 severity_bucket 一个出口。
+    _buckets = [severity_bucket(i.get('severity')) for i in issues]
+    critical_count = sum(1 for b in _buckets if b in ('critical', 'blocker'))
+    high_count = sum(1 for b in _buckets if b == 'high')
+    medium_count = sum(1 for b in _buckets if b == 'medium')
+    low_count = sum(1 for b in _buckets if b == 'low')
 
     deduction_critical = critical_count * DEDUCTION_PER_CRITICAL
     deduction_high = high_count * DEDUCTION_PER_HIGH

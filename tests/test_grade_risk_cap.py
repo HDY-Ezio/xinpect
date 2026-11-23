@@ -44,9 +44,9 @@ def test_every_severity_hits_its_ceiling():
         ('blocker', 29, 'D'),
         ('critical', 29, 'D'),
         ('high', 59, 'C'),
-        ('suspicious', 59, 'C'),      # 可疑与高危同档，跟扣分口径一致
+        ('correctness', 59, 'C'),     # 确定是错的，与 high 同档
         ('medium', 79, 'B'),
-        ('correctness', 79, 'B'),
+        ('suspicious', 79, 'B'),      # 可能是错的，与 medium 同档
         ('low', 94, 'A'),
         ('info', 94, 'A'),
     ]

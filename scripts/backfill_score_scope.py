@@ -60,7 +60,12 @@ with app.app_context():
 
     rows = db.execute(
         "SELECT scan_id, score, grade, results, scan_mode, credits_spent, file_count FROM scans "
-        "WHERE scan_status='completed' AND results IS NOT NULL"
+        # 2026-11-23：原来只捞 scan_status='completed'，把 1044 份早期扫描
+        # （这个字段还没有时就落库的，状态是 NULL）整批漏掉——库里 793 份
+        # SS/SSS 一个都没被重算过。有 results 且有分数就说明那一轮跑完了，
+        # NULL 按完成算，只有明确 cancelled/failed 的才排除。
+        "WHERE results IS NOT NULL "
+        "AND IFNULL(scan_status, 'completed') NOT IN ('cancelled', 'failed')"
     ).fetchall()
 
     changed, same, skipped = 0, 0, 0

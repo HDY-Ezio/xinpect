@@ -226,6 +226,8 @@ else
         tests/test_scenario_checklist.py \
         tests/test_report_export.py \
         tests/test_upgrade_url_is_reachable.py \
+        tests/test_blocking_not_style.py \
+        tests/test_severity_semantics.py \
         tests/test_qa_mount_completeness.py \
         -q --tb=line 2>&1 | tee -a "$REPORTS/extended_tests.log"
     PY_RC=${PIPESTATUS[0]}

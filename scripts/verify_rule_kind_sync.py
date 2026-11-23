@@ -30,7 +30,7 @@ COPY = os.path.join(WEBSITE, "modules", "rule_kind.py")
 SOURCE = os.path.join(SCANNER, "engine", "rule_taxonomy.py")
 
 WATCHED = ("_SECURITY_FAMILY_MARKERS", "_SMELL_PREFIXES", "_BRAIN_CATEGORY",
-           "_STYLE_FAMILY_MARKERS")
+           "_STYLE_FAMILY_MARKERS", "_BLOCKING_SEGMENTS")
 
 
 class Unevaluable(Exception):

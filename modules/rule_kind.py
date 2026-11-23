@@ -49,6 +49,13 @@ _SMELL_PREFIXES = ("PERF-", "QUAL-", "CQ-", "ARCH-")
 # 该扣分；这一组只收纯风格。安全族记号优先，真漏洞不许被当成风格放过。
 _STYLE_FAMILY_MARKERS = ("QLT", "NAM", "SYN", "SIMP", "QUAL", "CQ")
 
+# 编译/解析验证不是风格：这几条报的是「代码根本跑不起来」，与「写得整不
+# 整齐」是两回事。族记号 SYN 同时覆盖了「超长代码行」和「Python 编译失败」
+# （E1-SYN-COMP-001 编译失败 / 002 空字节 / 003 括号不匹配 / 005 解析错误），
+# 只能靠 COMP 这个语义段区分。按 SYN 整族算风格的结果是——「Python 编译
+# 失败」在报告里写「必须修」，在分数上一分不扣。
+_BLOCKING_SEGMENTS = ("COMP",)
+
 
 def is_style_rule(check_id):
     """这条规则是否属于纯规范/风格类（不参与扣分）。
@@ -66,7 +73,11 @@ def is_style_rule(check_id):
     for marker in _SECURITY_FAMILY_MARKERS:
         if marker in cid:
             return False
-    return any(p in _STYLE_FAMILY_MARKERS for p in re.split(r"[-_]", cid) if p)
+    _segs = [p for p in re.split(r"[-_]", cid) if p]
+    # 判定顺序按后果排：阻断段优先于风格族。
+    if any(s in _BLOCKING_SEGMENTS for s in _segs):
+        return False
+    return any(p in _STYLE_FAMILY_MARKERS for p in _segs)
 
 # 引擎身份 → 类型（键与扫描器 BRAIN_NAMES 一一对应）
 _BRAIN_CATEGORY = {

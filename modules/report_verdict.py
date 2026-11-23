@@ -88,8 +88,8 @@ AI_EXCLUDE_MIN_CONFIDENCE = 80.0
 _SEVERITY_RANK = {
     "critical": 4, "blocker": 4,
     "high": 3, "correctness": 3,
-    "medium": 2, "suspicious": 2,
-    "low": 1, "restriction": 1,
+    "medium": 2, "suspicious": 2, "warning": 2,
+    "low": 1, "restriction": 1, "minor": 1,
     "info": 0, "style": 0,
 }
 
