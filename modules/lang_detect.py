@@ -31,6 +31,15 @@ SIGNATURES = {
         (r'\bprint\s*\(', 1),
         (r'(?m)^\s*@\w+(\.\w+)*\s*$', 1),
         (r'\b(lambda|yield|None|True|False)\b', 1),
+        # 2026-11-24 补：用户粘的往往没有 def / import，只有一行调用。
+        # 下面每条都是「这写法只可能是 Python」的证据，不是把通用符号当指纹。
+        (r'\bos\.system\s*\(', 4),
+        (r'\bsubprocess\.(run|call|Popen|check_output)\s*\(', 4),
+        (r'\brequest\.(args|form|values|json|get_json|files|cookies)\b', 3),
+        (r'\binput\s*\(', 3),
+        (r'\.execute\s*\(\s*[\'\"]', 2),
+        (r'\bexec\s*\(', 1),
+        (r'\beval\s*\(', 1),
     ],
     'java': [
         (r'\bpublic\s+(final\s+|abstract\s+)?class\s+\w+', 5),
@@ -50,6 +59,8 @@ SIGNATURES = {
         (r'\b(const|let)\s+\w+\s*=', 2),
         (r'\bfunction\s+\w*\s*\(', 2),
         (r'===', 1),
+        (r'\b(req|res)\.(send|json|query|params|body|status)\b', 3),
+        (r'\bexpress\s*\(\s*\)', 4),
     ],
     'typescript': [
         (r'\bimport\s+type\b', 6),
@@ -74,6 +85,7 @@ SIGNATURES = {
         (r'\becho\s+\$', 3),
         (r'->\w+\s*\(', 2),
         (r'\bnamespace\s+[\w\\]+;', 2),
+        (r'\$_(GET|POST|REQUEST|COOKIE|SERVER|SESSION)\b', 6),
     ],
     'c': [
         (r'#include\s*[<"]', 3),
@@ -149,6 +161,37 @@ SIGNATURES = {
         (r'@override\b', 2),
         (r'\bFuture<', 3),
     ],
+    # 2026-11-24 补：shell / sql / lua 原来在 TRY_LANGS 里可选项摆着，
+    # SIGNATURES 里却一条特征都没有 —— 意味着「自动识别」永远认不出它们，
+    # 用户只能自己去下拉框翻。这三门都是往安全扫描器里很常见的粘贴内容。
+    'shell': [
+        (r'^#!.*\b(ba)?sh\b', 10),
+        (r'\$\([^)]*\)', 3),
+        (r'\$\{\w+\}', 3),
+        # 必须带 `=`：`export default {` 是 JS/TS，不带等号的一律不算 shell
+        (r'(?m)^\s*(export|unset|source)\s+\w+=', 4),
+        (r'(?m)^\s*(fi|done|esac)\s*$', 5),
+        (r'\bfor\s+\w+\s+in\b[^\n]*;\s*do\b', 5),
+        (r'\|\s*(sudo\s+)?(ba)?sh\b', 5),
+        (r'(?m)^\s*(apt-get|yum|chmod|chown|gzip|tar|curl|wget|rm\s+-[rf])\s+', 2),
+        (r'\[\s+-[fde]\s+[^\]]+\s+\]', 3),
+    ],
+    'sql': [
+        (r'(?i)\bselect\b[^;\n]{0,200}\bfrom\b', 4),
+        (r'(?i)\binsert\s+into\b', 4),
+        (r'(?i)\bupdate\s+\w+\s+set\b', 4),
+        (r'(?i)\bdelete\s+from\b', 4),
+        (r'(?i)\bwhere\b[^;\n]{0,120}=\s*[\'\"]?\s*(\w+|\?)', 2),
+        (r'(?i)\b(union\s+select|order\s+by|group\s+by|create\s+table)\b', 2),
+        (r'(?i)\bdrop\s+table\b', 4),
+    ],
+    'lua': [
+        (r'(?m)^\s*local\s+\w+\s*=', 5),
+        (r'\bfunction\s+[\w.:]*\s*\([^)]*\)', 3),
+        (r'(?m)^\s*end\s*$', 2),
+        (r'\bipairs\s*\(|\bpairs\s*\(', 5),
+        (r'~=', 3),
+    ],
 }
 
 # shebang 是最硬的证据，直接给满
@@ -211,6 +254,16 @@ def detect(code):
     if top_score < MIN_SCORE or (top_score - second) < MIN_MARGIN:
         return None, top_score, second
     return top_lang, top_score, second
+
+
+def candidates(code, limit=3):
+    """认不准时的候选语言，按分数从高到低。
+
+    只回答「机器算出来最像哪几门」，不替用户拍板——调用方拿它做一键选单。
+    0 分的不出现：一门都没命中就返回空列表，前端退回让用户自己去下拉框里选。
+    """
+    ranked = sorted(score(code or '').items(), key=lambda kv: kv[1], reverse=True)
+    return ranked[:limit]
 
 
 def explain(code):

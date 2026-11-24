@@ -306,6 +306,30 @@ async function doTryScan() {
                 sel.style.borderColor = 'var(--danger,#e74c3c)';
                 sel.style.boxShadow = '0 0 0 3px rgba(231,76,60,.15)';
                 sel.focus();
+                // 机器已经算过前几名，就别让人去 17 项下拉里翻：点一下直接重扫。
+                // 人只需否定/确认，不需要知道这段是什么语言。
+                if (data.candidates && data.candidates.length) {
+                    const box = document.createElement('div');
+                    box.style.cssText = 'margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;';
+                    const tip = document.createElement('span');
+                    tip.style.cssText = 'font-size:13px;opacity:.75;';
+                    tip.textContent = '看着像：';
+                    box.appendChild(tip);
+                    data.candidates.forEach(function(c) {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.textContent = c.label + ' →';
+                        b.style.cssText = 'padding:7px 14px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-page);color:var(--text-primary);font-size:13px;cursor:pointer;';
+                        b.onclick = function() {
+                            sel.value = c.value;
+                            sel.style.borderColor = '';
+                            sel.style.boxShadow = '';
+                            doTryScan();
+                        };
+                        box.appendChild(b);
+                    });
+                    errBox.appendChild(box);
+                }
             }
             // 更新剩余次数
             if (data.remaining !== undefined) {

