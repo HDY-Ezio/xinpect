@@ -98,7 +98,7 @@
         <div id="drop-zone" style="position:relative;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
                 <label for="code-input" style="font-size:14px;color:var(--text-secondary);">粘贴你的代码（也可以把文件拖到框里）</label>
-                <button type="button" onclick="loadSampleCode()" style="background:none;border:none;padding:0;font:inherit;font-size:13px;color:var(--accent-steel);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">手上没代码？用这段示例试试 →</button>
+                <button type="button" onclick="loadSampleCode()" style="background:none;border:none;padding:0;font:inherit;font-size:13px;color:var(--accent-steel);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">手上没代码？用这段示例试试</button>
             </div>
             <textarea id="code-input" spellcheck="false" autocomplete="off" placeholder="粘贴要检测的代码，例如：&#10;&#10;import sqlite3&#10;from flask import request&#10;&#10;def login():&#10;    user = request.args.get('user')&#10;    conn = sqlite3.connect('db.sqlite')&#10;    conn.execute(&quot;SELECT * FROM users WHERE name='&quot; + user + &quot;'&quot;)&#10;    return &quot;ok&quot;" style="width:100%;height:clamp(260px,44vh,520px);padding:14px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-v-jetbrains-mono-a1165c);font-size:13px;line-height:1.65;resize:vertical;box-sizing:border-box;tab-size:4;"></textarea>
         </div>
@@ -340,7 +340,7 @@ async function doTryScan() {
                     data.candidates.forEach(function(c) {
                         const b = document.createElement('button');
                         b.type = 'button';
-                        b.textContent = c.label + ' →';
+                        b.textContent = '按 ' + c.label + ' 重扫';
                         b.style.cssText = 'padding:7px 14px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-page);color:var(--text-primary);font-size:13px;cursor:pointer;';
                         b.onclick = function() {
                             sel.value = c.value;

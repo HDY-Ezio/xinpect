@@ -468,7 +468,7 @@
     "templates/seo_index.html": "1807559f13714cae022092e1d5ab1215",
     "templates/sitemap.xml": "bef180daca688095ae672857c1c977ec",
     "templates/terms.html": "756b7208da7f9ff1594b9edde9901398",
-    "templates/try.html": "fbd5120ebe0790e0bba2da8252b857d4",
+    "templates/try.html": "93213281ec4cfd92220590ada9dc86fe",
     "templates/upload.html": "7421da3b3e2c46be20532308c84b842b",
     "templates/whitepaper.html": "8c722e32479b7bb5e463eba93ef850b6",
     "tests/SCENARIO_CHECKLIST.md": "c42f911703fc499bb56e915094a1ef1f",
@@ -544,7 +544,7 @@
     "tests/verify_visitor_scope.py": "93a14f06666e976e8a710a9f38730435",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-24T15:24:23+08:00",
+  "generated_at": "2026-11-24T15:32:11+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -561,9 +561,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "1b22d31473aac0822176dc784576666c1be0a1c26114a188b74f0f87033949b8",
+  "integrity": "ad5c5a087a8418944028ddff6d5c391423746198f4218cf3b63a889ce63a3e32",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "外联纠偏 + 探针形状/假 IP + 新守卫挂载"
+  "task": "试扫页两处按钮去掉挂箭头（官网 UI 门禁 63 条）"
 }
