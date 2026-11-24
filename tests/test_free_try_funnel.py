@@ -37,6 +37,9 @@ def _client():
     app.config['TESTING'] = True
     # 埋点不走测试请求，避免污染访客数据（与 test_retention 同一开关）
     app.config['VISITOR_ANALYTICS_ALLOW_TESTING'] = False
+    # 造坏自检要能立刻读到改过的模板。TESTING 模式下 Jinja 默认缓存模板，
+    # 造了坏却读到旧模板 = 自检假绿（这个坑踩过）。
+    app.jinja_env.auto_reload = True
     return app, app.test_client()
 
 
@@ -172,6 +175,73 @@ def test_try_scan_really_returns_summary():
         extra = set(item) - SUMMARY_ITEM_KEYS
         assert not extra, '试扫摘要泄漏了字段 %s（只允许 category/name/severity）' % extra
     print('    真跑通过：检出 %d 条，评级 %s，摘要无泄漏' % (total, summary['health']['grade']))
+
+
+# ---- 「手上没代码」：一键示例（2026-11-24）-------------------------------
+# 实况：近 14 天 23 个真人打开 /try，14 个一页没往下看就走了、一个动作都没有。
+# 他们不是被语言识别挡住的（全历史 need_language 只有 10 次，6 次还是同一个人
+# 在同一晚连续粘 7~19 字节的半行代码），是手上没有可分的东西。
+
+def test_try_page_offers_sample_for_people_without_code():
+    """试扫页必须给「不知道粘什么」的人一条活路：一个一键填示例的按钮。
+
+    示例内容来自服务端（free_try.SAMPLE_CODE + tojson 注入）。前端写死一份的话，
+    测试验的那段和用户真填的那段会漂成两份——这跟语言表和特征表各改各的是同一个病。
+    """
+    app, client = _client()
+    html = _html(client, '/try')
+    assert 'onclick="loadSampleCode()"' in html, '试扫页没有「用示例试试」按钮'
+    assert 'function loadSampleCode()' in html, '按钮 onclick 指向 loadSampleCode，但页面上没有这个函数（点了会全无反应）'
+    assert 'sample_code|tojson' not in html, '模板变量没渲染，页面上出现 {{ sample_code|tojson }} 字面量'
+    print('    示例按钮在页面上，且内容走服务端注入')
+
+
+def test_sample_code_really_yields_issues():
+    """示例代码必须真扫得出问题。
+
+    填进去给一份「0 条问题」的空报告，比不给示例更糟——用户会以为这工具什么都查不出来。
+    所以这里真跑一次接口（走自动识别，跟用户点按钮是同一条路径），不看字符串在不在。
+    """
+    app, client = _client()
+    from modules.free_try import SAMPLE_CODE, TRY_LANGS
+    from modules.lang_detect import detect
+
+    assert SAMPLE_CODE and SAMPLE_CODE.count('\n') >= 5, \
+        '示例代码只有 %d 行，太短了，自动识别必然认不出' % (SAMPLE_CODE.count('\n') + 1)
+    guessed, top, second = detect(SAMPLE_CODE)
+    assert guessed, '示例代码自动识别不出来（top=%r second=%r）' % (top, second)
+    supported = {v for v, _label, _ext in TRY_LANGS}
+    assert guessed in supported, '示例代码识别成 %r，但试扫语言表里没有这门（认出来也用不了）' % guessed
+
+    resp = client.post('/api/try-scan', json={'code': SAMPLE_CODE, 'language': 'auto'})
+    assert resp.status_code == 200, \
+        '示例代码走自动识别被拒（%d）：%s' % (resp.status_code, resp.get_data(as_text=True)[:200])
+    data = resp.get_json() or {}
+    summary = data.get('summary') or {}
+    total = summary.get('total_issues')
+    assert total and total >= 2, \
+        '示例代码只扫出 %s 条问题——它同时含 SQL 注入和命令注入，少于 2 条说明规则没覆盖到' % total
+    print('    示例 %d 行 → 识别 %s → 检出 %d 条，评级 %s'
+          % (SAMPLE_CODE.count('\n') + 1, guessed, total, (summary.get('health') or {}).get('grade')))
+
+
+def test_home_hero_ctas_are_alive():
+    """首页 hero 上的按钮指向必须匿名可达。
+
+    守的是「别指到 404」，不是「必须推哪个」——主推换不换是产品决策，会变；
+    死链不会变对。本轮主推从「免费试扫」换成了「先看一份真实报告」，
+    唯一被数据证明有转化的路径就是 /sample-report → /try。
+    """
+    app, client = _client()
+    html = _html(client, '/')
+    m = re.search(r'<div class="hero-actions">(.*?)</div>', html, re.S)
+    assert m, '首页找不到 hero-actions 区块'
+    hrefs = re.findall(r'href="(/[^"]*)"', m.group(1))
+    assert hrefs, 'hero 区一个链接都没有'
+    for h in hrefs:
+        r = client.get(h)
+        assert r.status_code == 200, 'hero 上的 %s 匿名访问返回 %d' % (h, r.status_code)
+    print('    hero 链接全部 200：%s' % ', '.join(hrefs))
 
 
 if __name__ == '__main__':

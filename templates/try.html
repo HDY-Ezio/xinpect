@@ -96,7 +96,10 @@
 
         <!-- 代码输入：整块给够高度，别让人在一寸窗口里滚代码 -->
         <div id="drop-zone" style="position:relative;">
-            <label for="code-input" style="font-size:14px;color:var(--text-secondary);display:block;margin-bottom:8px;">粘贴你的代码（也可以把文件拖到框里）</label>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+                <label for="code-input" style="font-size:14px;color:var(--text-secondary);">粘贴你的代码（也可以把文件拖到框里）</label>
+                <button type="button" onclick="loadSampleCode()" style="background:none;border:none;padding:0;font:inherit;font-size:13px;color:var(--accent-steel);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">手上没代码？用这段示例试试 →</button>
+            </div>
             <textarea id="code-input" spellcheck="false" autocomplete="off" placeholder="粘贴要检测的代码，例如：&#10;&#10;import sqlite3&#10;from flask import request&#10;&#10;def login():&#10;    user = request.args.get('user')&#10;    conn = sqlite3.connect('db.sqlite')&#10;    conn.execute(&quot;SELECT * FROM users WHERE name='&quot; + user + &quot;'&quot;)&#10;    return &quot;ok&quot;" style="width:100%;height:clamp(260px,44vh,520px);padding:14px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-v-jetbrains-mono-a1165c);font-size:13px;line-height:1.65;resize:vertical;box-sizing:border-box;tab-size:4;"></textarea>
         </div>
         <!-- 统计 + 扫描按钮：粘在视口底部的操作条 -->
@@ -180,6 +183,25 @@ function updateCodeStats() {
     const over = new Blob([v]).size > TRY_MAX_BYTES;
     box.innerHTML = lines + ' 行 · ' + kb.toFixed(1) + ' KB'
         + (over ? ' <span style="color:var(--color-warning);font-weight:600;">· 已超过 100KB 上限，请删减或注册后传整个项目</span>' : '');
+}
+
+// 「手上没代码」是试扫页最大的流失点：14 天 23 个访客里 14 个打开就走、
+// 一个动作都没有。给一段真能扫出问题的示例，让人不用自己想贴什么也能看到结果。
+// 语言交给服务端自动识别，前端不替用户指定——认错语言的漏报是静默的。
+const SAMPLE_CODE = {{ sample_code|tojson }};
+
+function loadSampleCode() {
+    // 内容来自服务端 free_try.SAMPLE_CODE（页面用 tojson 注入），
+    // 不在前端写死：测试要拿同一段去真扫，两处抄会漂。
+    const el = document.getElementById('code-input');
+    if (!el) return;
+    el.value = SAMPLE_CODE;
+    const sel = document.getElementById('language');
+    if (sel) { sel.value = 'auto'; sel.style.borderColor = ''; sel.style.boxShadow = ''; }
+    updateCodeStats();
+    trackEvent('try.sample_loaded', {lines: SAMPLE_CODE.split('\n').length});
+    el.focus();
+    el.scrollTop = 0;
 }
 
 function loadCodeFromFile(file) {

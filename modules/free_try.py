@@ -58,6 +58,23 @@ try_bp = Blueprint('try', __name__)
 # 每个访客每天免费试扫次数上限
 _TRY_DAILY_LIMIT = 3
 
+# 试扫页「手上没代码」时一键填入的那段（2026-11-24）：14 天里 23 个访客
+# 有 14 个打开就走、一个动作都没有。这段必须**真能扫出问题**（SQL 注入 +
+# 命令注入），否则填了也是空跑；tests 直接 import 它去真扫一次。
+SAMPLE_CODE = "\n".join([
+    'import sqlite3, os',
+    'from flask import request',
+    '',
+    'def login():',
+    "    user = request.args.get('user')",
+    "    conn = sqlite3.connect('app.db')",
+    '    sql = "SELECT * FROM users WHERE name=\'" + user + "\'"',
+    '    row = conn.execute(sql).fetchone()',
+    '    os.system("echo user " + user)',
+    '    return row',
+])
+
+
 # 试扫支持的语言 —— 唯一事实来源。
 # 以前模板里手写一份下拉框、这里另写一份 ext_map，两份各自维护：
 # 页面上能选的语言接口不认（选了报「暂不支持」），接口认的页面上又没有。
@@ -339,7 +356,8 @@ def try_page():
     from modules.visitor_analytics import current_vid
     remaining = _remaining_tries(current_vid())
     return render_template('try.html', remaining=remaining, daily_limit=_TRY_DAILY_LIMIT,
-                           try_langs=TRY_LANGS, try_ext_map=TRY_EXT_MAP)
+                           try_langs=TRY_LANGS, try_ext_map=TRY_EXT_MAP,
+                           sample_code=SAMPLE_CODE)
 
 
 @try_bp.route('/api/try-scan/progress/<job_id>')
