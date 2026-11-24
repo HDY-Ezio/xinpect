@@ -42,3 +42,14 @@ _backup_*/
 _seo_backup_*/
 data/disk_trend.json
 data/engine_trend.json
+
+
+# ── 外联名单：含第三方个人联系方式，仓库是公开的，一律不入库（2026-11-24）──
+# 名单是从各公司官网抄的联系邮箱，属于别人的个人信息；
+# 公开仓库一旦收录就是泄漏，跟 11-23 那次生产库转储同一类问题。
+# 脚本与名单成套使用，一并排除，免得留下「有代码没名单」的半截状态。
+scripts/outreach_targets.json
+scripts/cold_outreach.py
+scripts/recall_never_scanned.py
+scripts/run_cold_outreach.sh
+scripts/run_recall_never_scanned.sh

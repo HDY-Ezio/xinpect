@@ -95,7 +95,13 @@ def _insert(vid, ua, path='/guard-probe'):
         conn.close()
 
 
-def _http_probes(ua, count=1):
+# 探针用的假外网 IP（RFC 5737 文档段）。不能用 127.0.0.1：体检反复跑，
+# 这条路上会攒出几十个单次命中的 vid，被「一次一换 cookie」判据整段剔除。
+PROBE_IP_INTERNAL = '203.0.113.10'
+PROBE_IP_HUMAN = '203.0.113.20'
+
+
+def _http_probes(ua, count=1, same_client=False, ip=None):
     """走真实链路发 count 次请求（每次一个新 client = 一个新 vid）。
 
     **不能用 `_insert` 代替**：那样测的是「我能不能把字段写成 1」，
@@ -108,8 +114,18 @@ def _http_probes(ua, count=1):
     prev = app.config.get('VISITOR_ANALYTICS_ALLOW_TESTING')
     app.config['VISITOR_ANALYTICS_ALLOW_TESTING'] = True
     try:
-        for _ in range(count):
-            app.test_client().get('/pricing', headers={'User-Agent': ua})
+        headers = {'User-Agent': ua}
+        if ip:
+            headers['X-Forwarded-For'] = ip
+        if same_client:
+            # 同一访客连看两页：1 个 vid、2 次命中。
+            # 每个请求都新建 client 等于「一次一换 cookie」，会被机器判据吃掉。
+            c = app.test_client()
+            for _ in range(count):
+                c.get('/pricing', headers=headers)
+        else:
+            for _ in range(count):
+                app.test_client().get('/pricing', headers=headers)
     finally:
         app.config['VISITOR_ANALYTICS_ALLOW_TESTING'] = prev
 
@@ -301,15 +317,17 @@ def test_report_excludes_internal_but_still_counts_people():
     start = _max_id()
     try:
         # 灌三条内部流量（走真实链路，模拟我们自己的监控脚本跑三次）
-        _http_probes('xinpect-uptime-sv/1.0', count=3)
+        _http_probes('xinpect-uptime-sv/1.0', count=3, ip=PROBE_IP_INTERNAL)
         after_internal, out = _report_visitors()
         assert after_internal == before, (
             f'内部流量被算进了访客：{before} -> {after_internal}\n'
             f'报表那行自检说明: '
             + next((l for l in out.splitlines() if '监控' in l), '(没有这行)'))
 
-        # 再来一个真人访问：数字必须涨 1，证明报表没被改坏
-        _http_probes(_CHROME, count=1)
+        # 再来一个真人访问：数字必须涨 1，证明报表没被改坏。
+        # 同一 client 看两页 —— 真人不会只发一个请求就走，而且这样才不会被
+        # 「一次一换 cookie」的机器判据当成爬虫（见 _http_probes 注释）。
+        _http_probes(_CHROME, count=2, same_client=True, ip=PROBE_IP_HUMAN)
         after_human, _ = _report_visitors()
         assert after_human == before + 1, (
             f'真人访问没有让访客数 +1：{before} -> {after_human}'

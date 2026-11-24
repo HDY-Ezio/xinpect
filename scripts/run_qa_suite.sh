@@ -192,6 +192,7 @@ else
         tests/test_lang_detect.py \
         tests/test_funnel_analytics.py \
         tests/test_visitor_no_cookie.py \
+        tests/test_outreach_policy.py \
         tests/test_try_quota.py \
         tests/test_engine_coverage.py \
         tests/test_category_dimension.py \

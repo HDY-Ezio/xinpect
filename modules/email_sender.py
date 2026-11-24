@@ -15,12 +15,29 @@ from datetime import datetime
 from .constants import logger, SMTP_TIMEOUT_SECONDS
 
 
-def _get_smtp_config():
-    """从环境变量读取SMTP配置
+BULK_PREFIX = "SMTP_BULK_"
+
+
+def _get_smtp_config(purpose="transactional"):
+    """从环境变量读取 SMTP 配置。
+
+    purpose 决定用哪一套凭据，两套必须物理分开：
+      transactional —— 验证码、邀请、监控告警。丢了账号等于丢了找回密码的路。
+      bulk          —— 群发（外联、召回）。这类邮件最容易被服务商判成骚扰，
+                       一旦限流或封号，绝不能牵连事务邮件和告警通道。
 
     from_name 只影响收件人看到的发件人显示名（如「煋鉴 Xinpect」），
     留空则只显示邮箱地址。地址本身永远以 user 为准，不可伪装。
     """
+    if purpose == "bulk":
+        return {
+            "host": os.environ.get(BULK_PREFIX + "HOST", ""),
+            "port": int(os.environ.get(BULK_PREFIX + "PORT", "465") or 465),
+            "user": os.environ.get(BULK_PREFIX + "USER", "").strip(),
+            "password": os.environ.get(BULK_PREFIX + "PASSWORD", ""),
+            "use_ssl": os.environ.get(BULK_PREFIX + "USE_SSL", "true").lower() == "true",
+            "from_name": os.environ.get(BULK_PREFIX + "FROM_NAME", "").strip(),
+        }
     return {
         "host": os.environ.get("SMTP_HOST", "smtp.163.com"),
         "port": int(os.environ.get("SMTP_PORT", "465")),
@@ -31,11 +48,25 @@ def _get_smtp_config():
     }
 
 
-def _send_mail(to_email: str, subject: str, html_body: str) -> bool:
-    """SMTP 发送唯一出口。配置缺失或发送失败都不抛异常，返回 False。"""
-    cfg = _get_smtp_config()
+def _send_mail(to_email: str, subject: str, html_body: str,
+               purpose: str = "transactional") -> bool:
+    """SMTP 发送唯一出口。配置缺失或发送失败都不抛异常，返回 False。
+
+    purpose="bulk" 时强制走独立的群发账号：拿告警账号发群发，服务商的
+    限流是连坐的——那边先封群发，这边一起收不到监控告警。这条不做成
+    「提醒」，做成直接拒发，因为出事的时候没有人会回来看日志。
+    """
+    cfg = _get_smtp_config(purpose)
     if not cfg["user"] or not cfg["password"]:
-        logger.error("[邮件] SMTP未配置，跳过发送")
+        if purpose == "bulk":
+            logger.error("[邮件] 群发通道未配置（%sUSER/PASSWORD），拒绝发送："
+                         "群发不许借用告警账号", BULK_PREFIX)
+        else:
+            logger.error("[邮件] SMTP未配置，跳过发送")
+        return False
+    if purpose == "bulk" and cfg["user"] == os.environ.get("SMTP_USER", "").strip():
+        logger.error("[邮件] 群发通道与告警通道是同一个账号，拒绝发送"
+                     "（群发被封会连带掐掉监控告警）")
         return False
 
     msg = MIMEMultipart("alternative")
@@ -61,6 +92,21 @@ def _send_mail(to_email: str, subject: str, html_body: str) -> bool:
     except Exception as e:
         logger.exception("[邮件] 发送失败 to=%s: %s", to_email, e)
         return False
+
+
+def bulk_configured():
+    """群发通道是否就绪。外联脚本发送前必须先问这一句，别等一封封失败才回来看日志。
+
+    返回 (ok, 原因)。原因直接给人看，不写英文错误码。
+    """
+    cfg = _get_smtp_config("bulk")
+    if not cfg["user"] or not cfg["password"]:
+        return False, ("群发通道未配置：需要环境变量 %sHOST/USER/PASSWORD"
+                       "（企业邮箱，与告警账号分开）" % BULK_PREFIX)
+    alert = os.environ.get("SMTP_USER", "").strip()
+    if alert and cfg["user"] == alert:
+        return False, "群发通道与告警通道指向同一个账号，先换独立账号再发"
+    return True, "ok"
 
 
 def send_reset_code_email(to_email: str, code: str, expire_minutes: int = 15) -> bool:
