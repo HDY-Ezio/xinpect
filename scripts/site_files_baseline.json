@@ -1,5 +1,5 @@
 {
-  "count": 544,
+  "count": 546,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -37,7 +37,7 @@
     "modules/blog.py": "4a999a31fa9c5f4d11693f16903a1505",
     "modules/ci.py": "28d5f4f7e37131aafc0ce7b73021fdf3",
     "modules/compensation.py": "b644c7aa85d145be9e9e8339feab121c",
-    "modules/constants.py": "f1a6b467139bd98849b96e85bc904339",
+    "modules/constants.py": "10a5c2d0ad5f936f81a6905f952b8da5",
     "modules/csrf_protection.py": "91d3b9b8081cc48e226ee578a538149d",
     "modules/dashboard_context.py": "e37be5c3464f6075e31d55f10e1f9323",
     "modules/dashboard_enhance.py": "aac8f36d1b83224543a96fa7775cc782",
@@ -138,7 +138,7 @@
     "scripts/run_cold_outreach.sh": "f4b6558dad69ebca6164b9536bc59c20",
     "scripts/run_membership_reminder.sh": "38593ebb4f88548113aa0f02405312c1",
     "scripts/run_paid_audit.sh": "67d7e55b1696b31357281b4172fb0e14",
-    "scripts/run_qa_suite.sh": "17e77e37e7c5edea6d8a309743655aa6",
+    "scripts/run_qa_suite.sh": "c8b38318592872b9ff13097cb2ba44df",
     "scripts/run_recall_never_scanned.sh": "59584b3e747909ade5f5e81b959e2c26",
     "scripts/run_scan_cost_report.sh": "9296332670be4e88af7c8ff44ac64855",
     "scripts/sample_report.json": "1ae98bd60c5fbfb6568e395f3bfdcbba",
@@ -475,6 +475,7 @@
     "templates/whitepaper.html": "8c722e32479b7bb5e463eba93ef850b6",
     "tests/SCENARIO_CHECKLIST.md": "c42f911703fc499bb56e915094a1ef1f",
     "tests/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+    "tests/e2e_serve.py": "5b4c971c6435479a3660a0d9c6cc7b5d",
     "tests/qa_guardian.py": "8adbd7e4b954a0383d77d7c83df49bcf",
     "tests/test_api_integration.py": "3dfef2c51a9ab1eea4fa53d534d802f7",
     "tests/test_bb_dimension.py": "a151a0ee222962077b543b4216d092da",
@@ -505,7 +506,7 @@
     "tests/test_outreach_policy.py": "3f23306550ff977db01c43b07ff0b82a",
     "tests/test_paid_fulfillment.py": "cc0bee65cb47a6184ed5fd8a95cf817f",
     "tests/test_payment_reconcile.py": "838c848299daa64271bcb3654dbd8d76",
-    "tests/test_qa_mount_completeness.py": "4af82b314f27c2d1bc2e707b68162c47",
+    "tests/test_qa_mount_completeness.py": "f1c945b0c4d662de157b3ca4b6093858",
     "tests/test_repo_secrets_guard.py": "5800caa92a23ed6d643ef303edef83b8",
     "tests/test_report_dimensions.py": "8f2999858b2b920020bed23e331b96b9",
     "tests/test_report_export.py": "559c5e738c488803098cec6b170a91a9",
@@ -523,6 +524,7 @@
     "tests/test_severity_semantics.py": "0e6b9645c30113029c0aff478e09875a",
     "tests/test_style_not_scored.py": "ce9d93b32ad3860ede24e776c57494d1",
     "tests/test_template_attr_blocks.py": "fc227ce080af1f5bcf5e9d4ad7698a99",
+    "tests/test_try_page_e2e.py": "7937466c13330de7fe32712960c9091b",
     "tests/test_try_quota.py": "9467f4f694864804ae837d5e7e7d5335",
     "tests/test_upgrade_url_is_reachable.py": "823edd656d6c09446ae7281393b33907",
     "tests/test_uptime_watchdog.py": "8533341c2fbb0b634936a384c9f026cb",
@@ -546,7 +548,7 @@
     "tests/verify_visitor_scope.py": "93a14f06666e976e8a710a9f38730435",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-27T19:15:58+08:00",
+  "generated_at": "2026-11-27T20:39:46+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -563,9 +565,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "164bc6d829fe0b3797858f30ba45ec05129d0f7ac0ccae743dd3db7831b3d37d",
+  "integrity": "989ecb579b7a0225414ef2916518265514de7c144561f5f48ef03ccb57b9e382",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "jQuery 不再判成 shell；清掉另一路的假口径与 CRLF"
+  "task": "接入前端实点守卫：真浏览器点试扫页"
 }

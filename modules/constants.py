@@ -38,7 +38,11 @@ except ImportError:
 
 # Project root is parent of modules/
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, 'xinpect.db')
+# 数据库位置。默认仍是站点目录下的 xinpect.db，对外行为不变。
+# 允许用环境变量指到别处，用途只有一个：让「真浏览器端到端测试」跑在空库上。
+# 试扫会往库里写访客、事件、配额，拿生产库当试验田等于污染真实统计。
+# 这与 SCANNER_URL / MENFANG_BASE_URL 是同一种注入方式，不构成行为分支。
+DB_PATH = os.environ.get('XINPECT_DB_PATH') or os.path.join(BASE_DIR, 'xinpect.db')
 
 # 站点对外地址：邮件里的按钮、分享链接一律以它为准，不要各处手写域名
 SITE_BASE_URL = os.environ.get(

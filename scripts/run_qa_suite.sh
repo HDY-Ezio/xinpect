@@ -681,21 +681,69 @@ else
     REPO_RC=1
 fi
 
+# ---- 6o. 前端实点守卫（2026-11-27）----
+# 为什么单开这段：11-26 修「短碎片也要给结论」，后端 15 条断言全绿、
+# node --check rc=0、showNotScannable 也确实在模板里，浏览器一点却是「网络错误」——
+# 那个函数引用了 doTryScan 的局部变量 errBox，ReferenceError 被 fetch 的 catch
+# 吞掉了。作用域错误任何静态检查都看不见，只有页面真跑一遍才会现形。
+# 这段用无头 Chromium 起一个隔离实例（空库 + 随机端口），真点一次 #scan-btn：
+# ①「1」这种零特征输入必须出「这次没有检查」结论卡，且不能同时亮着空报告；
+# ②真代码必须照常出报告；③页面抛的任何 JS 异常一律判红。
+#
+# 浏览器装在 /home/ubuntu/.cache/ms-playwright —— 颜色真值、冷光质感、元素一致性
+# 三个真渲染守卫也认这个位置，不要另建一份（我曾挪到 /opt，三个守卫当场全红）。
+# 环境重装：
+#   python3 -m venv /opt/xinpect-e2e/venv
+#   /opt/xinpect-e2e/venv/bin/pip install playwright
+#   PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
+#       /opt/xinpect-e2e/venv/bin/playwright install chromium
+# 国内必须走 npmmirror：直连 CDN 实测 10 分钟下一半就卡死。
+E2E_RC=0
+E2E_PY=/opt/xinpect-e2e/venv/bin/python
+# 独立解释器跑的守卫：不归 pytest 收集（要 venv 的 playwright），但每轮必须跑。
+# 这个变量是 test_qa_mount_completeness.py 的唯一事实来源，加文件就往这里加一行。
+STANDALONE_GUARDS="tests/test_try_page_e2e.py"
+if [ ! -x "$E2E_PY" ]; then
+    echo "[$(date '+%F %T')] ❌ 前端实点守卫环境缺失（$E2E_PY），这一层没跑，不能算绿" | tee -a "$REPORTS/extended_tests.log"
+    E2E_RC=1
+else
+    for _g in $STANDALONE_GUARDS; do
+        if [ ! -f "$APP/$_g" ]; then
+            echo "[$(date '+%F %T')] ❌ 独立守卫缺失: $_g" | tee -a "$REPORTS/extended_tests.log"
+            E2E_RC=1
+            continue
+        fi
+        echo "[$(date '+%F %T')] 独立守卫 $_g 开始"
+        env PYTHONDONTWRITEBYTECODE=1 XP_E2E_SHOT_DIR="$REPORTS/e2e" \
+            "$E2E_PY" "$APP/$_g" 2>&1 | tee -a "$REPORTS/extended_tests.log"
+        _rc=${PIPESTATUS[0]}
+        [ "$_rc" -ne 0 ] && E2E_RC=1
+        echo "[$(date '+%F %T')] 独立守卫 $_g 结束 rc=$_rc"
+
+        echo "[$(date '+%F %T')] 独立守卫造坏自检 $_g 开始"
+        env PYTHONDONTWRITEBYTECODE=1 XP_E2E_SHOT_DIR="$REPORTS/e2e" \
+            "$E2E_PY" "$APP/$_g" --self-test 2>&1 | tee -a "$REPORTS/extended_tests.log"
+        _src=${PIPESTATUS[0]}
+        [ "$_src" -ne 0 ] && E2E_RC=1
+        echo "[$(date '+%F %T')] 独立守卫造坏自检 $_g 结束 rc=$_src"
+    done
+fi
+
 echo "=========================================================="
 
 # 六段各自的退出码都要算进来：之前只算 QA_RC/PY_RC，分类守卫和引擎守卫
 # 失败了套件照样 exit 0 —— 绿着红掉，比没有守卫更危险。
-if [ "$QA_RC" -ne 0 ] || [ "$PY_RC" -ne 0 ] || [ "$CAT_RC" -ne 0 ] || [ "$ENG_RC" -ne 0 ] || [ "$BEN_RC" -ne 0 ] || [ "$COST_RC" -ne 0 ] || [ "${PAY_RC:-0}" -ne 0 ] || [ "${REPO_RC:-0}" -ne 0 ]; then
-    echo "❌ 套件失败: qa=$QA_RC pytest=$PY_RC category=$CAT_RC engine=$ENG_RC bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} repo=${REPO_RC:-0}"
+if [ "$QA_RC" -ne 0 ] || [ "$PY_RC" -ne 0 ] || [ "$CAT_RC" -ne 0 ] || [ "$ENG_RC" -ne 0 ] || [ "$BEN_RC" -ne 0 ] || [ "$COST_RC" -ne 0 ] || [ "${PAY_RC:-0}" -ne 0 ] || [ "${REPO_RC:-0}" -ne 0 ] || [ "${E2E_RC:-0}" -ne 0 ]; then
+    echo "❌ 套件失败: qa=$QA_RC pytest=$PY_RC category=$CAT_RC engine=$ENG_RC bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} repo=${REPO_RC:-0} e2e=${E2E_RC:-0}"
     # 结论必须落成文件：只写 cron.log，等于没人知道（监控每 15 分钟读这个文件）
     /usr/bin/python3 /opt/xinpect-website/scripts/record_qa_result.py fail \
         qa=$QA_RC pytest=$PY_RC category=$CAT_RC engine=$ENG_RC \
-        bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} repo=${REPO_RC:-0} || true
+        bench=$BEN_RC cost=$COST_RC pay=${PAY_RC:-0} repo=${REPO_RC:-0} e2e=${E2E_RC:-0} || true
     exit 1
 fi
 # 成功也要留一行。此前成功时一行都不打，crontab 日志里和「脚本崩在半路」
 # 长得一模一样 —— 排查的人只能靠猜。
-echo "✅ 套件通过: qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 repo=0"
+echo "✅ 套件通过: qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 repo=0 e2e=0"
 /usr/bin/python3 /opt/xinpect-website/scripts/record_qa_result.py ok \
-    qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 repo=0 || true
+    qa=0 pytest=0 category=0 engine=0 bench=0 cost=0 pay=0 repo=0 e2e=0 || true
 exit 0

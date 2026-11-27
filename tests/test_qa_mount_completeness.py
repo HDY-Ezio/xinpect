@@ -50,6 +50,28 @@ def parse_lists(script_text):
     return bare, prefixed
 
 
+def parse_standalone(script_text):
+    """独立解释器跑的守卫：脚本里显式写 `STANDALONE_GUARDS="tests/a.py ..."`。
+
+    这类文件不能进 pytest 清单（它们要 venv 里的 playwright / 独立浏览器），
+    但同样必须每轮真跑。原来「挂载」只有一种定义（pytest 清单），
+    于是给试扫页新写的真浏览器守卫一落盘就被判红——判红是对的（它在提醒
+    「有个测试没进体检」），错的是它认不出「我用另一种方式挂了」。
+    这里补上第二种挂载方式，文字写死在这里、执行写死在 6o 段，两处同名。
+
+    只认非注释行：把文件名写进注释不算挂上，那是最省事的一种假绿。
+    """
+    names = set()
+    for ln in script_text.split("\n"):
+        s = ln.strip()
+        if not s or s.startswith("#"):
+            continue
+        m = re.match(r"""^STANDALONE_GUARDS=["']?(.+?)["']?\s*$""", s)
+        if m:
+            names.update(re.findall(r"test_[a-z_0-9]+\.py", m.group(1)))
+    return names
+
+
 def unmounted(files, mounted, exempt=None):
     exempt = EXEMPT if exempt is None else exempt
     return [f for f in files if f not in exempt and f not in mounted]
@@ -66,10 +88,12 @@ def test_script_is_readable_and_non_trivial():
 
 
 def test_every_test_file_is_mounted_or_exempted():
-    bare, prefixed = parse_lists(open(SCRIPT, encoding="utf-8").read())
+    text = open(SCRIPT, encoding="utf-8").read()
+    bare, prefixed = parse_lists(text)
+    mounted = prefixed | parse_standalone(text)
     files = list_test_files()
     assert files, "tests 目录下一个测试都没找到：%s" % TESTS_DIR
-    missing = unmounted(files, prefixed)
+    missing = unmounted(files, mounted)
     assert not missing, (
         "这些测试没挂进体检（pytest 分支）、也没登记豁免理由，等于从来没被自动跑过：\n  "
         + "\n  ".join(missing)
@@ -111,6 +135,14 @@ def test_guard_can_fail():
     # 清单解析要能分开两套：带前缀的进 pytest 分支，不带的进无 pytest 分支
     bare, prefixed = parse_lists("  test_a.py \\\n  tests/test_b.py \\\n")
     assert bare == {"test_a.py"} and prefixed == {"test_b.py"}, (bare, prefixed)
+    # 第二种挂载方式：显式清单必须被认出来，否则新增守卫永远判红
+    got = parse_standalone('STANDALONE_GUARDS="tests/test_a.py tests/test_b.py"')
+    assert got == {"test_a.py", "test_b.py"}, got
+    # 只写在注释里不算挂上 —— 这是最容易糊弄过去的一种假绿
+    assert parse_standalone('# STANDALONE_GUARDS="tests/test_x.py"') == set()
+    # 认出来之后，它必须真的能免掉漏挂
+    assert unmounted(["test_a.py"], parse_standalone(
+        'STANDALONE_GUARDS="tests/test_a.py"'), exempt={}) == []
 
 
 if __name__ == "__main__":
