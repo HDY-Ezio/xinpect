@@ -734,6 +734,15 @@ def reconcile_pending_orders():
                 _handle_topup_paid(db, order, oid, user)
             elif otype == 'subscription':
                 _handle_subscription_paid(db, order, oid, user, st.get('paid_at', ''))
+            elif otype == 'team':
+                # Team purchases had no reconcile rule: a paid team order whose
+                # callback was lost was logged and skipped, so the money was taken
+                # and the team never opened. _finalize_team_purchase is idempotent
+                # (atomic pending->paid claim), so retrying here is safe.
+                from modules import team_governance as _tg
+                _ok_team, _tid, _msg = _tg._finalize_team_purchase(oid, r['user_id'])
+                if not _ok_team:
+                    raise RuntimeError('team finalize failed: %s' % _msg)
             else:
                 # 没有补开规则的订单类型必须留痕，不能悄悄放过。
                 logger.warning('payment_reconcile: 订单 %s 类型 %r 没有补开规则', oid, otype)

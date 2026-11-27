@@ -251,6 +251,14 @@ def detect(code):
     top_lang, top_score = ranked[0]
     second = ranked[1][1] if len(ranked) > 1 else 0
 
+    # Single candidate is adopted (2026-11-27): when only one language scored,
+    # there is no wrong language to confuse it with. 8 try-scan submissions all
+    # dead-ended at need_language with 7~19 byte fragments (print("hi") = 1 point),
+    # never reaching MIN_SCORE. Sending people away is costlier than scanning
+    # under the only language that matched, clearly labelled.
+    if second == 0 and top_score >= 1:
+        return top_lang, top_score, second
+
     if top_score < MIN_SCORE or (top_score - second) < MIN_MARGIN:
         return None, top_score, second
     return top_lang, top_score, second

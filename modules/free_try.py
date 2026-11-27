@@ -425,9 +425,14 @@ def try_scan():
                 if _lang in _supported:
                     _cand.append(_lang)
             _labels = {v: label for v, label, _e in TRY_LANGS}
+            if not _cand:
+                # Nothing scored at all (e.g. "a = 1"): offer the four most common
+                # languages instead of an empty list. An empty list renders zero
+                # buttons on the page, so the visitor saw only a red dropdown and left.
+                _cand = [v for v in ('python', 'javascript', 'java', 'go') if v in _supported]
             _track('try.fail', reason='need_language')
             return jsonify({
-                'error': '识别不出这段代码是哪门语言，请在「代码语言」里手动选一个（选错会导致漏报）',
+                'error': '这段代码太短，机器没认出来。选一个语言，我马上按它扫。',
                 'need_language': True,
                 'candidates': [{'value': v, 'label': _labels[v]} for v in _cand],
             }), 400
