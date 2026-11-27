@@ -288,6 +288,38 @@ def test_list_mismatch_guard_catches_missing_feature():
     assert missing_reverse, '反向检查失效：名单之外的语言一门都没算出来'
 
 
+
+def test_single_candidate_is_adopted():
+    """只命中一门语言就直接采信——认不出不等于没有答案（2026-11-27）。
+
+    背景：11-21 晚一个访客连试 8 次，全部卡在 need_language 走掉。事件里
+    记了 size：7、19、19、19 字节。同长度碎片实测：print("hi") 只命中
+    python 1 分，达不到 MIN_SCORE=3，于是拒扫。只命中一门语言时不存在
+    「认错对象」，放行比让人走掉便宜得多。
+    """
+    cases = (
+        ('print("hi")', 'python'),
+        ('x = 1\ny = 2\nprint(x)', 'python'),
+        ('console.log("hi")', 'javascript'),
+    )
+    for code, want in cases:
+        got, score, second = detect(code)
+        assert got == want, '「%s」应认作 %s，实际 %r（score=%s）' % (code, want, got, score)
+        assert second == 0, '「%s」不该有第二候选，实际 %s' % (code, second)
+        assert score >= 1, '采信必须建立在至少命中一条特征上'
+
+
+def test_zero_score_still_refused():
+    """一门都没命中时必须继续返回 None——不能为了「能扫」去瞎猜。
+
+    造坏自检：把 detect() 里单候选门槛从 >= 1 改成 >= 0，这条必须变红；
+    改了它还不红，说明这条用例在保护一个错误。
+    """
+    for code in ('a = 1', 'int a = 1;', '<div>hi</div>', 'ls -la'):
+        got, score, _ = detect(code)
+        assert got is None, '「%s」零特征却认成了 %s（score=%s），这是硬猜' % (
+            code, got, score)
+
 if __name__ == '__main__':
     tests = [v for k, v in sorted(globals().items()) if k.startswith('test_')]
     failed = 0

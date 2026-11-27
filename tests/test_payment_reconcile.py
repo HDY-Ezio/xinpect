@@ -184,6 +184,42 @@ def test_reconciler_starts_only_from_entrypoint():
     assert src.count('start_payment_reconciler(') == 1, 'start_payment_reconciler 被调用了多次'
 
 
+
+def test_reconcile_opens_paid_team_order():
+    """团队版付款后回调丢了：必须补开，不能记一行 warning 就放过（2026-11-27）。
+
+    背景：补开规则只有 subscription / credit_pack / topup，team 落进 else
+    被静默跳过。客户花 1499 元买团队版、回调没到，钱在门房收了，团队永远
+    开不起来，日志里只有一行 warning，没人会看见。
+
+    造坏自检：把 payment.py 里的 team 分支删掉，这条必须变红。
+    """
+    db = _mkdb()
+    _add_order(db, 'T1', 'team', 'team_basic', status='pending')
+    called = []
+
+    from modules import team_governance as tg
+    old_finalize = tg._finalize_team_purchase
+    tg._finalize_team_purchase = lambda oid, uid=None: (
+        called.append((oid, uid)) or (True, 7, ''))
+
+    undo = [
+        _patch('get_db', lambda: db),
+        _patch('_menfang_get_order_status',
+               lambda oid: {'found': True, 'status': 'paid',
+                            'paid_at': '2026-11-27T03:00:00Z'}),
+    ]
+    try:
+        with payment.app.test_request_context('/'):
+            fixed, checked = payment.reconcile_pending_orders()
+    finally:
+        tg._finalize_team_purchase = old_finalize
+        for u in reversed(undo):
+            u()
+
+    assert called == [('T1', UID)], '团队版订单没被补开，called=%r' % (called,)
+    assert fixed == 1 and checked == 1, '补开 %s 笔 / 检查 %s 笔，应为 1/1' % (fixed, checked)
+
 if __name__ == '__main__':
     fns = [(k, v) for k, v in sorted(globals().items()) if k.startswith('test_')]
     bad = 0
