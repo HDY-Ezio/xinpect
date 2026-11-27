@@ -426,13 +426,30 @@ def try_scan():
                     _cand.append(_lang)
             _labels = {v: label for v, label, _e in TRY_LANGS}
             if not _cand:
-                # Nothing scored at all (e.g. "a = 1"): offer the four most common
-                # languages instead of an empty list. An empty list renders zero
-                # buttons on the page, so the visitor saw only a red dropdown and left.
-                _cand = [v for v in ('python', 'javascript', 'java', 'go') if v in _supported]
-            _track('try.fail', reason='need_language')
+                # 一门语言的语法特征都没命中（"1"、"a = 1"、"int a = 1;" 实测都是 0 分）。
+                # 这里以前塞 4 个兜底语言按钮，点下去拿 "1" 去扫，返回「0 问题 / A 级」——
+                # 用「扫了没事」冒充「没检查」，比直接拒绝更伤信任：用户会认定工具是假的。
+                # 现在明确告知「这次没有执行扫描」，并给出两条真能走下去的路
+                # （贴完整代码 / 自己指定语言）。额度只在 try.ok（扫描成功）时记账，
+                # 这条分支在扫描之前返回，不会扣掉用户的免费次数。
+                _lines = len([ln for ln in code.splitlines() if ln.strip()])
+                _track('try.fail', reason='not_code', size=len(code), lines=_lines)
+                return jsonify({
+                    'not_scannable': True,
+                    'checked': False,
+                    'size': len(code),
+                    'lines': _lines,
+                    'error': '这段内容只有 %d 个字符、%d 行，没有任何一门编程语言的语法特征'
+                             '（关键字、声明、调用），我没法判断该用哪套规则检查它，'
+                             '所以这次没有执行扫描。' % (len(code), _lines),
+                    'hint': '贴一个完整的文件，或者至少一个函数上来，我按它实际用的语言扫。'
+                            '如果它确实是代码（比如小众语言），在上面「代码语言」里手动指定，'
+                            '我按你选的扫。',
+                }), 400
+            _track('try.fail', reason='need_language', size=len(code))
             return jsonify({
-                'error': '这段代码太短，机器没认出来。选一个语言，我马上按它扫。',
+                'error': '这段代码同时像这几门语言，我不敢替你拍板——选错语言的漏报不会报错。'
+                         '点一下，我按它重扫：',
                 'need_language': True,
                 'candidates': [{'value': v, 'label': _labels[v]} for v in _cand],
             }), 400

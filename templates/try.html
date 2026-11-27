@@ -204,6 +204,48 @@ function loadSampleCode() {
     el.scrollTop = 0;
 }
 
+// 「这次没有检查」的结论卡。刻意不用红色：这不是报错，是我们看过之后的回答。
+// 关键一句是「没有执行扫描」——不写这句，用户会把 400 读成「检查通过」或者「工具坏了」。
+function showNotScannable(data) {
+    // box 必须在这里自己取：errBox 是 doTryScan 内部的局部变量，这里引用会抛
+    // ReferenceError，被 fetch 的 catch 吞成「网络错误」——单元测试看不出来，
+    // 只有在浏览器里真点一次才会现形。
+    const box = document.getElementById('result-error');
+    if (!box) return;
+    box.innerHTML = '';
+    box.style.borderColor = 'var(--border-color)';
+    box.style.color = 'var(--text-primary)';
+    box.style.display = 'block';
+
+    const title = document.createElement('div');
+    title.textContent = '这次没有检查';
+    title.style.cssText = 'font-size:16px;font-weight:700;margin-bottom:10px;color:var(--text-primary);';
+    box.appendChild(title);
+
+    const body = document.createElement('p');
+    body.textContent = data.error || '这段内容里没有可以检查的代码，所以这次没有执行扫描。';
+    body.style.cssText = 'font-size:14px;line-height:1.75;color:var(--text-secondary);margin:0 0 10px;';
+    box.appendChild(body);
+
+    const hint = document.createElement('p');
+    hint.textContent = data.hint || '贴一个完整的文件或函数上来。';
+    hint.style.cssText = 'font-size:13px;line-height:1.7;color:var(--text-secondary);margin:0 0 14px;';
+    box.appendChild(hint);
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '用这段示例代码试试';
+    btn.style.cssText = 'padding:8px 16px;border-radius:8px;border:1px solid var(--border-color);'
+        + 'background:var(--bg-page);color:var(--text-primary);font-size:13px;cursor:pointer;';
+    btn.onclick = function() { loadSampleCode(); doTryScan(); };
+    row.appendChild(btn);
+    box.appendChild(row);
+
+    trackEvent('try.not_scannable_shown', {size: data.size || 0, lines: data.lines || 0});
+}
+
 function loadCodeFromFile(file) {
     if (!file) return;
     if (file.size > TRY_MAX_BYTES) {
@@ -320,6 +362,15 @@ async function doTryScan() {
         const data = await resp.json();
 
         if (!resp.ok) {
+            // 短碎片（"1"、"a = 1"）既不是故障，也不是用户的错：我们确实看过了，
+            // 结论是「没有可检查的代码」。红色错误框会把这件事说成系统坏了，
+            // 所以单独渲染成中性结论卡，并且必须写明「没有执行扫描」。
+            if (data.not_scannable) {
+                showNotScannable(data);
+                return;
+            }
+            errBox.style.borderColor = 'var(--danger,var(--color-v-e74c3c))';
+            errBox.style.color = 'var(--danger,var(--color-v-e74c3c))';
             errBox.textContent = data.error || '检测失败，请稍后再试';
             errBox.style.display = 'block';
             // 认不出语言时，把下拉框标出来，别让用户自己找
@@ -449,6 +500,15 @@ async function doTryScan() {
             html += '</div>';
         } else {
             html += '<p style="color:var(--success,var(--color-v-27ae60));font-size:15px;">✓ 安全维度未检出明显问题</p>';
+        }
+        // 0 条 + 极短代码：得说清「0 条不等于没问题」。
+        // 有人拿 "print(1)" 来试效果，看到 A 级 0 问题，会直接认成「这工具什么都查不出来」。
+        const _codeLines = code.split('\n').filter(function (l) { return l.trim(); }).length;
+        if (s.total_issues === 0 && _codeLines <= 3) {
+            html += '<p style="font-size:12px;color:var(--color-warning);margin-top:10px;line-height:1.6;">'
+                 + '这段代码只有 ' + _codeLines + ' 行。0 条不等于「没问题」，只等于这几行里没有触发规则——'
+                 + '行数和内容都太少，判断力有限。贴完整文件或函数，结论才有意义。'
+                 + '</p>';
         }
         // 诚实交代口径。试扫只跑规范层 + 安全引擎、basic 模式，
         // 和完整报告的结论不是一个量级——不说清楚，用户会把「试扫没报」

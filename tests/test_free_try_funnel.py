@@ -244,6 +244,136 @@ def test_home_hero_ctas_are_alive():
     print('    hero 链接全部 200：%s' % ', '.join(hrefs))
 
 
+
+# ---- 短碎片必须有明确答复（2026-11-27）-----------------------------------
+# 实况：有人拿 "1"、"a = 1"、"int a = 1;" 来试工具——就想看看这东西到底行不行。
+# 旧逻辑一门语言都没识别出来时，塞 4 个兜底语言按钮，点下去就拿 "1" 去扫，
+# 回一张「0 问题 / A 级」的空报告。用「扫了没事」冒充「没检查」，
+# 用户会直接判定这东西是假的——他无从知道我们根本没看。
+# 现在：明确说「这次没有执行扫描 + 为什么 + 接下来怎么办」，且不再猜语言。
+
+
+def test_short_fragment_gets_a_verdict_not_a_guess():
+    """零特征输入必须得到「没有执行扫描」的明确答复，不许让人在语言里猜。
+
+    判据三条，缺一不可：
+      1) 说清了「没扫」：not_scannable + checked=False + 文案里有「没有执行扫描」
+      2) 没有 candidates：零特征时给按钮，就是在假装我们知道它是哪门语言
+      3) 带事实（字符数/行数）：用户要能从回复里看出「系统确实看了我发的东西」
+
+    造坏自检：把 not_cand 分支改回塞 4 个兜底语言，这条必须变红。
+    """
+    app, client = _client()
+    for payload in ('1', '0', 'a = 1', 'int a = 1;', 'hello', '\u4f60\u597d'):
+        resp = client.post('/api/try-scan', json={'code': payload, 'language': 'auto'})
+        data = resp.get_json() or {}
+        assert resp.status_code == 400, \
+            '「%s」返回 %d，应为 400：明确拒绝，不能用 200 冒充检查过' % (payload, resp.status_code)
+        assert data.get('not_scannable') is True, \
+            '「%s」没标 not_scannable，前端只能当普通错误渲染：%r' % (payload, data)
+        assert data.get('checked') is False, '「%s」声称检查过了' % payload
+        assert not data.get('candidates'), \
+            '「%s」又给了语言候选：零特征时给按钮等于假装认出来了：%r' % (payload, data.get('candidates'))
+        assert '没有执行扫描' in (data.get('error') or ''), \
+            '「%s」的回复没说清「没扫」，用户会读成「检查通过」或「系统坏了」：%r' % (
+                payload, data.get('error'))
+        assert data.get('size') == len(payload), \
+            '「%s」没报出实际字符数（应为 %d，实得 %r）' % (payload, len(payload), data.get('size'))
+        assert data.get('lines') == 1, \
+            '「%s」没报出实际行数（应为 1，实得 %r）' % (payload, data.get('lines'))
+    print('    6 种碎片全部得到「没检查」的明确答复，且不再猜语言')
+
+
+def test_not_scannable_never_burns_a_free_try():
+    """拒绝不许扣免费次数——额度账本是 `try.ok` 事件，这条分支在扫描之前返回。
+
+    用 spy 盯着埋点调用本身，不看计数：计数依赖落库，测试环境关了埋点会假绿。
+    造坏自检：在 not_code 分支里补一句 _track('try.ok')，这条必须变红。
+    """
+    app, client = _client()
+    from modules import free_try as ft
+
+    seen = []
+    calls = []
+    orig = ft._track
+
+    def spy(name, **props):
+        seen.append(name)
+        calls.append((name, props))
+        return True
+
+    ft._track = spy
+    try:
+        for _ in range(4):
+            resp = client.post('/api/try-scan', json={'code': '1', 'language': 'auto'})
+            assert resp.status_code == 400, \
+                '第 %d 次拒绝返回了 %d（429 说明被当成用掉次数了）' % (len(seen), resp.status_code)
+    finally:
+        ft._track = orig
+
+    assert seen.count('try.fail') == 4, '4 次拒绝应记 4 条 try.fail，实际 %r' % (seen,)
+    assert 'try.ok' not in seen, '拒绝分支写了 try.ok —— 等于白扣用户一次免费额度'
+    reasons = [p.get('reason') for n, p in calls if n == 'try.fail']
+    assert set(reasons) == {'not_code'}, \
+        '拒绝原因应记 not_code（与「认不准」的 need_language 分开），实际 %r' % (reasons,)
+    print('    4 次拒绝零扣费，且原因记为 not_code')
+
+
+def test_ambiguous_language_still_offers_candidates():
+    """有特征但拿不准时仍给候选按钮——别为了「不瞎猜」把这条路也砍了。
+
+    `$("#id").click(() => {});` 是 jQuery：`=>` 给 js 记 2 分，`$(` 又撞上
+    shell 的命令替换特征（3 分），第一名第二名只差 1 分 → 机器认不准。
+    这种才是 need_language 该管的场景：把算出来的前几名摊开让人一键点选，
+    比替他拍板安全（认错语言的漏报是静默的）。
+
+    注意这条测试只断言「有候选、有展示名」，不断言首位是谁：`$(` 归 shell
+    是特征表本身的既有问题（jQuery 会被算成 shell），单独修，不在这里固化。
+    零特征（"1"、"a = 1"）走的是另一条路（not_scannable），两者不能混。
+    """
+    app, client = _client()
+    ambiguous = '$("#id").click(() => {});'
+    resp = client.post('/api/try-scan', json={'code': ambiguous, 'language': 'auto'})
+    data = resp.get_json() or {}
+
+    assert resp.status_code == 400, '歧义输入应返回 400，实得 %d' % resp.status_code
+    assert data.get('need_language') is True, '歧义输入没走 need_language 分支：%r' % (data,)
+    assert not data.get('not_scannable'), '有语言特征的输入被当成「不是代码」拒了'
+    cands = data.get('candidates') or []
+    assert len(cands) >= 2, '这段同时命中 shell 和 js，候选不该只有 %d 个' % len(cands)
+    assert all(c.get('value') and c.get('label') for c in cands), \
+        '候选缺 value/label，前端会渲染出空按钮：%r' % (cands,)
+    print('    歧义输入给出 %d 个候选：%s'
+          % (len(cands), '、'.join(c['label'] for c in cands)))
+
+
+def test_not_scannable_renderer_owns_its_dom_lookup():
+    """结论卡渲染函数必须自己取 DOM，不许引用 doTryScan 的局部变量。
+
+    2026-11-27 真事：showNotScannable 里写的是 errBox.innerHTML，而 errBox 是
+    doTryScan 内部的 const（第 316 行）——函数体根本拿不到，运行时抛
+    ReferenceError，被 fetch 的 catch 吞成「网络错误，请稍后再试」。
+    后端测试全绿、JS 语法检查 rc=0，只有在浏览器里真点一次才现形。
+    """
+    app, client = _client()
+    html = _html(client, '/try')
+    start = html.index('function showNotScannable(')
+    end = html.index('function loadCodeFromFile(', start)
+    body = html[start:end]
+    # 只判代码，不判注释：注释里解释「为什么不能引用 errBox」正是要留下的信息。
+    # （判据的字面量会自伤——这条曾被自己写的注释判红过一次。）
+    import re as _re
+    code_only = _re.sub(r'//[^\n]*', '', body)
+
+    assert 'errBox' not in code_only, \
+        'showNotScannable 引用了 doTryScan 的局部变量 errBox，点了只会看到「网络错误」'
+    assert "getElementById('result-error')" in body, \
+        'showNotScannable 没有自己取结果区 DOM，靠外部变量就会踩作用域'
+    assert 'data.error' in body, \
+        '结论文案必须用后端返回的 error，前端另写一份就成了两个事实来源'
+    print('    结论卡渲染函数自取 DOM，不依赖 doTryScan 的局部变量')
+
+
 if __name__ == '__main__':
     tests = [v for k, v in sorted(globals().items()) if k.startswith('test_')]
     failed = 0
