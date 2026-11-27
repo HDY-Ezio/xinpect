@@ -322,17 +322,22 @@ def test_not_scannable_never_burns_a_free_try():
 def test_ambiguous_language_still_offers_candidates():
     """有特征但拿不准时仍给候选按钮——别为了「不瞎猜」把这条路也砍了。
 
-    `$("#id").click(() => {});` 是 jQuery：`=>` 给 js 记 2 分，`$(` 又撞上
-    shell 的命令替换特征（3 分），第一名第二名只差 1 分 → 机器认不准。
+    样例用 Lua / Ruby 的重叠写法（2026-11-27 换）：
+        function foo(a)
+        end
+    lua 5 分（function 3 + end 2）、ruby 4 分（end 4），差 1 分 < MIN_MARGIN，
+    机器分不清。这两门语言在「end 收尾」上确实重叠，认不准是正确行为。
     这种才是 need_language 该管的场景：把算出来的前几名摊开让人一键点选，
     比替他拍板安全（认错语言的漏报是静默的）。
 
-    注意这条测试只断言「有候选、有展示名」，不断言首位是谁：`$(` 归 shell
-    是特征表本身的既有问题（jQuery 会被算成 shell），单独修，不在这里固化。
+    历史教训：原来这条用的是 `$("#id").click(() => {});`，靠的是「jQuery 被
+    shell 的 $() 捞走」这个缺陷来制造歧义。缺陷一修，测试就红——断言实际上
+    把 bug 固化成了基线。**造测试样例不能依赖已知缺陷。**
+
     零特征（"1"、"a = 1"）走的是另一条路（not_scannable），两者不能混。
     """
     app, client = _client()
-    ambiguous = '$("#id").click(() => {});'
+    ambiguous = 'function foo(a)\nend'
     resp = client.post('/api/try-scan', json={'code': ambiguous, 'language': 'auto'})
     data = resp.get_json() or {}
 
@@ -340,7 +345,7 @@ def test_ambiguous_language_still_offers_candidates():
     assert data.get('need_language') is True, '歧义输入没走 need_language 分支：%r' % (data,)
     assert not data.get('not_scannable'), '有语言特征的输入被当成「不是代码」拒了'
     cands = data.get('candidates') or []
-    assert len(cands) >= 2, '这段同时命中 shell 和 js，候选不该只有 %d 个' % len(cands)
+    assert len(cands) >= 2, 'lua 5 分 / ruby 4 分，候选不该只有 %d 个' % len(cands)
     assert all(c.get('value') and c.get('label') for c in cands), \
         '候选缺 value/label，前端会渲染出空按钮：%r' % (cands,)
     print('    歧义输入给出 %d 个候选：%s'

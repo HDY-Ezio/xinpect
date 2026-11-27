@@ -320,6 +320,85 @@ def test_zero_score_still_refused():
         assert got is None, '「%s」零特征却认成了 %s（score=%s），这是硬猜' % (
             code, got, score)
 
+def test_jquery_is_javascript_not_shell():
+    """jQuery 的 $() 不是 shell 命令替换（2026-11-27）。
+
+    背景：`$("#id").click(...)` 原来被判成 shell——`$(...)` 这条宽正则
+    不区分「命令替换」和「jQuery 调用」。用户在试扫页粘一段 jQuery，会拿
+    shell 规则去扫，报出来的东西全是噪音。
+
+    在 shell 里 `$("#id")` 是语法错误：命令名不会以引号或 `#` `.` `[` 开头。
+    """
+    cases = (
+        ('$("#id").click(function(){ alert(1); })', 'jQuery 选择器 + 方法调用'),
+        ('$(".btn").hide()', 'jQuery 类选择器'),
+        ('$(this).val()', 'jQuery 包装 this'),
+        ('$(document).ready(function(){})', 'jQuery ready'),
+        ('$("#id")', '最短的 jQuery 片段'),
+        ('$.ajax({url: "/api", method: "POST"})', 'jQuery 工具函数'),
+    )
+    for code, desc in cases:
+        got, top, second = detect(code)
+        assert got == 'javascript', '%s「%s」应认成 javascript，实际 %r（%s/%s）' % (
+            desc, code, got, top, second)
+
+
+def test_shell_command_substitution_survives():
+    """收紧 $() 之后，真 shell 必须照样认得出。
+
+    造坏自检：把 shell 的 `$(...)` 特征整条删掉，这条会红。
+    """
+    cases = (
+        ('echo $(date +%s)', '命令替换'),
+        ('FILES=$(ls -la | wc -l)', '赋值 + 管道'),
+        ('NAME=$(basename "$1")', '带引号参数'),
+        ('echo $((1 + 2))', '算术展开'),
+        ('echo ${HOME}/bin', '变量展开'),
+        ('if [ -f /etc/passwd ]; then echo ok; fi', 'if/fi 结构'),
+    )
+    for code, desc in cases:
+        got, top, second = detect(code)
+        assert got == 'shell', '%s「%s」应认成 shell，实际 %r（%s/%s）' % (
+            desc, code, got, top, second)
+
+
+def test_php_does_not_steal_shell_echo():
+    """php 的 `echo $` 特征已删除，不能再抢 shell 的写法（2026-11-27）。
+
+    原来 php 有 `echo $` 一条 3 分特征。`echo $(date +%s)` 里 php 拿 3 分、
+    shell 拿 3 分，margin 不够 → 直接判「认不出」。可 `echo $x` 明明是 shell
+    最常见的写法，凭什么算 php。
+
+    造坏自检：把这条特征加回 php，本测试必须变红。
+    """
+    for code in ('echo $(date +%s)', 'echo $HOME', 'echo $((1 + 2))'):
+        sc = score(code)
+        assert sc.get('php', 0) == 0,             '「%s」被判成 php %d 分，shell 的 echo 被抢走了' % (code, sc.get('php', 0))
+
+
+def test_shell_scores_zero_on_jquery_selector():
+    """`$("#id")` 不该给 shell 加任何分（2026-11-27）。
+
+    这条判的是 score() 而不是 detect() 的结论。区别很关键：
+    detect() 说「是 javascript」可能只是因为 JS 特征够强，掩盖了 shell 特征
+    本身的错误。`$("...")` 在 shell 里是语法错误（命令名不以引号/`#`/`.`/`[`
+    开头），给 shell 3 分就是错的。
+
+    造坏自检：把 shell 的 `$(...)` 换回「不排除引号」的宽写法，本条必须红；
+    而只判 detect() 结论的用例在同样的坏例下仍然绿——这正是本条存在的理由。
+    """
+    for code in ('$("#id")', '$(".btn")', "$('#main')", '$("#a").hide()'):
+        sc = score(code)
+        assert sc.get('shell', 0) == 0, \
+            '「%s」给 shell 记了 %d 分，`$(...)` 的收紧没生效' % (code, sc.get('shell', 0))
+
+    # 反过来：真的命令替换必须照样得分，不能一刀切
+    for code in ('echo $(date)', 'X=$(ls)', 'echo $((1+2))'):
+        sc = score(code)
+        assert sc.get('shell', 0) >= 3, \
+            '「%s」是 shell 命令替换，却只给了 %d 分' % (code, sc.get('shell', 0))
+
+
 if __name__ == '__main__':
     tests = [v for k, v in sorted(globals().items()) if k.startswith('test_')]
     failed = 0

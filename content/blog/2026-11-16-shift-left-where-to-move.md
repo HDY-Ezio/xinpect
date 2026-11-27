@@ -1,7 +1,6 @@
 ---
 title: 安全左移到底该移到哪：从需求评审到上线，代码审查每个节点该留下的越权漏洞证据
 slug: shift-left-where-to-move
-draft: true
 date: 2026-11-16
 summary: 把扫描塞进 CI 不等于安全左移。访问控制是语义问题：谁允许读谁的数据，只能在需求阶段定下来。这篇按需求、设计、编码、合并、测试、发布六个节点，逐段给出可核查的产物与判据，并对照 NIST SSDF、OWASP SAMM、ASVS 说明每处由谁负责。
 tags: 代码审查, 越权漏洞, 接口安全, DevSecOps

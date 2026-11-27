@@ -61,6 +61,12 @@ SIGNATURES = {
         (r'===', 1),
         (r'\b(req|res)\.(send|json|query|params|body|status)\b', 3),
         (r'\bexpress\s*\(\s*\)', 4),
+        # 2026-11-27 补：原来整张表只覆盖 Node（console/require/module），
+        # 浏览器端 jQuery 一条特征都没有，`$("#id")` 只能被 shell 的 `$()` 捞走。
+        # 权重给 6，要压过 shell 对 `$(...)` 的 3 分，margin 才够 2。
+        (r'\$\(\s*["\'`#.\[]', 6),
+        (r'\$\.\w+\s*\(', 5),
+        (r'\$\s*\(\s*(this|document|window|body)\s*\)', 6),
     ],
     'typescript': [
         (r'\bimport\s+type\b', 6),
@@ -82,7 +88,10 @@ SIGNATURES = {
     'php': [
         (r'<\?php', 8),
         (r'\$this->', 5),
-        (r'\becho\s+\$', 3),
+        # 2026-11-27 删除 `\becho\s+\$`：`echo $x` 是 shell 最普通的写法，
+        # 不是 php 独占。留着它，`echo $(date +%s)` 会 php 3 分 / shell 3 分
+        # 打平，margin 不够直接判「认不出」。php 有 `<?php`(8)、`$this->`(5)、
+        # `$_GET`(6)，不需要这条；没有 `<?php` 的碎片承认认不出才对。
         (r'->\w+\s*\(', 2),
         (r'\bnamespace\s+[\w\\]+;', 2),
         (r'\$_(GET|POST|REQUEST|COOKIE|SERVER|SESSION)\b', 6),
@@ -166,7 +175,11 @@ SIGNATURES = {
     # 用户只能自己去下拉框翻。这三门都是往安全扫描器里很常见的粘贴内容。
     'shell': [
         (r'^#!.*\b(ba)?sh\b', 10),
-        (r'\$\([^)]*\)', 3),
+        # 2026-11-27 收紧：`$("#id")` 在 shell 里是语法错误（命令名不以引号开头），
+        # 原来这条宽正则让 jQuery 无条件拿 3 分，`$("#id").click(...)` 全被判成 shell。
+        # 排除以引号/选择器符号开头的形态；不含 `(`，因为 `$((1+2))` 是纯 shell 算术展开。
+        # 字符类里的 \x22\x27 就是 " 和 ' —— 这样写避免 Python 源码里的引号嵌套。
+        (r'\$\((?!\s*[\x22\x27`#.\[])[^)]*\)', 3),
         (r'\$\{\w+\}', 3),
         # 必须带 `=`：`export default {` 是 JS/TS，不带等号的一律不算 shell
         (r'(?m)^\s*(export|unset|source)\s+\w+=', 4),

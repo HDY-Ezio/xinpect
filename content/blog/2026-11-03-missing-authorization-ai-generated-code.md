@@ -1,7 +1,6 @@
 ---
 title: 测试全绿，接口却能让任何人查到别人的工资
 slug: missing-authorization-ai-generated-code
-draft: true
 date: 2026-11-03
 summary: AI 生成的接口最常漏的那一行，不是业务逻辑，是权限校验。这类漏洞藏在"没写的那行代码"里，没有特征可以匹配——所以单元测试抓不到，关键词扫描器也抓不到。
 tags: 越权漏洞, AI 编程, 代码审查
