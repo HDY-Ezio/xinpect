@@ -1,5 +1,5 @@
 {
-  "count": 549,
+  "count": 551,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -138,7 +138,7 @@
     "scripts/run_cold_outreach.sh": "f4b6558dad69ebca6164b9536bc59c20",
     "scripts/run_membership_reminder.sh": "38593ebb4f88548113aa0f02405312c1",
     "scripts/run_paid_audit.sh": "67d7e55b1696b31357281b4172fb0e14",
-    "scripts/run_qa_suite.sh": "bf1a394d0ac1917316b925ea41f0200b",
+    "scripts/run_qa_suite.sh": "26b1c42bbffece70bfc015066a724fb3",
     "scripts/run_recall_never_scanned.sh": "59584b3e747909ade5f5e81b959e2c26",
     "scripts/run_scan_cost_report.sh": "9296332670be4e88af7c8ff44ac64855",
     "scripts/sample_report.json": "1ae98bd60c5fbfb6568e395f3bfdcbba",
@@ -475,7 +475,8 @@
     "templates/whitepaper.html": "8c722e32479b7bb5e463eba93ef850b6",
     "tests/SCENARIO_CHECKLIST.md": "c42f911703fc499bb56e915094a1ef1f",
     "tests/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-    "tests/e2e_serve.py": "6c629a002fe0f2b2d9e56f8bbff070ec",
+    "tests/e2e_serve.py": "451298ab4412f26bbb3d5b38af844362",
+    "tests/proc_guard.py": "20cbda3ab2b69d8efaf7824f8ad2e6d9",
     "tests/qa_guardian.py": "8adbd7e4b954a0383d77d7c83df49bcf",
     "tests/test_api_integration.py": "3dfef2c51a9ab1eea4fa53d534d802f7",
     "tests/test_bb_dimension.py": "a151a0ee222962077b543b4216d092da",
@@ -488,6 +489,7 @@
     "tests/test_cron_jobs_liveness.py": "4bb212cc93cabe9d5450f75102c1e48e",
     "tests/test_dashboard_mobile.py": "d5da1c44db29eab9cc11e6f1f0ea2530",
     "tests/test_dispatcher_import_safety.py": "0ee8f95283a46c0b03d2bc3c179bbc4d",
+    "tests/test_e2e_proc_leak.py": "228c63e70993eef459789d14de0f01e8",
     "tests/test_engine_coverage.py": "80d66459c00b096f18f7acd4b41a046e",
     "tests/test_free_try_funnel.py": "0083a521f5c7049a53ec4ea93fc3a33a",
     "tests/test_funnel_analytics.py": "bac10a17da728ca23b09a8d403424e80",
@@ -551,7 +553,7 @@
     "tests/verify_visitor_scope.py": "93a14f06666e976e8a710a9f38730435",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-29T01:17:45+08:00",
+  "generated_at": "2026-11-29T02:24:40+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -568,9 +570,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "9856ce336739144f7c7002a9bbced4047516b1c94cae9b23726eca15d012dbfb",
+  "integrity": "3e41d3ee0be4e4a120061f58f4989c864dfb2b0fdf89b5f6854ca70b2229b25c",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "订单页删除过期订单（含自检语义修正后重签）"
+  "task": "e2e 隔离实例加父进程监护 + 孤儿守卫"
 }

@@ -42,6 +42,12 @@ def _init_like_production():
 
 
 if __name__ == '__main__':
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from proc_guard import watch_parent
+
+    # 父进程（测试）被 kill -9 / SIGHUP 带走时，finally 不会执行。
+    # 这里让进程自己发现「头上换人了」，否则隔离实例会抱着随机端口长跑。
+    watch_parent()
     port = int(os.environ['XP_E2E_PORT'])
     _init_like_production()
     print('E2E_READY db=%s port=%s' % (site_app.DB_PATH, port), flush=True)
