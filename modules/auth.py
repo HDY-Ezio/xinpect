@@ -764,7 +764,15 @@ def _dashboard_orders_data(user, vip, db):
 
 
 def _dashboard_invoice_data(user, vip, db):
-    """开票页数据：可开票订单 + 开票记录"""
+    """开票页数据：可开票订单 + 开票记录 + 空态解释
+
+    空态为什么在这里算（2026-11-28）：
+    没下过单、下单没付款、付过款但都开过票——这三种情况原本在页面上
+    长得一模一样。老板拿着 16 笔全部 expired 的订单进来，看到一句
+    「暂无可开票订单」，第一反应是「是不是我账号没权限选订单」。
+    计数放在这里，orders 和 invoice_requests 两张表一个事实来源；
+    模板只负责渲染，不再各处自己编一句解释。
+    """
     uid = user.get('id')
 
     # 查询所有已支付订单
@@ -794,10 +802,59 @@ def _dashboard_invoice_data(user, vip, db):
         (uid,)
     ).fetchall()
 
+    # 这个用户名下到底有什么：按状态计数，用来解释「为什么一笔都不显示」。
+    # 不猜、不写死，全部来自 orders 表本体。
+    stat_rows = db.execute(
+        'SELECT status, COUNT(*) AS n FROM orders WHERE user_id = ? GROUP BY status',
+        (uid,)
+    ).fetchall()
+    counts = {r['status']: r['n'] for r in stat_rows}
+    total_orders = sum(counts.values())
+    paid_count = counts.get('paid', 0)
+    unpaid_count = total_orders - paid_count
+
     return {
         'available_orders': available,
         'invoices': [dict(i) for i in invoices],
+        'invoice_hint': _invoice_empty_hint(total_orders, paid_count, unpaid_count,
+                                            len(available)),
     }
+
+
+def _invoice_empty_hint(total_orders, paid_count, unpaid_count, available_count):
+    """空态文案：三种情况各给一句准话 + 一个下一步。
+
+    只在「可开票订单为空」时使用；有单可开时模板不渲染它。
+    """
+    if total_orders == 0:
+        return {
+            'title': '你还没有下过单',
+            'desc': '开通会员或购买积分包后，已支付的订单会自动出现在这里，'
+                    '可以直接勾选开票。',
+            'cta_text': '查看套餐',
+            'cta_href': '/pricing',
+        }
+    if paid_count == 0:
+        return {
+            'title': '你名下 %d 笔订单都还没付款' % total_orders,
+            'desc': '这些订单下单后没有完成支付，已经过期，所以不能开票。'
+                    '开票只针对已付款的订单。',
+            'cta_text': '查看我的订单',
+            'cta_href': '/dashboard/orders',
+        }
+    if available_count == 0:
+        desc = '已付款的 %d 笔订单都已经提交过开票申请，' % paid_count
+        desc += '可以在下方「我的开票记录」里看进度。'
+        if unpaid_count:
+            desc += '另有 %d 笔订单未付款（已过期），不能开票。' % unpaid_count
+        return {
+            'title': '已付款的订单都已开过票',
+            'desc': desc,
+            'cta_text': '查看开票记录',
+            'cta_href': '#invoice-history',
+        }
+    # 有单可开：不显示空态
+    return {'title': '', 'desc': '', 'cta_text': '', 'cta_href': ''}
 
 
 def _dashboard_api_keys_data(user, vip, db):
@@ -927,10 +984,21 @@ def api_invoice_request():
         (uid, order_ids_str, total_amount, company_name, tax_number, email)
     )
     # 写入管理员通知（用于定期检查和主动通知）
+    # error_logs 的结构早换过：现在是 endpoint/method/error_type/error_message/
+    # stack_trace/request_params ...，没有 level/source/message/details 四列。
+    # 旧写法每条开票申请都抛 "no such column: level"，整条提交 500 ——
+    # 生产上同样会炸，只是因为没人有可开票订单，一直没撞上（2026-11-28 发现）。
     db.execute(
-        "INSERT INTO error_logs (level, source, message, details) VALUES ('warning', 'invoice_request', ?, ?)",
-        (f'新开票申请: {company_name} / ¥{total_amount:.2f} / 用户ID={uid}',
-         f'订单: {order_ids_str} | 税号: {tax_number} | 邮箱: {email}')
+        'INSERT INTO error_logs (user_id, endpoint, method, error_type, error_message,'
+        ' stack_trace, request_params, response_status, ip_address, user_agent)'
+        ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (uid, '/api/invoice-request', 'POST', 'invoice_request',
+         f'新开票申请: {company_name} / ¥{total_amount:.2f} / 用户ID={uid}',
+         '',
+         f'订单: {order_ids_str} | 税号: {tax_number} | 邮箱: {email}',
+         200,
+         request.remote_addr or '',
+         (request.headers.get('User-Agent') or '')[:300])
     )
     db.commit()
 

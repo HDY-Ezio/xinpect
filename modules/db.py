@@ -57,6 +57,273 @@ def init_db():
         conn.close()
 
 
+def _ensure_legacy_tables(conn):
+    """把历史上「只存在于生产库、从没写进代码」的表补齐。
+
+    2026-11-28：做开票端到端测试时发现全新库跑完启动仍缺 22 张表。
+    这些表当年是手工 CREATE 进生产库的，代码里从来没有创建语句。
+    后果不是理论问题 —— 换台机器重装，控制台 summary、CI 配置、许可、
+    开票页全都 500。这里按生产库结构一次性补齐，全部 IF NOT EXISTS，幂等。
+    """
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS admin_bind_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            code TEXT NOT NULL,
+            device_fingerprint TEXT NOT NULL,
+            device_name TEXT,
+            expires_at TEXT NOT NULL,
+            used INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS admin_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            device_fingerprint TEXT NOT NULL,
+            device_name TEXT,
+            created_at TEXT DEFAULT (datetime('now','localtime')),
+            last_used_at TEXT,
+            is_trusted INTEGER DEFAULT 1
+        );
+        CREATE TABLE IF NOT EXISTS alert_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rule_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            scan_id TEXT NOT NULL,
+            trigger_details TEXT DEFAULT '{}',
+            delivery_status TEXT DEFAULT 'pending',
+            delivery_response TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (rule_id) REFERENCES alert_rules(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS alert_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL DEFAULT '高危告警',
+            channel TEXT NOT NULL DEFAULT 'webhook',
+            channel_config TEXT NOT NULL DEFAULT '{}',
+            trigger_json TEXT NOT NULL DEFAULT '{}',
+            is_active INTEGER DEFAULT 1,
+            last_triggered_at TEXT,
+            cooldown_minutes INTEGER DEFAULT 60,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS api_calls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            endpoint VARCHAR(200) NOT NULL,
+            method VARCHAR(10) DEFAULT 'GET',
+            status_code INTEGER DEFAULT 200,
+            called_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS auth_attempts ( id INTEGER PRIMARY KEY AUTOINCREMENT, scope TEXT NOT NULL, account TEXT NOT NULL, ip TEXT NOT NULL, created_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS benchmark_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    run_name TEXT NOT NULL,
+                    total_samples INTEGER,
+                    true_positives INTEGER,
+                    false_positives INTEGER,
+                    false_negatives INTEGER,
+                    true_negatives INTEGER,
+                    precision_score REAL,
+                    recall_score REAL,
+                    f1_score REAL,
+                    false_positive_rate REAL,
+                    by_severity TEXT,
+                    by_language TEXT,
+                    created_at TEXT DEFAULT (datetime('now', 'localtime'))
+                );
+        CREATE TABLE IF NOT EXISTS benchmark_samples (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_path TEXT NOT NULL,
+                    language TEXT NOT NULL,
+                    code_snippet TEXT NOT NULL,
+                    issue_type TEXT NOT NULL,
+                    severity TEXT NOT NULL DEFAULT 'P1',
+                    cwe_id TEXT,
+                    ground_truth TEXT NOT NULL DEFAULT 'pending',
+                    annotated_by TEXT,
+                    annotated_at TEXT,
+                    notes TEXT,
+                    source TEXT DEFAULT 'synthetic',
+                    source_scan_id TEXT,
+                    created_at TEXT DEFAULT (datetime('now', 'localtime'))
+                );
+        CREATE TABLE IF NOT EXISTS ci_configs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            default_scan_mode TEXT NOT NULL DEFAULT 'quick',
+            default_threshold INTEGER NOT NULL DEFAULT 60,
+            ignore_patterns TEXT DEFAULT NULL,
+            auto_share INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')), block_mode TEXT DEFAULT "all_issues", block_severity TEXT DEFAULT "P0,P1",
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS cold_outreach (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            company TEXT,
+            subject TEXT,
+            sent_at TEXT DEFAULT (datetime('now','localtime')),
+            ok INTEGER DEFAULT 0,
+            UNIQUE(email, subject)
+        );
+        CREATE TABLE IF NOT EXISTS false_positives (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            scan_id TEXT NOT NULL,
+            rule_id TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            line_number INTEGER DEFAULT 0,
+            issue_title TEXT DEFAULT '',
+            reason TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (scan_id) REFERENCES scans(scan_id)
+        );
+        CREATE TABLE IF NOT EXISTS gate_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scan_id TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            gate_id INTEGER,
+            passed INTEGER NOT NULL DEFAULT 0,
+            details_json TEXT DEFAULT '[]',
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (gate_id) REFERENCES quality_gates(id)
+        );
+        CREATE TABLE IF NOT EXISTS licenses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    license_key TEXT UNIQUE NOT NULL,
+                    org_name TEXT NOT NULL DEFAULT '',
+                    plan_type TEXT NOT NULL DEFAULT 'pro',
+                    max_users INTEGER NOT NULL DEFAULT 10,
+                    max_scans INTEGER NOT NULL DEFAULT 1000,
+                    expires_at TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'issued',
+                    server_fingerprint TEXT DEFAULT '',
+                    activated_at TEXT DEFAULT '',
+                    contact_email TEXT DEFAULT '',
+                    note TEXT DEFAULT '',
+                    created_at TEXT DEFAULT (datetime('now', 'localtime'))
+                );
+        CREATE TABLE IF NOT EXISTS membership_reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            tier INTEGER NOT NULL,
+            expire_at TEXT NOT NULL,
+            sent_at TEXT DEFAULT (datetime('now', 'localtime')),
+            email TEXT,
+            UNIQUE (user_id, tier, expire_at)
+        );
+        CREATE TABLE IF NOT EXISTS onboarding_recalls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            stage INTEGER NOT NULL,
+            email TEXT,
+            sent_at TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(user_id, stage)
+        );
+        CREATE TABLE IF NOT EXISTS payment_audit_dispositions (
+            order_id    TEXT PRIMARY KEY,
+            side        TEXT NOT NULL,
+            reason      TEXT NOT NULL,
+            decided_by  TEXT NOT NULL,
+            decided_at  TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS quality_gates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL DEFAULT 'default',
+            rules_json TEXT NOT NULL DEFAULT '{}',
+            is_active INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS rate_limit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            endpoint VARCHAR(200) NOT NULL,
+            reason TEXT,
+            limited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS repo_webhooks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        repo_full_name TEXT NOT NULL,
+                        github_webhook_id INTEGER,
+                        secret TEXT NOT NULL,
+                        events TEXT NOT NULL DEFAULT 'push,pull_request',
+                        active INTEGER NOT NULL DEFAULT 1,
+                        auto_scan INTEGER NOT NULL DEFAULT 1,
+                        auto_pr_comment INTEGER NOT NULL DEFAULT 1,
+                        last_scan_at TEXT,
+                        scan_count INTEGER DEFAULT 0,
+                        created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    );
+        CREATE TABLE IF NOT EXISTS scan_thresholds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            config_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS scans_score_prev (
+                            scan_id TEXT PRIMARY KEY,
+                            score INTEGER, grade TEXT,
+                            saved_at TEXT DEFAULT (datetime('now','localtime'))
+                          );
+        CREATE TABLE IF NOT EXISTS visitor_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vid TEXT NOT NULL,
+            user_id INTEGER,
+            path TEXT NOT NULL,
+            method TEXT,
+            status INTEGER,
+            referer TEXT,
+            ua TEXT,
+            ip TEXT,
+            is_bot INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        , kind TEXT NOT NULL DEFAULT 'page', detail TEXT, is_internal INTEGER NOT NULL DEFAULT 0);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_scans_share_token ON scans(share_token);
+        CREATE INDEX IF NOT EXISTS idx_scans_user_hash ON scans(user_id, content_hash, created_at);
+        CREATE INDEX IF NOT EXISTS idx_users_onboarding ON users(onboarding_completed);
+        CREATE INDEX IF NOT EXISTS idx_admin_bind_codes_user ON admin_bind_codes(user_id);
+        CREATE INDEX IF NOT EXISTS idx_admin_devices_user ON admin_devices(user_id);
+        CREATE INDEX IF NOT EXISTS idx_admin_devices_fp ON admin_devices(device_fingerprint);
+        CREATE INDEX IF NOT EXISTS idx_alert_history_user ON alert_history(user_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_alert_rules_user ON alert_rules(user_id);
+        CREATE INDEX IF NOT EXISTS idx_api_calls_user ON api_calls(user_id);
+        CREATE INDEX IF NOT EXISTS idx_api_calls_time ON api_calls(called_at);
+        CREATE INDEX IF NOT EXISTS idx_api_calls_user_time ON api_calls(user_id, called_at);
+        CREATE INDEX IF NOT EXISTS idx_auth_attempts_lookup ON auth_attempts (scope, account, ip, created_at);
+        CREATE INDEX IF NOT EXISTS idx_bench_truth ON benchmark_samples(ground_truth);
+        CREATE INDEX IF NOT EXISTS idx_bench_severity ON benchmark_samples(severity);
+        CREATE INDEX IF NOT EXISTS idx_fp_user ON false_positives(user_id);
+        CREATE INDEX IF NOT EXISTS idx_fp_user_rule_file ON false_positives(user_id, rule_id, file_path);
+        CREATE INDEX IF NOT EXISTS idx_fp_scan ON false_positives(scan_id);
+        CREATE INDEX IF NOT EXISTS idx_gate_results_user ON gate_results(user_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_gate_results_scan ON gate_results(scan_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_gates_user ON quality_gates(user_id);
+        CREATE INDEX IF NOT EXISTS idx_rate_limit_user ON rate_limit_logs(user_id);
+        CREATE INDEX IF NOT EXISTS idx_rate_limit_time ON rate_limit_logs(limited_at);
+        CREATE INDEX IF NOT EXISTS idx_repo_webhooks_user ON repo_webhooks(user_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_repo_webhooks_repo ON repo_webhooks(repo_full_name);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_thresholds_user ON scan_thresholds(user_id);
+        CREATE INDEX IF NOT EXISTS idx_visitor_created ON visitor_events(created_at);
+        CREATE INDEX IF NOT EXISTS idx_visitor_vid ON visitor_events(vid);
+        CREATE INDEX IF NOT EXISTS idx_visitor_path ON visitor_events(path);
+
+    """)
+
+
 def _init_db_inner(conn):
     """数据库初始化内部实现（入口）"""
     _create_core_tables(conn)
@@ -64,6 +331,7 @@ def _init_db_inner(conn):
     _create_misc_tables(conn)
     _create_monitoring_tables(conn)
     _run_versioned_migrations(conn)
+    _ensure_legacy_tables(conn)
     _create_all_indexes(conn)
     conn.commit()
 
@@ -110,6 +378,48 @@ def _create_core_tables(conn):
             pay_method TEXT,
             paid_at TEXT,
             created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        -- 扫描指标表：同样从没在代码里建过（生产手工建的）。
+        -- /api/dashboard/summary 读它，缺表 → 控制台每页一个 500。
+        CREATE TABLE IF NOT EXISTS scan_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            scan_id TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            grade TEXT NOT NULL,
+            issue_count INTEGER NOT NULL,
+            critical_count INTEGER DEFAULT 0,
+            high_count INTEGER DEFAULT 0,
+            medium_count INTEGER DEFAULT 0,
+            low_count INTEGER DEFAULT 0,
+            brain_scores_json TEXT DEFAULT '{}',
+            file_count INTEGER DEFAULT 0,
+            total_lines INTEGER DEFAULT 0,
+            duration_ms REAL DEFAULT 0,
+            scan_mode TEXT DEFAULT 'basic',
+            project_tag TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_metrics_user ON scan_metrics(user_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_metrics_project ON scan_metrics(project_tag, created_at DESC);
+
+        -- 开票申请表：原本只在代码里读写、靠手工建表，全新库缺这张表，
+        -- 开票页对所有人 500（2026-11-28 做端到端测试时发现）。
+        CREATE TABLE IF NOT EXISTS invoice_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            order_id TEXT NOT NULL,
+            amount REAL NOT NULL,
+            plan_name TEXT DEFAULT '',
+            company_name TEXT NOT NULL,
+            tax_number TEXT NOT NULL,
+            email TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            admin_note TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            completed_at TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
         CREATE TABLE IF NOT EXISTS daily_usage (
@@ -330,6 +640,58 @@ def _run_versioned_migrations(conn):
         ("028_add_scan_progress_events",
          "scans 增加 scan_progress_events 字段（扫描器真实事件流水，供进度条显示实际在查什么）",
          "ALTER TABLE scans ADD COLUMN scan_progress_events TEXT DEFAULT NULL"),
+        # 029~037：新库补列（2026-11-28）
+        # 这 9 列历史上是手工 ALTER 加到生产的，从没进过迁移清单。结果是
+        # 全新库只有 11 列，登录/控制台一读 onboarding_completed 就 500。
+        # 生产一直没炸，只因为那台机器的库早就被手工补过 —— 换台机器重装就现原形。
+        ("029_add_session_version",
+         "users 增加 session_version 字段（改密后失效旧会话）",
+         "ALTER TABLE users ADD COLUMN session_version INTEGER DEFAULT 1"),
+        ("030_add_mf_sync_needed",
+         "users 增加 mf_sync_needed 字段",
+         "ALTER TABLE users ADD COLUMN mf_sync_needed INTEGER DEFAULT 0"),
+        ("031_add_github_token",
+         "users 增加 github_token 字段",
+         "ALTER TABLE users ADD COLUMN github_token TEXT DEFAULT NULL"),
+        ("032_add_github_username",
+         "users 增加 github_username 字段",
+         "ALTER TABLE users ADD COLUMN github_username TEXT DEFAULT NULL"),
+        ("033_add_first_login_at",
+         "users 增加 first_login_at 字段（首登引导判定）",
+         "ALTER TABLE users ADD COLUMN first_login_at TEXT"),
+        ("034_add_onboarding_completed",
+         "users 增加 onboarding_completed 字段（控制台首登引导）",
+         "ALTER TABLE users ADD COLUMN onboarding_completed INTEGER DEFAULT 0"),
+        ("035_add_is_banned",
+         "users 增加 is_banned 字段（封禁）",
+         "ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0"),
+        ("036_add_gitlab_token",
+         "users 增加 gitlab_token 字段",
+         "ALTER TABLE users ADD COLUMN gitlab_token TEXT DEFAULT NULL"),
+        ("037_add_gitlab_username",
+         "users 增加 gitlab_username 字段",
+         "ALTER TABLE users ADD COLUMN gitlab_username TEXT DEFAULT NULL"),
+        ("038_add_scans_source",
+         "scans 增加 source 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN source TEXT"),
+        ("039_add_scans_ci_repo",
+         "scans 增加 ci_repo 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN ci_repo TEXT"),
+        ("040_add_scans_ci_branch",
+         "scans 增加 ci_branch 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN ci_branch TEXT"),
+        ("041_add_scans_ci_commit_sha",
+         "scans 增加 ci_commit_sha 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN ci_commit_sha TEXT"),
+        ("042_add_scans_share_token",
+         "scans 增加 share_token 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN share_token TEXT"),
+        ("043_add_scans_content_hash",
+         "scans 增加 content_hash 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN content_hash TEXT"),
+        ("044_add_scans_duration_seconds",
+         "scans 增加 duration_seconds 字段（历史手工加过，补齐空库）",
+         "ALTER TABLE scans ADD COLUMN duration_seconds REAL"),
     ]
 
     for mid, desc, sql in migrations:

@@ -18,8 +18,31 @@ os.chdir(SITE)
 import app as site_app  # noqa: E402  （蓝图在 import 时注册，main 块不会执行）
 
 
+def _init_like_production():
+    """跟生产启动同一套建表，一个都不能少。
+
+    生产 app.py 的启动顺序是 init_db + scan/webhook/feedback/leads/team/
+    governance 六套建表。这里原本只调 init_db，结果隔离实例缺 team_members、
+    invoice_requests 等表，开票页直接 500 —— 那不是被测代码的问题，是测试
+    环境本身残缺。
+    """
+    site_app.init_db()
+    from modules.scan_worker import init_scan_tables
+    init_scan_tables()
+    from modules.webhook_manager import init_webhook_tables
+    init_webhook_tables()
+    from modules.feedback import init_feedback_tables
+    init_feedback_tables()
+    from modules.leads import init_leads_tables
+    init_leads_tables()
+    from modules.team import init_team_tables
+    init_team_tables()
+    from modules.team_governance import init_governance_tables
+    init_governance_tables()
+
+
 if __name__ == '__main__':
     port = int(os.environ['XP_E2E_PORT'])
-    site_app.init_db()
+    _init_like_production()
     print('E2E_READY db=%s port=%s' % (site_app.DB_PATH, port), flush=True)
     site_app.app.run(host='127.0.0.1', port=port, threaded=True, use_reloader=False)

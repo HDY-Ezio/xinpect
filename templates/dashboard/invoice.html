@@ -47,8 +47,12 @@
                 </div>
             </div>
             {% else %}
-            <div style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:14px;">
-                暂无可开票订单。已支付且未申请开票的订单将在此显示。
+            <div style="border:1px solid var(--border-color);border-radius:8px;padding:18px;background:var(--bg-card);">
+                <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">{{ invoice_hint.title }}</div>
+                <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">{{ invoice_hint.desc }}</div>
+                {% if invoice_hint.cta_text %}
+                <a href="{{ invoice_hint.cta_href }}" style="display:inline-block;margin-top:12px;font-size:13px;color:var(--accent-steel);text-decoration:none;border-bottom:1px solid var(--accent-steel);">{{ invoice_hint.cta_text }} →</a>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -70,12 +74,14 @@
             <input type="email" name="email" required value="{{ user_email }}" placeholder="用于接收电子发票" style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px;box-sizing:border-box;">
         </div>
 
-        <button type="submit" id="submitBtn" {% if not available_orders %}disabled style="opacity:.5;"{% endif %} style="background:var(--accent-steel);color: var(--color-text-inverse);border:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
+        {% if available_orders %}
+        <button type="submit" id="submitBtn" style="background:var(--accent-steel);color: var(--color-text-inverse);border:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
             提交开票申请
         </button>
+        {% endif %}
         <span id="submitMsg" style="margin-left:12px;font-size:13px;"></span>
     </form>
-n<div style="margin-top:16px;padding:12px 16px;background:var(--color-v-f3775015e);border:1px solid var(--color-v-f359526f7);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.8;">
+<div style="margin-top:16px;padding:12px 16px;background:var(--color-v-f3775015e);border:1px solid var(--color-v-f359526f7);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.8;">
     <strong style="color:var(--text-primary);">📋 开票说明</strong><br>
     · 提交申请后 <strong style="color:var(--accent-steel);">3个工作日</strong> 内为您开具电子发票<br>
     · 发票将发送至您填写的邮箱，请注意查收<br>
@@ -84,7 +90,7 @@ n<div style="margin-top:16px;padding:12px 16px;background:var(--color-v-f3775015
 </div>
 
 <!-- 开票记录 -->
-<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:24px;">
+<div id="invoice-history" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:24px;">
     <h3 style="margin:0 0 16px;font-size:16px;color:var(--text-primary);">我的开票记录</h3>
     {% if invoices %}
     <div class="table-scroll">
@@ -169,6 +175,13 @@ function submitInvoice(e) {
     e.preventDefault();
     var btn = document.getElementById('submitBtn');
     var msg = document.getElementById('submitMsg');
+    if (!btn) {                     // 没有可开票订单时按钮不渲染，别在这里炸
+        if (msg) {
+            msg.style.color = 'var(--danger)';
+            msg.textContent = '当前没有可开票的订单';
+        }
+        return;
+    }
 
     var boxes = document.querySelectorAll('.order-checkbox:checked');
     if (boxes.length === 0) {

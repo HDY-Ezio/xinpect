@@ -1,5 +1,5 @@
 {
-  "count": 546,
+  "count": 547,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -33,7 +33,7 @@
     "modules/alert.py": "a9a917969283334d8cc7cf64c452c9f9",
     "modules/api.py": "4d4dbcb00c07657168b1599d301cfa02",
     "modules/api_usage.py": "6ca14b8ead75092add519576c78cd5e8",
-    "modules/auth.py": "b464db208b8350d88ef658dc906cc76f",
+    "modules/auth.py": "c6873cd64b3f39dea5b5a969e363ec6d",
     "modules/blog.py": "4a999a31fa9c5f4d11693f16903a1505",
     "modules/ci.py": "28d5f4f7e37131aafc0ce7b73021fdf3",
     "modules/compensation.py": "b644c7aa85d145be9e9e8339feab121c",
@@ -41,7 +41,7 @@
     "modules/csrf_protection.py": "91d3b9b8081cc48e226ee578a538149d",
     "modules/dashboard_context.py": "e37be5c3464f6075e31d55f10e1f9323",
     "modules/dashboard_enhance.py": "aac8f36d1b83224543a96fa7775cc782",
-    "modules/db.py": "a2ca500b83125f684df22409fb646363",
+    "modules/db.py": "b4e07fc0481ffc3e0b9bfd0cacd12914",
     "modules/device_bind.py": "35147b3b31eec02f7c3d01dcd9186cb0",
     "modules/dimensions.py": "9977fd02c0ac31a3e9d7e3d157b71e6e",
     "modules/email_sender.py": "65bb6f8cd50ede7bc73becba759f7267",
@@ -138,7 +138,7 @@
     "scripts/run_cold_outreach.sh": "f4b6558dad69ebca6164b9536bc59c20",
     "scripts/run_membership_reminder.sh": "38593ebb4f88548113aa0f02405312c1",
     "scripts/run_paid_audit.sh": "67d7e55b1696b31357281b4172fb0e14",
-    "scripts/run_qa_suite.sh": "c8b38318592872b9ff13097cb2ba44df",
+    "scripts/run_qa_suite.sh": "ecb71ff896458f5cca12276e603f5395",
     "scripts/run_recall_never_scanned.sh": "59584b3e747909ade5f5e81b959e2c26",
     "scripts/run_scan_cost_report.sh": "9296332670be4e88af7c8ff44ac64855",
     "scripts/sample_report.json": "1ae98bd60c5fbfb6568e395f3bfdcbba",
@@ -439,7 +439,7 @@
     "templates/dashboard/credits.html": "84f51ca0d4b2b2a3b1d9f6215756c652",
     "templates/dashboard/deploy.html": "0da3553b20acd3928cf63087ef31f8e3",
     "templates/dashboard/gates.html": "1af6bfdd2747c25ad445aa778d6a32d3",
-    "templates/dashboard/invoice.html": "45a5ebf5e0530830067ac4d920862932",
+    "templates/dashboard/invoice.html": "b80789f850c04d148e7a2127654255e3",
     "templates/dashboard/orders.html": "a87e3805385c79bebff4913f81b67ea7",
     "templates/dashboard/overview.html": "76a4d6a523abfaf591211fdccc258790",
     "templates/dashboard/recharge.html": "7500ddc6a30d7304698ae710875404f1",
@@ -475,7 +475,7 @@
     "templates/whitepaper.html": "8c722e32479b7bb5e463eba93ef850b6",
     "tests/SCENARIO_CHECKLIST.md": "c42f911703fc499bb56e915094a1ef1f",
     "tests/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
-    "tests/e2e_serve.py": "5b4c971c6435479a3660a0d9c6cc7b5d",
+    "tests/e2e_serve.py": "6c629a002fe0f2b2d9e56f8bbff070ec",
     "tests/qa_guardian.py": "8adbd7e4b954a0383d77d7c83df49bcf",
     "tests/test_api_integration.py": "3dfef2c51a9ab1eea4fa53d534d802f7",
     "tests/test_bb_dimension.py": "a151a0ee222962077b543b4216d092da",
@@ -494,6 +494,7 @@
     "tests/test_grade_risk_cap.py": "bb61e1b8445baa94d7a01a8f504e5c14",
     "tests/test_grade_sample_cap.py": "e8369e4233ba677b56836acecffd2b0c",
     "tests/test_health_check_budget.py": "890dbf1b6cb836cd749863b2d9ab2d27",
+    "tests/test_invoice_page_e2e.py": "6e2c94bcd786d42a7aef69f3f8f996a0",
     "tests/test_lang_detect.py": "12f96f47d312d1349d94dce351e7f602",
     "tests/test_membership_reminder.py": "5a4ac9c5b742d42932a82e2d7c9f04e2",
     "tests/test_membership_renewal.py": "ac2efd45f2cfb16b91bddb3eb2ca9461",
@@ -548,7 +549,7 @@
     "tests/verify_visitor_scope.py": "93a14f06666e976e8a710a9f38730435",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-27T20:39:46+08:00",
+  "generated_at": "2026-11-29T00:30:58+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -565,9 +566,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "989ecb579b7a0225414ef2916518265514de7c144561f5f48ef03ccb57b9e382",
+  "integrity": "65deb79fdc7b294be668f2f5ab85788bfc602a8a9cd487e017c3cebc169cc522",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "接入前端实点守卫：真浏览器点试扫页"
+  "task": "开票页空态说清原因 + 全新建库补齐 22 张表与 7 列"
 }
