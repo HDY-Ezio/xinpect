@@ -753,14 +753,108 @@ def _dashboard_scans_data(user, vip, db):
     }
 
 
+# ============================================================
+# 订单记录删除（2026-11-29）
+#
+# 用户视角：一堆过期订单把页面刷满了，留着没意义，想删。
+# 实现上是「隐藏」不是物理 DELETE —— order_id 同时是门房侧的外部单号，
+# 对账脚本 audit_paid_orders.py、支付补开、发票追溯都靠它定位。物理删掉
+# 等于把回溯能力一起删了：万一某笔「过期」订单其实付过款，再也查不回来。
+# 所以只打 hidden_at 时间戳，列表不显示、数据仍在、可以恢复。
+#
+# 能删的只有 expired。两条边界不放开：
+#   · paid    —— 开票凭证，删了发票和流水就对不上账；
+#   · pending —— 还能继续付款，reconcile 还要靠它补开通。
+# ============================================================
+
+
+@app.route('/api/orders/<order_id>/hide', methods=['POST'])
+@login_required
+@csrf_required
+def api_order_hide(order_id):
+    """删除（隐藏）一笔已过期订单。"""
+    user = get_current_user()
+    db = get_db()
+    cur = db.execute(
+        "UPDATE orders SET hidden_at = datetime('now', 'localtime')"
+        " WHERE order_id = ? AND user_id = ? AND status = 'expired'"
+        "   AND hidden_at IS NULL",
+        (order_id, user['id'])
+    )
+    db.commit()
+    if cur.rowcount == 0:
+        # 删不掉要说清为什么，不能默默返回成功
+        row = db.execute(
+            'SELECT status, hidden_at FROM orders WHERE order_id = ? AND user_id = ?',
+            (order_id, user['id'])).fetchone()
+        if not row:
+            return jsonify({'success': False, 'message': '订单不存在'}), 404
+        if row['hidden_at']:
+            return jsonify({'success': True, 'hidden': 0,
+                            'message': '这笔订单已经删过了'})
+        return jsonify({'success': False,
+                        'message': '只有已过期订单可以删除'}), 409
+    return jsonify({'success': True, 'hidden': 1, 'message': '已删除 1 笔订单'})
+
+
+@app.route('/api/orders/hide-expired', methods=['POST'])
+@login_required
+@csrf_required
+def api_orders_hide_expired():
+    """一次性删除（隐藏）当前用户全部已过期订单。"""
+    user = get_current_user()
+    db = get_db()
+    cur = db.execute(
+        "UPDATE orders SET hidden_at = datetime('now', 'localtime')"
+        " WHERE user_id = ? AND status = 'expired' AND hidden_at IS NULL",
+        (user['id'],)
+    )
+    db.commit()
+    n = cur.rowcount
+    return jsonify({'success': True, 'hidden': n,
+                    'message': ('已清理 %d 笔过期订单' % n) if n else '没有需要清理的订单'})
+
+
+@app.route('/api/orders/unhide-all', methods=['POST'])
+@login_required
+@csrf_required
+def api_orders_unhide_all():
+    """恢复显示所有被删除的订单。"""
+    user = get_current_user()
+    db = get_db()
+    cur = db.execute(
+        'UPDATE orders SET hidden_at = NULL WHERE user_id = ? AND hidden_at IS NOT NULL',
+        (user['id'],)
+    )
+    db.commit()
+    n = cur.rowcount
+    return jsonify({'success': True, 'restored': n,
+                    'message': '已恢复 %d 笔订单' % n})
+
+
 def _dashboard_orders_data(user, vip, db):
-    """订单列表页数据"""
+    """订单列表页数据
+
+    只取未隐藏的订单。removable_count 是「能删几笔」，页面据此决定
+    要不要显示「清理全部已过期」那颗按钮 —— 0 笔时不显示，避免死按钮。
+    """
+    uid = user.get('id')
     orders = db.execute(
         'SELECT order_id, plan_id, plan_name, amount, status, created_at '
-        'FROM orders WHERE user_id = ? ORDER BY created_at DESC',
-        (user.get('id'),)
+        'FROM orders WHERE user_id = ? AND hidden_at IS NULL '
+        'ORDER BY created_at DESC',
+        (uid,)
     ).fetchall()
-    return {'orders': [dict(o) for o in orders]}
+    hidden = db.execute(
+        'SELECT COUNT(*) FROM orders WHERE user_id = ? AND hidden_at IS NOT NULL',
+        (uid,)
+    ).fetchone()[0]
+    rows = [dict(o) for o in orders]
+    return {
+        'orders': rows,
+        'hidden_count': hidden,
+        'removable_count': sum(1 for r in rows if r['status'] == 'expired'),
+    }
 
 
 def _dashboard_invoice_data(user, vip, db):

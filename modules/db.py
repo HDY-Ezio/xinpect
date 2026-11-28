@@ -692,6 +692,9 @@ def _run_versioned_migrations(conn):
         ("044_add_scans_duration_seconds",
          "scans 增加 duration_seconds 字段（历史手工加过，补齐空库）",
          "ALTER TABLE scans ADD COLUMN duration_seconds REAL"),
+        ("045_add_orders_hidden_at",
+         "orders 增加 hidden_at 字段（用户删除过期订单：只隐藏不物理删）",
+         "ALTER TABLE orders ADD COLUMN hidden_at TEXT DEFAULT NULL"),
     ]
 
     for mid, desc, sql in migrations:

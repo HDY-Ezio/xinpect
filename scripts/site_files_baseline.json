@@ -1,5 +1,5 @@
 {
-  "count": 547,
+  "count": 549,
   "files": {
     "app.py": "64d46dadc029c31e8e6497c2537f1015",
     "codeact/scripts/monitor_user15.py": "a799821d86174779fa0d641a9aec54f6",
@@ -33,7 +33,7 @@
     "modules/alert.py": "a9a917969283334d8cc7cf64c452c9f9",
     "modules/api.py": "4d4dbcb00c07657168b1599d301cfa02",
     "modules/api_usage.py": "6ca14b8ead75092add519576c78cd5e8",
-    "modules/auth.py": "c6873cd64b3f39dea5b5a969e363ec6d",
+    "modules/auth.py": "6a996d7a9ca0d69a5c3dd442c2919fca",
     "modules/blog.py": "4a999a31fa9c5f4d11693f16903a1505",
     "modules/ci.py": "28d5f4f7e37131aafc0ce7b73021fdf3",
     "modules/compensation.py": "b644c7aa85d145be9e9e8339feab121c",
@@ -41,7 +41,7 @@
     "modules/csrf_protection.py": "91d3b9b8081cc48e226ee578a538149d",
     "modules/dashboard_context.py": "e37be5c3464f6075e31d55f10e1f9323",
     "modules/dashboard_enhance.py": "aac8f36d1b83224543a96fa7775cc782",
-    "modules/db.py": "b4e07fc0481ffc3e0b9bfd0cacd12914",
+    "modules/db.py": "9e4a471d682f72e6d1bf50fa4eea0a66",
     "modules/device_bind.py": "35147b3b31eec02f7c3d01dcd9186cb0",
     "modules/dimensions.py": "9977fd02c0ac31a3e9d7e3d157b71e6e",
     "modules/email_sender.py": "65bb6f8cd50ede7bc73becba759f7267",
@@ -138,7 +138,7 @@
     "scripts/run_cold_outreach.sh": "f4b6558dad69ebca6164b9536bc59c20",
     "scripts/run_membership_reminder.sh": "38593ebb4f88548113aa0f02405312c1",
     "scripts/run_paid_audit.sh": "67d7e55b1696b31357281b4172fb0e14",
-    "scripts/run_qa_suite.sh": "ecb71ff896458f5cca12276e603f5395",
+    "scripts/run_qa_suite.sh": "bf1a394d0ac1917316b925ea41f0200b",
     "scripts/run_recall_never_scanned.sh": "59584b3e747909ade5f5e81b959e2c26",
     "scripts/run_scan_cost_report.sh": "9296332670be4e88af7c8ff44ac64855",
     "scripts/sample_report.json": "1ae98bd60c5fbfb6568e395f3bfdcbba",
@@ -440,7 +440,7 @@
     "templates/dashboard/deploy.html": "0da3553b20acd3928cf63087ef31f8e3",
     "templates/dashboard/gates.html": "1af6bfdd2747c25ad445aa778d6a32d3",
     "templates/dashboard/invoice.html": "b80789f850c04d148e7a2127654255e3",
-    "templates/dashboard/orders.html": "a87e3805385c79bebff4913f81b67ea7",
+    "templates/dashboard/orders.html": "db4a19c9297794468fbe42c03c20a002",
     "templates/dashboard/overview.html": "76a4d6a523abfaf591211fdccc258790",
     "templates/dashboard/recharge.html": "7500ddc6a30d7304698ae710875404f1",
     "templates/dashboard/recommend.html": "a17f6011b1046d69e429021c3cc17436",
@@ -503,6 +503,8 @@
     "tests/test_nav_single_source.py": "51a279a41f61c46312ac83ae2896d769",
     "tests/test_no_db_dumps_tracked.py": "71b4a60863a5661b97346a7a3e737c71",
     "tests/test_offsite_backup.py": "abf7bf91efc8a6b71f7ac2d3f9aa00cb",
+    "tests/test_orders_hide.py": "7ff477a45ef045a9392da19933efc134",
+    "tests/test_orders_page_e2e.py": "71c56b408bf3b3ac0f0ba6ae5c63225b",
     "tests/test_outbound_numbers.py": "f9709fe6d91ec684f7c9d919bdf24132",
     "tests/test_outreach_policy.py": "3f23306550ff977db01c43b07ff0b82a",
     "tests/test_paid_fulfillment.py": "cc0bee65cb47a6184ed5fd8a95cf817f",
@@ -549,7 +551,7 @@
     "tests/verify_visitor_scope.py": "93a14f06666e976e8a710a9f38730435",
     "tests/verify_visitor_scope_selftest.py": "bdca822ed73161d12622531ed5a56ca3"
   },
-  "generated_at": "2026-11-29T00:30:58+08:00",
+  "generated_at": "2026-11-29T01:17:45+08:00",
   "include": [
     "app.py",
     "design.md",
@@ -566,9 +568,9 @@
     "docker-deploy",
     "monitoring"
   ],
-  "integrity": "65deb79fdc7b294be668f2f5ab85788bfc602a8a9cd487e017c3cebc169cc522",
+  "integrity": "9856ce336739144f7c7002a9bbced4047516b1c94cae9b23726eca15d012dbfb",
   "owner": "workbuddy-xinpect",
   "root": "/opt/xinpect-website",
   "schema": 1,
-  "task": "开票页空态说清原因 + 全新建库补齐 22 张表与 7 列"
+  "task": "订单页删除过期订单（含自检语义修正后重签）"
 }

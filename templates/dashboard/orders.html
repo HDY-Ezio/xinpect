@@ -9,47 +9,175 @@
 </div>
 
 {% if orders %}
-<div class="table-scroll">
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>订单号</th>
-            <th>套餐</th>
-            <th>金额</th>
-            <th>状态</th>
-            <th>创建时间</th>
-            <th>操作</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in orders %}
-        <tr>
-            <td style="font-family:monospace;font-size:13px;">{{ order.order_id }}</td>
-            <td>{{ order.plan_name }}</td>
-            <td style="font-weight:600;">¥{{ order.amount }}</td>
-            <td>
-                <span class="status-badge {% if order.status == 'paid' %}success{% elif order.status == 'pending' %}warning{% else %}muted{% endif %}">
-                    {% if order.status == 'paid' %}已支付{% elif order.status == 'pending' %}待支付{% else %}已过期{% endif %}
-                </span>
-            </td>
-            <td style="color:var(--text-muted);font-size:13px;">{{ order.created_at }}</td>
-            <td>
-                {% if order.status == 'pending' %}
-                <a href="{{ url_for('dashboard_page', page='recharge') }}">去支付</a>
-                {% else %}
-                <span style="color:var(--text-muted);">-</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
+<div class="orders-bar">
+    <span class="orders-bar-count">共 {{ orders|length }} 笔订单</span>
+    {% if removable_count %}
+    <button type="button" class="btn btn-secondary orders-bar-btn" id="clean-expired"
+            data-count="{{ removable_count }}">清理全部已过期（{{ removable_count }} 笔）</button>
+    {% endif %}
 </div>
-</table>
+
+<div class="table-scroll">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>订单号</th>
+                <th>套餐</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td class="orders-oid">{{ order.order_id }}</td>
+                <td>{{ order.plan_name }}</td>
+                <td class="orders-amount">¥{{ order.amount }}</td>
+                <td>
+                    <span class="status-badge {% if order.status == 'paid' %}success{% elif order.status == 'pending' %}warning{% else %}muted{% endif %}">
+                        {% if order.status == 'paid' %}已支付{% elif order.status == 'pending' %}待支付{% else %}已过期{% endif %}
+                    </span>
+                </td>
+                <td class="orders-time">{{ order.created_at }}</td>
+                <td>
+                    {% if order.status == 'pending' %}
+                    <a href="{{ url_for('dashboard_page', page='recharge') }}">去支付</a>
+                    {% elif order.status == 'expired' %}
+                    <button type="button" class="orders-del" data-order="{{ order.order_id }}">删除</button>
+                    {% else %}
+                    <span class="orders-dash">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if hidden_count %}
+<p class="orders-hidden-note">
+    已删除 {{ hidden_count }} 笔过期订单
+    <button type="button" class="orders-link" id="restore-hidden">恢复显示</button>
+</p>
+{% endif %}
+
 {% else %}
-<div class="empty-state" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);">
+<div class="empty-state" style="background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-md);">
+    {% if hidden_count %}
+    <div class="empty-state-icon">🗂️</div>
+    <div class="empty-state-text">你名下的 {{ hidden_count }} 笔过期订单已删除</div>
+    <button type="button" class="btn btn-secondary" id="restore-hidden">恢复显示</button>
+    {% else %}
     <div class="empty-state-icon">📋</div>
     <div class="empty-state-text">暂无订单记录</div>
     <a href="{{ url_for('dashboard_page', page='recharge') }}" class="btn btn-orange">升级会员</a>
+    {% endif %}
 </div>
 {% endif %}
+
+{% if orders %}
+<p class="orders-tip">已支付和待支付订单不能删除：前者是开票与流水凭证，后者还能继续付款。删除只是不再显示，可以随时恢复。</p>
+{% endif %}
+
+<p id="orders-msg" class="orders-msg" role="status" aria-live="polite"></p>
+
+<style>
+.orders-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-3);
+}
+.orders-bar-count { color: var(--color-text-muted); font-size: var(--text-sm); }
+.orders-bar-btn { padding: 6px 14px; font-size: var(--text-sm); }
+.orders-oid { font-family: monospace; font-size: 13px; }
+.orders-amount { font-weight: 600; }
+.orders-time { color: var(--color-text-muted); font-size: 13px; }
+.orders-dash { color: var(--color-text-muted); }
+.orders-del {
+    background: transparent; border: none; padding: 0; cursor: pointer;
+    color: var(--color-danger); font-size: var(--text-sm); font-family: inherit;
+}
+.orders-del:hover { text-decoration: underline; }
+.orders-del:disabled { color: var(--color-text-muted); cursor: default; text-decoration: none; }
+.orders-hidden-note { margin-top: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+.orders-link {
+    background: transparent; border: none; padding: 0; cursor: pointer;
+    color: var(--color-metal-gold-bright); font-size: inherit;
+    font-family: inherit; text-decoration: underline;
+}
+.orders-tip { margin-top: var(--space-3); color: var(--color-text-muted); font-size: 12px; }
+.orders-msg { margin-top: var(--space-3); font-size: var(--text-sm); min-height: 1em; }
+.orders-msg.is-error { color: var(--color-danger); }
+.orders-msg.is-ok { color: var(--color-success); }
+</style>
+
+<script>
+(function () {
+    var msg = document.getElementById('orders-msg');
+
+    function say(text, kind) {
+        if (!msg) return;
+        msg.textContent = text || '';
+        msg.className = 'orders-msg' + (kind ? ' is-' + kind : '');
+    }
+
+    function post(url) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        }).then(function (resp) {
+            return resp.json().then(function (data) {
+                return {status: resp.status, data: data};
+            });
+        });
+    }
+
+    function handle(res) {
+        if (!res.data || res.data.success !== true) {
+            say((res.data && res.data.message) || '操作失败，请稍后再试', 'error');
+            return false;
+        }
+        say(res.data.message || '已处理', 'ok');
+        setTimeout(function () { location.reload(); }, 400);
+        return true;
+    }
+
+    function failed(btn) {
+        return function () {
+            if (btn) btn.disabled = false;
+            say('网络错误，请稍后再试', 'error');
+        };
+    }
+
+    document.addEventListener('click', function (ev) {
+        var node = ev.target;
+        if (!node || typeof node.closest !== 'function') return;
+
+        var del = node.closest('.orders-del');
+        if (del) {
+            if (!window.confirm('删除这 1 笔已过期订单？删除后列表里不再显示，可以恢复。')) return;
+            del.disabled = true;
+            post('/api/orders/' + encodeURIComponent(del.getAttribute('data-order')) + '/hide')
+                .then(handle).catch(failed(del));
+            return;
+        }
+
+        var clean = node.closest('#clean-expired');
+        if (clean) {
+            var n = clean.getAttribute('data-count') || '';
+            if (!window.confirm('清理全部 ' + n + ' 笔已过期订单？删除后列表里不再显示，可以恢复。')) return;
+            clean.disabled = true;
+            post('/api/orders/hide-expired').then(handle).catch(failed(clean));
+            return;
+        }
+
+        var restore = node.closest('#restore-hidden');
+        if (restore) {
+            restore.disabled = true;
+            post('/api/orders/unhide-all').then(handle).catch(failed(restore));
+        }
+    });
+})();
+</script>
 {% endblock %}

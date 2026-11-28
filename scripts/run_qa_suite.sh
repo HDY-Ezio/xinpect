@@ -175,6 +175,7 @@ if ! /usr/bin/python3 -c "import pytest" 2>/dev/null; then
         test_upgrade_url_is_reachable.py \
         test_dashboard_mobile.py \
         test_mobile_responsive.py \
+        test_orders_hide.py \
         test_qa_mount_completeness.py
     do
         /usr/bin/python3 "tests/$_t" 2>&1 | tee -a "$REPORTS/extended_tests.log"
@@ -232,6 +233,7 @@ else
         tests/test_upgrade_url_is_reachable.py \
         tests/test_blocking_not_style.py \
         tests/test_severity_semantics.py \
+        tests/test_orders_hide.py \
         tests/test_qa_mount_completeness.py \
         -q --tb=line 2>&1 | tee -a "$REPORTS/extended_tests.log"
     PY_RC=${PIPESTATUS[0]}
@@ -702,7 +704,7 @@ E2E_RC=0
 E2E_PY=/opt/xinpect-e2e/venv/bin/python
 # 独立解释器跑的守卫：不归 pytest 收集（要 venv 的 playwright），但每轮必须跑。
 # 这个变量是 test_qa_mount_completeness.py 的唯一事实来源，加文件就往这里加一行。
-STANDALONE_GUARDS="tests/test_try_page_e2e.py tests/test_invoice_page_e2e.py"
+STANDALONE_GUARDS="tests/test_try_page_e2e.py tests/test_invoice_page_e2e.py tests/test_orders_page_e2e.py"
 if [ ! -x "$E2E_PY" ]; then
     echo "[$(date '+%F %T')] ❌ 前端实点守卫环境缺失（$E2E_PY），这一层没跑，不能算绿" | tee -a "$REPORTS/extended_tests.log"
     E2E_RC=1
